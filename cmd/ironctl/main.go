@@ -8,8 +8,10 @@
 //
 //	ironctl [--addr URL] change submit --kind <k> --group <g> --by <user>
 //	ironctl [--addr URL] change pending
+//	ironctl [--addr URL] change history
 //	ironctl [--addr URL] change approve <id> --by <user>
 //	ironctl [--addr URL] change reject  <id> --by <user>
+//	ironctl [--addr URL] audit [--limit N]
 package main
 
 import (
@@ -39,9 +41,19 @@ func run(args []string) error {
 		addr = args[1]
 		args = args[2:]
 	}
-	if len(args) < 2 || args[0] != "change" {
+	if len(args) < 1 {
 		usage()
-		return fmt.Errorf("expected: change <submit|pending|approve|reject>")
+		return fmt.Errorf("expected: change <...> or audit")
+	}
+
+	// Top-level "audit" command.
+	if args[0] == "audit" {
+		return cmdAudit(addr, args[1:])
+	}
+
+	if args[0] != "change" || len(args) < 2 {
+		usage()
+		return fmt.Errorf("expected: change <submit|pending|history|approve|reject>")
 	}
 	verb := args[1]
 	rest := args[2:]
@@ -51,6 +63,8 @@ func run(args []string) error {
 		return cmdSubmit(addr, rest)
 	case "pending":
 		return cmdPending(addr)
+	case "history":
+		return cmdHistory(addr)
 	case "approve":
 		return cmdDecision(addr, "approve", rest)
 	case "reject":
@@ -83,6 +97,29 @@ func cmdSubmit(addr string, args []string) error {
 
 func cmdPending(addr string) error {
 	resp, err := http.Get(addr + "/v1/changes/pending")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return printBody(resp)
+}
+
+func cmdHistory(addr string) error {
+	resp, err := http.Get(addr + "/v1/changes/history")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return printBody(resp)
+}
+
+func cmdAudit(addr string, args []string) error {
+	fs := flag.NewFlagSet("audit", flag.ContinueOnError)
+	limit := fs.Int("limit", 100, "max recent audit entries to return")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	resp, err := http.Get(fmt.Sprintf("%s/v1/audit?limit=%d", addr, *limit))
 	if err != nil {
 		return err
 	}
@@ -133,8 +170,10 @@ func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
   ironctl [--addr URL] change submit --kind <k> --group <g> --by <user>
   ironctl [--addr URL] change pending
+  ironctl [--addr URL] change history
   ironctl [--addr URL] change approve <id> --by <user>
   ironctl [--addr URL] change reject  <id> --by <user>
+  ironctl [--addr URL] audit [--limit N]
 
   --addr defaults to `+defaultAddr)
 }

@@ -272,12 +272,20 @@ type Gateway struct {
 	approver contract.Approver
 	applier  contract.Applier
 	store    contract.ChangeStore
+	audit    *AuditLog // nil = audit disabled (Append is a safe no-op)
 }
 
 // New constructs a Gateway from its collaborators. The chain runs first
 // (deterministic), then the approver (human gate), then the applier.
 func New(chain VerifierChain, approver contract.Approver, applier contract.Applier, store contract.ChangeStore) *Gateway {
 	return &Gateway{chain: chain, approver: approver, applier: applier, store: store}
+}
+
+// SetAudit attaches an append-only audit log. A nil log disables auditing. It
+// returns the gateway for chaining.
+func (g *Gateway) SetAudit(a *AuditLog) *Gateway {
+	g.audit = a
+	return g
 }
 
 // Submit runs the full mandatory-mutation flow for req:
@@ -307,18 +315,22 @@ func (g *Gateway) Submit(ctx context.Context, req contract.ChangeRequest) (contr
 	if err := g.store.Put(req); err != nil {
 		return req.ID, err
 	}
+	_ = g.audit.Append(AuditEntry{Stage: AuditSubmit, ChangeID: req.ID, Kind: req.Kind, Detail: string(req.RequestedBy)})
 
 	verdict, reason, err := g.chain.Run(ctx, req)
 	if err != nil {
 		// A verifier errored; treat as reject and record it.
 		d := contract.Decision{Outcome: OutcomeReject, DecidedBy: "verifier", DecidedAt: time.Now().UTC()}
 		_ = g.store.SetDecision(req.ID, d)
+		_ = g.audit.Append(AuditEntry{Stage: AuditVerdict, ChangeID: req.ID, Kind: req.Kind, Detail: "error: " + err.Error()})
 		return req.ID, err
 	}
+	_ = g.audit.Append(AuditEntry{Stage: AuditVerdict, ChangeID: req.ID, Kind: req.Kind, Detail: verdictString(verdict) + ": " + reason})
 
 	switch verdict {
 	case contract.VerdictReject:
 		d := contract.Decision{Outcome: OutcomeReject, DecidedBy: "verifier", DecidedAt: time.Now().UTC()}
+		_ = g.audit.Append(AuditEntry{Stage: AuditDecision, ChangeID: req.ID, Kind: req.Kind, Detail: "reject (verifier): " + reason})
 		return req.ID, g.store.SetDecision(req.ID, d)
 
 	case contract.VerdictRequireHuman:
@@ -329,12 +341,14 @@ func (g *Gateway) Submit(ctx context.Context, req contract.ChangeRequest) (contr
 		if err := g.store.SetDecision(req.ID, d); err != nil {
 			return req.ID, err
 		}
+		_ = g.audit.Append(AuditEntry{Stage: AuditDecision, ChangeID: req.ID, Kind: req.Kind, Detail: d.Outcome + " by " + string(d.DecidedBy)})
 		if d.Outcome != OutcomeApprove {
 			return req.ID, nil
 		}
 		if err := g.applier.Apply(ctx, req, d); err != nil {
 			return req.ID, err
 		}
+		_ = g.audit.Append(AuditEntry{Stage: AuditApply, ChangeID: req.ID, Kind: req.Kind})
 		return req.ID, g.store.MarkApplied(req.ID)
 
 	default: // VerdictPass
@@ -342,10 +356,26 @@ func (g *Gateway) Submit(ctx context.Context, req contract.ChangeRequest) (contr
 		if err := g.store.SetDecision(req.ID, d); err != nil {
 			return req.ID, err
 		}
+		_ = g.audit.Append(AuditEntry{Stage: AuditDecision, ChangeID: req.ID, Kind: req.Kind, Detail: "auto-approve (all verifiers passed)"})
 		if err := g.applier.Apply(ctx, req, d); err != nil {
 			return req.ID, err
 		}
+		_ = g.audit.Append(AuditEntry{Stage: AuditApply, ChangeID: req.ID, Kind: req.Kind})
 		return req.ID, g.store.MarkApplied(req.ID)
+	}
+}
+
+// verdictString renders a verdict for the audit log.
+func verdictString(v contract.Verdict) string {
+	switch v {
+	case contract.VerdictPass:
+		return "pass"
+	case contract.VerdictReject:
+		return "reject"
+	case contract.VerdictRequireHuman:
+		return "require-human"
+	default:
+		return "unknown"
 	}
 }
 

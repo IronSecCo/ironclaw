@@ -12,16 +12,25 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/nivardsec/ironclaw/internal/contract"
 	"github.com/nivardsec/ironclaw/internal/host/gateway"
 )
 
+// HistoryProvider returns the applied/rejected change history. A FileStore
+// satisfies it; the in-memory store does not (history endpoint returns empty).
+type HistoryProvider interface {
+	History() []gateway.HistoryEntry
+}
+
 // Server is the control-plane HTTP server. It drives the gateway.
 type Server struct {
-	gw  *gateway.Gateway
-	mux *http.ServeMux
+	gw        *gateway.Gateway
+	history   HistoryProvider
+	auditPath string
+	mux       *http.ServeMux
 }
 
 // New constructs a Server bound to gw and wires the routes.
@@ -31,13 +40,68 @@ func New(gw *gateway.Gateway) *Server {
 	return s
 }
 
+// WithHistory attaches a change-history provider (e.g. a *gateway.FileStore) so
+// GET /v1/changes/history returns applied + rejected changes. It returns the
+// Server for chaining.
+func (s *Server) WithHistory(h HistoryProvider) *Server {
+	s.history = h
+	return s
+}
+
+// WithAuditPath attaches the JSONL audit-log path so GET /v1/audit returns recent
+// entries. It returns the Server for chaining.
+func (s *Server) WithAuditPath(path string) *Server {
+	s.auditPath = path
+	return s
+}
+
 // Handler exposes the mux for testing (httptest.NewServer(s.Handler())).
 func (s *Server) Handler() http.Handler { return s.mux }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/changes", s.handleSubmit)
 	s.mux.HandleFunc("GET /v1/changes/pending", s.handlePending)
+	s.mux.HandleFunc("GET /v1/changes/history", s.handleHistory)
 	s.mux.HandleFunc("POST /v1/changes/{id}/decision", s.handleDecision)
+	s.mux.HandleFunc("GET /v1/audit", s.handleAudit)
+}
+
+// handleHistory returns the applied + rejected change history. When no history
+// provider is attached (in-memory store), it returns an empty list.
+func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
+	if s.history == nil {
+		writeJSON(w, http.StatusOK, []gateway.HistoryEntry{})
+		return
+	}
+	hist := s.history.History()
+	if hist == nil {
+		hist = []gateway.HistoryEntry{}
+	}
+	writeJSON(w, http.StatusOK, hist)
+}
+
+// handleAudit returns recent audit entries. The optional ?limit= query caps the
+// count (default 100). When no audit path is attached, it returns an empty list.
+func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
+	if s.auditPath == "" {
+		writeJSON(w, http.StatusOK, []gateway.AuditEntry{})
+		return
+	}
+	limit := 100
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	entries, err := gateway.ReadAudit(s.auditPath, limit)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if entries == nil {
+		entries = []gateway.AuditEntry{}
+	}
+	writeJSON(w, http.StatusOK, entries)
 }
 
 // submitResponse is returned from POST /v1/changes.

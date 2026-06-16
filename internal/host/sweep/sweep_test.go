@@ -2,7 +2,13 @@
 
 package sweep
 
-import "testing"
+import (
+	"context"
+	"testing"
+
+	"github.com/nivardsec/ironclaw/internal/contract"
+	"github.com/nivardsec/ironclaw/internal/host/registry"
+)
 
 func TestDecideStuckAction(t *testing.T) {
 	tests := []struct {
@@ -30,3 +36,70 @@ func TestDecideStuckAction(t *testing.T) {
 		})
 	}
 }
+
+// fakeProber returns per-session liveness readings from a map.
+type fakeProber struct {
+	hb    map[contract.SessionID]int64
+	claim map[contract.SessionID]int64
+}
+
+func (f *fakeProber) Probe(id contract.SessionID) (int64, int64, error) {
+	return f.hb[id], f.claim[id], nil
+}
+
+// fakeKiller records which sessions it was asked to kill.
+type fakeKiller struct {
+	killed map[contract.SessionID]StuckAction
+}
+
+func (f *fakeKiller) Kill(id contract.SessionID, action StuckAction) error {
+	if f.killed == nil {
+		f.killed = map[contract.SessionID]StuckAction{}
+	}
+	f.killed[id] = action
+	return nil
+}
+
+func TestSweepRunKillsStuckLeavesHealthy(t *testing.T) {
+	reg := registry.NewMemRegistry()
+	healthy, _ := reg.ResolveSession("g1", "m1", strptr("h"), contract.SessionPerThread)
+	dead, _ := reg.ResolveSession("g1", "m1", strptr("d"), contract.SessionPerThread)
+
+	prober := &fakeProber{
+		hb: map[contract.SessionID]int64{
+			healthy.ID: 1000,                      // fresh heartbeat
+			dead.ID:    HeartbeatCeilingMs + 1000, // past ceiling => KillCeiling
+		},
+		claim: map[contract.SessionID]int64{},
+	}
+	killer := &fakeKiller{}
+	s := New(reg, prober, killer)
+	if err := s.Run(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := killer.killed[healthy.ID]; ok {
+		t.Fatal("healthy session should not be killed")
+	}
+	if act := killer.killed[dead.ID]; act != KillCeiling {
+		t.Fatalf("dead session should be killed with KillCeiling, got %v", act)
+	}
+}
+
+func TestSweepRunKillClaim(t *testing.T) {
+	reg := registry.NewMemRegistry()
+	stuck, _ := reg.ResolveSession("g1", "m1", nil, contract.SessionShared)
+	prober := &fakeProber{
+		hb:    map[contract.SessionID]int64{stuck.ID: HeartbeatStaleMs + 1},
+		claim: map[contract.SessionID]int64{stuck.ID: ClaimStaleMs + 1},
+	}
+	killer := &fakeKiller{}
+	s := New(reg, prober, killer)
+	if err := s.Run(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if act := killer.killed[stuck.ID]; act != KillClaim {
+		t.Fatalf("stuck-claim session should be killed with KillClaim, got %v", act)
+	}
+}
+
+func strptr(s string) *string { return &s }

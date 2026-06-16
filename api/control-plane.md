@@ -44,6 +44,16 @@ List the change requests currently awaiting a decision.
 
 Response — `200 OK`: a JSON array of `ChangeRequest` objects (empty array if none).
 
+## `GET /v1/changes/history`
+
+List the applied + rejected change history (everything no longer pending). When
+the gateway uses the durable `FileStore`, this reflects state across restarts;
+with the in-memory store it returns an empty array.
+
+Response — `200 OK`: a JSON array of history entries, each carrying the
+`ChangeRequest`, its terminal `status` (`applied` | `rejected` | `approved`), and
+the recorded `decision`.
+
 ## `POST /v1/changes/{id}/decision`
 
 Record a human decision for a pending change. On `approve`, the gateway applies
@@ -64,3 +74,12 @@ Responses:
 - `400 Bad Request` — missing id or invalid outcome
 - `409 Conflict` — no change is awaiting that id (or a decision is already
   pending delivery)
+
+## `GET /v1/audit`
+
+Return recent gateway audit entries (append-only JSONL: submit / verdict /
+decision / apply, with timestamps). The optional `?limit=N` query caps the count
+(default 100). With no audit log attached it returns an empty array.
+
+Response — `200 OK`: a JSON array of audit entries
+(`{ "time", "stage", "changeId", "kind", "detail" }`).

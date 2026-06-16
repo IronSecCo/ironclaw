@@ -7,7 +7,10 @@ package sweep
 
 import (
 	"context"
-	"errors"
+	"fmt"
+
+	"github.com/nivardsec/ironclaw/internal/contract"
+	"github.com/nivardsec/ironclaw/internal/host/registry"
 )
 
 // StuckAction is the decision the sweep loop takes for a sandbox that may be
@@ -64,19 +67,64 @@ func DecideStuckAction(heartbeatAgeMs, oldestClaimAgeMs int64) StuckAction {
 	return None
 }
 
-// Sweeper runs the periodic maintenance loop.
-type Sweeper struct{}
+// Prober reports the liveness signals for a session: the age (ms) of its
+// heartbeat file and the age (ms) of its oldest outstanding message claim. A
+// negative age means "unknown / not present". Tests inject a fake; production
+// stats the heartbeat file and reads the processing acks.
+type Prober interface {
+	Probe(contract.SessionID) (heartbeatAgeMs, oldestClaimAgeMs int64, err error)
+}
 
-// New constructs a Sweeper.
-func New() *Sweeper { return &Sweeper{} }
+// Killer terminates the sandbox for a session (and lets the host reset orphaned
+// claims and respawn). Tests inject a fake; production wires it to host/isolation.
+type Killer interface {
+	Kill(id contract.SessionID, action StuckAction) error
+}
 
-// Run executes the sweep loop until ctx is cancelled.
+// Sweeper runs the periodic maintenance loop over the registry's sessions.
+type Sweeper struct {
+	reg    registry.Registry
+	prober Prober
+	killer Killer
+}
+
+// New constructs a Sweeper over the registry, prober, and killer.
+func New(reg registry.Registry, prober Prober, killer Killer) *Sweeper {
+	return &Sweeper{reg: reg, prober: prober, killer: killer}
+}
+
+// Run performs one sweep pass: for every session, probe its liveness, call
+// DecideStuckAction, and on KillCeiling/KillClaim kill the sandbox via the
+// injected Killer. A healthy session is left alone.
 //
-// Full flow (gated on the central-DB binding): on each tick, for every active
-// session — stat the heartbeat file, compute its age and the oldest claim age,
-// call DecideStuckAction, and on KillCeiling/KillClaim kill the sandbox via
-// host/isolation and reset orphaned claims with backoff; then wake sessions with
-// due (scheduled/recurring) messages and expand recurrences.
+// Run is the orchestration unit and is safe to call on a ticker; it returns the
+// first error it encounters. (Due-message wake and recurrence expansion attach to
+// this same pass once the scheduling tables land.)
 func (s *Sweeper) Run(ctx context.Context) error {
-	return errors.New("host/sweep: Run not implemented — gated on central-DB binding")
+	if s.reg == nil || s.prober == nil || s.killer == nil {
+		return fmt.Errorf("host/sweep: Run requires a registry, prober, and killer")
+	}
+	sessions, err := s.reg.ListSessions()
+	if err != nil {
+		return fmt.Errorf("host/sweep: list sessions: %w", err)
+	}
+	for _, sess := range sessions {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		hb, claim, err := s.prober.Probe(sess.ID)
+		if err != nil {
+			return fmt.Errorf("host/sweep: probe %s: %w", sess.ID, err)
+		}
+		action := DecideStuckAction(hb, claim)
+		if action == None {
+			continue
+		}
+		if err := s.killer.Kill(sess.ID, action); err != nil {
+			return fmt.Errorf("host/sweep: kill %s: %w", sess.ID, err)
+		}
+	}
+	return nil
 }
