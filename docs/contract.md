@@ -78,3 +78,33 @@ minus `query_only`, so host and sandbox cannot drift on cipher params.
 **Why it is not applied here.** This control-plane pass is stdlib-only and may not
 edit `internal/contract/**`. The change must land together with the
 encrypted-SQLite binding and both CODEOWNERS' sign-off.
+
+## Capability-change payload conventions
+
+These are cross-agent **conventions** layered on the frozen contract, not Go types
+in `internal/contract`. They define the `payload` the sandbox puts in a
+capability-change request and the `ChangeRequest.After` the host gateway
+verifiers inspect. The wire path is:
+
+1. Sandbox tool emits `{"action":"<kind>","payload":<obj>,"reason":"..."}` as the
+   content of a `KindSystem` outbound message (`action` == the `ChangeKind`
+   string, so it maps 1:1 to the host's `authorizeSystemAction`).
+2. Host `delivery` routes it to a gateway `ChangeRequest` with that `Kind` and
+   `After` = the `payload` verbatim (see `extractAfter`).
+3. Gateway verifiers inspect `After`; then the mandatory human approves.
+
+Per-kind `payload` shape:
+
+| Kind | `payload` (== `After`) | Verifier |
+|------|------------------------|----------|
+| `packages` | `{"apt":["..."],"npm":["..."]}` (a flat `["..."]` is also accepted) | `PackageNameVerifier` rejects shell metacharacters |
+| `mounts` | `[{"source":"/abs/host/path"}, ...]` | `MountAllowlistVerifier` rejects `..` and out-of-allowlist sources |
+| `enabled_tools` | `["toolName", ...]` | none yet (human reviews) |
+| `persona` | `{"instructions":"..."}` | none yet (human reviews) |
+| `wiring` | object (engage mode, pattern, scope, ...) | none yet (human reviews) |
+| `permissions` | object (role/member grants) | none yet (human reviews) |
+
+Kinds with no automated verifier still pass through the deterministic chain and
+the always-require-human floor; they are simply approved by a human without an
+extra machine check. New verifiers may be added later and only ever ADD
+rejections — never bypass the human floor.

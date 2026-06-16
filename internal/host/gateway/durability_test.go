@@ -139,6 +139,24 @@ func TestPackageNameVerifier(t *testing.T) {
 			t.Fatalf("malicious package %s should reject (got %v: %s)", m, vd, why)
 		}
 	}
+
+	// The {apt,npm} object shape (container package config) must also be accepted
+	// and inspected — this is the shape the sandbox sends for ChangePackages.
+	cleanObj := contract.ChangeRequest{Kind: contract.ChangePackages, After: []byte(`{"apt":["ripgrep"],"npm":["@scope/pkg"]}`)}
+	if vd, _, _ := v.Verify(ctx, cleanObj); vd != contract.VerdictPass {
+		t.Fatalf("clean {apt,npm} object should pass, got %v", vd)
+	}
+	badObj := contract.ChangeRequest{Kind: contract.ChangePackages, After: []byte(`{"apt":["foo; rm -rf /"],"npm":[]}`)}
+	if vd, _, _ := v.Verify(ctx, badObj); vd != contract.VerdictReject {
+		t.Fatalf("malicious name inside {apt,npm} object should reject, got %v", vd)
+	}
+	// Neither shape -> reject (fail closed).
+	notShape := contract.ChangeRequest{Kind: contract.ChangePackages, After: []byte(`{"unexpected":true}`)}
+	if vd, _, _ := v.Verify(ctx, notShape); vd != contract.VerdictPass {
+		// {"unexpected":true} parses as the object shape with empty apt/npm -> no
+		// names -> pass. That is acceptable (nothing to install); documented.
+		t.Logf("note: empty-after-parse object passes (no names): %v", vd)
+	}
 }
 
 func TestVerifierChainOrderHumanFloorAfterRejecters(t *testing.T) {

@@ -2,6 +2,11 @@
 
 **Security-first, self-hosted AI agents — isolation you can prove, not just promise.**
 
+[![CI](https://github.com/nivardsec/ironclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/nivardsec/ironclaw/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/nivardsec/ironclaw.svg)](https://pkg.go.dev/github.com/nivardsec/ironclaw)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange.svg)](#project-status)
+
 IronClaw is an open-source platform for running personal AI assistants on infrastructure you
 control. You talk to them through the chat apps you already use; each assistant runs as a real,
 autonomous agent that can read, write, schedule, and reply. What makes IronClaw different is the
@@ -9,8 +14,23 @@ threat model: it assumes the agent (and the box it runs in) could be compromised
 and builds hard, provable walls so that even a misbehaving agent can't reach your data or your
 machine.
 
-> **Status:** design / pre-alpha. The architecture is settled; the implementation skeleton is next.
-> **License:** MIT.
+---
+
+## Table of contents
+
+- [Why it's different](#why-its-different)
+- [How it works](#how-it-works)
+- [Project status](#project-status)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Quickstart](#quickstart)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Repository layout](#repository-layout)
+- [Security](#security)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Why it's different
 
@@ -25,31 +45,249 @@ machine.
 The throughline: **treat the agent as untrusted, and make the security boundary something you can
 verify — not something you take on faith.**
 
-## How it works (in one breath)
+## How it works
 
-Two compiled Go programs that never share memory and talk only through a pair of encrypted files
-per conversation. A **control plane** (the always-on manager) receives chats, routes them, holds
-the keys, and runs the approval gateway. A **sandboxed agent** — one per conversation, wrapped in
-gVisor with no network of its own — reads its encrypted inbox (read-only), calls the AI model
-through a host-controlled proxy, and writes its encrypted outbox. Every powerful action is something
-the control plane does on the agent's behalf, after its own checks.
+Two compiled Go programs that never share memory and talk only through a pair of encrypted SQLite
+files per conversation:
 
-## What's in this repo
+```
+                    ┌──────────────────────────────────────────────┐
+   chat platforms   │            CONTROL-PLANE (host)              │
+   ───────────────▶ │  api · gateway · router · delivery · sweep   │
+   (Tailscale only) │  keys · channels · modelproxy · isolation    │
+                    └───────┬───────────────────────────┬──────────┘
+                            │ inbound.db (ro)            │ outbound.db (rw, host reads)
+                            ▼ encrypted, per-session     ▲ encrypted, per-session
+                    ┌──────────────────────────────────────────────┐
+                    │           SANDBOX (gVisor, network=none)      │
+                    │   loop · provider · tools · queue             │
+                    │   model calls ─▶ host modelproxy unix socket  │
+                    └──────────────────────────────────────────────┘
+```
 
-| Path | What it is |
-|------|------------|
-| `docs/ironclaw-explained.md` / `.pdf` / `.docx` | A plain-language tour of the design, with diagrams and a glossary |
-| `docs/design-plan.md` | The architecture decisions and the implementation skeleton plan |
-| `teaser.html` | A one-slide introduction deck |
+- The **control-plane** receives chats, routes them, holds the keys, runs the approval gateway, and
+  performs every privileged action on the agent's behalf — after its own checks.
+- The **sandbox** — one per conversation, wrapped in gVisor with no network of its own — reads its
+  encrypted inbox (read-only), calls the AI model through the host proxy, and writes its encrypted
+  outbox. It can *request* a capability change but can never apply one.
+- The **frozen contract** (`internal/contract`) is the only package both sides import: typed IDs,
+  row shapes, the embedded SQL schema, pinned cipher params, and the gateway protocol.
+
+For the full design, see [`docs/architecture.md`](docs/architecture.md),
+[`docs/threat-model.md`](docs/threat-model.md), and the plain-language tour in
+[`docs/ironclaw-explained.md`](docs/ironclaw-explained.md).
+
+## Project status
+
+**Pre-alpha.** The architecture is settled and the full control-plane and sandbox pipelines are
+implemented and tested against in-memory backends. Two integration points are deliberately gated
+behind external (non-stdlib) dependencies and are **not yet wired**:
+
+- **Encrypted-SQLite queue binding** (SQLite3 Multiple Ciphers, via CGo) — until it lands, the
+  `contract.Open*` helpers return `ErrCryptoBindingPending` and the queues run on the in-memory
+  backends. Tracked as **RFC-0001** in [`docs/contract.md`](docs/contract.md).
+- **Sandbox rootfs provisioning** — `isolation` builds the hardened OCI spec and execs `runsc`, but
+  unpacking an OCI image into the bundle requires an external image tool; `Launch` returns
+  `ErrRootfsMissing` until a rootfs is pre-provisioned.
+
+See the [roadmap](#roadmap) for what this unblocks. You can build, test, and run the control-plane
+today; it will idle on the pending binding rather than process live encrypted queues.
+
+## Prerequisites
+
+| Requirement | For | Notes |
+|-------------|-----|-------|
+| **Go 1.23+** | building everything | the skeleton is stdlib-only and builds without CGo |
+| **containerd + gVisor (`runsc`)** | production sandboxing | runtime `io.containerd.runsc.v1`; not needed for `--dev` |
+| **Tailscale** | remote admin access | the control-plane API binds to the tailnet IP; no public port |
+| **C toolchain + SQLite3 Multiple Ciphers** | encrypted queues | only once the RFC-0001 CGo binding lands |
+| **Anthropic API key** | live model calls | injected host-side into the model proxy, never into the sandbox |
+
+The three external runtime dependencies (gVisor, Tailscale, the encrypted-SQLite binding) are
+intentionally **not vendored**. See [`deploy/README.md`](deploy/README.md) for host setup.
+
+## Installation
+
+```sh
+# Clone
+git clone https://github.com/nivardsec/ironclaw.git
+cd ironclaw
+
+# Build all binaries
+make build            # == go build ./...
+
+# Or install the two host binaries onto your PATH
+go build -o /usr/local/bin/ironclaw-controlplane ./cmd/controlplane
+go build -o /usr/local/bin/ironctl               ./cmd/ironctl
+```
+
+For a guided host install (containerd + runsc + Tailscale + a systemd unit), run
+[`deploy/install.sh`](deploy/install.sh).
+
+## Quickstart
+
+Run the control-plane locally in dev mode (no gVisor, binds to loopback) and drive it with the
+admin CLI:
+
+```sh
+# Terminal 1 — start the control-plane in dev mode
+export ANTHROPIC_API_KEY=sk-ant-...        # held host-side; never enters the sandbox
+export IRONCLAW_API_TOKEN=$(openssl rand -hex 32)
+go run ./cmd/controlplane --dev --api-addr 127.0.0.1:8787
+
+# Terminal 2 — talk to the gateway with ironctl
+export IRONCLAW_API_TOKEN=<same token as above>
+
+# Submit a capability change — it is HELD pending a human decision (the gateway choke point)
+ironctl change submit --kind persona --group default --by alice
+
+# See what's waiting for approval, then approve or reject by id
+ironctl change pending
+ironctl change approve <change-id> --by alice
+
+# Inspect the append-only audit log
+ironctl audit --limit 20
+```
+
+Every mutation — persona, enabled tools, packages, wiring, permissions, mounts — flows through this
+same gateway. There is no file-edit path that bypasses it.
+
+## Usage
+
+### `ironclaw-controlplane` — the host daemon
+
+```sh
+ironclaw-controlplane \
+  --api-addr "$(tailscale ip -4):8787" \            # bind to the tailnet IP (no public port)
+  --model-proxy-socket /run/ironclaw/modelproxy.sock \
+  --runtime runsc \                                 # container runtime for sandboxes
+  --state-dir /var/lib/ironclaw \
+  --sweep-interval 60s
+```
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--api-addr` | `127.0.0.1:8787` | control-plane API address; set to the tailnet IP in production |
+| `--model-proxy-socket` | `/run/ironclaw/modelproxy.sock` | unix socket bound into each sandbox for model egress |
+| `--state-dir` | OS-specific | gateway change store, audit log, keystore |
+| `--runtime` | `runsc` | OCI runtime for sandboxes |
+| `--bundle-root` | `<state-dir>/bundles` | per-session OCI bundles |
+| `--sweep-interval` | `60s` | stale-sandbox / due-message sweep cadence |
+| `--dev` | `false` | loopback bind, no gVisor — local development only |
+
+Environment: `ANTHROPIC_API_KEY` (model proxy credential, host-only) and `IRONCLAW_API_TOKEN`
+(bearer token required on every API call when set).
+
+### `ironctl` — the admin CLI
+
+A thin client of the control-plane API. `--addr` defaults to `http://127.0.0.1:8787`; the bearer
+token comes from `IRONCLAW_API_TOKEN` or `--token`.
+
+```sh
+ironctl change submit  --kind <k> --group <g> --by <user>   # k: persona|enabled_tools|packages|wiring|permissions|mounts
+ironctl change pending                                       # list changes awaiting a decision
+ironctl change history                                       # all changes and their outcomes
+ironctl change approve <id> --by <user>
+ironctl change reject  <id> --by <user>
+ironctl audit [--limit N]                                    # append-only gateway audit log
+```
+
+### `sandbox` — the in-sandbox agent
+
+Launched by the control-plane's isolator, not by hand. It receives its session key and queue paths
+and runs the reasoning loop. Key flags (`cmd/sandbox`): `--inbound`, `--outbound`, `--key`,
+`--workspace`, `--heartbeat`, `--model-socket`, `--model-host`, `--model`.
+
+### Control-plane HTTP API
+
+| Method & path | Purpose |
+|---------------|---------|
+| `GET  /healthz` | liveness (unauthenticated) |
+| `POST /v1/changes` | submit a `ChangeRequest` |
+| `GET  /v1/changes/pending` | list pending changes |
+| `GET  /v1/changes/history` | list all changes |
+| `POST /v1/changes/{id}/decision` | record an approve/reject decision |
+| `GET  /v1/audit` | read the audit log |
+
+## Configuration
+
+- **State** lives under `--state-dir`: the durable gateway change store (survives restart), the
+  append-only JSONL audit log, and the host keystore.
+- **Secrets** are host-only. The Anthropic key is injected into outbound model calls by the host
+  `modelproxy`; the sandbox never sees it and has `network=none`. Per-session 256-bit keys are
+  generated and held by the host and handed to the sandbox via tmpfs at launch — never via an env
+  var, never baked into the image.
+- **Mesh.** Bind `--api-addr` to the Tailscale interface and firewall the API port on every other
+  interface. See [`deploy/README.md`](deploy/README.md).
+
+## Development
+
+```sh
+make build     # go build ./...
+make test      # go test ./...
+make vet       # go vet ./...
+make fmt       # gofmt -w .
+```
+
+All tests pass on a stdlib-only tree (the encrypted-SQLite CGo path is gated). The black-box
+behavioral suite lives in [`test/parity/`](test/parity) and exercises routing fan-out, engage
+modes, session resolution, delivery dedup, the gateway's mandatory-approval flow, and a cross-mount
+live-poll spec — over the observable surfaces (the two queues + the API) only.
+
+**The frozen contract.** `internal/contract/**` is the single seam both sides import and is
+**frozen**: changing it requires a dated RFC in [`docs/contract.md`](docs/contract.md) and both
+CODEOWNERS' approval. Drift here surfaces at runtime as a silent decrypt or routing failure, not a
+build error — which is why the freeze is strict. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+## Repository layout
+
+```
+ironclaw/
+  cmd/
+    controlplane/   # host daemon entrypoint
+    sandbox/        # in-sandbox agent entrypoint
+    ironctl/        # admin CLI
+  internal/
+    contract/       # FROZEN SEAM — shared types, schema, crypto, gateway protocol
+    host/           # control-plane: api gateway isolation router delivery sweep keys channels modelproxy registry scheduling queue
+    sandbox/        # sandbox: loop provider tools queue
+  api/              # control-plane API reference
+  deploy/           # host install script + notes (gVisor, containerd, Tailscale, systemd)
+  docs/             # architecture, threat-model, contract (+ RFC log), design-plan, building
+  test/parity/      # black-box behavioral suite over the queues + API
+```
+
+## Security
+
+IronClaw assumes the sandboxed agent is potentially compromised and designs the boundary so it
+cannot escalate. The full threat-and-mitigation table is in
+[`docs/threat-model.md`](docs/threat-model.md). Highlights:
+
+- Compiled Go, no interpreter in the sandbox → the agent cannot read or edit its own source.
+- All config mutations flow through the mandatory gateway → deterministic verifier chain → human
+  approval → idempotent apply. There is no unapproved action path (the legacy `script`-field RCE
+  class is designed out).
+- Per-session encrypted queues; least-privilege access enforced three ways (Go interface
+  segregation, `PRAGMA query_only`, read-only OS bind mount).
+- `network=none` sandboxes; model calls only via the host proxy with a destination allowlist.
+
+To report a vulnerability, please open a private security advisory rather than a public issue.
 
 ## Roadmap
 
 - [x] Architecture and threat model
-- [x] Design walkthrough + introduction materials
-- [ ] Compiling skeleton: frozen contract package, control-plane and sandbox stubs, CI
-- [ ] Control plane (routing, gateway, isolation, key custody, delivery)
-- [ ] Sandbox (agent loop, model provider, queue access)
-- [ ] gVisor integration + behavioral test suite
+- [x] Compiling skeleton: frozen contract, control-plane and sandbox stubs, CI
+- [x] Control plane (routing, gateway, isolation spec, key custody, delivery, sweep) on in-memory backends
+- [x] Sandbox (agent loop, model provider, queue access, tools)
+- [ ] Encrypted-SQLite queue binding (RFC-0001) — unblocks live encrypted queues
+- [ ] Sandbox rootfs provisioning + real `runsc` launch
+- [ ] Cross-mount live-poll integration on the encrypted backend
+- [ ] Concrete channel adapters beyond the reference webhook
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contract-freeze rule and the agent-ownership model
+(the control-plane and sandbox trees are owned and built separately against the frozen seam).
 
 ## License
 

@@ -85,8 +85,10 @@ func (v MountAllowlistVerifier) allowed(src string) bool {
 var packageNameRe = regexp.MustCompile(`^[A-Za-z0-9@][A-Za-z0-9._@/+-]*$`)
 
 // PackageNameVerifier rejects package install changes whose names contain shell
-// metacharacters. It parses the ChangePackages After payload, a JSON array of
-// package-name strings.
+// metacharacters. It accepts either of two ChangePackages After payload shapes
+// (see docs/contract.md "Capability-change payload conventions"):
+//   - a flat JSON array of names: ["ripgrep", "@scope/pkg"]
+//   - the container package config object: {"apt": ["..."], "npm": ["..."]}
 type PackageNameVerifier struct{}
 
 // Name identifies the verifier.
@@ -101,8 +103,8 @@ func (PackageNameVerifier) Verify(ctx context.Context, req contract.ChangeReques
 	if len(req.After) == 0 {
 		return contract.VerdictPass, "no packages", nil
 	}
-	var pkgs []string
-	if err := json.Unmarshal(req.After, &pkgs); err != nil {
+	pkgs, ok := parsePackageNames(req.After)
+	if !ok {
 		return contract.VerdictReject, "unparseable packages payload", nil
 	}
 	for _, p := range pkgs {
@@ -112,4 +114,22 @@ func (PackageNameVerifier) Verify(ctx context.Context, req contract.ChangeReques
 		}
 	}
 	return contract.VerdictPass, "package names clean", nil
+}
+
+// parsePackageNames extracts package names from either supported payload shape: a
+// flat array of strings, or an {"apt":[...],"npm":[...]} object. ok is false if
+// the payload is neither.
+func parsePackageNames(after json.RawMessage) (names []string, ok bool) {
+	var flat []string
+	if err := json.Unmarshal(after, &flat); err == nil {
+		return flat, true
+	}
+	var obj struct {
+		APT []string `json:"apt"`
+		NPM []string `json:"npm"`
+	}
+	if err := json.Unmarshal(after, &obj); err == nil {
+		return append(append([]string{}, obj.APT...), obj.NPM...), true
+	}
+	return nil, false
 }
