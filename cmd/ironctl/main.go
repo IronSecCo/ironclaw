@@ -61,6 +61,11 @@ func run(args []string) error {
 		return cmdAudit(addr, args[1:])
 	}
 
+	// Top-level "registry" command (admin CRUD over /v1/registry/*).
+	if args[0] == "registry" {
+		return cmdRegistry(addr, args[1:])
+	}
+
 	if args[0] != "change" || len(args) < 2 {
 		usage()
 		return fmt.Errorf("expected: change <submit|pending|history|approve|reject>")
@@ -207,6 +212,7 @@ func usage() {
   ironctl [--addr URL] [--token T] change approve <id> --by <user>
   ironctl [--addr URL] [--token T] change reject  <id> --by <user>
   ironctl [--addr URL] [--token T] audit [--limit N]
+  ironctl [--addr URL] [--token T] registry <resource> <verb> ...   (see: registry --help)
 
   --addr  defaults to `+defaultAddr+`
   --token defaults to $IRONCLAW_API_TOKEN`)
