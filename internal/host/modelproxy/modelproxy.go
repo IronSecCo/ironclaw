@@ -9,7 +9,9 @@
 // host-held credential for the upstream. The key lives only on the host and
 // never enters the sandbox image or its environment.
 //
-// Future work: per-token rate caps, request/response logging, secret redaction.
+// Production hardening (see hardening.go) layers per-session/token rate caps,
+// request/response audit records, and response secret redaction on top of the
+// allowlist — all opt-in.
 package modelproxy
 
 import (
@@ -41,6 +43,12 @@ type Proxy struct {
 	// inject, if set, stamps the host-held credential onto each forwarded
 	// request. nil means forward with no credential (e.g. local/dev upstreams).
 	inject Injector
+
+	// Hardening (all opt-in; see hardening.go). Nil/empty disables the feature.
+	limiter  *keyedLimiter
+	audit    AuditSink
+	secrets  []string
+	identify func(*http.Request) string
 }
 
 // Option configures a Proxy at construction.
@@ -113,14 +121,38 @@ func (p *Proxy) allowedHost(host string) bool {
 // mounted in tests without a real socket.
 func (p *Proxy) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		session := p.sessionKey(r)
+
 		host := r.Host
 		if r.URL != nil && r.URL.Host != "" {
 			host = r.URL.Host
 		}
+		path := ""
+		if r.URL != nil {
+			path = r.URL.Path
+		}
+
 		if !p.allowedHost(host) {
 			http.Error(w, "model-proxy: destination not on allowlist", http.StatusForbidden)
+			p.emitAudit(AuditRecord{
+				Time: start, Session: session, Method: r.Method, Host: host, Path: path,
+				Status: http.StatusForbidden, Allowed: false, RequestBytes: r.ContentLength,
+				Duration: time.Since(start),
+			})
 			return
 		}
+
+		if p.limiter != nil && !p.limiter.allow(session) {
+			http.Error(w, "model-proxy: egress rate limit exceeded", http.StatusTooManyRequests)
+			p.emitAudit(AuditRecord{
+				Time: start, Session: session, Method: r.Method, Host: host, Path: path,
+				Status: http.StatusTooManyRequests, Allowed: true, RateLimited: true,
+				RequestBytes: r.ContentLength, Duration: time.Since(start),
+			})
+			return
+		}
+
 		target := &url.URL{Scheme: "https", Host: hostOnly(host)}
 		rp := &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
@@ -136,9 +168,17 @@ func (p *Proxy) Handler() http.Handler {
 					p.inject(target.Host, req)
 				}
 			},
-			Transport: p.transport,
+			Transport:      p.transport,
+			ModifyResponse: p.modifyResponse,
 		}
-		rp.ServeHTTP(w, r)
+
+		rec := &countingRW{ResponseWriter: w}
+		rp.ServeHTTP(rec, r)
+		p.emitAudit(AuditRecord{
+			Time: start, Session: session, Method: r.Method, Host: host, Path: path,
+			Status: rec.status, Allowed: true, RequestBytes: r.ContentLength,
+			ResponseBytes: rec.n, Duration: time.Since(start),
+		})
 	})
 }
 
