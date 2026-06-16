@@ -31,8 +31,9 @@ sides communicate only through a pair of encrypted SQLite queues.
 ## In-memory dev backends (control-plane)
 
 The full control-plane pipeline — registry, router, queues, delivery, sweep, and
-the gateway's durability — runs today against interface-driven, in-memory backends
-so it is testable WITHOUT the pending encrypted-SQLite binding:
+the gateway's durability — is interface-driven, with in-memory backends alongside
+the durable ones so the pipeline and its tests run without provisioning encrypted
+on-disk files:
 
 - **`internal/host/registry`** — `Registry` interface + `MemRegistry`, the
   control-plane data model (agent groups, messaging groups, wirings, sessions,
@@ -84,18 +85,18 @@ The same interfaces accept the durable backends with no caller changes.
 
 ## What remains gated
 
-- **Encrypted-SQLite queue binding (RFC-0001).** The host needs a read/write
-  inbound opener (`contract.OpenInboundRW`) that the frozen contract does not yet
-  expose; the SQLite-gated openers in `internal/host/queue` still return the
-  pending-binding error. See the RFC log in [contract.md](contract.md). The
-  in-memory queue backends above stand in until it lands.
+The encrypted-SQLite queue binding is live: the frozen contract exposes
+`contract.OpenInboundRW`/`OpenInboundRO` and `OpenOutboundRW`/`OpenOutboundRO`
+(RFC-0001 applied), the openers in `internal/host/queue` back onto the live
+SQLCipher binding, and the cross-mount live-poll parity checks run in
+`test/parity`. See the RFC log in [contract.md](contract.md).
+
 - **Sandbox rootfs provisioning.** `isolation` builds a hardened OCI spec and
   execs the runtime, but unpacking a container image into the bundle's `rootfs/`
   needs an image unpacker (containerd / an OCI image tool) — an external dependency
   kept out of the stdlib-only tree. `Launch` therefore requires a pre-provisioned
   rootfs and returns `ErrRootfsMissing` otherwise; this is the one remaining
-  isolation integration point. The cross-mount live-poll parity check comes after
-  the queue binding.
+  isolation integration point.
 
 ## Future extensions
 
