@@ -19,6 +19,7 @@ import (
 
 	"github.com/nivardsec/ironclaw/internal/contract"
 	"github.com/nivardsec/ironclaw/internal/host/gateway"
+	"github.com/nivardsec/ironclaw/internal/host/registry"
 )
 
 // HistoryProvider returns the applied/rejected change history. A FileStore
@@ -27,12 +28,14 @@ type HistoryProvider interface {
 	History() []gateway.HistoryEntry
 }
 
-// Server is the control-plane HTTP server. It drives the gateway.
+// Server is the control-plane HTTP server. It drives the gateway and, when a
+// registry is attached (WithRegistry), the registry admin endpoints.
 type Server struct {
 	gw        *gateway.Gateway
 	history   HistoryProvider
 	auditPath string
 	token     string
+	reg       registry.Registry
 	mux       *http.ServeMux
 }
 
@@ -77,6 +80,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/changes/history", s.handleHistory)
 	s.mux.HandleFunc("POST /v1/changes/{id}/decision", s.handleDecision)
 	s.mux.HandleFunc("GET /v1/audit", s.handleAudit)
+	s.registryRoutes()
 }
 
 // auth wraps h with optional bearer-token authentication. With no token set, the
