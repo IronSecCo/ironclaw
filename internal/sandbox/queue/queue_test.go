@@ -74,6 +74,24 @@ func TestParseNullTime(t *testing.T) {
 	}
 }
 
+func TestIsDue(t *testing.T) {
+	now := time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC)
+	past := now.Add(-time.Hour)
+	future := now.Add(time.Hour)
+	if !isDue(nil, now) {
+		t.Fatal("nil process_after (immediate) should be due")
+	}
+	if !isDue(&past, now) {
+		t.Fatal("past process_after should be due")
+	}
+	if !isDue(&now, now) {
+		t.Fatal("process_after == now should be due")
+	}
+	if isDue(&future, now) {
+		t.Fatal("future process_after should NOT be due (scheduled, withheld)")
+	}
+}
+
 func TestIsCorruption(t *testing.T) {
 	cases := []struct {
 		name string

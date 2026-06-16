@@ -191,7 +191,9 @@ func (l *Loop) poll(ctx context.Context, firstPoll bool) error {
 }
 
 // shouldEngage reports whether the buffered messages warrant a model turn: any
-// triggering message (trigger != 0), any slash command, or a cold-start backlog.
+// triggering message (trigger != 0), any slash command, a due scheduled message
+// (one with a process_after — the queue only returns it once due, and it carries
+// trigger=0), or a cold-start backlog.
 func (l *Loop) shouldEngage(firstPoll bool) bool {
 	if len(l.buffer) == 0 {
 		return false
@@ -200,7 +202,7 @@ func (l *Loop) shouldEngage(firstPoll bool) bool {
 		return true
 	}
 	for _, m := range l.buffer {
-		if m.Trigger != 0 || isSlashCommand(m.Content) {
+		if m.Trigger != 0 || isSlashCommand(m.Content) || m.ProcessAfter != nil {
 			return true
 		}
 	}

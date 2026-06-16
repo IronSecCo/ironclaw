@@ -45,12 +45,17 @@ const queryTimeout = 5 * time.Second
 // match the host: internal/host/queue tsString uses time.RFC3339Nano UTC.)
 const timeLayout = time.RFC3339Nano
 
-// statusReadyForSandbox is the messages_in.status value the host writes for a
-// message that is ready for the sandbox to process. The contract leaves status
-// freeform, so this is a seam value host and sandbox must agree on out of band:
-// the host router (internal/host/router) writes "queued"; the sandbox reads it
-// here. Candidate to pin in the contract via RFC alongside seq parity.
-const statusReadyForSandbox = "queued"
+// Inbound status values the host writes for messages the sandbox should process.
+// The contract leaves status freeform, so these are seam values host and sandbox
+// must agree on out of band (verified against internal/host): the router writes
+// "queued" for immediate messages; delivery writes "scheduled" for schedule_task
+// messages, which become processable once their process_after is reached. Both
+// are read here; due-ness is then governed by process_after. Candidates to pin in
+// the contract via RFC alongside seq parity.
+const (
+	statusQueued    = "queued"
+	statusScheduled = "scheduled"
+)
 
 // sandboxInbound is the sandbox's read-only implementation of the inbound queue.
 //
@@ -113,13 +118,17 @@ func (s *sandboxInbound) withConn(fn func(*sql.DB) error) error {
 	return err
 }
 
-// PendingMessages returns inbound rows with status='pending', ordered by seq.
+// PendingMessages returns inbound rows the sandbox should process: those with a
+// host-written ready status ("queued" or "scheduled") that are due, ordered by
+// seq (the monotonic key the host assigns; host=even, sandbox=odd).
 //
-// On a cold start (firstPoll), the full pending backlog is drained regardless of
-// scheduling. On steady-state polls, messages with a future process_after are
-// deferred (the host's sweep is responsible for making them due). Ordering is by
-// seq, the monotonic key the host assigns (host=even, sandbox=odd).
+// Due-ness is governed by process_after, not by the poll index: an immediate
+// "queued" message (process_after NULL) is always due; a "scheduled" message is
+// withheld until its process_after is reached — even on a cold start, so a future
+// schedule never fires early. firstPoll is accepted for the contract signature
+// and reserved for cold-start engagement, which the loop applies.
 func (s *sandboxInbound) PendingMessages(firstPoll bool) ([]contract.MessageIn, error) {
+	_ = firstPoll // due-ness comes from process_after; see doc comment
 	var out []contract.MessageIn
 	err := s.withConn(func(db *sql.DB) error {
 		ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
@@ -129,8 +138,8 @@ func (s *sandboxInbound) PendingMessages(firstPoll bool) ([]contract.MessageIn, 
 			       series_id, tries, "trigger", platform_id, channel_type,
 			       thread_id, content, source_session_id, on_wake
 			FROM messages_in
-			WHERE status = ?
-			ORDER BY seq ASC`, statusReadyForSandbox)
+			WHERE status IN (?, ?)
+			ORDER BY seq ASC`, statusQueued, statusScheduled)
 		if err != nil {
 			return err
 		}
@@ -142,8 +151,8 @@ func (s *sandboxInbound) PendingMessages(firstPoll bool) ([]contract.MessageIn, 
 			if err != nil {
 				return err
 			}
-			if !firstPoll && m.ProcessAfter != nil && m.ProcessAfter.After(now) {
-				continue // not yet due
+			if !isDue(m.ProcessAfter, now) {
+				continue // scheduled but not yet due
 			}
 			out = append(out, m)
 		}
@@ -153,6 +162,13 @@ func (s *sandboxInbound) PendingMessages(firstPoll bool) ([]contract.MessageIn, 
 		return nil, err
 	}
 	return out, nil
+}
+
+// isDue reports whether a message with the given process_after is due at now. A
+// nil process_after (an immediate "queued" message) is always due; a scheduled
+// message is due once now has reached its process_after.
+func isDue(processAfter *time.Time, now time.Time) bool {
+	return processAfter == nil || !processAfter.After(now)
 }
 
 // Destinations returns the places this agent group is allowed to send to.

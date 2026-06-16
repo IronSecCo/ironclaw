@@ -183,6 +183,34 @@ func TestFirstPollDrainsBacklog(t *testing.T) {
 	}
 }
 
+// TestDueScheduledMessageEngages asserts a due scheduled task (process_after set,
+// trigger=0, as the host's schedule_task writes) engages the model. The queue
+// only returns it once due, so its presence in the buffer means it should run.
+func TestDueScheduledMessageEngages(t *testing.T) {
+	past := time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC)
+	sched := contract.MessageIn{
+		ID:           "s1",
+		Kind:         contract.KindTask,
+		Content:      "run the daily report",
+		Trigger:      0,
+		ProcessAfter: &past,
+	}
+	in := &fakeInbound{pending: []contract.MessageIn{sched}}
+	out := &fakeOutbound{}
+	prov := &fakeProvider{reply: "report done"}
+	l := newTestLoop(t, in, out, prov)
+
+	if err := l.poll(context.Background(), false); err != nil {
+		t.Fatalf("poll: %v", err)
+	}
+	if prov.calls != 1 {
+		t.Fatalf("due scheduled task did not engage: provider calls=%d, want 1", prov.calls)
+	}
+	if len(out.writes) != 1 || out.writes[0].Content != "report done" {
+		t.Fatalf("outbound writes = %+v, want one reply %q", out.writes, "report done")
+	}
+}
+
 // TestSlashCommandHandledLocally asserts slash commands reply without a model call.
 func TestSlashCommandHandledLocally(t *testing.T) {
 	in := &fakeInbound{pending: []contract.MessageIn{msg("m1", "/help", 0)}}
