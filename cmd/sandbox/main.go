@@ -4,10 +4,9 @@
 // and queue paths, constructs the queue, and runs the reasoning poll loop.
 //
 // The session key is read from a file (delivered via tmpfs at launch), never from
-// an environment variable — the sandbox image never contains a key. Until the
-// encrypted SQLite binding is wired in, the queue open returns
-// contract.ErrCryptoBindingPending and the process exits cleanly without starting
-// the loop (see docs/building.md).
+// an environment variable — the sandbox image never contains a key. The encrypted
+// SQLite binding is live (RFC-0001): the queues open directly and the reasoning
+// poll loop starts.
 package main
 
 import (
@@ -74,14 +73,10 @@ func run() error {
 		return err
 	}
 
-	// Open outbound first: it surfaces the pending-binding condition directly
-	// (the inbound reader swallows it so it can retry per poll).
+	// Open the encrypted queues (the RFC-0001 binding is live). The sandbox holds a
+	// write view of outbound and a read-only view of inbound.
 	outbound, err := queue.OpenOutbound(*outboundPath, key)
 	if err != nil {
-		if errors.Is(err, contract.ErrCryptoBindingPending) {
-			fmt.Println("ironclaw sandbox: encrypted queue binding pending (SQLite3 Multiple Ciphers, CGo); not starting poll loop. See docs/building.md.")
-			return nil
-		}
 		return fmt.Errorf("open outbound queue: %w", err)
 	}
 	defer outbound.Close()
