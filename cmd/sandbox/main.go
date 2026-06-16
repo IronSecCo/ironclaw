@@ -20,6 +20,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime"
 	"syscall"
 
 	"github.com/nivardsec/ironclaw/internal/contract"
@@ -29,6 +31,24 @@ import (
 	"github.com/nivardsec/ironclaw/internal/sandbox/tools"
 )
 
+// defaultDirs returns the default queue/key/socket directory and the workspace
+// directory. On Linux the sandbox runs inside the gVisor container where the host
+// binds the queues under /run/ironclaw and the workspace at /workspace. Off-Linux
+// (e.g. macOS development, where the sandbox runs as an ordinary process rather
+// than under gVisor) it defaults to a user-writable base so cmd/sandbox runs
+// without root; a real run still passes explicit paths matching the host.
+func defaultDirs() (queueDir, workspace string) {
+	if runtime.GOOS == "linux" {
+		return "/run/ironclaw", "/workspace"
+	}
+	base, err := os.UserCacheDir()
+	if err != nil || base == "" {
+		base = os.TempDir()
+	}
+	root := filepath.Join(base, "ironclaw", "sandbox")
+	return root, filepath.Join(root, "workspace")
+}
+
 func main() {
 	if err := run(); err != nil {
 		log.Fatalf("ironclaw sandbox: %v", err)
@@ -36,13 +56,14 @@ func main() {
 }
 
 func run() error {
+	qd, ws := defaultDirs()
 	var (
-		inboundPath  = flag.String("inbound", "/run/ironclaw/inbound.db", "path to the inbound queue database")
-		outboundPath = flag.String("outbound", "/run/ironclaw/outbound.db", "path to the outbound queue database")
-		keyPath      = flag.String("key", "/run/ironclaw/session.key", "path to the per-session key (tmpfs; raw 32 bytes or 64 hex chars)")
-		workspace    = flag.String("workspace", "/workspace", "writable workspace directory exposed to file tools")
-		heartbeat    = flag.String("heartbeat", "/workspace/.heartbeat", "heartbeat file touched every poll")
-		modelSocket  = flag.String("model-socket", provider.DefaultSocketPath, "host model-proxy unix socket")
+		inboundPath  = flag.String("inbound", filepath.Join(qd, "inbound.db"), "path to the inbound queue database")
+		outboundPath = flag.String("outbound", filepath.Join(qd, "outbound.db"), "path to the outbound queue database")
+		keyPath      = flag.String("key", filepath.Join(qd, "session.key"), "path to the per-session key (tmpfs; raw 32 bytes or 64 hex chars)")
+		workspace    = flag.String("workspace", ws, "writable workspace directory exposed to file tools")
+		heartbeat    = flag.String("heartbeat", filepath.Join(ws, ".heartbeat"), "heartbeat file touched every poll")
+		modelSocket  = flag.String("model-socket", filepath.Join(qd, "modelproxy.sock"), "host model-proxy unix socket")
 		modelHost    = flag.String("model-host", "", "upstream model host the proxy allowlists (defaults to api.anthropic.com)")
 		model        = flag.String("model", "", "model id override (defaults to the provider's default)")
 	)
