@@ -1,8 +1,9 @@
 // OWNER: AGENT1
 
-// Package channels is the channel-adapter registry plus a fake adapter for tests.
-// Concrete platform adapters are out of scope for the skeleton; only one fake
-// adapter ships here.
+// Package channels is the channel-adapter registry plus adapters. It ships a
+// FakeAdapter (for tests) and a reference WebhookAdapter (HTTP POST delivery).
+// Platform-specific adapters (Slack, Discord, ...) follow the WebhookAdapter
+// shape and register the same way.
 package channels
 
 import (
