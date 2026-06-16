@@ -1,0 +1,74 @@
+name: Agent issue reconciler
+
+# Closes the gap where agents (on separate machines, any flow) mark an issue
+# `agent:done` but never close it. This runs server-side on GitHub, so it works
+# regardless of whether an agent adopted scripts/agent/land.sh.
+#
+#  - close-on-label: the instant `agent:done` is applied, the issue is closed.
+#  - sweep: a periodic safety net that closes any open `agent:done` issue that
+#    slipped through (e.g. label applied while Actions was paused) and deletes
+#    claim refs left orphaned by a closed issue.
+
+on:
+  issues:
+    types: [labeled]
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: write
+
+jobs:
+  close-on-label:
+    # Event-driven: fire only when the label just applied is agent:done.
+    if: github.event_name == 'issues' && github.event.label.name == 'agent:done'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close the done issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUM: ${{ github.event.issue.number }}
+        run: |
+          echo "agent:done applied to #$NUM — closing."
+          gh issue close "$NUM" --repo "$REPO" --reason completed || true
+
+  sweep:
+    # Safety net + orphaned claim-ref cleanup. Never runs on the label event.
+    if: github.event_name != 'issues'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Close any open agent:done issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          mapfile -t nums < <(gh issue list --repo "$REPO" --state open \
+            --label agent:done --json number --jq '.[].number')
+          if [ "${#nums[@]}" -eq 0 ]; then
+            echo "No open agent:done issues."
+          else
+            for n in "${nums[@]}"; do
+              echo "Reconciling open+done #$n — closing."
+              gh issue close "$n" --repo "$REPO" --reason completed || true
+            done
+          fi
+      - name: Delete claim refs orphaned by a closed issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A claim ref pointing at a CLOSED issue is definitely stale: the task
+          # landed but the holder never released it. Refs for OPEN issues are
+          # left alone (those may be legitimately in-progress — lease-based
+          # stealing of those stays a deliberate, agent-driven action).
+          git ls-remote origin 'refs/agent-claims/issue-*' | awk '{print $2}' | while read -r ref; do
+            num="${ref##*issue-}"
+            state="$(gh issue view "$num" --repo "${GITHUB_REPOSITORY}" --json state --jq .state 2>/dev/null || echo UNKNOWN)"
+            if [ "$state" = "CLOSED" ]; then
+              echo "Deleting orphaned claim ref for closed #$num ($ref)."
+              git push origin --delete "$ref" || true
+            fi
+          done
