@@ -353,12 +353,16 @@ func (l *Loop) runAgent(ctx context.Context, converser provider.ToolConverser, p
 		for _, call := range turn.ToolCalls {
 			out, isErr := l.invokeTool(ctx, call)
 			results = append(results, provider.ToolResult{ToolUseID: call.ID, Content: out, IsError: isErr})
-			if !isErr && call.Name == tools.CapabilityChangeToolName {
-				// Re-render into the host's system-action wire format before
-				// forwarding, so host delivery parses it and routes it to the gateway.
-				if cc, perr := tools.ParseCapabilityChange(out); perr == nil {
-					if sysAction, merr := cc.SystemActionJSON(); merr == nil {
-						capEnvelopes = append(capEnvelopes, sysAction)
+			// A tool that forwards to the host (capability change, scheduling)
+			// renders its successful output into a system-action wire body; the loop
+			// writes it as a KindSystem outbound message for the host to
+			// re-authorize. The sandbox never acts on it directly.
+			if !isErr {
+				if fwd, ok := l.cfg.Tools.Get(call.Name); ok {
+					if hf, ok := fwd.(tools.HostForwarder); ok {
+						if body, ferr := hf.ToHostAction(out); ferr == nil && body != "" {
+							capEnvelopes = append(capEnvelopes, body)
+						}
 					}
 				}
 			}

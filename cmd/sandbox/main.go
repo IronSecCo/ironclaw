@@ -143,6 +143,9 @@ func buildTools(workspaceDir string) (*tools.Registry, error) {
 	if err := registry.Register(tools.NewRequestCapabilityChangeTool()); err != nil {
 		return nil, fmt.Errorf("register request_capability_change: %w", err)
 	}
+	if err := registry.Register(tools.NewScheduleTaskTool()); err != nil {
+		return nil, fmt.Errorf("register schedule_task: %w", err)
+	}
 	return registry, nil
 }
 

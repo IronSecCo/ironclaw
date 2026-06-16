@@ -98,6 +98,17 @@ func (t *RequestCapabilityChangeTool) Invoke(_ context.Context, input json.RawMe
 	return string(out), nil
 }
 
+// ToHostAction implements HostForwarder: it re-renders the tool's CapabilityChange
+// output into the host's system-action wire format so host delivery parses it and
+// routes it through the mandatory gateway.
+func (t *RequestCapabilityChangeTool) ToHostAction(toolOutput string) (string, error) {
+	cc, err := ParseCapabilityChange(toolOutput)
+	if err != nil {
+		return "", err
+	}
+	return cc.SystemActionJSON()
+}
+
 // ParseCapabilityChange decodes a CapabilityChange envelope produced by
 // RequestCapabilityChangeTool.Invoke and validates its kind.
 func ParseCapabilityChange(s string) (CapabilityChange, error) {

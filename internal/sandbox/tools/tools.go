@@ -33,6 +33,16 @@ type Tool interface {
 	Invoke(ctx context.Context, input json.RawMessage) (string, error)
 }
 
+// HostForwarder is implemented by a tool whose successful result must be
+// forwarded to the host as a KindSystem outbound message for re-authorization —
+// capability-change requests and scheduling. ToHostAction converts the tool's
+// textual output into the system-action wire body (contract.SystemAction /
+// contract.ScheduleRequest); an empty string means "forward nothing". The host
+// re-authorizes every forwarded action; the sandbox never acts on it directly.
+type HostForwarder interface {
+	ToHostAction(toolOutput string) (string, error)
+}
+
 // ErrForbiddenTool is returned by Register for any tool whose capability belongs
 // to the control plane (it must flow through the host gateway instead).
 var ErrForbiddenTool = errors.New("sandbox/tools: forbidden tool — capability changes go through the host gateway")
