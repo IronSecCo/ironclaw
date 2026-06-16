@@ -83,3 +83,38 @@ func TestScheduleRequestWireFormat(t *testing.T) {
 		t.Fatalf("round-trip lost fields: %+v", r)
 	}
 }
+
+// TestAskUserRequestWireFormat locks the ask_user_question body (RFC-0003): a flat
+// shape sharing only "action" with the envelope, carrying a question + optional
+// choices and NO script/capability field, with the discriminator forced.
+func TestAskUserRequestWireFormat(t *testing.T) {
+	s, err := MarshalAskUserRequest(AskUserRequest{
+		Question:      "Which environment should I deploy to?",
+		Options:       []string{"staging", "production"},
+		AllowFreeform: true,
+	})
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	const want = `{"action":"ask_user_question","question":"Which environment should I deploy to?","options":["staging","production"],"allow_freeform":true}`
+	if s != want {
+		t.Fatalf("wire format drift:\n got %s\nwant %s", s, want)
+	}
+	if SystemActionName(s) != ActionAskUser {
+		t.Fatalf("discriminator not %q: %s", ActionAskUser, s)
+	}
+
+	r, err := ParseAskUserRequest(s)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if r.Question != "Which environment should I deploy to?" || len(r.Options) != 2 || !r.AllowFreeform {
+		t.Fatalf("round-trip lost fields: %+v", r)
+	}
+
+	// Omitempty: a bare question with no options/freeform stays minimal.
+	bare, _ := MarshalAskUserRequest(AskUserRequest{Question: "Proceed?"})
+	if bare != `{"action":"ask_user_question","question":"Proceed?"}` {
+		t.Fatalf("omitempty drift: %s", bare)
+	}
+}

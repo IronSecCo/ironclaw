@@ -148,6 +148,56 @@ shapes, not the host's enforcement decision.
 
 The whole tree builds, vets, and tests green after the change.
 
+### RFC-0003 (applied): add the `ask_user_question` non-privileged system action
+
+**Status:** applied (human-authorized this session; landed with both tree
+implementations together per the RFC process). Adds a second non-`ChangeKind`
+system action alongside `schedule_task`.
+
+**Motivation.** An agent often needs a human decision mid-task ("which environment
+should I deploy to?") with a small set of choices — a *choice card*. There was no
+wire shape for this. Without one, a sandbox emitting an unrecognized action hits
+`delivery.authorizeSystemAction`'s default case, which conservatively treats
+unknown actions as **privileged** and routes them through the gateway — the wrong
+behavior for a question, which mutates nothing and needs no approval. So the action
+must be pinned in the contract (like `schedule_task`) and recognized host-side as
+non-privileged.
+
+**Proposed change.** Add to `internal/contract/actions.go`:
+
+```go
+const ActionAskUser = "ask_user_question" // non-privileged, NOT a ChangeKind
+
+type AskUserRequest struct {
+    Action        string   `json:"action"`
+    Question      string   `json:"question"`
+    Options       []string `json:"options,omitempty"`
+    AllowFreeform bool     `json:"allow_freeform,omitempty"`
+}
+func MarshalAskUserRequest(AskUserRequest) (string, error) // forces Action
+func ParseAskUserRequest(string) (AskUserRequest, error)
+```
+
+It mirrors `ScheduleRequest`: a flat shape sharing only `action` with the
+`SystemAction` envelope, carrying ONLY a question + preset choices — **no
+script/command field and no capability mutation** — so it can never become an
+execution or escalation path. It is additive and backward-compatible (no existing
+shape changes).
+
+**Migration impact.**
+
+- *Control-plane:* `delivery.handleSystem` special-cases `ActionAskUser` before the
+  privilege routing (exactly as it already does for `schedule_task`) and records the
+  question in a new in-memory `internal/host/questions` pending-question store;
+  `authorizeSystemAction` gains an explicit non-privileged case for it. Feeding the
+  human's answer back to the session as inbound is a follow-on; this RFC covers the
+  wire shape + host-side tracking.
+- *Sandbox:* a new `tools.AskUserQuestionTool` (a `HostForwarder`, like
+  `ScheduleTaskTool`) emits an `AskUserRequest`; it performs no privileged action.
+- Both land together, so neither tree compiles against a half-defined action.
+
+The whole tree builds, vets, and tests green after the change.
+
 ## Capability-change payload conventions
 
 These are cross-agent **conventions** layered on the frozen contract, not Go types

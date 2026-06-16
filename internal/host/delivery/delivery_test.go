@@ -11,6 +11,7 @@ import (
 	"github.com/nivardsec/ironclaw/internal/contract"
 	"github.com/nivardsec/ironclaw/internal/host/channels"
 	"github.com/nivardsec/ironclaw/internal/host/gateway"
+	"github.com/nivardsec/ironclaw/internal/host/questions"
 	"github.com/nivardsec/ironclaw/internal/host/queue"
 	"github.com/nivardsec/ironclaw/internal/host/registry"
 )
@@ -26,6 +27,8 @@ func TestAuthorizeSystemAction(t *testing.T) {
 		{"script", contract.ChangePermissions, true}, // RCE path is gated, never run
 		{"exec", contract.ChangePermissions, true},
 		{"totally_unknown", contract.ChangePermissions, true}, // unknown => gated
+		{"ask_user_question", "", false},                      // RFC-0003: records a question; non-privileged
+		{"schedule_task", "", false},                          // prompt-only; non-privileged
 		{"typing", "", false},
 		{"noop", "", false},
 		{"", "", false},
@@ -286,4 +289,51 @@ func waitPending(d *Delivery, want int) bool {
 		time.Sleep(time.Millisecond)
 	}
 	return false
+}
+
+// TestAskUserQuestionRecorded asserts an ask_user_question system action (RFC-0003)
+// is recorded as a pending question, NOT delivered to a channel and NOT gated.
+func TestAskUserQuestionRecorded(t *testing.T) {
+	d, adapter, _, sess, w := newTestDelivery(t)
+	store := questions.NewStore()
+	d.WithQuestions(store)
+
+	body := `{"action":"ask_user_question","question":"Deploy where?","options":["staging","prod"],"allow_freeform":true}`
+	if err := w.WriteMessageOut(contract.MessageOut{ID: "q1", Seq: 1, Kind: contract.KindSystem, Content: body}); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Poll(context.Background()); err != nil {
+		t.Fatalf("Poll: %v", err)
+	}
+
+	pending := store.List()
+	if len(pending) != 1 {
+		t.Fatalf("expected exactly 1 recorded question, got %d", len(pending))
+	}
+	if pending[0].Question != "Deploy where?" || pending[0].SessionID != sess.ID || len(pending[0].Options) != 2 || !pending[0].AllowFreeform {
+		t.Fatalf("recorded question wrong: %+v", pending[0])
+	}
+	if got := adapter.Delivered(); len(got) != 0 {
+		t.Fatalf("ask_user_question must not deliver to a channel, got %+v", got)
+	}
+	if p, _ := d.gw.Pending(); len(p) != 0 {
+		t.Fatalf("ask_user_question must not be gated as a change, gateway pending=%d", len(p))
+	}
+}
+
+// TestAskUserQuestionNoStore asserts that without a question store wired, an
+// ask_user_question is still recognized (non-privileged, not gated) and Poll
+// succeeds — it is logged and dropped rather than erroring the loop.
+func TestAskUserQuestionNoStore(t *testing.T) {
+	d, adapter, _, _, w := newTestDelivery(t)
+	body := `{"action":"ask_user_question","question":"Proceed?"}`
+	if err := w.WriteMessageOut(contract.MessageOut{ID: "q1", Seq: 1, Kind: contract.KindSystem, Content: body}); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Poll(context.Background()); err != nil {
+		t.Fatalf("Poll should not error without a question store: %v", err)
+	}
+	if got := adapter.Delivered(); len(got) != 0 {
+		t.Fatalf("ask_user_question must not deliver to a channel, got %+v", got)
+	}
 }

@@ -29,6 +29,7 @@ import (
 	"github.com/nivardsec/ironclaw/internal/host/isolation"
 	"github.com/nivardsec/ironclaw/internal/host/keys"
 	"github.com/nivardsec/ironclaw/internal/host/modelproxy"
+	"github.com/nivardsec/ironclaw/internal/host/questions"
 	"github.com/nivardsec/ironclaw/internal/host/queue"
 	"github.com/nivardsec/ironclaw/internal/host/registry"
 	"github.com/nivardsec/ironclaw/internal/host/session"
@@ -159,10 +160,13 @@ func main() {
 	// re-authorizing privileged system actions through the gateway. The channel
 	// registry starts empty; concrete platform adapters register here once
 	// configured. The schedule_task system action enqueues a future inbound prompt
-	// via the SessionManager's inbound-writer factory.
+	// via the SessionManager's inbound-writer factory; the ask_user_question action
+	// (RFC-0003) records into the pending-question store for an operator to answer.
 	channelReg := channels.NewRegistry()
+	pendingQuestions := questions.NewStore()
 	deliverer := delivery.New(channelReg, gw, reg, manager.OutboundReader).
-		WithInboundWriter(manager.InboundWriter)
+		WithInboundWriter(manager.InboundWriter).
+		WithQuestions(pendingQuestions)
 
 	// Sweep: live hooks — Prober/Killer/Waker are the SessionManager; the DueSource
 	// and recurrence Enqueue read/write the per-session inbound queues via the

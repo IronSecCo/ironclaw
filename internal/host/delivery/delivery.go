@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/nivardsec/ironclaw/internal/contract"
 	"github.com/nivardsec/ironclaw/internal/host/channels"
 	"github.com/nivardsec/ironclaw/internal/host/gateway"
+	"github.com/nivardsec/ironclaw/internal/host/questions"
 	"github.com/nivardsec/ironclaw/internal/host/registry"
 	"github.com/nivardsec/ironclaw/internal/host/scheduling"
 )
@@ -44,6 +46,7 @@ type Delivery struct {
 	reg       registry.Registry
 	newReader OutboundReaderFactory
 	newWriter InboundWriterFactory // optional; enables schedule_task
+	questions *questions.Store     // optional; enables ask_user_question tracking
 
 	mu        sync.Mutex
 	delivered map[contract.MessageID]struct{}
@@ -74,6 +77,14 @@ func New(channelReg *channels.Registry, gw *gateway.Gateway, reg registry.Regist
 // system action to enqueue a future inbound prompt. Returns d for chaining.
 func (d *Delivery) WithInboundWriter(f InboundWriterFactory) *Delivery {
 	d.newWriter = f
+	return d
+}
+
+// WithQuestions wires the pending-question store the ask_user_question system
+// action records into (RFC-0003). Returns d for chaining. When unset, an
+// ask_user_question is recognized as non-privileged but recorded nowhere (logged).
+func (d *Delivery) WithQuestions(s *questions.Store) *Delivery {
+	d.questions = s
 	return d
 }
 
@@ -152,6 +163,12 @@ func (d *Delivery) handleSystem(ctx context.Context, sess registry.Session, msg 
 	if strings.EqualFold(strings.TrimSpace(action), contract.ActionScheduleTask) {
 		return d.handleScheduleTask(sess, msg)
 	}
+	// ask_user_question is also a NON-privileged host action (RFC-0003): it records
+	// a pending question for a human, executing and mutating nothing. Handle it
+	// before the privilege routing (an unknown action would otherwise be gated).
+	if strings.EqualFold(strings.TrimSpace(action), contract.ActionAskUser) {
+		return d.handleAskUser(sess, msg)
+	}
 	kind, privileged := authorizeSystemAction(action)
 	if !privileged {
 		// Informational system message — deliver it like a normal reply.
@@ -228,6 +245,27 @@ func (d *Delivery) handleScheduleTask(sess registry.Session, msg contract.Messag
 	if err := writer.WriteMessageIn(in); err != nil {
 		return fmt.Errorf("host/delivery: enqueue scheduled message for %s: %w", sess.ID, err)
 	}
+	return nil
+}
+
+// handleAskUser records a sandbox's ask_user_question (RFC-0003) as a pending
+// question for a human. It NEVER executes anything and changes no capability: it
+// parses the contract.AskUserRequest and stores it in the pending-question store
+// for an operator surface to answer later. When no store is wired the question is
+// recognized but only logged (best-effort), never gated as a privileged change.
+func (d *Delivery) handleAskUser(sess registry.Session, msg contract.MessageOut) error {
+	req, err := contract.ParseAskUserRequest(msg.Content)
+	if err != nil {
+		return fmt.Errorf("host/delivery: ask_user_question body for %s is not valid JSON: %w", sess.ID, err)
+	}
+	if strings.TrimSpace(req.Question) == "" {
+		return fmt.Errorf("host/delivery: ask_user_question for %s has an empty question", sess.ID)
+	}
+	if d.questions == nil {
+		log.Printf("host/delivery: ask_user_question from %s received but no question store wired; dropping", sess.ID)
+		return nil
+	}
+	d.questions.Record(sess.ID, sess.AgentGroupID, req)
 	return nil
 }
 
@@ -345,6 +383,12 @@ func authorizeSystemAction(action string) (contract.ChangeKind, bool) {
 		// switch; it is listed here so the authorization map is complete and any
 		// privileged future action that prompt requests still passes through the
 		// gateway.)
+		return "", false
+	case contract.ActionAskUser:
+		// A question for a human (RFC-0003): records a pending question, executes
+		// nothing and changes no capability, so it is non-privileged. Delivery
+		// special-cases it before this switch; listed here so the map is complete and
+		// it is never mistaken for an unknown (privileged) action.
 		return "", false
 	case "typing", "presence", "ack", "noop", "":
 		// Informational, non-privileged: safe to deliver directly.

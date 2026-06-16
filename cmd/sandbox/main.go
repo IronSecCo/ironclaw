@@ -145,6 +145,9 @@ func buildTools(workspaceDir string, msgCtx tools.MessageContext) (*tools.Regist
 	if err := registry.Register(tools.NewScheduleTaskTool()); err != nil {
 		return nil, fmt.Errorf("register schedule_task: %w", err)
 	}
+	if err := registry.Register(tools.NewAskUserQuestionTool()); err != nil {
+		return nil, fmt.Errorf("register ask_user_question: %w", err)
+	}
 	for _, t := range []tools.Tool{
 		tools.NewSendMessageTool(msgCtx),
 		tools.NewSendFileTool(ws, msgCtx),

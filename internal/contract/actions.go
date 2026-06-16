@@ -120,6 +120,51 @@ func ParseScheduleRequest(content string) (ScheduleRequest, error) {
 	return r, nil
 }
 
+// --- Ask-user request (RFC-0003) -------------------------------------------
+
+// ActionAskUser is the second system-action name that is NOT a ChangeKind (after
+// ActionScheduleTask). It is NON-PRIVILEGED: the sandbox poses a question (with
+// optional preset choices) to a human, and the host records it as a pending
+// question for an operator to answer. It executes nothing and changes no
+// capability, so it never routes through the gateway — the host tracks it and
+// (later) feeds the human's answer back to the session as ordinary inbound. See
+// RFC-0003 in docs/contract.md.
+const ActionAskUser = "ask_user_question"
+
+// AskUserRequest is the body of an ActionAskUser system message: a question for a
+// human plus optional preset choices (a "choice card"). It carries ONLY a prompt
+// and choices — no script/command field and no capability mutation — so, like
+// ScheduleRequest, it is a non-privileged host action. AllowFreeform reports
+// whether the human may answer with free text in addition to (or instead of) the
+// listed Options.
+type AskUserRequest struct {
+	Action        string   `json:"action"`
+	Question      string   `json:"question"`
+	Options       []string `json:"options,omitempty"`
+	AllowFreeform bool     `json:"allow_freeform,omitempty"`
+}
+
+// MarshalAskUserRequest renders an AskUserRequest as the JSON body a sandbox writes
+// into an ActionAskUser system message. Action is forced to ActionAskUser so the
+// host's discriminator matches.
+func MarshalAskUserRequest(r AskUserRequest) (string, error) {
+	r.Action = ActionAskUser
+	b, err := json.Marshal(r)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+// ParseAskUserRequest decodes an ActionAskUser message body.
+func ParseAskUserRequest(content string) (AskUserRequest, error) {
+	var r AskUserRequest
+	if err := json.Unmarshal([]byte(strings.TrimSpace(content)), &r); err != nil {
+		return AskUserRequest{}, err
+	}
+	return r, nil
+}
+
 // --- Queue status vocabulary -----------------------------------------------
 
 // Inbound and outbound rows carry a freeform Status string; these are the values
