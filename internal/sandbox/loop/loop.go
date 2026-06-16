@@ -61,11 +61,25 @@ type Config struct {
 	Clock func() time.Time
 	// Logger receives non-fatal poll diagnostics. Defaults to log.Default().
 	Logger *log.Logger
+
+	// ProviderBackoffMax caps the exponential backoff applied after a model
+	// provider error. Defaults to 60s.
+	ProviderBackoffMax time.Duration
+	// ProviderBreakerThreshold is the number of consecutive provider failures
+	// that trips the circuit breaker open. Defaults to 5.
+	ProviderBreakerThreshold int
+	// Jitter returns a fraction in [0,1) used to de-synchronise provider
+	// retries. Injectable for deterministic tests; defaults to math/rand.
+	Jitter func() float64
 }
 
 // Loop is the sandbox reasoning poll loop.
 type Loop struct {
 	cfg Config
+
+	// breaker paces retries after model provider errors (exponential backoff +
+	// circuit breaker) so a down model API is not polled at the fixed interval.
+	breaker *backoff
 
 	// buffer accumulates trigger=0 messages that have not yet engaged the model.
 	buffer      []contract.MessageIn
@@ -115,8 +129,15 @@ func New(cfg Config) (*Loop, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = log.Default()
 	}
+	if cfg.ProviderBackoffMax <= 0 {
+		cfg.ProviderBackoffMax = defaultProviderBackoffMax
+	}
+	if cfg.ProviderBreakerThreshold <= 0 {
+		cfg.ProviderBreakerThreshold = defaultBreakerThreshold
+	}
 	return &Loop{
 		cfg:         cfg,
+		breaker:     newBackoff(cfg.PollInterval, cfg.ProviderBackoffMax, cfg.ProviderBreakerThreshold, cfg.Jitter),
 		bufferedIDs: make(map[contract.MessageID]struct{}),
 		doneIDs:     make(map[contract.MessageID]struct{}),
 	}, nil
@@ -128,25 +149,39 @@ func New(cfg Config) (*Loop, error) {
 func (l *Loop) Run(ctx context.Context) error {
 	firstPoll := true
 	for {
-		if err := l.poll(ctx, firstPoll); err != nil {
-			if errors.Is(err, queue.ErrCorruptionStreak) {
-				return err // fatal: host must respawn with a fresh mount
+		err := l.poll(ctx, firstPoll)
+		wait := l.cfg.PollInterval
+		switch {
+		case err == nil:
+			// A clean poll closes the circuit and clears any failure streak.
+			l.breaker.reset()
+		case errors.Is(err, queue.ErrCorruptionStreak):
+			return err // fatal: host must respawn with a fresh mount
+		case errors.Is(err, contract.ErrCryptoBindingPending):
+			if !l.bindingPendingLogged {
+				l.cfg.Logger.Printf("sandbox/loop: encrypted queue binding pending; idling until it is wired (see docs/building.md)")
+				l.bindingPendingLogged = true
 			}
-			if errors.Is(err, contract.ErrCryptoBindingPending) {
-				if !l.bindingPendingLogged {
-					l.cfg.Logger.Printf("sandbox/loop: encrypted queue binding pending; idling until it is wired (see docs/building.md)")
-					l.bindingPendingLogged = true
-				}
-			} else {
-				l.cfg.Logger.Printf("sandbox/loop: poll error: %v", err)
+		case errors.Is(err, ErrProvider):
+			// Back off exponentially with jitter instead of retrying at the fixed
+			// poll interval, and trip the breaker after a sustained outage.
+			wait = l.breaker.fail()
+			if l.breaker.tripped() && !l.breaker.logged {
+				l.cfg.Logger.Printf("sandbox/loop: model provider unavailable after %d consecutive failures; circuit open, backing off up to %s",
+					l.breaker.consecutiveFailures(), l.cfg.ProviderBackoffMax)
+				l.breaker.logged = true
 			}
+			l.cfg.Logger.Printf("sandbox/loop: provider error (attempt %d): %v; retrying in %s",
+				l.breaker.consecutiveFailures(), err, wait.Round(time.Millisecond))
+		default:
+			l.cfg.Logger.Printf("sandbox/loop: poll error: %v", err)
 		}
 		firstPoll = false
 
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(l.cfg.PollInterval):
+		case <-time.After(wait):
 		}
 	}
 }
@@ -251,7 +286,7 @@ func (l *Loop) engage(ctx context.Context) error {
 		resp, capEnvelopes, err := l.respond(ctx, prompt)
 		stopHB()
 		if err != nil {
-			return fmt.Errorf("provider respond: %w", err)
+			return fmt.Errorf("provider respond: %w", providerErr(err))
 		}
 		if strings.TrimSpace(resp) != "" {
 			if err := l.writeReply(resp, chat[len(chat)-1].ID, routing); err != nil {
