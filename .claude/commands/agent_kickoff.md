@@ -28,15 +28,15 @@ Mission:
 
 1. Sync with latest `main`.
 2. Confirm the working tree is clean.
-3. Read the task registry at `.agents/task-registry.json` (and the GitHub Issues labelled `agent:ready`).
-4. Find the highest-priority task that is available, unclaimed, unblocked, within scope, and whose dependencies are complete.
-5. Atomically claim exactly one task.
+3. Find claimable work with `scripts/agent/board.sh` (GitHub is the source of truth for liveness). Read `.agents/task-registry.json` only for deps, `owned_paths`, locks, and acceptance criteria.
+4. Pick the highest-priority task that is open, `agent:ready`, unblocked, within scope, and whose dependencies are complete.
+5. Claim it atomically with `AGENT_ID=<id> scripts/agent/claim.sh <issue-number>`. If it prints `ALREADY_CLAIMED` / `NOT_CLAIMABLE` / `RACE_LOST`, the task is taken — go back to step 3. Never add the claim labels/comment by hand.
 6. Re-sync with latest `main` after claiming.
 7. Implement only that task.
-8. Run the required checks/tests.
-9. Pull/rebase latest `main` again before pushing.
-10. Push directly to `main` only after the work is complete and verified.
-11. Mark the task complete only after the successful push.
+8. Run the required checks/tests (`scripts/agent/preflight.sh`).
+9. Land via `scripts/agent/push.sh` (rebase + CAS push to `main`); verify CI is green.
+10. Finish the task with `AGENT_ID=<id> scripts/agent/land.sh <issue-number> <commit-sha>` — this marks `agent:done` AND closes the issue AND frees the claim ref. Stopping at the label is a bug.
+11. If you abandon the task instead, run `scripts/agent/release.sh <issue-number> ready|blocked|failed` so the claim ref is freed.
 12. Release locks.
 13. Repeat until no executable tasks remain.
 

@@ -1,6 +1,6 @@
 {
   "repo": "nivardsec/ironclaw",
-  "base_sha": "02748dd",
+  "base_sha": "58b009b",
   "generated_by": "master-planner",
   "claim_model": "first-come-first-serve; no fixed assignment; claim lowest wave + highest priority with deps done and locks free",
   "validation_default": "CGO_ENABLED=1 go test ./...  (== make build vet test)",
@@ -46,7 +46,7 @@
 
     {
       "task_id": "T-100", "title": "Durable / pluggable master-key custody",
-      "status": "available", "priority": "P0", "wave": 4, "size": "M", "category": "security",
+      "status": "done", "priority": "P0", "wave": 4, "size": "M", "category": "security",
       "related_gaps": ["G-019"], "owned_paths": ["internal/host/keys/**"],
       "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"], "locks_required": [], "depends_on": [], "blocks": ["T-120"],
       "acceptance_criteria": ["A pluggable KeySource replaces the ephemeral per-process master key (file-sealed keystore at 0600 + interface for an external KMS)", "Session keys survive a control-plane restart", "Unit tests cover load/persist/rotate"],
@@ -55,7 +55,7 @@
     },
     {
       "task_id": "T-101", "title": "Structured logging (slog) abstraction",
-      "status": "available", "priority": "P1", "wave": 4, "size": "M", "category": "infra",
+      "status": "done", "priority": "P1", "wave": 4, "size": "M", "category": "infra",
       "related_gaps": ["G-020"], "owned_paths": ["internal/obs/**"],
       "forbidden_paths": ["internal/contract/**"], "locks_required": [], "depends_on": [], "blocks": [],
       "acceptance_criteria": ["A log/slog-based structured logger (text + JSON option) usable by host and sandbox", "No secrets/keys logged; redaction helper"],
@@ -64,7 +64,7 @@
     },
     {
       "task_id": "T-102", "title": "Prometheus metrics package",
-      "status": "available", "priority": "P1", "wave": 4, "size": "M", "category": "infra",
+      "status": "done", "priority": "P1", "wave": 4, "size": "M", "category": "infra",
       "related_gaps": ["G-021"], "owned_paths": ["internal/host/metrics/**"],
       "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"], "locks_required": [], "depends_on": [], "blocks": ["T-103", "T-120"],
       "acceptance_criteria": ["Metric registry + counters/histograms for model calls, gateway approvals, deliveries, sandbox launches/kills", "Exposes an http.Handler factory for /metrics"],
@@ -73,7 +73,7 @@
     },
     {
       "task_id": "T-103", "title": "API hardening (TLS, rate-limit, body limits, /readyz, /metrics)",
-      "status": "available", "priority": "P1", "wave": 4, "size": "M", "category": "security",
+      "status": "done", "priority": "P1", "wave": 4, "size": "M", "category": "security",
       "related_gaps": ["G-022"], "owned_paths": ["internal/host/api/**"],
       "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"], "locks_required": [], "depends_on": [], "blocks": ["T-120"],
       "acceptance_criteria": ["Optional TLS (cert/key) option", "Token-bucket rate-limit middleware", "Request body + header size limits", "/readyz readiness endpoint", "Mounts an injected metrics handler at /metrics"],
@@ -91,7 +91,7 @@
     },
     {
       "task_id": "T-105", "title": "Host respawn crash-loop backoff",
-      "status": "available", "priority": "P1", "wave": 4, "size": "M", "category": "bug",
+      "status": "done", "priority": "P1", "wave": 4, "size": "M", "category": "bug",
       "related_gaps": ["G-024"], "owned_paths": ["internal/host/sweep/**"],
       "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"], "locks_required": [], "depends_on": [], "blocks": ["T-120"],
       "acceptance_criteria": ["Per-session failure counter + exponential backoff before respawn", "Escalates to an alert/needs-human signal after N consecutive failures", "Tests"],
@@ -100,7 +100,7 @@
     },
     {
       "task_id": "T-106", "title": "Sandbox provider backoff + circuit breaker",
-      "status": "available", "priority": "P1", "wave": 4, "size": "M", "category": "bug",
+      "status": "done", "priority": "P1", "wave": 4, "size": "M", "category": "bug",
       "related_gaps": ["G-025"], "owned_paths": ["internal/sandbox/loop/**", "internal/sandbox/provider/**"],
       "forbidden_paths": ["internal/contract/**"], "locks_required": [], "depends_on": [], "blocks": [],
       "acceptance_criteria": ["Exponential backoff with jitter on provider errors", "Circuit breaker after a failure streak instead of fixed-interval retry forever", "Tests"],
@@ -109,7 +109,7 @@
     },
     {
       "task_id": "T-107", "title": "Model proxy: rate caps + audit logging + secret redaction",
-      "status": "available", "priority": "P1", "wave": 4, "size": "M", "category": "security",
+      "status": "done", "priority": "P1", "wave": 4, "size": "M", "category": "security",
       "related_gaps": ["G-026"], "owned_paths": ["internal/host/modelproxy/**"],
       "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"], "locks_required": [], "depends_on": [], "blocks": ["T-120"],
       "acceptance_criteria": ["Per-session/token rate caps on model egress", "Request/response audit records", "Secret redaction on forwarded responses", "Tests"],

@@ -60,13 +60,28 @@ Base-SHA: <origin/main sha>
 
 ## 4. Task claiming (FCFS)
 
-- **No issue, no work.** Every change ties to a GitHub Issue labelled `agent:ready`. The claimable
-  registry is also in [`.agents/task-registry.json`](.agents/task-registry.json).
-- Claim the **lowest-wave, highest-priority** task whose `status: available`, whose `depends_on` are
-  all `done`, and whose required locks are free. Claim exactly one at a time.
-- Claim by commenting `/agent-claim` with your `agent_id`, `base_sha`, and `scope` (the task's
-  `owned_paths`); then set labels `agent:claimed` + `agent:in-progress`. Lease = 60 min, heartbeat
-  every 20 min (`/agent-heartbeat`). Expired leases may be stolen after a warning comment.
+- **No issue, no work.** Every change ties to a GitHub Issue labelled `agent:ready`.
+- **GitHub is the single source of truth for liveness.** A task is claimable iff its issue is **open,
+  `agent:ready`, and has no live claim ref**. Find work with [`scripts/agent/board.sh`](scripts/agent/board.sh),
+  not by reading the registry's `status` field. The registry
+  ([`.agents/task-registry.json`](.agents/task-registry.json)) is the source for **deps, `owned_paths`,
+  locks, and acceptance criteria only** — its per-task `status` is advisory and may lag reality.
+- Claim the **lowest-wave, highest-priority** eligible task whose `depends_on` are all done and whose
+  required locks are free. Claim exactly one at a time.
+- **Claim atomically — never hand-roll the claim.** Run:
+
+  ```bash
+  AGENT_ID=<your-id> scripts/agent/claim.sh <issue-number> [scope...]
+  ```
+
+  This is the **only** safe way to claim. It wins the task by atomically creating a server-side claim
+  ref (`refs/agent-claims/issue-<n>`) via GitHub's create-ref API — a compare-and-swap where exactly
+  one racing agent gets the ref and every other gets rejected. Only the winner flips
+  `agent:ready → agent:claimed + agent:in-progress` and posts the `/agent-claim` comment. If the script
+  prints `ALREADY_CLAIMED` / `NOT_CLAIMABLE` / `RACE_LOST`, **the task is taken — pick another.** Do not
+  add the labels or comment by hand; that path is the double-claim race this script exists to kill.
+- Lease = 60 min, heartbeat every 20 min (`/agent-heartbeat`). To steal an expired lease, post a warning,
+  then `scripts/agent/release.sh <issue> ready` (frees the claim ref) before re-claiming.
 - **Scope is `owned_paths` first, with bounded expansion.** Do your work inside the task's
   `owned_paths`. When — and only when — a task's **acceptance criteria genuinely require** touching an
   adjacent package (e.g. a registry/host store a sandbox tool needs), you **may expand** to those
@@ -141,6 +156,22 @@ Use `/agent-claim`, `/agent-heartbeat`, `/agent-progress`, `/agent-blocked`, `/a
 `/agent-failed` (formats in the general protocol §20). If blocked > 5 min, post `/agent-blocked` and
 switch to another unblocked task — never wait silently.
 
+### 8.1 Landing is one atomic step — and it MUST close the issue
+
+When your push lands on `main` and CI is green, finish the task with **one command**:
+
+```bash
+AGENT_ID=<your-id> scripts/agent/land.sh <issue-number> <commit-sha>
+```
+
+`land.sh` does the **entire** terminal transition so it can't be left half-done: it verifies the commit
+is on `origin/main`, posts `/agent-landed`, swaps labels to `agent:done`, **closes the issue
+(`gh issue close --reason completed`)**, and releases the claim ref. `agent:done` without a closed issue
+is a bug — never stop at the label. If you abandon a claim instead of landing, run
+`scripts/agent/release.sh <issue> ready|blocked|failed` so the claim ref is freed and the task isn't
+stuck. Do **not** edit `.agents/task-registry.json` to mark a task done — GitHub issue state is
+authoritative (§4); the registry status is regenerated, not hand-maintained.
+
 ## 9. Not applicable to this stack
 
 The general protocol covers stacks IronClaw does not currently have. **Do not invent work for these**
@@ -156,5 +187,7 @@ re-label `agent:needs-human`.
 
 ---
 
-**The loop:** `claim → lock → edit → preflight → rebase → push (CAS) → verify green → report`.
+**The loop:** `board.sh → claim.sh (atomic) → lock → edit → preflight → push.sh (CAS) →
+verify green → land.sh (close + done)`. The claim and the land are scripted and atomic on purpose —
+hand-rolling either one is what causes double-claims and dangling open `agent:done` issues.
 Any agent that cannot follow this loop must stop before changing code.
