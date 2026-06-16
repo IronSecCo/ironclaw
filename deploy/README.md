@@ -1,0 +1,53 @@
+<!-- OWNER: AGENT1 -->
+# Deploying the IronClaw control-plane
+
+This directory holds install notes and a scaffold script for running the
+control-plane host. The hardened runtime has three external dependencies that are
+intentionally **not** vendored into the stdlib-only skeleton; install them on the
+host before running in production.
+
+## Components
+
+1. **containerd + gVisor (`runsc`)** — every sandbox runs under gVisor via the
+   `io.containerd.runsc.v1` runtime. gVisor interposes a user-space kernel between
+   the sandbox and the host kernel, shrinking the syscall attack surface. The
+   sandbox OCI spec sets `network=none`, drops all capabilities, sets
+   `no_new_privs`, runs non-root in a user namespace, and uses a read-only rootfs
+   with only a small writable `/workspace` (see `internal/host/isolation`).
+
+2. **Tailscale** — the control-plane API has **no public port**. Bind it to the
+   host's tailnet IP and reach `ironctl` over the tailnet. A host firewall should
+   drop inbound to the API port on every interface except the Tailscale one.
+
+3. **The control-plane binary** — `cmd/controlplane`, typically run under a
+   systemd unit (or launchd on macOS).
+
+## Running
+
+```sh
+go build -o /usr/local/bin/ironclaw-controlplane ./cmd/controlplane
+go build -o /usr/local/bin/ironctl ./cmd/ironctl
+
+# Bind the API to the tailnet IP; serve the model proxy on a unix socket that the
+# isolator will bind into each sandbox.
+ironclaw-controlplane \
+  --api-addr "$(tailscale ip -4):8787" \
+  --model-proxy-socket /run/ironclaw/modelproxy.sock
+```
+
+Then, from a host on the tailnet:
+
+```sh
+ironctl --addr http://<tailnet-ip>:8787 change submit \
+  --kind persona --group g1 --by slack:alice
+ironctl --addr http://<tailnet-ip>:8787 change pending
+ironctl --addr http://<tailnet-ip>:8787 change approve <id> --by slack:admin
+```
+
+## Model egress
+
+The sandbox has no network. Its only outbound path is the host model proxy on the
+bound unix socket, which enforces a destination allowlist (default:
+`api.anthropic.com`). Per-token caps, logging, and redaction are future work.
+
+See [install.sh](install.sh) for a commented, step-by-step scaffold.
