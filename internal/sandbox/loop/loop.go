@@ -356,12 +356,24 @@ func (l *Loop) runAgent(ctx context.Context, converser provider.ToolConverser, p
 			// A tool that forwards to the host (capability change, scheduling)
 			// renders its successful output into a system-action wire body; the loop
 			// writes it as a KindSystem outbound message for the host to
-			// re-authorize. The sandbox never acts on it directly.
+			// re-authorize. A tool that emits chat (send_message, send_file) renders
+			// its output into one or more KindChat outbound messages, written here so
+			// the host delivery can enforce destination permission. The sandbox never
+			// acts on either directly.
 			if !isErr {
 				if fwd, ok := l.cfg.Tools.Get(call.Name); ok {
 					if hf, ok := fwd.(tools.HostForwarder); ok {
 						if body, ferr := hf.ToHostAction(out); ferr == nil && body != "" {
 							capEnvelopes = append(capEnvelopes, body)
+						}
+					}
+					if em, ok := fwd.(tools.OutboundEmitter); ok {
+						if msgs, ferr := em.ToOutbound(out); ferr == nil {
+							for _, msg := range msgs {
+								l.writeEmitted(msg)
+							}
+						} else {
+							l.cfg.Logger.Printf("sandbox/loop: emit outbound from %s: %v", call.Name, ferr)
 						}
 					}
 				}
@@ -421,6 +433,21 @@ func (l *Loop) writeSystem(content string, routing contract.SessionRouting) erro
 		return fmt.Errorf("write system outbound: %w", err)
 	}
 	return nil
+}
+
+// writeEmitted writes a chat message a tool produced (send_message / send_file).
+// The tool resolves the destination coordinates; the loop assigns the message its
+// ID and timestamp and lets the queue assign the seq. A write failure is logged,
+// not fatal — one failed send must not abort the whole turn.
+func (l *Loop) writeEmitted(msg contract.MessageOut) {
+	msg.ID = contract.MessageID(l.newOutboundID())
+	msg.Timestamp = l.cfg.Clock().UTC()
+	if msg.Kind == "" {
+		msg.Kind = contract.KindChat
+	}
+	if err := l.cfg.Outbound.WriteMessageOut(msg); err != nil {
+		l.cfg.Logger.Printf("sandbox/loop: write emitted outbound: %v", err)
+	}
 }
 
 // handleSlash processes a built-in slash command and returns the reply text plus

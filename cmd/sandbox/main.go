@@ -87,7 +87,7 @@ func run() error {
 	}
 	defer inbound.Close()
 
-	registry, err := buildTools(*workspace)
+	registry, err := buildTools(*workspace, inbound)
 	if err != nil {
 		return err
 	}
@@ -120,10 +120,13 @@ func run() error {
 	return nil
 }
 
-// buildTools assembles the in-sandbox tool registry: workspace file operations
-// plus the gateway-bound capability-change request tool. There are deliberately
-// no package-install, MCP, or self-edit tools.
-func buildTools(workspaceDir string) (*tools.Registry, error) {
+// buildTools assembles the in-sandbox tool registry: workspace file operations,
+// the gateway-bound capability-change request tool, scheduling, and the messaging
+// tools (send_message / send_file / list_destinations) that emit outbound chat the
+// host delivery enforces. msgCtx (the read-only inbound view) lets the messaging
+// tools resolve allowed destinations and the current-thread routing. There are
+// deliberately no package-install, MCP, or self-edit tools.
+func buildTools(workspaceDir string, msgCtx tools.MessageContext) (*tools.Registry, error) {
 	registry := tools.NewRegistry()
 
 	ws, err := tools.NewWorkspace(workspaceDir)
@@ -140,6 +143,15 @@ func buildTools(workspaceDir string) (*tools.Registry, error) {
 	}
 	if err := registry.Register(tools.NewScheduleTaskTool()); err != nil {
 		return nil, fmt.Errorf("register schedule_task: %w", err)
+	}
+	for _, t := range []tools.Tool{
+		tools.NewSendMessageTool(msgCtx),
+		tools.NewSendFileTool(ws, msgCtx),
+		tools.NewListDestinationsTool(msgCtx),
+	} {
+		if err := registry.Register(t); err != nil {
+			return nil, fmt.Errorf("register %s: %w", t.Name(), err)
+		}
 	}
 	return registry, nil
 }
