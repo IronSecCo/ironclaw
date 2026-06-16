@@ -39,10 +39,10 @@ func TestAuthorizeSystemAction(t *testing.T) {
 }
 
 func TestParseSystemAction(t *testing.T) {
-	if got := parseSystemAction(`{"action":"install_packages","pkg":"x"}`); got != "install_packages" {
+	if got := contract.SystemActionName(`{"action":"install_packages","pkg":"x"}`); got != "install_packages" {
 		t.Fatalf("json parse = %q", got)
 	}
-	if got := parseSystemAction("  typing  "); got != "typing" {
+	if got := contract.SystemActionName("  typing  "); got != "typing" {
 		t.Fatalf("bare parse = %q", got)
 	}
 }

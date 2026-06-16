@@ -145,11 +145,11 @@ func (d *Delivery) handle(ctx context.Context, sess registry.Session, msg contra
 // turned into a gateway ChangeRequest and is NOT executed by delivery; a
 // non-privileged informational action delivers like a normal message.
 func (d *Delivery) handleSystem(ctx context.Context, sess registry.Session, msg contract.MessageOut) error {
-	action := parseSystemAction(msg.Content)
+	action := contract.SystemActionName(msg.Content)
 	// schedule_task is an allowed, NON-privileged host action: it only enqueues a
 	// future inbound prompt (no execution path, no RCE). Handle it before the
 	// privilege routing.
-	if strings.EqualFold(strings.TrimSpace(action), "schedule_task") {
+	if strings.EqualFold(strings.TrimSpace(action), contract.ActionScheduleTask) {
 		return d.handleScheduleTask(sess, msg)
 	}
 	kind, privileged := authorizeSystemAction(action)
@@ -180,25 +180,17 @@ func (d *Delivery) handleSystem(ctx context.Context, sess registry.Session, msg 
 	return nil
 }
 
-// scheduleTaskPayload is the body of a schedule_task system message. It carries
-// ONLY a prompt plus timing — there is no script/command field, by design.
-type scheduleTaskPayload struct {
-	Action     string `json:"action"`
-	Prompt     string `json:"prompt"`
-	RunAt      string `json:"run_at"` // RFC3339; empty/"" means "now"
-	Recurrence string `json:"recurrence"`
-}
-
 // handleScheduleTask enqueues a future inbound prompt for the session. It NEVER
 // executes anything: it validates the request via scheduling.Validate and writes a
 // single MessageIn with ProcessAfter=RunAt (and Recurrence carried so the sweep
-// can re-enqueue it). The sweep wakes the session when the message comes due.
+// can re-enqueue it). The sweep wakes the session when the message comes due. The
+// wire shape (prompt + timing, no script field) is pinned as contract.ScheduleRequest.
 func (d *Delivery) handleScheduleTask(sess registry.Session, msg contract.MessageOut) error {
 	if d.newWriter == nil {
 		return fmt.Errorf("host/delivery: schedule_task refused for session %s (no inbound-writer wired)", sess.ID)
 	}
-	var p scheduleTaskPayload
-	if err := json.Unmarshal([]byte(strings.TrimSpace(msg.Content)), &p); err != nil {
+	p, err := contract.ParseScheduleRequest(msg.Content)
+	if err != nil {
 		return fmt.Errorf("host/delivery: schedule_task body for %s is not valid JSON: %w", sess.ID, err)
 	}
 	runAt := time.Now().UTC()
@@ -225,7 +217,7 @@ func (d *Delivery) handleScheduleTask(sess registry.Session, msg contract.Messag
 		Seq:          d.nextEvenSeq(),
 		Kind:         contract.KindTask,
 		Timestamp:    time.Now().UTC(),
-		Status:       "scheduled",
+		Status:       contract.StatusScheduled,
 		ProcessAfter: &runAt,
 		Content:      req.Prompt,
 	}
@@ -346,7 +338,7 @@ func authorizeSystemAction(action string) (contract.ChangeKind, bool) {
 		// An unapproved script/RCE path: there is NO direct execution. Map it to the
 		// most privileged change kind so it is always human-gated, never run inline.
 		return contract.ChangePermissions, true
-	case "schedule_task", "schedule":
+	case contract.ActionScheduleTask, "schedule":
 		// Scheduling carries ONLY a prompt and enqueues a future inbound message —
 		// there is no script/command field and nothing is executed here, so it is a
 		// non-privileged host action. (Delivery special-cases it before reaching this
@@ -363,38 +355,18 @@ func authorizeSystemAction(action string) (contract.ChangeKind, bool) {
 	}
 }
 
-// parseSystemAction extracts the action name from a system message body. The body
-// may be a bare action string or a JSON object {"action": "..."}. Parsing is
-// best-effort; an unparseable body yields the trimmed raw content.
-func parseSystemAction(content string) string {
-	c := strings.TrimSpace(content)
-	if strings.HasPrefix(c, "{") {
-		var obj struct {
-			Action string `json:"action"`
-		}
-		if err := json.Unmarshal([]byte(c), &obj); err == nil && obj.Action != "" {
-			return obj.Action
-		}
-	}
-	return c
-}
-
 // extractAfter returns the structured proposed config to record as a
-// ChangeRequest.After. The sandbox's capability-change wire format is
-// {"action":"<kind>","payload":<obj>,"reason":"..."} (see the sandbox tools
-// package): when a "payload" object is present it is returned verbatim so the
-// gateway verifiers and the approver see the real config. If the body is a JSON
-// object without a payload, the whole object is used; a non-JSON body is encoded
-// as a JSON string so After is always valid JSON.
+// ChangeRequest.After. The capability-change envelope (contract.SystemAction)
+// carries the proposed config in its Payload: when present it is returned verbatim
+// so the gateway verifiers and the approver see the real config. If the body is a
+// JSON object without a payload, the whole object is used; a non-JSON body is
+// encoded as a JSON string so After is always valid JSON.
 func extractAfter(content string) json.RawMessage {
+	if a := contract.ParseSystemAction(content); len(a.Payload) > 0 {
+		return a.Payload
+	}
 	c := strings.TrimSpace(content)
 	if strings.HasPrefix(c, "{") && json.Valid([]byte(c)) {
-		var obj struct {
-			Payload json.RawMessage `json:"payload"`
-		}
-		if json.Unmarshal([]byte(c), &obj) == nil && len(obj.Payload) > 0 {
-			return obj.Payload
-		}
 		return json.RawMessage(c)
 	}
 	b, _ := json.Marshal(content)

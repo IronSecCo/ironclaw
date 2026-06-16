@@ -45,16 +45,15 @@ const queryTimeout = 5 * time.Second
 // match the host: internal/host/queue tsString uses time.RFC3339Nano UTC.)
 const timeLayout = time.RFC3339Nano
 
-// Inbound status values the host writes for messages the sandbox should process.
-// The contract leaves status freeform, so these are seam values host and sandbox
-// must agree on out of band (verified against internal/host): the router writes
-// "queued" for immediate messages; delivery writes "scheduled" for schedule_task
-// messages, which become processable once their process_after is reached. Both
-// are read here; due-ness is then governed by process_after. Candidates to pin in
-// the contract via RFC alongside seq parity.
+// Inbound status values the host writes for messages the sandbox should process,
+// now pinned in the frozen contract (RFC-0002) so host and sandbox can never
+// drift: the router writes StatusQueued for immediate messages; delivery writes
+// StatusScheduled for schedule_task messages, which become processable once their
+// process_after is reached. Both are read here; due-ness is then governed by
+// process_after.
 const (
-	statusQueued    = "queued"
-	statusScheduled = "scheduled"
+	statusQueued    = contract.StatusQueued
+	statusScheduled = contract.StatusScheduled
 )
 
 // sandboxInbound is the sandbox's read-only implementation of the inbound queue.
@@ -352,12 +351,12 @@ func (s *sandboxOutbound) WriteMessageOut(m contract.MessageOut) error {
 // MarkProcessing records that the given inbound messages are being processed,
 // for the host to read back via OutboundReader.ProcessingAcks.
 func (s *sandboxOutbound) MarkProcessing(ids []contract.MessageID) error {
-	return s.markAck(ids, "processing")
+	return s.markAck(ids, contract.StatusProcessing)
 }
 
 // MarkCompleted records that the given inbound messages are done.
 func (s *sandboxOutbound) MarkCompleted(ids []contract.MessageID) error {
-	return s.markAck(ids, "completed")
+	return s.markAck(ids, contract.StatusCompleted)
 }
 
 func (s *sandboxOutbound) markAck(ids []contract.MessageID, status string) error {

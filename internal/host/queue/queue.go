@@ -115,7 +115,7 @@ func (h *hostInbound) MarkDelivered(id contract.MessageID, platformMsgID *string
             platform_message_id=excluded.platform_message_id,
             status=excluded.status,
             delivered_at=excluded.delivered_at`,
-		string(id), strPtr(platformMsgID), "delivered", tsString(time.Now().UTC()))
+		string(id), strPtr(platformMsgID), contract.StatusDelivered, tsString(time.Now().UTC()))
 	return err
 }
 

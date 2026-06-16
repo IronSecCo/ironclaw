@@ -111,24 +111,19 @@ func ParseCapabilityChange(s string) (CapabilityChange, error) {
 	return cc, nil
 }
 
-// hostSystemAction is the wire shape the host delivery expects for a KindSystem
-// outbound message that should route to the gateway: it is keyed on "action".
-// See internal/host/delivery parseSystemAction/authorizeSystemAction — the host
-// reads "action" and maps it to a gateway ChangeKind. The ChangeKind string
-// values double as the host's recognized action names, so they map 1:1.
-type hostSystemAction struct {
-	Action  string          `json:"action"`
-	Payload json.RawMessage `json:"payload,omitempty"`
-	Reason  string          `json:"reason,omitempty"`
-}
-
-// SystemActionJSON renders the capability change in the host's system-action wire
-// format (keyed on "action"). The loop writes this as the Content of a KindSystem
-// outbound message; host delivery re-authorizes it through the mandatory gateway.
+// SystemActionJSON renders the capability change in the frozen system-action wire
+// format (contract.SystemAction, keyed on "action"). The loop writes this as the
+// Content of a KindSystem outbound message; host delivery re-authorizes it through
+// the mandatory gateway. The ChangeKind string is the action discriminator, so it
+// maps 1:1 to the host's recognized capability actions.
 func (c CapabilityChange) SystemActionJSON() (string, error) {
-	b, err := json.Marshal(hostSystemAction{Action: string(c.Kind), Payload: c.Payload, Reason: c.Reason})
+	s, err := contract.MarshalSystemAction(contract.SystemAction{
+		Action:  string(c.Kind),
+		Payload: c.Payload,
+		Reason:  c.Reason,
+	})
 	if err != nil {
 		return "", fmt.Errorf("render system action: %w", err)
 	}
-	return string(b), nil
+	return s, nil
 }

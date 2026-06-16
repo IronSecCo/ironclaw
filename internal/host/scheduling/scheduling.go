@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/nivardsec/ironclaw/internal/contract"
 )
 
 // ScheduledRequest is a request to run a prompt at a future time, optionally
@@ -31,11 +33,13 @@ type ScheduledRequest struct {
 	Recurrence string
 }
 
-// Named recurrence cadences.
+// Named recurrence cadences. Pinned in the frozen contract (they cross the seam
+// in contract.ScheduleRequest.Recurrence and MessageIn.Recurrence); aliased here
+// so the host logic and the wire format can never drift.
 const (
-	RecurrenceHourly = "hourly"
-	RecurrenceDaily  = "daily"
-	RecurrenceWeekly = "weekly"
+	RecurrenceHourly = contract.RecurrenceHourly
+	RecurrenceDaily  = contract.RecurrenceDaily
+	RecurrenceWeekly = contract.RecurrenceWeekly
 )
 
 // Validate checks a ScheduledRequest. It rejects an empty prompt and any

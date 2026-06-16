@@ -210,12 +210,12 @@ func (m *MemOutbound) WriteMessageOut(msg contract.MessageOut) error {
 
 // MarkProcessing records a processing ack for each id.
 func (m *MemOutbound) MarkProcessing(ids []contract.MessageID) error {
-	return m.markAck(ids, "processing")
+	return m.markAck(ids, contract.StatusProcessing)
 }
 
 // MarkCompleted records a completed ack for each id.
 func (m *MemOutbound) MarkCompleted(ids []contract.MessageID) error {
-	return m.markAck(ids, "completed")
+	return m.markAck(ids, contract.StatusCompleted)
 }
 
 func (m *MemOutbound) markAck(ids []contract.MessageID, status string) error {

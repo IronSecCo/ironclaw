@@ -79,6 +79,66 @@ minus `query_only`, so host and sandbox cannot drift on cipher params.
 edit `internal/contract/**`. The change must land together with the
 encrypted-SQLite binding and both CODEOWNERS' sign-off.
 
+### RFC-0002 (applied): pin the cross-seam wire formats (`actions.go`)
+
+**Status:** applied. Adds `internal/contract/actions.go`; requires both CODEOWNERS'
+sign-off per the freeze rule (control-plane owner + sandbox owner).
+
+**Motivation.** Three things cross the host↔sandbox seam but were *not* in the
+frozen contract — they lived informally in `internal/host/delivery` and
+`internal/sandbox/tools`, with the host defining them and the sandbox
+reverse-engineering them:
+
+1. the **system-action envelope** the sandbox writes as a `KindSystem` outbound
+   body (`{"action","payload","reason"}`), which host delivery parses and
+   re-authorizes;
+2. the **schedule_task request** body (`{"action","prompt","run_at","recurrence"}`)
+   plus the named recurrence cadences (`hourly`/`daily`/`weekly`);
+3. the **queue status vocabulary** (`queued`, `scheduled`, `processing`,
+   `completed`, `delivered`) — the host writes inbound status + the delivered
+   marker, the sandbox writes the outbound acks, and each side reads the other's.
+
+Because none of these were pinned, a rename on either side compiled cleanly and
+failed **silently at runtime** (a dropped system action, an unrecognized status) —
+exactly the drift class the freeze rule exists to prevent. Operationally it forced
+the sandbox to *wait and observe* the host's choices rather than build against a
+spec, serializing what should be parallel work (the last two sandbox commits were
+pure catch-up to host-defined formats; `internal/sandbox/queue` even carried a
+`// Candidates to pin in the contract via RFC` note).
+
+**Proposed change.** Add `internal/contract/actions.go` with, all `encoding/json`
++ `strings` only (no new dependency):
+
+- `type SystemAction struct { Action string; Payload json.RawMessage; Reason string }`
+  with `MarshalSystemAction`, `ParseSystemAction` (total — a bare body becomes an
+  action name), and `SystemActionName`;
+- `const ActionScheduleTask = "schedule_task"` (the one action name that is not a
+  `ChangeKind`; capability actions use `string(ChangeKind)`);
+- `type ScheduleRequest struct { Action, Prompt, RunAt, Recurrence string }` with
+  `MarshalScheduleRequest` / `ParseScheduleRequest`, and
+  `RecurrenceHourly/Daily/Weekly`;
+- the `StatusQueued/Scheduled/Processing/Completed/Delivered` constants.
+
+**What stays out of the contract (deliberately).** The *authorization policy* —
+which actions are privileged and which `ChangeKind` they map to
+(`delivery.authorizeSystemAction`) — remains host-internal. The sandbox must never
+be able to define what counts as privileged; the contract pins only the wire
+shapes, not the host's enforcement decision.
+
+**Migration impact (landed together).**
+
+- *Control-plane (AGENT1):* `delivery` uses `contract.SystemActionName`,
+  `contract.ParseSystemAction`, `contract.ParseScheduleRequest`,
+  `contract.ActionScheduleTask`, and `contract.StatusScheduled` (local
+  `parseSystemAction` and `scheduleTaskPayload` removed); `scheduling` aliases its
+  recurrence constants to the contract; `host/queue` writes
+  `contract.StatusDelivered` / `StatusProcessing` / `StatusCompleted`.
+- *Sandbox (AGENT2):* `tools.CapabilityChange.SystemActionJSON` marshals via
+  `contract.SystemAction` (local `hostSystemAction` removed); `sandbox/queue`
+  references the pinned status constants. No type-level guarantee changes.
+
+The whole tree builds, vets, and tests green after the change.
+
 ## Capability-change payload conventions
 
 These are cross-agent **conventions** layered on the frozen contract, not Go types
