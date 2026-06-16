@@ -121,7 +121,8 @@ func run() error {
 }
 
 // buildTools assembles the in-sandbox tool registry: workspace file operations,
-// the gateway-bound capability-change request tool, scheduling, and the messaging
+// the gateway-bound capability-change request tool, scheduling plus its
+// task-management tools (list/cancel/pause/resume/update), and the messaging
 // tools (send_message / send_file / list_destinations) that emit outbound chat the
 // host delivery enforces. msgCtx (the read-only inbound view) lets the messaging
 // tools resolve allowed destinations and the current-thread routing. There are
@@ -149,6 +150,14 @@ func buildTools(workspaceDir string, msgCtx tools.MessageContext) (*tools.Regist
 		tools.NewSendFileTool(ws, msgCtx),
 		tools.NewListDestinationsTool(msgCtx),
 	} {
+		if err := registry.Register(t); err != nil {
+			return nil, fmt.Errorf("register %s: %w", t.Name(), err)
+		}
+	}
+	// Task-management tools (list/cancel/pause/resume/update) for the prompts the
+	// agent has scheduled. Like schedule_task they forward a non-privileged system
+	// action to the host's scheduling store and execute nothing directly.
+	for _, t := range tools.TaskManagementTools() {
 		if err := registry.Register(t); err != nil {
 			return nil, fmt.Errorf("register %s: %w", t.Name(), err)
 		}
