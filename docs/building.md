@@ -1,7 +1,9 @@
 # Building
 
-The skeleton builds, vets, and tests with the **Go standard library only** — no
-external modules, no CGo. Set up Go and run:
+IronClaw builds, vets, and tests with **`CGO_ENABLED=1`** and a C toolchain — the
+encrypted-SQLite binding is built via cgo (the SQLCipher C amalgamation is vendored
+by the driver, so no system libsqlcipher is required). Set up Go + a C compiler and
+run:
 
 ```sh
 make build   # go build ./...
@@ -17,19 +19,18 @@ go vet ./...
 go test ./...
 ```
 
-## The one pending piece
+## Encrypted-queue binding (wired)
 
-The encrypted-queue binding is the single component not yet wired:
-**SQLite3 Multiple Ciphers** (a SQLCipher-compatible scheme), which requires a
-**CGo** build. Until it is added, the `contract.Open*` helpers return
-`contract.ErrCryptoBindingPending`, and the skeleton compiles and tests cleanly
-without it.
-
-When the binding lands, the build will require `CGO_ENABLED=1` and a C toolchain.
-The exact connection string and PRAGMA ordering are already centralized in
-`internal/contract/crypto.go` (raw-key, `mode=ro`, `query_only`, `mmap_size=0`,
-never `immutable=1`, DELETE journal, reopen-per-poll) so the host and sandbox
-cannot drift.
+The per-session encrypted queues are live (**RFC-0001 applied**). `contract.Open*`
+open SQLCipher databases via cgo (`github.com/mutecomm/go-sqlcipher/v4`): the raw
+key travels in the DSN (`_pragma_key`) so every pooled connection is keyed before
+any page read; readers use `mode=ro` + `query_only`, writers `journal_mode=DELETE`,
+`mmap_size=0` everywhere, never `immutable=1`, reopen-per-poll. The connection
+string and PRAGMA ordering are centralized in `internal/contract/crypto.go` so the
+host and sandbox cannot drift. A round-trip test in `internal/contract` covers
+write→read, read-only-write rejection, wrong-key failure, and no-plaintext-on-disk.
+`internal/host/queue` uses the live binding; in-memory backends remain for `--dev`
+and tests.
 
 ## Trees
 
@@ -71,10 +72,15 @@ ironctl --addr http://<tailnet-ip>:8787 change pending
 See [../api/control-plane.md](../api/control-plane.md) for the HTTP API and
 [../deploy/README.md](../deploy/README.md) for the gVisor + Tailscale deployment.
 
-## What stays pending in the control-plane
+## What stays gated
 
-A few host paths are written but gated on the encrypted-DB seam: `host/queue`
-(real SQL, no opener — see RFC-0001 in [contract.md](contract.md)), `host/router`
-`RouteInbound`, `host/sweep` `Run`, and `host/delivery` `Poll`. Their pure logic
+The encrypted binding is wired, so `host/queue` opens real per-session databases.
+The remaining gated piece is **sandbox rootfs provisioning**: `isolation` builds
+the hardened OCI spec and execs `runsc`, but unpacking an OCI image into the bundle
+needs an external image tool, so `Launch` returns `ErrRootfsMissing` until a rootfs
+is provisioned. Until the full per-session lifecycle (session dirs + key custody +
+sandbox launch) is wired into the daemon, the control-plane runs with in-memory
+backends under `--dev`; the per-session queue factories and live `RouteInbound` /
+`Poll` / sweep wiring activate with that lifecycle. The pure logic
 (`NamespaceUserID`, `EvaluateEngage`, `DecideStuckAction`, the gateway, keys,
-model proxy, channels, and the API) is fully implemented and tested.
+model proxy, channels, queue SQL, and the API) is fully implemented and tested.
