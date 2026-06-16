@@ -27,6 +27,10 @@ import (
 
 const defaultAddr = "http://127.0.0.1:8787"
 
+// token is the optional bearer token sent with every request. It defaults to the
+// IRONCLAW_API_TOKEN env var and can be overridden with the global --token flag.
+var token string
+
 func main() {
 	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, "ironctl:", err)
@@ -35,10 +39,16 @@ func main() {
 }
 
 func run(args []string) error {
-	// Global --addr can appear before the subcommand.
+	// Global --addr / --token can appear (in any order) before the subcommand.
 	addr := defaultAddr
-	for len(args) >= 2 && args[0] == "--addr" {
-		addr = args[1]
+	token = os.Getenv("IRONCLAW_API_TOKEN")
+	for len(args) >= 2 && (args[0] == "--addr" || args[0] == "--token") {
+		switch args[0] {
+		case "--addr":
+			addr = args[1]
+		case "--token":
+			token = args[1]
+		}
 		args = args[2:]
 	}
 	if len(args) < 1 {
@@ -96,7 +106,7 @@ func cmdSubmit(addr string, args []string) error {
 }
 
 func cmdPending(addr string) error {
-	resp, err := http.Get(addr + "/v1/changes/pending")
+	resp, err := httpGet(addr + "/v1/changes/pending")
 	if err != nil {
 		return err
 	}
@@ -105,7 +115,7 @@ func cmdPending(addr string) error {
 }
 
 func cmdHistory(addr string) error {
-	resp, err := http.Get(addr + "/v1/changes/history")
+	resp, err := httpGet(addr + "/v1/changes/history")
 	if err != nil {
 		return err
 	}
@@ -119,7 +129,7 @@ func cmdAudit(addr string, args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	resp, err := http.Get(fmt.Sprintf("%s/v1/audit?limit=%d", addr, *limit))
+	resp, err := httpGet(fmt.Sprintf("%s/v1/audit?limit=%d", addr, *limit))
 	if err != nil {
 		return err
 	}
@@ -146,12 +156,35 @@ func postJSON(url string, body any) error {
 	if err != nil {
 		return err
 	}
-	resp, err := http.Post(url, "application/json", bytes.NewReader(b))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	addAuth(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 	return printBody(resp)
+}
+
+// httpGet issues an authenticated GET.
+func httpGet(url string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	addAuth(req)
+	return http.DefaultClient.Do(req)
+}
+
+// addAuth attaches the bearer token if one is configured.
+func addAuth(req *http.Request) {
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
 }
 
 func printBody(resp *http.Response) error {
@@ -168,12 +201,13 @@ func printBody(resp *http.Response) error {
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
-  ironctl [--addr URL] change submit --kind <k> --group <g> --by <user>
-  ironctl [--addr URL] change pending
-  ironctl [--addr URL] change history
-  ironctl [--addr URL] change approve <id> --by <user>
-  ironctl [--addr URL] change reject  <id> --by <user>
-  ironctl [--addr URL] audit [--limit N]
+  ironctl [--addr URL] [--token T] change submit --kind <k> --group <g> --by <user>
+  ironctl [--addr URL] [--token T] change pending
+  ironctl [--addr URL] [--token T] change history
+  ironctl [--addr URL] [--token T] change approve <id> --by <user>
+  ironctl [--addr URL] [--token T] change reject  <id> --by <user>
+  ironctl [--addr URL] [--token T] audit [--limit N]
 
-  --addr defaults to `+defaultAddr)
+  --addr  defaults to `+defaultAddr+`
+  --token defaults to $IRONCLAW_API_TOKEN`)
 }

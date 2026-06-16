@@ -111,6 +111,12 @@ func main() {
 	).SetAudit(audit)
 
 	server := api.New(gw).WithHistory(store).WithAuditPath(auditPath)
+	// Optional bearer-token auth (defense-in-depth behind the tailnet). Read from
+	// the host environment; never logged.
+	apiToken := os.Getenv("IRONCLAW_API_TOKEN")
+	if apiToken != "" {
+		server = server.WithToken(apiToken)
+	}
 
 	// Isolation: build a hardened OCI bundle per session and exec the runtime. The
 	// runtime can't actually launch until rootfs provisioning (the one external
@@ -179,6 +185,7 @@ func main() {
 	log.Printf("controlplane:   audit log      %s", auditPath)
 	log.Printf("controlplane:   gateway chain  mount-allowlist -> package-name -> always-require-human")
 	log.Printf("controlplane:   registry       in-memory (dev=%v)", *dev)
+	log.Printf("controlplane:   api auth       bearer-token=%v (set IRONCLAW_API_TOKEN; tailnet is the primary boundary)", apiToken != "")
 	log.Printf("controlplane:   model proxy    socket=%s allowlist=[api.anthropic.com] credential-injection=%v", *socket, credInjected)
 	log.Printf("controlplane:   isolation      runtime=%q bundle-root=%s (rootfs provisioning pending)", *runtimeBin, *bundleRoot)
 	log.Printf("controlplane:   sweep          interval=%s (scheduling carries a prompt only — no script, no RCE)", *sweepInterval)

@@ -8,6 +8,25 @@ no public port (see [../deploy/README.md](../deploy/README.md)).
 
 All request and response bodies are JSON. Times are RFC 3339.
 
+## Authentication
+
+The mesh (Tailscale) network boundary is the primary control. As defense-in-depth,
+the API can also require a bearer token: start the control-plane with
+`IRONCLAW_API_TOKEN` set, and every request (except `GET /healthz`) must carry:
+
+```
+Authorization: Bearer <token>
+```
+
+Requests without a valid token get `401 Unauthorized` (the comparison is
+constant-time). With no token configured, the check is disabled and the API relies
+on the tailnet boundary alone. `ironctl` sends the token from `--token` or
+`$IRONCLAW_API_TOKEN`.
+
+## `GET /healthz`
+
+Unauthenticated liveness probe. Response — `200 OK`: `{ "status": "ok" }`.
+
 ## `POST /v1/changes`
 
 Submit a control-plane mutation as a `ChangeRequest`. The gateway runs its

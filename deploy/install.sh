@@ -43,7 +43,21 @@ set -euo pipefail
 #   install -d -m 0700 /run/ironclaw
 
 # ---------------------------------------------------------------------------
-# 4. systemd unit (Linux) — bind the API to the tailnet IP only
+# 4. Host secrets (NEVER reach the sandbox)
+# ---------------------------------------------------------------------------
+# The model-proxy injects the model credential and the API can require a bearer
+# token. Both live ONLY on the host, in a 0600 env file read by systemd — they are
+# never passed into a sandbox image or environment.
+#
+#   install -d -m 0700 /etc/ironclaw
+#   cat >/etc/ironclaw/ironclaw.env <<ENV
+#   ANTHROPIC_API_KEY=sk-ant-...        # host-held; proxy injects per request
+#   IRONCLAW_API_TOKEN=$(openssl rand -hex 32)   # admin API bearer token
+#   ENV
+#   chmod 0600 /etc/ironclaw/ironclaw.env
+
+# ---------------------------------------------------------------------------
+# 5. systemd unit (Linux) — bind the API to the tailnet IP only
 # ---------------------------------------------------------------------------
 #   cat >/etc/systemd/system/ironclaw.service <<UNIT
 #   [Unit]
@@ -51,9 +65,11 @@ set -euo pipefail
 #   After=network-online.target containerd.service tailscaled.service
 #
 #   [Service]
+#   EnvironmentFile=/etc/ironclaw/ironclaw.env
 #   ExecStart=/usr/local/bin/ironclaw-controlplane \
 #     --api-addr ${TAILNET_IP}:8787 \
-#     --model-proxy-socket /run/ironclaw/modelproxy.sock
+#     --model-proxy-socket /run/ironclaw/modelproxy.sock \
+#     --state-dir /var/lib/ironclaw
 #   Restart=on-failure
 #
 #   [Install]
@@ -61,5 +77,8 @@ set -euo pipefail
 #   UNIT
 #   systemctl daemon-reload
 #   systemctl enable --now ironclaw
+#
+# Then drive it over the tailnet:
+#   ironctl --addr http://${TAILNET_IP}:8787 --token "$IRONCLAW_API_TOKEN" change pending
 
 echo "install.sh is a scaffold — read the comments and adapt before running."

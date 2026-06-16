@@ -26,6 +26,53 @@ func newTestServer() (*httptest.Server, *gateway.MemoryStore) {
 	return srv, store
 }
 
+func TestBearerTokenAuth(t *testing.T) {
+	store := gateway.NewMemoryStore()
+	gw := gateway.New(
+		gateway.VerifierChain{gateway.AlwaysRequireHuman{}},
+		gateway.NewManualApprover(),
+		gateway.NewLogApplier(),
+		store,
+	)
+	srv := httptest.NewServer(New(gw).WithToken("s3cret").Handler())
+	defer srv.Close()
+
+	// No token -> 401 on a protected route.
+	resp, err := http.Get(srv.URL + "/v1/changes/pending")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("no-token status = %d, want 401", resp.StatusCode)
+	}
+
+	// Wrong token -> 401.
+	req, _ := http.NewRequest("GET", srv.URL+"/v1/changes/pending", nil)
+	req.Header.Set("Authorization", "Bearer wrong")
+	resp, _ = http.DefaultClient.Do(req)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("wrong-token status = %d, want 401", resp.StatusCode)
+	}
+
+	// Correct token -> 200.
+	req, _ = http.NewRequest("GET", srv.URL+"/v1/changes/pending", nil)
+	req.Header.Set("Authorization", "Bearer s3cret")
+	resp, _ = http.DefaultClient.Do(req)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("correct-token status = %d, want 200", resp.StatusCode)
+	}
+
+	// /healthz is exempt -> 200 with no token.
+	resp, _ = http.Get(srv.URL + "/healthz")
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("healthz status = %d, want 200 (must be exempt)", resp.StatusCode)
+	}
+}
+
 func TestSubmitPendingApproveFlow(t *testing.T) {
 	srv, store := newTestServer()
 	defer srv.Close()
