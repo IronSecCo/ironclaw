@@ -37,6 +37,15 @@ type Server struct {
 	token     string
 	reg       registry.Registry
 	mux       *http.ServeMux
+
+	// Hardening (all opt-in; see hardening.go). Zero values disable the feature.
+	limiter        *rateLimiter
+	maxBodyBytes   int64
+	maxHeaderBytes int
+	ready          func() error
+	metrics        http.Handler
+	tlsCert        string
+	tlsKey         string
 }
 
 // New constructs a Server bound to gw and wires the routes.
@@ -70,11 +79,59 @@ func (s *Server) WithToken(token string) *Server {
 	return s
 }
 
-// Handler exposes the (auth-wrapped) handler for testing and serving.
-func (s *Server) Handler() http.Handler { return s.auth(s.mux) }
+// WithRateLimit enables a global token-bucket rate limiter: at most burst
+// requests in a spike, refilling at rps requests/second. Probe endpoints
+// (/healthz, /readyz) are never throttled. rps <= 0 disables it. Returns the
+// Server for chaining.
+func (s *Server) WithRateLimit(rps float64, burst int) *Server {
+	if rps > 0 {
+		s.limiter = newRateLimiter(rps, burst)
+	}
+	return s
+}
+
+// WithLimits caps the request body size (bytes) and the max header size (bytes).
+// A non-positive value leaves that limit unset. Returns the Server for chaining.
+func (s *Server) WithLimits(maxBodyBytes int64, maxHeaderBytes int) *Server {
+	s.maxBodyBytes = maxBodyBytes
+	s.maxHeaderBytes = maxHeaderBytes
+	return s
+}
+
+// WithReadiness attaches a readiness check that gates GET /readyz: a non-nil
+// error makes the probe report 503. Nil check (the default) is always ready.
+// Returns the Server for chaining.
+func (s *Server) WithReadiness(check func() error) *Server {
+	s.ready = check
+	return s
+}
+
+// WithMetrics mounts an injected metrics handler (e.g. from internal/host/
+// metrics) at GET /metrics. Decoupled from that package so this server does not
+// depend on it. Returns the Server for chaining.
+func (s *Server) WithMetrics(h http.Handler) *Server {
+	s.metrics = h
+	return s
+}
+
+// WithTLS makes Run serve HTTPS using the PEM cert/key files. Empty paths (the
+// default) serve plain HTTP — the mesh boundary remains the primary control.
+// Returns the Server for chaining.
+func (s *Server) WithTLS(certFile, keyFile string) *Server {
+	s.tlsCert, s.tlsKey = certFile, keyFile
+	return s
+}
+
+// Handler exposes the fully-wrapped handler for testing and serving. Middleware
+// order (outermost first): rate-limit -> body-size cap -> auth -> routes.
+func (s *Server) Handler() http.Handler {
+	return s.rateLimit(s.limitBody(s.auth(s.mux)))
+}
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.handleHealthz)
+	s.mux.HandleFunc("GET /readyz", s.handleReadyz)
+	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("POST /v1/changes", s.handleSubmit)
 	s.mux.HandleFunc("GET /v1/changes/pending", s.handlePending)
 	s.mux.HandleFunc("GET /v1/changes/history", s.handleHistory)
@@ -84,12 +141,12 @@ func (s *Server) routes() {
 }
 
 // auth wraps h with optional bearer-token authentication. With no token set, the
-// API relies solely on the mesh (Tailscale) network boundary. /healthz is always
-// exempt so liveness probes need no credential. The token comparison is
-// constant-time.
+// API relies solely on the mesh (Tailscale) network boundary. The /healthz and
+// /readyz probes are always exempt so liveness/readiness checks need no
+// credential. The token comparison is constant-time.
 func (s *Server) auth(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s.token == "" || r.URL.Path == "/healthz" {
+		if s.token == "" || probeExempt(r.URL.Path) {
 			h.ServeHTTP(w, r)
 			return
 		}
@@ -226,8 +283,17 @@ func (s *Server) Run(ctx context.Context, addr string) error {
 		return err
 	}
 	srv := &http.Server{Handler: s.Handler()}
+	if s.maxHeaderBytes > 0 {
+		srv.MaxHeaderBytes = s.maxHeaderBytes
+	}
 	errCh := make(chan error, 1)
-	go func() { errCh <- srv.Serve(ln) }()
+	go func() {
+		if s.tlsCert != "" && s.tlsKey != "" {
+			errCh <- srv.ServeTLS(ln, s.tlsCert, s.tlsKey)
+			return
+		}
+		errCh <- srv.Serve(ln)
+	}()
 	select {
 	case <-ctx.Done():
 		shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
