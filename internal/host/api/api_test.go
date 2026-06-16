@@ -158,15 +158,26 @@ func TestHistoryEndpoint(t *testing.T) {
 	dresp.Body.Close()
 	waitPendingCount(t, srv.URL, 0)
 
-	// History now contains the applied change.
+	// History now contains the change. Wait for the terminal "applied" state, not
+	// merely its appearance in history. The gateway applies in a background
+	// goroutine (handleSubmit), and a change shows up in History() as soon as it
+	// leaves "pending" — i.e. at "approved", BEFORE the apply step's final
+	// MarkApplied persist. Returning then lets that last FileStore write race
+	// t.TempDir()'s RemoveAll cleanup ("directory not empty"). FileStore
+	// serializes every write under its mutex and MarkApplied is the terminal one,
+	// so once Status reports "applied" the temp dir is settled and cleanup is safe.
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		if historyCount(t, srv.URL) == 1 {
+		if st, ok := store.Status("chg_hist"); ok && st == "applied" {
+			if n := historyCount(t, srv.URL); n != 1 {
+				t.Fatalf("history = %d, want 1", n)
+			}
 			return
 		}
 		time.Sleep(2 * time.Millisecond)
 	}
-	t.Fatalf("history never reached 1, got %d", historyCount(t, srv.URL))
+	st, _ := store.Status("chg_hist")
+	t.Fatalf("change never reached applied (status=%q); history=%d", st, historyCount(t, srv.URL))
 }
 
 func historyCount(t *testing.T, base string) int {
