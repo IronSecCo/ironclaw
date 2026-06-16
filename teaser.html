@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IronClaw — Teaser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090c11;
+    --steel-1:#f3f6fb;
+    --steel-2:#b9c2d0;
+    --steel-3:#7c8696;
+    --steel-4:#4b545f;
+    --line:rgba(160,180,210,.12);
+    --line-strong:rgba(180,200,230,.22);
+    --ember-1:#ffd7a6;
+    --ember-2:#ff7a2e;
+    --ember-3:#e0481a;
+    --panel:rgba(255,255,255,.018);
+    --display:"Space Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --body:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    font-family:var(--body);
+    color:var(--steel-2);
+    display:grid;
+    place-items:center;
+    min-height:100vh;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .stage{
+    container-type:size;
+    width:min(96vw, calc(94vh * 16 / 9));
+    aspect-ratio:16 / 9;
+    position:relative;
+  }
+
+  .slide{
+    position:absolute;
+    inset:0;
+    font-size:1cqw;                 /* 1em = 1% of slide width — everything scales */
+    border-radius:1.4em;
+    overflow:hidden;
+    border:1px solid var(--line-strong);
+    background:
+      radial-gradient(120% 90% at 82% -10%, rgba(120,150,190,.10), transparent 45%),
+      radial-gradient(120% 120% at 50% 130%, rgba(255,110,40,.14), transparent 50%),
+      radial-gradient(90% 80% at 12% 8%, rgba(150,170,200,.06), transparent 55%),
+      linear-gradient(180deg,#0d1118 0%, #090c11 55%, #070a0e 100%);
+    box-shadow:0 3em 8em -3em rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+
+  /* brushed-metal + grid texture overlay */
+  .slide::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 3px),
+      radial-gradient(rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size:auto, 2.4em 2.4em;
+    mask:radial-gradient(120% 100% at 50% 40%, #000 35%, transparent 88%);
+    opacity:.6;
+  }
+  /* hot baseline */
+  .slide::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:.18em;
+    background:linear-gradient(90deg,transparent, var(--ember-3) 30%, var(--ember-2) 50%, var(--ember-3) 70%, transparent);
+    opacity:.85;filter:blur(.02em);
+  }
+
+  .pad{position:absolute;inset:0;padding:5.6em 6.4em;display:flex;flex-direction:column}
+
+  /* ---- eyebrow ---- */
+  .eyebrow{
+    display:flex;align-items:center;gap:1.1em;
+    font-size:1.12em;letter-spacing:.42em;font-weight:600;
+    color:var(--steel-3);text-transform:uppercase;
+  }
+  .eyebrow .dot{width:.42em;height:.42em;border-radius:50%;background:var(--ember-2);box-shadow:0 0 1.2em var(--ember-2)}
+
+  /* ---- lockup ---- */
+  .lockup{display:flex;align-items:center;gap:2.4em;margin-top:2.9em}
+  .mark{width:8.6em;height:9.4em;flex:none;filter:drop-shadow(0 1.2em 1.6em rgba(0,0,0,.55))}
+  .glow{transform-origin:64px 78px;animation:pulse 4.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
+
+  .wordmark{display:flex;flex-direction:column;gap:.5em}
+  .wordmark h1{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:7.3em;
+    line-height:.84;
+    letter-spacing:-.012em;
+    background:linear-gradient(180deg,#ffffff 0%, #d7deea 38%, #97a2b2 72%, #6c7686 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    position:relative;
+  }
+  /* moving sheen across the wordmark */
+  .wordmark h1 .sheen{
+    position:absolute;inset:0;
+    background:linear-gradient(105deg,transparent 38%, rgba(255,255,255,.85) 50%, transparent 62%);
+    background-size:240% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:sheen 6s ease-in-out infinite;
+    mix-blend-mode:screen;
+  }
+  @keyframes sheen{0%{background-position:160% 0}55%,100%{background-position:-60% 0}}
+  .wordmark .tag{
+    font-family:var(--display);
+    font-size:1.85em;font-weight:500;letter-spacing:.01em;
+    color:var(--steel-2);
+  }
+  .wordmark .tag b{color:var(--ember-2);font-weight:600}
+
+  /* ---- lead ---- */
+  .lead{
+    margin-top:2.9em;max-width:54em;
+    font-size:1.72em;line-height:1.5;font-weight:400;color:var(--steel-2);
+  }
+  .lead strong{color:var(--steel-1);font-weight:600}
+
+  /* ---- pillars ---- */
+  .pillars{
+    margin-top:auto;
+    display:grid;grid-template-columns:repeat(4,1fr);gap:1.5em;
+  }
+  .pillar{
+    border:1px solid var(--line);
+    background:linear-gradient(180deg, var(--panel), rgba(255,255,255,.006));
+    border-radius:1em;
+    padding:1.7em 1.5em 1.6em;
+    position:relative;overflow:hidden;
+  }
+  .pillar::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent, rgba(255,160,90,.45), transparent);
+  }
+  .pillar .ic{
+    width:2.7em;height:2.7em;border-radius:.66em;
+    display:grid;place-items:center;margin-bottom:1.15em;
+    background:radial-gradient(120% 120% at 30% 20%, rgba(255,122,46,.22), rgba(255,122,46,.05));
+    border:1px solid rgba(255,140,70,.28);
+  }
+  .pillar .ic svg{width:1.55em;height:1.55em;stroke:var(--ember-1);stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .pillar h3{
+    font-family:var(--display);font-size:1.42em;font-weight:600;color:var(--steel-1);
+    letter-spacing:-.005em;margin-bottom:.42em;
+  }
+  .pillar p{font-size:1.16em;line-height:1.4;color:var(--steel-3)}
+
+  /* ---- footer ---- */
+  .foot{
+    margin-top:2.5em;display:flex;align-items:center;justify-content:space-between;
+    padding-top:1.9em;border-top:1px solid var(--line);
+  }
+  .chips{display:flex;gap:.8em;flex-wrap:wrap}
+  .chip{
+    font-size:1.12em;font-weight:500;letter-spacing:.02em;color:var(--steel-3);
+    border:1px solid var(--line);border-radius:2em;padding:.42em 1.1em;
+    background:rgba(255,255,255,.01);
+  }
+  .chip b{color:var(--steel-2);font-weight:600}
+  .status{display:flex;align-items:center;gap:.7em;font-family:var(--display);
+    font-size:1.3em;font-weight:600;color:var(--steel-2);letter-spacing:.04em}
+  .status .pip{width:.5em;height:.5em;border-radius:50%;background:var(--ember-2);
+    box-shadow:0 0 .9em var(--ember-2);animation:blink 2s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+
+  @media (prefers-reduced-motion: reduce){
+    .glow,.wordmark h1 .sheen,.status .pip{animation:none}
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+   <div class="slide">
+    <div class="pad">
+
+      <div class="eyebrow"><span class="dot"></span>Secure · Self-hosted · Containerized · Open source</div>
+
+      <div class="lockup">
+        <!-- ===== IRONCLAW LOGO ===== -->
+        <svg class="mark" viewBox="0 0 128 140" aria-label="IronClaw logo" role="img">
+          <defs>
+            <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#f6f9fd"/>
+              <stop offset=".34" stop-color="#cdd5e1"/>
+              <stop offset=".66" stop-color="#8b96a6"/>
+              <stop offset="1" stop-color="#454e5b"/>
+            </linearGradient>
+            <linearGradient id="steelEdge" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#dfe6f0"/>
+              <stop offset="1" stop-color="#2c333d"/>
+            </linearGradient>
+            <linearGradient id="ember" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ffe3bd"/>
+              <stop offset=".45" stop-color="#ff8636"/>
+              <stop offset="1" stop-color="#d33f12"/>
+            </linearGradient>
+            <radialGradient id="emberGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0" stop-color="#ff7a2e" stop-opacity=".9"/>
+              <stop offset="1" stop-color="#ff7a2e" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="1.6"/>
+            </filter>
+          </defs>
+
+          <!-- shield body -->
+          <path d="M64 8 L112 30 L112 70 C112 102 90 120 64 132 C38 120 16 102 16 70 L16 30 Z"
+                fill="url(#steel)" stroke="url(#steelEdge)" stroke-width="2.4"/>
+          <!-- inner bevel -->
+          <path d="M64 18 L104 36 L104 70 C104 96 86 111 64 121 C42 111 24 96 24 70 L24 36 Z"
+                fill="none" stroke="#2e353f" stroke-opacity=".55" stroke-width="1.5"/>
+          <!-- top highlight -->
+          <path d="M64 11 L108 31 L108 44 C92 33 76 29 64 29 C52 29 36 33 20 44 L20 31 Z"
+                fill="#ffffff" opacity=".14"/>
+
+          <!-- ember glow behind claws -->
+          <ellipse class="glow" cx="64" cy="74" rx="34" ry="42" fill="url(#emberGlow)" opacity=".7"/>
+
+          <!-- three claw rakes -->
+          <g filter="url(#soft)" opacity=".55">
+            <path d="M44 34 Q66 68 36 104 Q50 68 44 34 Z" fill="#ff7a2e"/>
+            <path d="M64 30 Q88 66 58 106 Q70 66 64 30 Z" fill="#ff7a2e"/>
+            <path d="M86 36 Q108 68 78 104 Q92 68 86 36 Z" fill="#ff7a2e"/>
+          </g>
+          <g>
+            <path d="M44 34 Q66 68 36 104 Q50 68 44 34 Z" fill="url(#ember)"/>
+            <path d="M64 30 Q88 66 58 106 Q70 66 64 30 Z" fill="url(#ember)"/>
+            <path d="M86 36 Q108 68 78 104 Q92 68 86 36 Z" fill="url(#ember)"/>
+          </g>
+          <!-- claw inner highlights -->
+          <g fill="#fff" opacity=".5">
+            <path d="M45 40 Q58 66 41 96 Q49 68 45 40 Z"/>
+            <path d="M65 36 Q80 64 63 98 Q70 66 65 36 Z"/>
+            <path d="M87 42 Q100 66 83 96 Q91 68 87 42 Z"/>
+          </g>
+        </svg>
+
+        <div class="wordmark">
+          <h1>IRONCLAW<span class="sheen" aria-hidden="true">IRONCLAW</span></h1>
+          <div class="tag">AI agents you can <b>actually trust</b>.</div>
+        </div>
+      </div>
+
+      <p class="lead">
+        A self-hosted platform where isolation is <strong>enforced</strong>.
+        The agent can't touch its own code, every change is human-approved, and every
+        message queue is encrypted end to end.
+      </p>
+
+      <div class="pillars">
+        <div class="pillar">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l7 2.5v5.5c0 4.5-3 7.4-7 9-4-1.6-7-4.5-7-9V5.5z"/><path d="M9.2 12.2l2 2 3.6-4"/></svg></div>
+          <h3>Sealed runtime</h3>
+          <p>Compiled Go. The agent can't read or rewrite itself.</p>
+        </div>
+        <div class="pillar">
+          <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.4l2.6 2.6L16 9"/></svg></div>
+          <h3>Approved by humans</h3>
+          <p>Every change to the harness clears a deterministic gateway.</p>
+        </div>
+        <div class="pillar">
+          <div class="ic"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.4" r="1.1" fill="currentColor" stroke="none"/></svg></div>
+          <h3>Encrypted queues</h3>
+          <p>Per-session keys. Inbound is read-only by design.</p>
+        </div>
+        <div class="pillar">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></div>
+          <h3>Sealed sandbox</h3>
+          <p>gVisor, zero network, host-proxied model calls.</p>
+        </div>
+      </div>
+
+      <div class="foot">
+        <div class="chips">
+          <span class="chip">Written in <b>Go</b></span>
+          <span class="chip"><b>gVisor</b> isolation</span>
+          <span class="chip"><b>Tailscale</b> admin</span>
+          <span class="chip"><b>MIT</b></span>
+        </div>
+        <div class="status"><span class="pip"></span>COMING SOON</div>
+      </div>
+
+    </div>
+   </div>
+  </div>
+</body>
+</html>

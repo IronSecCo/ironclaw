@@ -1,0 +1,26 @@
+# Compiled binaries / build output
+bin/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go
+*.test
+*.out
+/vendor/
+go.work.sum
+
+# Local env / secrets — never commit
+.env
+*.local
+*.key
+*.pem
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
