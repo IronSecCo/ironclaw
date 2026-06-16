@@ -16,6 +16,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nivardsec/ironclaw/internal/contract"
@@ -76,6 +77,10 @@ type Loop struct {
 	// outCounter disambiguates outbound message ids written within the same clock
 	// tick (the clock is injectable and may be fixed in tests).
 	outCounter uint64
+
+	// hbMu serializes heartbeat file writes (the steady poll and the
+	// during-streaming keepalive ticker can both write).
+	hbMu sync.Mutex
 
 	bindingPendingLogged bool
 }
@@ -238,7 +243,11 @@ func (l *Loop) engage(ctx context.Context) error {
 
 	if len(chat) > 0 && !skipChat {
 		prompt := formatPrompt(chat)
+		// Keep the heartbeat fresh while the (possibly long, streamed) model call
+		// runs so the host sweep does not treat the sandbox as stale mid-turn.
+		stopHB := l.startHeartbeat()
 		resp, capEnvelopes, err := l.respond(ctx, prompt)
+		stopHB()
 		if err != nil {
 			return fmt.Errorf("provider respond: %w", err)
 		}
@@ -434,8 +443,36 @@ func (l *Loop) handleSlash(m contract.MessageIn) (reply string, isReset bool) {
 // but non-fatal — if heartbeats stop, the host sweep respawns the sandbox.
 func (l *Loop) heartbeat() {
 	ts := l.cfg.Clock().UTC().Format(time.RFC3339Nano)
+	l.hbMu.Lock()
+	defer l.hbMu.Unlock()
 	if err := os.WriteFile(l.cfg.HeartbeatPath, []byte(ts), 0o644); err != nil {
 		l.cfg.Logger.Printf("sandbox/loop: heartbeat write failed: %v", err)
+	}
+}
+
+// startHeartbeat runs a background ticker that refreshes the heartbeat every poll
+// interval until the returned stop function is called (and the ticker drains).
+// It is used to keep the sandbox alive across a long streamed model turn — the
+// keepalive aspect of follow-up polling during streaming.
+func (l *Loop) startHeartbeat() (stop func()) {
+	done := make(chan struct{})
+	stopped := make(chan struct{})
+	go func() {
+		defer close(stopped)
+		t := time.NewTicker(l.cfg.PollInterval)
+		defer t.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-t.C:
+				l.heartbeat()
+			}
+		}
+	}()
+	return func() {
+		close(done)
+		<-stopped
 	}
 }
 

@@ -43,6 +43,7 @@ func run() error {
 		workspace    = flag.String("workspace", "/workspace", "writable workspace directory exposed to file tools")
 		heartbeat    = flag.String("heartbeat", "/workspace/.heartbeat", "heartbeat file touched every poll")
 		modelSocket  = flag.String("model-socket", provider.DefaultSocketPath, "host model-proxy unix socket")
+		modelHost    = flag.String("model-host", "", "upstream model host the proxy allowlists (defaults to api.anthropic.com)")
 		model        = flag.String("model", "", "model id override (defaults to the provider's default)")
 	)
 	flag.Parse()
@@ -76,9 +77,10 @@ func run() error {
 	}
 
 	prov := provider.NewAnthropic(provider.Config{
-		SocketPath: *modelSocket,
-		Model:      *model,
-		System:     loop.DefaultSystemPrompt,
+		SocketPath:   *modelSocket,
+		UpstreamHost: *modelHost,
+		Model:        *model,
+		System:       loop.DefaultSystemPrompt,
 	})
 
 	l, err := loop.New(loop.Config{

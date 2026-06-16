@@ -5,12 +5,19 @@
 // client dials the host model-proxy unix socket, NOT the public internet — the
 // sandbox has network=none.
 //
-// The sandbox holds no model credentials: the host model-proxy authenticates and
-// enforces the egress allowlist. The request carries only the anthropic-version
-// header; the proxy adds x-api-key on the way out.
+// Requests are addressed to the real upstream host (api.anthropic.com) so the
+// host model-proxy — an allowlisting reverse proxy keyed on the request Host —
+// validates and routes them to https://<host>. The connection itself always goes
+// to the unix socket (the custom DialContext ignores the address). The sandbox
+// holds no model credentials: the host proxy authenticates and enforces the
+// egress allowlist; the request carries only the anthropic-version header.
+//
+// Responses are streamed (stream:true → text/event-stream) and accumulated, which
+// avoids HTTP timeouts on long generations; the reverse proxy flushes SSE through.
 package provider
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -18,6 +25,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -39,20 +47,22 @@ type ToolConverser interface {
 const DefaultSocketPath = "/run/ironclaw/modelproxy.sock"
 
 // Default request parameters. The model default follows the current
-// most-capable Claude model; max tokens stays under the non-streaming SDK
-// timeout ceiling.
+// most-capable Claude model; the upstream host is what the model-proxy allowlists.
 const (
-	defaultModel       = "claude-opus-4-8"
-	defaultMaxTokens   = 16000
-	defaultHTTPTimeout = 120 * time.Second
-	anthropicVersion   = "2023-06-01"
-	messagesPath       = "http://ironclaw-modelproxy/v1/messages"
+	defaultModel        = "claude-opus-4-8"
+	defaultMaxTokens    = 16000
+	defaultUpstreamHost = "api.anthropic.com"
+	defaultHTTPTimeout  = 5 * time.Minute // streamed generations can run long
+	anthropicVersion    = "2023-06-01"
 )
 
 // Config configures an AnthropicProvider.
 type Config struct {
 	// SocketPath is the host model-proxy unix socket. Defaults to DefaultSocketPath.
 	SocketPath string
+	// UpstreamHost is the model API host the proxy allowlists and routes to.
+	// Defaults to api.anthropic.com.
+	UpstreamHost string
 	// Model is the Claude model id. Defaults to defaultModel.
 	Model string
 	// MaxTokens caps a single response. Defaults to defaultMaxTokens.
@@ -70,6 +80,7 @@ type Config struct {
 type AnthropicProvider struct {
 	cfg    Config
 	client *http.Client
+	url    string
 }
 
 // NewAnthropic constructs an AnthropicProvider from cfg, applying defaults for
@@ -78,6 +89,9 @@ type AnthropicProvider struct {
 func NewAnthropic(cfg Config) *AnthropicProvider {
 	if cfg.SocketPath == "" {
 		cfg.SocketPath = DefaultSocketPath
+	}
+	if cfg.UpstreamHost == "" {
+		cfg.UpstreamHost = defaultUpstreamHost
 	}
 	if cfg.Model == "" {
 		cfg.Model = defaultModel
@@ -98,6 +112,8 @@ func NewAnthropic(cfg Config) *AnthropicProvider {
 	return &AnthropicProvider{
 		cfg:    cfg,
 		client: &http.Client{Transport: transport, Timeout: cfg.HTTPTimeout},
+		// Plain http over the unix socket; the proxy upgrades to https upstream.
+		url: "http://" + cfg.UpstreamHost + "/v1/messages",
 	}
 }
 
@@ -185,13 +201,14 @@ type toolDef struct {
 type messagesRequest struct {
 	Model     string          `json:"model"`
 	MaxTokens int             `json:"max_tokens"`
+	Stream    bool            `json:"stream,omitempty"`
 	System    string          `json:"system,omitempty"`
 	Thinking  *thinkingConfig `json:"thinking,omitempty"`
 	Tools     []toolDef       `json:"tools,omitempty"`
 	Messages  []Message       `json:"messages"`
 }
 
-// respBlock is one block of the Messages API response content array.
+// respBlock is one accumulated block of the model response.
 type respBlock struct {
 	Type  string          `json:"type"`
 	Text  string          `json:"text"`
@@ -200,13 +217,13 @@ type respBlock struct {
 	Input json.RawMessage `json:"input"`
 }
 
-// messagesResponse is the relevant subset of the POST /v1/messages response.
+// messagesResponse is the accumulated result of a (streamed) response.
 type messagesResponse struct {
-	Content    []respBlock `json:"content"`
-	StopReason string      `json:"stop_reason"`
+	Content    []respBlock
+	StopReason string
 }
 
-// apiError is the Messages API error envelope.
+// apiError is the Messages API error envelope (returned for non-200 responses).
 type apiError struct {
 	Type  string `json:"type"`
 	Error struct {
@@ -235,7 +252,7 @@ func (p *AnthropicProvider) Query(ctx context.Context, prompt string) (string, e
 // returns the resulting Turn (text + any tool calls + the assistant message to
 // append). It does not enable thinking: a multi-turn tool loop would have to
 // preserve and replay thinking blocks (with their signatures) to keep the API
-// happy, which streaming/interleaved-thinking support will handle later.
+// happy, which is left for a later iteration.
 func (p *AnthropicProvider) Converse(ctx context.Context, history []Message, tools []ToolSpec) (Turn, error) {
 	req := p.baseRequest()
 	req.Messages = history
@@ -262,20 +279,21 @@ func (p *AnthropicProvider) Converse(ctx context.Context, history []Message, too
 	return turn, nil
 }
 
-// baseRequest builds a request with the configured model, token cap, and system
-// prompt; the caller fills in Messages, Thinking, and Tools.
+// baseRequest builds a streaming request with the configured model, token cap,
+// and system prompt; the caller fills in Messages, Thinking, and Tools.
 func (p *AnthropicProvider) baseRequest() messagesRequest {
-	return messagesRequest{Model: p.cfg.Model, MaxTokens: p.cfg.MaxTokens, System: p.cfg.System}
+	return messagesRequest{Model: p.cfg.Model, MaxTokens: p.cfg.MaxTokens, Stream: true, System: p.cfg.System}
 }
 
-// do marshals and sends one Messages API request and decodes the response.
+// do sends one streaming Messages API request and accumulates the SSE response.
 func (p *AnthropicProvider) do(ctx context.Context, reqBody messagesRequest) (messagesResponse, error) {
+	reqBody.Stream = true
 	buf, err := json.Marshal(reqBody)
 	if err != nil {
 		return messagesResponse{}, fmt.Errorf("sandbox/provider: marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, messagesPath, bytes.NewReader(buf))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.url, bytes.NewReader(buf))
 	if err != nil {
 		return messagesResponse{}, fmt.Errorf("sandbox/provider: build request: %w", err)
 	}
@@ -288,17 +306,104 @@ func (p *AnthropicProvider) do(ctx context.Context, reqBody messagesRequest) (me
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return messagesResponse{}, fmt.Errorf("sandbox/provider: read response: %w", err)
-	}
 	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
 		return messagesResponse{}, parseAPIError(resp.StatusCode, body)
 	}
+	return accumulateSSE(resp.Body)
+}
 
+// sseEvent is the subset of a Messages API stream event we consume.
+type sseEvent struct {
+	Type         string `json:"type"`
+	Index        int    `json:"index"`
+	ContentBlock struct {
+		Type string `json:"type"`
+		ID   string `json:"id"`
+		Name string `json:"name"`
+		Text string `json:"text"`
+	} `json:"content_block"`
+	Delta struct {
+		Type        string `json:"type"`
+		Text        string `json:"text"`
+		PartialJSON string `json:"partial_json"`
+		StopReason  string `json:"stop_reason"`
+	} `json:"delta"`
+	Error struct {
+		Type    string `json:"type"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
+// accumulateSSE reads a text/event-stream body and reduces it to a
+// messagesResponse: text blocks have their deltas concatenated, tool_use blocks
+// have their input_json_delta fragments reassembled into Input, and the stop
+// reason is taken from message_delta. A stream error event aborts with an error.
+func accumulateSSE(body io.Reader) (messagesResponse, error) {
 	var mr messagesResponse
-	if err := json.Unmarshal(body, &mr); err != nil {
-		return messagesResponse{}, fmt.Errorf("sandbox/provider: decode response: %w", err)
+	blocks := map[int]*respBlock{}
+	partial := map[int]*bytes.Buffer{}
+	var order []int
+
+	ensure := func(idx int) *respBlock {
+		b, ok := blocks[idx]
+		if !ok {
+			b = &respBlock{}
+			blocks[idx] = b
+			partial[idx] = &bytes.Buffer{}
+			order = append(order, idx)
+		}
+		return b
+	}
+
+	sc := bufio.NewScanner(body)
+	sc.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+	for sc.Scan() {
+		line := sc.Text()
+		if !strings.HasPrefix(line, "data:") {
+			continue // skip event:, comments, blank separators
+		}
+		data := strings.TrimSpace(line[len("data:"):])
+		if data == "" {
+			continue
+		}
+		var ev sseEvent
+		if err := json.Unmarshal([]byte(data), &ev); err != nil {
+			return messagesResponse{}, fmt.Errorf("sandbox/provider: decode stream event: %w", err)
+		}
+		switch ev.Type {
+		case "content_block_start":
+			b := ensure(ev.Index)
+			b.Type = ev.ContentBlock.Type
+			b.ID = ev.ContentBlock.ID
+			b.Name = ev.ContentBlock.Name
+			b.Text = ev.ContentBlock.Text
+		case "content_block_delta":
+			b := ensure(ev.Index)
+			switch ev.Delta.Type {
+			case "text_delta":
+				b.Text += ev.Delta.Text
+			case "input_json_delta":
+				partial[ev.Index].WriteString(ev.Delta.PartialJSON)
+			}
+		case "message_delta":
+			if ev.Delta.StopReason != "" {
+				mr.StopReason = ev.Delta.StopReason
+			}
+		case "error":
+			return messagesResponse{}, fmt.Errorf("sandbox/provider: stream error (%s): %s", ev.Error.Type, ev.Error.Message)
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return messagesResponse{}, fmt.Errorf("sandbox/provider: read stream: %w", err)
+	}
+
+	for _, idx := range order {
+		b := blocks[idx]
+		if pj := partial[idx]; pj != nil && pj.Len() > 0 {
+			b.Input = json.RawMessage(pj.Bytes())
+		}
+		mr.Content = append(mr.Content, *b)
 	}
 	return mr, nil
 }

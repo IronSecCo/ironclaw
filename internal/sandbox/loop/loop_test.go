@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -257,6 +258,39 @@ func TestDefaultSystemPrompt(t *testing.T) {
 			t.Fatalf("DefaultSystemPrompt missing %q", want)
 		}
 	}
+}
+
+// TestStartHeartbeatFires asserts the during-streaming keepalive refreshes the
+// heartbeat file while it is running.
+func TestStartHeartbeatFires(t *testing.T) {
+	hb := filepath.Join(t.TempDir(), "hb")
+	l, err := New(Config{
+		Inbound:       &fakeInbound{},
+		Outbound:      &fakeOutbound{},
+		Provider:      &fakeProvider{},
+		HeartbeatPath: hb,
+		PollInterval:  5 * time.Millisecond,
+		Clock:         func() time.Time { return time.Unix(0, 0).UTC() },
+		Logger:        log.New(io.Discard, "", 0),
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	if _, err := os.Stat(hb); !os.IsNotExist(err) {
+		t.Fatalf("heartbeat file should not exist before start (err=%v)", err)
+	}
+
+	stop := l.startHeartbeat()
+	defer stop()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if _, err := os.Stat(hb); err == nil {
+			return // keepalive wrote the heartbeat
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+	t.Fatal("startHeartbeat did not refresh the heartbeat file within 2s")
 }
 
 // fakeConverser is a provider.Provider + provider.ToolConverser that replays a

@@ -28,16 +28,41 @@ func serveUnix(t *testing.T, handler http.Handler) string {
 	return sock
 }
 
+// sse renders a sequence of event data objects as a text/event-stream body. Only
+// the data lines matter to the accumulator, so the event: lines are omitted.
+func sse(events ...string) string {
+	var b strings.Builder
+	for _, e := range events {
+		b.WriteString("data: ")
+		b.WriteString(e)
+		b.WriteString("\n\n")
+	}
+	return b.String()
+}
+
+func writeSSE(w http.ResponseWriter, body string) {
+	w.Header().Set("Content-Type", "text/event-stream")
+	io.WriteString(w, body)
+}
+
+// helloWorldStream produces the text "hello world" across two deltas.
+var helloWorldStream = sse(
+	`{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}`,
+	`{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"hello "}}`,
+	`{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"world"}}`,
+	`{"type":"message_delta","delta":{"stop_reason":"end_turn"}}`,
+	`{"type":"message_stop"}`,
+)
+
 func TestQuerySuccess(t *testing.T) {
 	var gotBody []byte
-	var gotVersion, gotPath string
+	var gotVersion, gotPath, gotHost string
 	sock := serveUnix(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotVersion = r.Header.Get("anthropic-version")
 		gotPath = r.URL.Path
+		gotHost = r.Host
 		gotBody, _ = io.ReadAll(r.Body)
-		w.Header().Set("content-type", "application/json")
-		// Thinking block has empty text and must be ignored; two text blocks concatenate.
-		io.WriteString(w, `{"content":[{"type":"thinking","text":""},{"type":"text","text":"hello "},{"type":"text","text":"world"}],"stop_reason":"end_turn"}`)
+		writeSSE(w, helloWorldStream)
 	}))
 
 	p := NewAnthropic(Config{SocketPath: sock})
@@ -50,6 +75,11 @@ func TestQuerySuccess(t *testing.T) {
 	}
 	if gotPath != "/v1/messages" {
 		t.Fatalf("request path = %q, want /v1/messages", gotPath)
+	}
+	// Integration: the request must address the real upstream host so the
+	// model-proxy's allowlist matches and routes it (not a placeholder host).
+	if gotHost != defaultUpstreamHost {
+		t.Fatalf("request Host = %q, want %q (proxy allowlists on Host)", gotHost, defaultUpstreamHost)
 	}
 	if gotVersion != anthropicVersion {
 		t.Fatalf("anthropic-version = %q, want %q", gotVersion, anthropicVersion)
@@ -65,6 +95,9 @@ func TestQuerySuccess(t *testing.T) {
 	if req.MaxTokens != defaultMaxTokens {
 		t.Fatalf("max_tokens = %d, want %d", req.MaxTokens, defaultMaxTokens)
 	}
+	if !req.Stream {
+		t.Fatalf("stream = false, want true")
+	}
 	if req.Thinking == nil || req.Thinking.Type != "adaptive" {
 		t.Fatalf("thinking = %+v, want adaptive", req.Thinking)
 	}
@@ -72,9 +105,23 @@ func TestQuerySuccess(t *testing.T) {
 		len(req.Messages[0].Content) != 1 || req.Messages[0].Content[0].Text != "hi there" {
 		t.Fatalf("messages = %+v, want one user text message %q", req.Messages, "hi there")
 	}
-	// The sandbox must not send credentials — the host proxy injects them.
-	if h := strings.TrimSpace(string(gotBody)); strings.Contains(strings.ToLower(h), "x-api-key") {
+	if strings.Contains(strings.ToLower(string(gotBody)), "x-api-key") {
 		t.Fatalf("request body unexpectedly references an api key")
+	}
+}
+
+func TestQueryUpstreamHostOverride(t *testing.T) {
+	var gotHost string
+	sock := serveUnix(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHost = r.Host
+		writeSSE(w, helloWorldStream)
+	}))
+	p := NewAnthropic(Config{SocketPath: sock, UpstreamHost: "models.example.test"})
+	if _, err := p.Query(context.Background(), "x"); err != nil {
+		t.Fatalf("Query: %v", err)
+	}
+	if gotHost != "models.example.test" {
+		t.Fatalf("Host = %q, want override models.example.test", gotHost)
 	}
 }
 
@@ -82,8 +129,8 @@ func TestQueryDisableThinking(t *testing.T) {
 	var gotBody []byte
 	sock := serveUnix(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotBody, _ = io.ReadAll(r.Body)
-		w.Header().Set("content-type", "application/json")
-		io.WriteString(w, `{"content":[{"type":"text","text":"ok"}],"stop_reason":"end_turn"}`)
+		writeSSE(w, sse(`{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"ok"}}`,
+			`{"type":"message_delta","delta":{"stop_reason":"end_turn"}}`))
 	}))
 
 	p := NewAnthropic(Config{SocketPath: sock, DisableThinking: true, Model: "claude-sonnet-4-6", MaxTokens: 1024})
@@ -102,37 +149,12 @@ func TestQueryDisableThinking(t *testing.T) {
 	}
 }
 
-func TestQueryAPIError(t *testing.T) {
-	sock := serveUnix(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		io.WriteString(w, `{"type":"error","error":{"type":"invalid_request_error","message":"bad model"}}`)
-	}))
-
-	p := NewAnthropic(Config{SocketPath: sock})
-	_, err := p.Query(context.Background(), "x")
-	if err == nil {
-		t.Fatal("Query: want error, got nil")
-	}
-	if !strings.Contains(err.Error(), "bad model") || !strings.Contains(err.Error(), "400") {
-		t.Fatalf("error = %q, want it to mention status 400 and the API message", err)
-	}
-}
-
-func TestQueryTransportError(t *testing.T) {
-	// Point at a socket that does not exist.
-	p := NewAnthropic(Config{SocketPath: filepath.Join(t.TempDir(), "nope.sock")})
-	if _, err := p.Query(context.Background(), "x"); err == nil {
-		t.Fatal("Query: want transport error, got nil")
-	}
-}
-
 func TestQuerySendsSystemPrompt(t *testing.T) {
 	var gotBody []byte
 	sock := serveUnix(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotBody, _ = io.ReadAll(r.Body)
-		w.Header().Set("content-type", "application/json")
-		io.WriteString(w, `{"content":[{"type":"text","text":"ok"}],"stop_reason":"end_turn"}`)
+		writeSSE(w, sse(`{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"ok"}}`,
+			`{"type":"message_delta","delta":{"stop_reason":"end_turn"}}`))
 	}))
 
 	p := NewAnthropic(Config{SocketPath: sock, System: "be terse"})
@@ -152,10 +174,15 @@ func TestConverseParsesToolUse(t *testing.T) {
 	var gotBody []byte
 	sock := serveUnix(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotBody, _ = io.ReadAll(r.Body)
-		w.Header().Set("content-type", "application/json")
-		io.WriteString(w, `{"stop_reason":"tool_use","content":[`+
-			`{"type":"text","text":"let me check"},`+
-			`{"type":"tool_use","id":"toolu_1","name":"read_file","input":{"path":"a.txt"}}]}`)
+		writeSSE(w, sse(
+			`{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}`,
+			`{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"let me check"}}`,
+			`{"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_1","name":"read_file"}}`,
+			`{"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\"path\":"}}`,
+			`{"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\"a.txt\"}"}}`,
+			`{"type":"message_delta","delta":{"stop_reason":"tool_use"}}`,
+			`{"type":"message_stop"}`,
+		))
 	}))
 
 	p := NewAnthropic(Config{SocketPath: sock})
@@ -178,10 +205,8 @@ func TestConverseParsesToolUse(t *testing.T) {
 		Path string `json:"path"`
 	}
 	if err := json.Unmarshal(turn.ToolCalls[0].Input, &input); err != nil || input.Path != "a.txt" {
-		t.Fatalf("tool input = %s (err %v)", turn.ToolCalls[0].Input, err)
+		t.Fatalf("reassembled tool input = %s (err %v)", turn.ToolCalls[0].Input, err)
 	}
-	// The assistant message echoes both the text and the tool_use block, for
-	// appending to history before the tool result.
 	if len(turn.Assistant.Content) != 2 || turn.Assistant.Role != "assistant" {
 		t.Fatalf("assistant message = %+v", turn.Assistant)
 	}
@@ -195,5 +220,51 @@ func TestConverseParsesToolUse(t *testing.T) {
 	}
 	if req.Thinking != nil {
 		t.Fatalf("Converse must not enable thinking (tool-use loop), got %+v", req.Thinking)
+	}
+}
+
+// TestAccumulateSSE exercises the stream reducer directly: text concatenation,
+// stop reason, and stream-error handling.
+func TestAccumulateSSE(t *testing.T) {
+	mr, err := accumulateSSE(strings.NewReader(sse(
+		`{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}`,
+		`{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"hi"}}`,
+		`{"type":"message_delta","delta":{"stop_reason":"end_turn"}}`,
+	)))
+	if err != nil {
+		t.Fatalf("accumulateSSE: %v", err)
+	}
+	if extractText(mr) != "hi" || mr.StopReason != "end_turn" {
+		t.Fatalf("accumulated = %+v", mr)
+	}
+
+	if _, err := accumulateSSE(strings.NewReader(sse(
+		`{"type":"error","error":{"type":"overloaded_error","message":"busy"}}`,
+	))); err == nil {
+		t.Fatal("expected an error from a stream error event")
+	}
+}
+
+func TestQueryAPIError(t *testing.T) {
+	sock := serveUnix(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		io.WriteString(w, `{"type":"error","error":{"type":"permission_error","message":"destination not on allowlist"}}`)
+	}))
+
+	p := NewAnthropic(Config{SocketPath: sock})
+	_, err := p.Query(context.Background(), "x")
+	if err == nil {
+		t.Fatal("Query: want error, got nil")
+	}
+	if !strings.Contains(err.Error(), "allowlist") || !strings.Contains(err.Error(), "403") {
+		t.Fatalf("error = %q, want it to mention status 403 and the API message", err)
+	}
+}
+
+func TestQueryTransportError(t *testing.T) {
+	p := NewAnthropic(Config{SocketPath: filepath.Join(t.TempDir(), "nope.sock")})
+	if _, err := p.Query(context.Background(), "x"); err == nil {
+		t.Fatal("Query: want transport error, got nil")
 	}
 }
