@@ -1,6 +1,6 @@
 # Repo Map — IronClaw
 
-- **Base SHA:** `33bb237` (`origin/main` at planning time)
+- **Base SHA:** `02748dd` (`origin/main` after Wave 1 completed; Wave 4/5 planned)
 - **Stack:** Go 1.23+, **CGO_ENABLED=1** (SQLCipher via `github.com/mutecomm/go-sqlcipher/v4`)
 - **Build/test:** `make build vet test` (== `CGO_ENABLED=1 go {build,vet,test} ./...`); format `gofmt -l .`
 - **CI:** `.github/workflows/ci.yml` — `CGO_ENABLED=1`, Go 1.23, ubuntu, `build`+`vet`+`test` on push/PR.
