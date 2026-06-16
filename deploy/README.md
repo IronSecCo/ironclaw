@@ -1,10 +1,25 @@
 <!-- OWNER: AGENT1 -->
 # Deploying the IronClaw control-plane
 
-This directory holds install notes and a scaffold script for running the
+This directory holds the installer, service definitions, and notes for running the
 control-plane host. The hardened runtime has three external dependencies that are
 intentionally **not** vendored into the stdlib-only skeleton; install them on the
 host before running in production.
+
+## Quick start
+
+```sh
+sudo deploy/install.sh          # build + install binaries, config, and the service
+```
+
+[`install.sh`](install.sh) is a real, idempotent installer: it builds the
+control-plane and `ironctl`, installs them under `/usr/local/bin`, provisions
+`/etc/ironclaw/ironclaw.env` (0600; generates an API token on first run and
+preserves it on re-install), and installs + enables the host service —
+[`ironclaw.service`](ironclaw.service) (systemd/Linux) or
+[`io.ironclaw.controlplane.plist`](io.ironclaw.controlplane.plist)
+(launchd/macOS). Override defaults via the `IRONCLAW_*` env vars documented at the
+top of the script.
 
 ## Components
 
@@ -55,17 +70,33 @@ host before running in production.
    host's tailnet IP and reach `ironctl` over the tailnet. A host firewall should
    drop inbound to the API port on every interface except the Tailscale one.
 
-3. **The control-plane binary** — `cmd/controlplane`, typically run under a
-   systemd unit (or launchd on macOS).
+3. **The control-plane binary** — `cmd/controlplane`, run under
+   [`ironclaw.service`](ironclaw.service) (systemd) or
+   [`io.ironclaw.controlplane.plist`](io.ironclaw.controlplane.plist) (launchd).
+   Both read all tunables from the 0600 `/etc/ironclaw/ironclaw.env`, so the unit
+   files stay static and hold no secrets. The control-plane is the trusted host
+   orchestrator (it launches gVisor sandboxes), so the unit is deliberately **not**
+   self-confined — isolation is applied to the sandboxes, not to this process.
+
+## Sandbox image
+
+The `/sandbox` agent runs from a pinned container image built by
+[`../container/build.sh`](../container/build.sh) from
+[`../container/Dockerfile`](../container/Dockerfile) (build context is the repo
+root). It compiles `./cmd/sandbox` with CGO (the SQLCipher binding) and ships it
+on a minimal Debian-slim rootfs as a non-root user; it holds **no** secrets and
+**no** session key. Pin the resulting digest in the provisioner trust policy
+(`PinnedDigestPolicy`) and in `IRONCLAW_SANDBOX_IMAGE`:
+
+```sh
+container/build.sh ghcr.io/your-org/ironclaw-sandbox:1.0   # prints the RepoDigest to pin
+```
 
 ## Running
 
-```sh
-go build -o /usr/local/bin/ironclaw-controlplane ./cmd/controlplane
-go build -o /usr/local/bin/ironctl ./cmd/ironctl
+The installer enables the service; to run the binary directly for development:
 
-# Bind the API to the tailnet IP; serve the model proxy on a unix socket that the
-# isolator will bind into each sandbox.
+```sh
 ironclaw-controlplane \
   --api-addr "$(tailscale ip -4):8787" \
   --model-proxy-socket /run/ironclaw/modelproxy.sock
@@ -84,6 +115,8 @@ ironctl --addr http://<tailnet-ip>:8787 change approve <id> --by slack:admin
 
 The sandbox has no network. Its only outbound path is the host model proxy on the
 bound unix socket, which enforces a destination allowlist (default:
-`api.anthropic.com`). Per-token caps, logging, and redaction are future work.
+`api.anthropic.com`) plus per-session/token rate caps, audit records, and response
+secret redaction (`internal/host/modelproxy`).
 
-See [install.sh](install.sh) for a commented, step-by-step scaffold.
+See [install.sh](install.sh) for the installer and the `IRONCLAW_*` tunables it
+honors.
