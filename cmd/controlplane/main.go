@@ -71,7 +71,18 @@ func main() {
 	}
 
 	// Model egress: the sandbox has network=none, so the proxy is its only path.
-	proxy := modelproxy.New([]string{"api.anthropic.com"})
+	// The proxy is also the sole authenticator — the host-held API key is read
+	// here from the environment and injected per request; it never enters the
+	// sandbox image or environment. With no key set, the proxy still runs but
+	// forwards unauthenticated (useful for local/dev upstreams).
+	var proxyOpts []modelproxy.Option
+	credInjected := false
+	if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
+		proxyOpts = append(proxyOpts, modelproxy.WithInjector(
+			modelproxy.AnthropicInjector(key, "2023-06-01")))
+		credInjected = true
+	}
+	proxy := modelproxy.New([]string{"api.anthropic.com"}, proxyOpts...)
 
 	// Gateway: durable FileStore + append-only audit log. The v1 floor is
 	// AlwaysRequireHuman, preceded by the deterministic rejecters (these only ADD
@@ -168,6 +179,7 @@ func main() {
 	log.Printf("controlplane:   audit log      %s", auditPath)
 	log.Printf("controlplane:   gateway chain  mount-allowlist -> package-name -> always-require-human")
 	log.Printf("controlplane:   registry       in-memory (dev=%v)", *dev)
+	log.Printf("controlplane:   model proxy    socket=%s allowlist=[api.anthropic.com] credential-injection=%v", *socket, credInjected)
 	log.Printf("controlplane:   isolation      runtime=%q bundle-root=%s (rootfs provisioning pending)", *runtimeBin, *bundleRoot)
 	log.Printf("controlplane:   sweep          interval=%s (scheduling carries a prompt only — no script, no RCE)", *sweepInterval)
 	log.Printf("controlplane: send SIGINT/SIGTERM to stop.")

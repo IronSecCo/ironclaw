@@ -3,6 +3,12 @@
 // Package modelproxy is the host-side model egress proxy: it listens on a unix
 // socket bound into the sandbox and forwards to the model API with a destination
 // allowlist. It is the single outbound path — the sandbox has network=none.
+//
+// The proxy is also the sole authenticator: the sandbox holds no model
+// credentials, so the proxy strips any inbound auth header and injects the
+// host-held credential for the upstream. The key lives only on the host and
+// never enters the sandbox image or its environment.
+//
 // Future work: per-token rate caps, request/response logging, secret redaction.
 package modelproxy
 
@@ -19,6 +25,11 @@ import (
 	"time"
 )
 
+// Injector authenticates an outbound request to upstreamHost by setting the
+// host-held credential headers on req. It runs after any sandbox-supplied auth
+// has been stripped, so the proxy is the sole authenticator.
+type Injector func(upstreamHost string, req *http.Request)
+
 // Proxy forwards sandbox-originated requests to allowlisted upstream model hosts
 // over a unix-domain socket. Any request to a host not on the allowlist is
 // rejected with 403.
@@ -27,16 +38,53 @@ type Proxy struct {
 	allowed map[string]struct{}
 	// transport is used for upstream calls; overridable in tests.
 	transport http.RoundTripper
+	// inject, if set, stamps the host-held credential onto each forwarded
+	// request. nil means forward with no credential (e.g. local/dev upstreams).
+	inject Injector
+}
+
+// Option configures a Proxy at construction.
+type Option func(*Proxy)
+
+// WithInjector sets the credential injector (the host-side authenticator).
+func WithInjector(f Injector) Option { return func(p *Proxy) { p.inject = f } }
+
+// WithTransport overrides the upstream RoundTripper (used in tests).
+func WithTransport(rt http.RoundTripper) Option {
+	return func(p *Proxy) {
+		if rt != nil {
+			p.transport = rt
+		}
+	}
 }
 
 // New constructs a Proxy whose allowlist is the given set of hostnames (host or
 // host:port). Comparison is case-insensitive on the host portion.
-func New(allowedHosts []string) *Proxy {
+func New(allowedHosts []string, opts ...Option) *Proxy {
 	m := make(map[string]struct{}, len(allowedHosts))
 	for _, h := range allowedHosts {
 		m[strings.ToLower(h)] = struct{}{}
 	}
-	return &Proxy{allowed: m, transport: http.DefaultTransport}
+	p := &Proxy{allowed: m, transport: http.DefaultTransport}
+	for _, o := range opts {
+		o(p)
+	}
+	return p
+}
+
+// AnthropicInjector returns an Injector that authenticates requests to the
+// Anthropic Messages API with a host-held API key and API version. The key lives
+// only on the host (e.g. from ANTHROPIC_API_KEY) and never enters the sandbox.
+func AnthropicInjector(apiKey, version string) Injector {
+	return func(upstreamHost string, req *http.Request) {
+		if !strings.Contains(strings.ToLower(upstreamHost), "anthropic.com") {
+			return
+		}
+		req.Header.Set("x-api-key", apiKey)
+		if version != "" {
+			req.Header.Set("anthropic-version", version)
+		}
+	}
 }
 
 // allowed reports whether host (as it appears in a request, possibly host:port)
@@ -79,6 +127,14 @@ func (p *Proxy) Handler() http.Handler {
 				req.URL.Scheme = target.Scheme
 				req.URL.Host = target.Host
 				req.Host = target.Host
+				// The sandbox holds no model credentials and must not be able to
+				// present its own. Strip any inbound auth, then inject the
+				// host-held credential for this upstream.
+				req.Header.Del("Authorization")
+				req.Header.Del("X-Api-Key")
+				if p.inject != nil {
+					p.inject(target.Host, req)
+				}
 			},
 			Transport: p.transport,
 		}

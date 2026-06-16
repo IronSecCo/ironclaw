@@ -81,6 +81,46 @@ func TestHandlerForwardsAllowed(t *testing.T) {
 	}
 }
 
+func TestInjectorAuthenticatesAndStripsSandboxAuth(t *testing.T) {
+	// Capture what the upstream actually receives.
+	var gotAPIKey, gotVersion, gotAuth string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAPIKey = r.Header.Get("x-api-key")
+		gotVersion = r.Header.Get("anthropic-version")
+		gotAuth = r.Header.Get("Authorization")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer upstream.Close()
+
+	p := New([]string{"api.anthropic.com"},
+		WithInjector(AnthropicInjector("host-secret-key", "2023-06-01")),
+		WithTransport(&redirectTransport{target: upstream.Listener.Addr().String()}),
+	)
+	srv := httptest.NewServer(p.Handler())
+	defer srv.Close()
+
+	req, _ := http.NewRequest("GET", srv.URL+"/v1/messages", nil)
+	req.Host = "api.anthropic.com"
+	// The sandbox tries to present its own credentials; the proxy must strip them.
+	req.Header.Set("Authorization", "Bearer sandbox-forged-token")
+	req.Header.Set("x-api-key", "sandbox-forged-key")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	if gotAPIKey != "host-secret-key" {
+		t.Errorf("upstream x-api-key = %q, want host-injected key", gotAPIKey)
+	}
+	if gotVersion != "2023-06-01" {
+		t.Errorf("upstream anthropic-version = %q", gotVersion)
+	}
+	if gotAuth != "" {
+		t.Errorf("sandbox-supplied Authorization leaked upstream: %q", gotAuth)
+	}
+}
+
 func TestServeUnixSocketRoundTrip(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, "via-socket")
