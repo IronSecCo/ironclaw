@@ -94,6 +94,12 @@ const (
 	containerOutboundPath   = "/queue/outbound.db"
 	containerModelProxySock = "/run/ironclaw/modelproxy.sock"
 	containerWorkspace      = "/workspace"
+	// containerMemory is the per-group DURABLE memory mount (rw). Persists across
+	// sessions of the same agent group; omitted when SandboxSpec.MemoryPath is empty.
+	containerMemory = "/memory"
+	// containerShared is the global READ-ONLY shared assets mount; omitted when
+	// SandboxSpec.SharedReadOnlyPath is empty.
+	containerShared = "/shared"
 )
 
 // BuildOCISpec turns a SandboxSpec into a hardened OCI runtime spec. It encodes
@@ -110,7 +116,10 @@ const (
 //   - non-root uid/gid in a user namespace → the container's root maps to an
 //     unprivileged host uid; the process itself runs as NonRootUID / a non-zero
 //     gid.
-//   - read-only rootfs with a small writable tmpfs at /workspace.
+//   - read-only rootfs. /workspace is writable: a per-group DURABLE bind when
+//     SandboxSpec.WorkspacePath is set, otherwise the legacy ephemeral tmpfs.
+//   - optional per-group DURABLE /memory (rw) and a global READ-ONLY /shared mount
+//     when their host paths are set; all writable mounts carry nosuid,nodev,noexec.
 //   - inbound bound read-only, outbound bound read-write, model-proxy socket bound
 //     in.
 //
@@ -169,14 +178,26 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 		Readonly: true,
 	}
 
-	mounts := []OCIMount{
-		// A small writable tmpfs for /workspace; the rootfs itself stays read-only.
-		{
+	// /workspace: a per-group DURABLE bind when WorkspacePath is set, else the legacy
+	// ephemeral tmpfs. Either way the rootfs stays read-only and the workspace carries
+	// nosuid,nodev,noexec.
+	workspaceMount := OCIMount{
+		Destination: containerWorkspace,
+		Type:        "tmpfs",
+		Source:      "tmpfs",
+		Options:     []string{"nosuid", "nodev", "noexec", "mode=0700", "size=16m"},
+	}
+	if spec.WorkspacePath != "" {
+		workspaceMount = OCIMount{
 			Destination: containerWorkspace,
-			Type:        "tmpfs",
-			Source:      "tmpfs",
-			Options:     []string{"nosuid", "nodev", "noexec", "mode=0700", "size=16m"},
-		},
+			Type:        "bind",
+			Source:      spec.WorkspacePath,
+			Options:     []string{"bind", "rw", "nosuid", "nodev", "noexec"},
+		}
+	}
+
+	mounts := []OCIMount{
+		workspaceMount,
 		// Inbound queue: bound READ-ONLY. The sandbox can never write it (defense in
 		// depth alongside interface segregation and PRAGMA query_only).
 		{
@@ -200,6 +221,27 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 			Source:      spec.ModelProxySocket,
 			Options:     []string{"bind", "rw"},
 		},
+	}
+
+	// Optional per-group DURABLE memory (rw) — persists across the agent group's
+	// sessions. Writable but nosuid,nodev,noexec like the workspace.
+	if spec.MemoryPath != "" {
+		mounts = append(mounts, OCIMount{
+			Destination: containerMemory,
+			Type:        "bind",
+			Source:      spec.MemoryPath,
+			Options:     []string{"bind", "rw", "nosuid", "nodev", "noexec"},
+		})
+	}
+	// Optional global READ-ONLY shared assets. Bound ro (the sandbox can never write
+	// it) and nosuid,nodev,noexec.
+	if spec.SharedReadOnlyPath != "" {
+		mounts = append(mounts, OCIMount{
+			Destination: containerShared,
+			Type:        "bind",
+			Source:      spec.SharedReadOnlyPath,
+			Options:     []string{"bind", "ro", "nosuid", "nodev", "noexec"},
+		})
 	}
 
 	linux := &OCILinux{

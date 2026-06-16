@@ -54,7 +54,20 @@ type SandboxSpec struct {
 	DropAllCaps    bool // drop every Linux capability.
 	NoNewPrivs     bool // set PR_SET_NO_NEW_PRIVS so suid binaries cannot escalate.
 	NonRootUID     int  // run as this non-zero UID inside a user namespace.
-	ReadOnlyRootfs bool // mount the rootfs read-only; only /workspace is writable.
+	ReadOnlyRootfs bool // mount the rootfs read-only; only the writable mounts below.
+
+	// Durable storage (host-side paths). When set they replace the ephemeral
+	// tmpfs-only workspace with per-group persistent storage:
+	//   WorkspacePath      — per-group durable scratch, bound rw at /workspace
+	//                        (empty keeps the legacy ephemeral tmpfs workspace).
+	//   MemoryPath         — per-group durable memory, bound rw at /memory
+	//                        (empty omits the mount).
+	//   SharedReadOnlyPath — global shared assets, bound READ-ONLY at /shared
+	//                        (empty omits the mount).
+	// All are outside the read-only rootfs; the rw ones carry nosuid,nodev,noexec.
+	WorkspacePath      string
+	MemoryPath         string
+	SharedReadOnlyPath string
 }
 
 // HardenedSpec returns spec with all security knobs set to their hardened values.
@@ -72,6 +85,19 @@ func HardenedSpec(sessionID contract.SessionID, image, inboundRO, outboundRW, pr
 		NonRootUID:            65532, // conventional "nonroot" distroless UID
 		ReadOnlyRootfs:        true,
 	}
+}
+
+// HardenedSpecWithStorage is HardenedSpec plus per-group durable storage: a
+// persistent /workspace and /memory (both rw) and a global read-only /shared
+// mount, replacing the ephemeral tmpfs-only workspace. Any empty storage path
+// falls back to the ephemeral/omitted behavior for that mount, so callers can opt
+// in incrementally.
+func HardenedSpecWithStorage(sessionID contract.SessionID, image, inboundRO, outboundRW, proxySock, workspacePath, memoryPath, sharedROPath string) SandboxSpec {
+	s := HardenedSpec(sessionID, image, inboundRO, outboundRW, proxySock)
+	s.WorkspacePath = workspacePath
+	s.MemoryPath = memoryPath
+	s.SharedReadOnlyPath = sharedROPath
+	return s
 }
 
 // Handle is a running sandbox.
@@ -194,6 +220,12 @@ func (r *RunscIsolator) Launch(ctx context.Context, spec SandboxSpec) (Handle, e
 	}
 	rootfsDir := filepath.Join(bundleDir, "rootfs")
 
+	// Ensure the per-group durable rw dirs exist before the runtime binds them. The
+	// read-only /shared mount is operator-managed and is NOT created here.
+	if err := ensureWritableStorage(spec); err != nil {
+		return nil, err
+	}
+
 	// Provision the rootfs out of band when a provisioner is configured. Image pull
 	// and unpack are host-side actions (the sandbox is network=none); see
 	// provisioner.go and the T-012 spike (.agents/spikes/rootfs.md).
@@ -228,6 +260,23 @@ func (r *RunscIsolator) Launch(ctx context.Context, spec SandboxSpec) (Handle, e
 		bundleDir:     bundleDir,
 		containerID:   containerID,
 	}, nil
+}
+
+// ensureWritableStorage idempotently creates the per-group durable rw storage dirs
+// (workspace, memory) when configured, so the runtime can bind them. The dirs are
+// created 0700; the deploy layer is responsible for chowning them to the sandbox's
+// mapped non-root uid (see deploy/README.md). The read-only /shared mount is
+// operator-managed and intentionally not created here.
+func ensureWritableStorage(spec SandboxSpec) error {
+	for _, p := range []string{spec.WorkspacePath, spec.MemoryPath} {
+		if p == "" {
+			continue
+		}
+		if err := os.MkdirAll(p, 0o700); err != nil {
+			return fmt.Errorf("host/isolation: create durable storage dir %s: %w", p, err)
+		}
+	}
+	return nil
 }
 
 // ErrRootfsMissing is the sentinel Launch wraps when the bundle has no provisioned

@@ -202,6 +202,124 @@ func TestStopSafeWhenRuntimeAbsent(t *testing.T) {
 	}
 }
 
+// mountByDest returns the mount with the given container destination, or nil.
+func mountByDest(spec *OCISpec, dest string) *OCIMount {
+	for i := range spec.Mounts {
+		if spec.Mounts[i].Destination == dest {
+			return &spec.Mounts[i]
+		}
+	}
+	return nil
+}
+
+func TestBuildOCISpecDurableWorkspace(t *testing.T) {
+	s := hardenedTestSpec()
+	s.WorkspacePath = "/var/lib/ironclaw/groups/g1/workspace"
+	spec, err := BuildOCISpec(s)
+	if err != nil {
+		t.Fatalf("BuildOCISpec: %v", err)
+	}
+	ws := mountByDest(spec, containerWorkspace)
+	if ws == nil {
+		t.Fatal("missing /workspace mount")
+	}
+	if ws.Type != "bind" {
+		t.Fatalf("durable workspace must be a bind, got type %q", ws.Type)
+	}
+	if ws.Source != s.WorkspacePath {
+		t.Fatalf("workspace source = %q, want %q", ws.Source, s.WorkspacePath)
+	}
+	if !hasOption(ws.Options, "rw") || hasOption(ws.Options, "ro") {
+		t.Fatalf("durable workspace must be rw, options=%v", ws.Options)
+	}
+	for _, o := range []string{"nosuid", "nodev", "noexec"} {
+		if !hasOption(ws.Options, o) {
+			t.Fatalf("durable workspace must carry %q, options=%v", o, ws.Options)
+		}
+	}
+}
+
+func TestBuildOCISpecLegacyTmpfsWorkspace(t *testing.T) {
+	// With no WorkspacePath, /workspace stays the ephemeral tmpfs (back-compat).
+	spec, err := BuildOCISpec(hardenedTestSpec())
+	if err != nil {
+		t.Fatalf("BuildOCISpec: %v", err)
+	}
+	ws := mountByDest(spec, containerWorkspace)
+	if ws == nil || ws.Type != "tmpfs" {
+		t.Fatalf("unset WorkspacePath must keep a tmpfs workspace, got %+v", ws)
+	}
+}
+
+func TestBuildOCISpecMemoryAndShared(t *testing.T) {
+	s := hardenedTestSpec()
+	s.MemoryPath = "/var/lib/ironclaw/groups/g1/memory"
+	s.SharedReadOnlyPath = "/var/lib/ironclaw/shared"
+	spec, err := BuildOCISpec(s)
+	if err != nil {
+		t.Fatalf("BuildOCISpec: %v", err)
+	}
+
+	mem := mountByDest(spec, containerMemory)
+	if mem == nil || mem.Type != "bind" || mem.Source != s.MemoryPath {
+		t.Fatalf("missing/incorrect /memory bind: %+v", mem)
+	}
+	if !hasOption(mem.Options, "rw") || hasOption(mem.Options, "ro") {
+		t.Fatalf("/memory must be rw, options=%v", mem.Options)
+	}
+
+	shared := mountByDest(spec, containerShared)
+	if shared == nil || shared.Type != "bind" || shared.Source != s.SharedReadOnlyPath {
+		t.Fatalf("missing/incorrect /shared bind: %+v", shared)
+	}
+	if !hasOption(shared.Options, "ro") || hasOption(shared.Options, "rw") {
+		t.Fatalf("/shared must be READ-ONLY, options=%v", shared.Options)
+	}
+}
+
+func TestBuildOCISpecOmitsUnsetDurableMounts(t *testing.T) {
+	spec, err := BuildOCISpec(hardenedTestSpec())
+	if err != nil {
+		t.Fatalf("BuildOCISpec: %v", err)
+	}
+	if m := mountByDest(spec, containerMemory); m != nil {
+		t.Fatalf("/memory must be omitted when MemoryPath is empty, got %+v", m)
+	}
+	if m := mountByDest(spec, containerShared); m != nil {
+		t.Fatalf("/shared must be omitted when SharedReadOnlyPath is empty, got %+v", m)
+	}
+}
+
+func TestHardenedSpecWithStorage(t *testing.T) {
+	s := HardenedSpecWithStorage("ses_x", "img:latest", "/in.db", "/out.db", "/p.sock", "/ws", "/mem", "/shared")
+	if s.WorkspacePath != "/ws" || s.MemoryPath != "/mem" || s.SharedReadOnlyPath != "/shared" {
+		t.Fatalf("storage paths not set: %+v", s)
+	}
+	// It must still be fully hardened.
+	if !s.NetworkNone || !s.DropAllCaps || !s.NoNewPrivs || !s.ReadOnlyRootfs || s.NonRootUID <= 0 {
+		t.Fatalf("HardenedSpecWithStorage must stay hardened: %+v", s)
+	}
+}
+
+func TestLaunchCreatesDurableStorage(t *testing.T) {
+	base := t.TempDir()
+	s := hardenedTestSpec()
+	s.WorkspacePath = filepath.Join(base, "groups", "g1", "workspace")
+	s.MemoryPath = filepath.Join(base, "groups", "g1", "memory")
+
+	r := NewRunsc(WithBundleRoot(filepath.Join(base, "bundles")), WithProvisioner(&fakeProvisioner{}))
+	// Launch will fail to exec an absent runtime binary, but the durable dirs must be
+	// created before that point.
+	_, _ = r.Launch(context.Background(), s)
+
+	for _, p := range []string{s.WorkspacePath, s.MemoryPath} {
+		fi, err := os.Stat(p)
+		if err != nil || !fi.IsDir() {
+			t.Fatalf("durable storage dir %s not created: err=%v", p, err)
+		}
+	}
+}
+
 func hasOption(opts []string, want string) bool {
 	for _, o := range opts {
 		if o == want {

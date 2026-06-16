@@ -29,6 +29,28 @@ host before running in production.
    extract-based unpack or a bind/reflink materializer via the provisioner's
    options.
 
+   **Durable per-group storage.** The rootfs is read-only; the sandbox's writable
+   surface is mounts. Beyond the ephemeral tmpfs default, each sandbox can be given
+   per-group **persistent** storage (see `SandboxSpec.WorkspacePath` /
+   `MemoryPath` / `SharedReadOnlyPath` in `internal/host/isolation`):
+
+   - `/workspace` — per-group durable scratch, bound **rw** (replaces the tmpfs).
+   - `/memory` — per-group durable memory, bound **rw**.
+   - `/shared` — a global, **read-only** shared-assets mount.
+
+   All writable mounts carry `nosuid,nodev,noexec`; `/shared` is `ro`. Lay out the
+   host dirs per agent group and chown them to the sandbox's mapped non-root uid
+   (the distroless `nonroot`, uid `65532`); `/shared` is operator-managed and
+   read-only. The isolator creates the rw dirs on launch if absent, but ownership
+   is a deploy responsibility:
+
+   ```sh
+   install -d -m 0700 -o 65532 -g 65532 \
+     /var/lib/ironclaw/groups/<group>/workspace \
+     /var/lib/ironclaw/groups/<group>/memory
+   install -d -m 0755 /var/lib/ironclaw/shared    # global, read-only to sandboxes
+   ```
+
 2. **Tailscale** — the control-plane API has **no public port**. Bind it to the
    host's tailnet IP and reach `ironctl` over the tailnet. A host firewall should
    drop inbound to the API port on every interface except the Tailscale one.
