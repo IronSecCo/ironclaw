@@ -198,6 +198,101 @@ shape changes).
 
 The whole tree builds, vets, and tests green after the change.
 
+### RFC-0004 (proposed): agent-to-agent messaging + approval-gated `create_agent`
+
+**Status:** PROPOSED — awaiting both CODEOWNERS' sign-off. **No code landed.** This
+is the design RFC for T-086 (`#20`), drafted at the maintainer's request before any
+implementation. Scope it down or amend before approval.
+
+**Motivation.** Two capabilities are missing: (1) an agent has no way to hand work
+to *another* agent group (agent-to-agent, "a2a"); (2) there is no way to create a
+new agent group at runtime under human control. Both are privileged, mutating
+operations, so they must respect the same trust boundary as every other
+control-plane mutation — never an unapproved escalation path.
+
+**Design principle — minimize the contract surface.** Only what crosses the
+host↔sandbox seam belongs in `internal/contract`. Under that lens:
+
+- **`create_agent` needs ONE new contract value:** a new `ChangeKind`. It then
+  rides the *existing* `SystemAction` envelope and gateway machinery — no new wire.
+- **a2a needs ZERO contract change.** The sandbox already addresses outbound
+  targets by *name* via the `send_message` tool (T-082) and the `Destination`
+  rows; the host resolves a name to either a platform channel or an agent group.
+  Routing a message to an agent group is therefore a host-internal decision. The
+  `Destination` row already carries `Type` and `AgentGroupID` fields for exactly
+  this.
+
+**Proposed contract change (the only frozen-file edit).** Add to
+`internal/contract/enums.go`:
+
+```go
+// ChangeCreateAgent provisions a NEW agent group. Privileged: always routed
+// through the gateway's mandatory human-approval floor (a new agent is a new
+// trust principal). The payload describes the proposed agent group; see the
+// payload-conventions table.
+ChangeCreateAgent ChangeKind = "create_agent"
+```
+
+`create_agent` payload convention (host-internal, == `ChangeRequest.After`, layered
+on the existing capability-change wire — `action == "create_agent"`):
+
+```json
+{
+  "name": "string",                         // required; human-readable
+  "folder": "string",                       // optional; derived from name if absent
+  "persona": {"instructions": "..."},       // optional initial persona
+  "enabled_tools": ["..."],                 // optional
+  "members": ["slack:alice", ...],          // optional initial access grants
+  "wirings": [ { /* engage/session/scope */ } ]  // optional initial wirings
+}
+```
+
+**Host-internal design (NOT contract).**
+
+- *create_agent applier + verifier.* `delivery.authorizeSystemAction` maps
+  `create_agent` to `ChangeCreateAgent` (privileged → gateway). A new
+  `CreateAgentVerifier` validates: `name`/`folder` carry no path traversal (`..`)
+  or shell metacharacters; the derived `AgentGroupID` does not already exist;
+  initial `members`/`wirings` are well-formed. The mandatory human floor always
+  applies (a new principal is never auto-approved). On approval the applier calls
+  `registry.PutAgentGroup` (+ optional initial wirings/members) — all existing
+  Registry methods.
+- *No privilege inheritance.* The creating agent may only grant the new agent
+  access it could already grant (scope check against the creator's roles); a new
+  agent starts with the **minimum** capability set, never the creator's.
+- *a2a routing.* `send_message` to a destination whose `Type == "agent"` (with
+  `AgentGroupID` set) is routed by `delivery` **inbound** to the target group via
+  the existing router/session resolution, instead of to a platform adapter.
+  Authorization reuses destination allow-listing: an agent may message only the
+  agent groups it is explicitly permitted to (a new `registry` agent-destination
+  check). Provenance is stamped via the existing `MessageIn.SourceSessionID`.
+- *Loop / amplification safety.* a2a carries a bounded hop depth (derived from
+  `SourceSessionID` provenance) so messages cannot ping-pong indefinitely; per-agent
+  send quotas bound fan-out. `create_agent` is rate-limited (pending-request cap) to
+  prevent agent-bombing.
+
+**Migration impact (must land together per the freeze rule).**
+
+- *Contract:* add `ChangeCreateAgent` (additive; no existing shape changes).
+- *Control-plane:* `CreateAgentVerifier` + applier; `delivery` agent-destination
+  routing + `authorizeSystemAction` case; `registry` agent-destination storage +
+  access check.
+- *Sandbox:* a `create_agent` tool (a `HostForwarder`, like the capability tools);
+  a2a reuses the existing `send_message` tool unchanged.
+
+**Open questions for the maintainer (please decide before sign-off):**
+
+1. **Who may create agents** — owners only, or owners + global admins?
+2. **a2a default posture** — deny-by-default (explicit agent-destination grants
+   required) vs. allow within a trust group? (Recommend deny-by-default.)
+3. **a2a hop-depth limit** and **per-agent send quota** values.
+4. **Pin `DestinationTypeAgent = "agent"` in the contract?** Only needed if the
+   sandbox must itself distinguish agent vs. channel destinations; if destinations
+   stay name-addressed (host resolves type), keep it host-internal. (Recommend
+   host-internal — keeps the contract minimal.)
+5. **Scope split** — land `create_agent` and a2a as two separate tasks (they are
+   independent), or together?
+
 ## Capability-change payload conventions
 
 These are cross-agent **conventions** layered on the frozen contract, not Go types
