@@ -51,9 +51,29 @@ so it is testable WITHOUT the pending encrypted-SQLite binding:
 - **`internal/host/delivery`** — `Poll(ctx)` reads due outbound messages through an
   injected `OutboundReader` factory, dedups in memory (mirrored into the inbound
   `delivered` table once persistence lands), re-authorizes system actions
-  host-side (`authorizeSystemAction`), and enforces destination permission.
+  host-side (`authorizeSystemAction`), and enforces destination permission. The
+  `schedule_task` system action is handled as a non-privileged host action: it only
+  ENQUEUES a future inbound prompt (validated by `internal/host/scheduling`) via an
+  injected inbound-writer hook — it executes nothing, so it adds no RCE surface.
+- **`internal/host/scheduling`** — pure scheduling logic: `Validate` (rejects an
+  empty prompt and any recurrence outside `""`/`hourly`/`daily`/`weekly`/a Go
+  duration like `15m`) and `NextRun`. A `ScheduledRequest` carries ONLY a prompt —
+  there is deliberately no script/command field, so scheduling can never become an
+  unapproved execution path (the legacy `script`-field RCE class is designed out).
+- **`internal/host/isolation`** — `BuildOCISpec` turns a `SandboxSpec` into a
+  hardened OCI runtime spec (minimal OCI structs defined in-tree, no external
+  runtime-spec dependency): network namespace omitted (`network=none`), all
+  capability sets empty, `no_new_privs`, non-root uid/gid in a user namespace,
+  read-only rootfs with a writable `/workspace` tmpfs, inbound bound `ro`, outbound
+  bound `rw`, and the model-proxy socket bound in. `RunscIsolator` writes the
+  per-session OCI bundle (`config.json`) and execs a configurable runtime
+  (`runsc`/`--runtime`) as `<runtime> run --bundle <dir> <id>`; the returned handle
+  `Stop`s via `<runtime> kill`/`delete` (safe when the binary is absent).
 - **`internal/host/sweep`** — `Run(ctx)` iterates sessions, probes liveness via an
-  injected `Prober`, and kills stuck sandboxes via an injected `Killer`.
+  injected `Prober`, and kills stuck sandboxes via an injected `Killer`. With the
+  optional scheduling hooks wired (`WithScheduling`), it also wakes sessions whose
+  message is due (via an injected `DueSource` + `Waker`) and re-enqueues recurring
+  ones at their computed `NextRun` — again only carrying a prompt, never executing.
 - **`internal/host/gateway`** — `FileStore` (durable JSON change store, reloads
   pending on restart), `AuditLog` (append-only JSONL of submit/verdict/decision/
   apply), and two extra deterministic verifiers (`MountAllowlistVerifier`,
@@ -69,8 +89,13 @@ The same interfaces accept the durable backends with no caller changes.
   expose; the SQLite-gated openers in `internal/host/queue` still return the
   pending-binding error. See the RFC log in [contract.md](contract.md). The
   in-memory queue backends above stand in until it lands.
-- **`RunscIsolator` (gVisor) + containerd.** The real isolator and the
-  cross-mount live-poll parity check come after the queue binding.
+- **Sandbox rootfs provisioning.** `isolation` builds a hardened OCI spec and
+  execs the runtime, but unpacking a container image into the bundle's `rootfs/`
+  needs an image unpacker (containerd / an OCI image tool) — an external dependency
+  kept out of the stdlib-only tree. `Launch` therefore requires a pre-provisioned
+  rootfs and returns `ErrRootfsMissing` otherwise; this is the one remaining
+  isolation integration point. The cross-mount live-poll parity check comes after
+  the queue binding.
 
 ## Future extensions
 

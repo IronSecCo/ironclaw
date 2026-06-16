@@ -8,9 +8,11 @@ package sweep
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/nivardsec/ironclaw/internal/contract"
 	"github.com/nivardsec/ironclaw/internal/host/registry"
+	"github.com/nivardsec/ironclaw/internal/host/scheduling"
 )
 
 // StuckAction is the decision the sweep loop takes for a sandbox that may be
@@ -81,16 +83,60 @@ type Killer interface {
 	Kill(id contract.SessionID, action StuckAction) error
 }
 
+// Waker wakes (launches/signals) the sandbox for a session whose due message has
+// come up. Tests inject a fake; production wires it to host/isolation.
+type Waker interface {
+	Wake(id contract.SessionID) error
+}
+
+// DueMessage is a message that has come due for a session. It carries just enough
+// for the sweep to wake the session and, if recurring, re-enqueue the next
+// occurrence. There is NO script/command field — a due message is only a prompt.
+type DueMessage struct {
+	SessionID  contract.SessionID
+	MessageID  contract.MessageID
+	Prompt     string
+	RunAt      time.Time
+	Recurrence string // "" for one-shot
+}
+
+// DueSource reports messages whose process_after <= now across all sessions.
+// Tests inject a fake; production reads the per-session inbound queues.
+type DueSource interface {
+	DueMessages(now time.Time) ([]DueMessage, error)
+}
+
+// EnqueueFunc re-enqueues the next occurrence of a recurring due message at its
+// computed next run time. Production wires it to host/queue.OpenInbound (writing a
+// future MessageIn); tests inject a fake. It carries only a prompt — no execution.
+type EnqueueFunc func(sessionID contract.SessionID, prompt string, runAt time.Time, recurrence string) error
+
 // Sweeper runs the periodic maintenance loop over the registry's sessions.
 type Sweeper struct {
 	reg    registry.Registry
 	prober Prober
 	killer Killer
+
+	// Optional scheduling hooks. When all three are set, Run also wakes due-message
+	// sessions and re-enqueues recurring ones. They are optional so the stale-sandbox
+	// sweep works on its own.
+	dueSource DueSource
+	waker     Waker
+	enqueue   EnqueueFunc
 }
 
 // New constructs a Sweeper over the registry, prober, and killer.
 func New(reg registry.Registry, prober Prober, killer Killer) *Sweeper {
 	return &Sweeper{reg: reg, prober: prober, killer: killer}
+}
+
+// WithScheduling wires the due-message wake + recurrence hooks. Returns s for
+// chaining. All three are required for the scheduling pass to run.
+func (s *Sweeper) WithScheduling(due DueSource, waker Waker, enqueue EnqueueFunc) *Sweeper {
+	s.dueSource = due
+	s.waker = waker
+	s.enqueue = enqueue
+	return s
 }
 
 // Run performs one sweep pass: for every session, probe its liveness, call
@@ -124,6 +170,48 @@ func (s *Sweeper) Run(ctx context.Context) error {
 		}
 		if err := s.killer.Kill(sess.ID, action); err != nil {
 			return fmt.Errorf("host/sweep: kill %s: %w", sess.ID, err)
+		}
+	}
+	// Due-message wake + recurrence (only when the scheduling hooks are wired).
+	if err := s.processDue(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+// processDue wakes every session that has a message due now and, for a recurring
+// due message, re-enqueues the next occurrence via the enqueue hook. It is a no-op
+// unless the scheduling hooks are wired. A due message carries only a prompt — the
+// sweep never executes anything; waking the session lets the sandbox pick the
+// prompt up as an ordinary inbound message.
+func (s *Sweeper) processDue(ctx context.Context) error {
+	if s.dueSource == nil || s.waker == nil || s.enqueue == nil {
+		return nil
+	}
+	now := time.Now().UTC()
+	due, err := s.dueSource.DueMessages(now)
+	if err != nil {
+		return fmt.Errorf("host/sweep: due messages: %w", err)
+	}
+	for _, m := range due {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		if err := s.waker.Wake(m.SessionID); err != nil {
+			return fmt.Errorf("host/sweep: wake %s for due message %s: %w", m.SessionID, m.MessageID, err)
+		}
+		if m.Recurrence == "" {
+			continue
+		}
+		next, ok := scheduling.NextRun(m.RunAt, m.Recurrence)
+		if !ok {
+			// Invalid/exhausted recurrence: do not re-enqueue.
+			continue
+		}
+		if err := s.enqueue(m.SessionID, m.Prompt, next, m.Recurrence); err != nil {
+			return fmt.Errorf("host/sweep: re-enqueue recurring message for %s: %w", m.SessionID, err)
 		}
 	}
 	return nil

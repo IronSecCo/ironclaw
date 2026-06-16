@@ -18,12 +18,16 @@ import (
 	"sync"
 	"syscall"
 
+	"time"
+
 	"github.com/nivardsec/ironclaw/internal/contract"
 	"github.com/nivardsec/ironclaw/internal/host/api"
 	"github.com/nivardsec/ironclaw/internal/host/gateway"
+	"github.com/nivardsec/ironclaw/internal/host/isolation"
 	"github.com/nivardsec/ironclaw/internal/host/keys"
 	"github.com/nivardsec/ironclaw/internal/host/modelproxy"
 	"github.com/nivardsec/ironclaw/internal/host/registry"
+	"github.com/nivardsec/ironclaw/internal/host/sweep"
 )
 
 func main() {
@@ -33,6 +37,12 @@ func main() {
 		"unix socket the model proxy listens on (bound into each sandbox)")
 	stateDir := flag.String("state-dir", defaultStateDir(),
 		"directory for durable control-plane state (gateway change store + audit log)")
+	runtimeBin := flag.String("runtime", isolation.DefaultRuntimeBinary,
+		"OCI runtime binary used to launch sandboxes (gVisor's runsc by default)")
+	bundleRoot := flag.String("bundle-root", filepath.Join(defaultStateDir(), "bundles"),
+		"directory under which per-session OCI bundles (config.json + rootfs) are written")
+	sweepInterval := flag.Duration("sweep-interval", 60*time.Second,
+		"how often the maintenance sweep runs (stale-sandbox detection + due-message wake)")
 	dev := flag.Bool("dev", false,
 		"seed the registry with a tiny dev owner/agent-group for local testing")
 	flag.Parse()
@@ -91,6 +101,23 @@ func main() {
 
 	server := api.New(gw).WithHistory(store).WithAuditPath(auditPath)
 
+	// Isolation: build a hardened OCI bundle per session and exec the runtime. The
+	// runtime can't actually launch until rootfs provisioning (the one external
+	// image-unpacker integration point) lands, but the spec building, bundle
+	// writing, and exec wiring are real.
+	isolator := isolation.NewRunsc(
+		isolation.WithRuntimeBinary(*runtimeBin),
+		isolation.WithBundleRoot(*bundleRoot),
+	)
+	_ = isolator // launched per session once the queue/session binding lands
+
+	// Sweep: stale-sandbox detection plus due-message wake + recurrence. The probe,
+	// kill, due-source, wake, and enqueue hooks bind to the per-session queues once
+	// the encrypted-SQLite binding (RFC-0001) lands; until then the sweep runs over
+	// the (currently empty) live-session set and is a safe no-op.
+	sweeper := sweep.New(reg, healthyProber{}, logKiller{}).
+		WithScheduling(emptyDueSource{}, logWaker{}, logEnqueue)
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
@@ -116,6 +143,24 @@ func main() {
 		}
 	}()
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		ticker := time.NewTicker(*sweepInterval)
+		defer ticker.Stop()
+		log.Printf("controlplane: sweep running every %s (stale-sandbox + due-message wake)", *sweepInterval)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := sweeper.Run(ctx); err != nil && err != context.Canceled {
+					log.Printf("controlplane: sweep pass error: %v", err)
+				}
+			}
+		}
+	}()
+
 	pending, _ := store.Pending()
 	log.Printf("controlplane: started")
 	log.Printf("controlplane:   state dir      %s", *stateDir)
@@ -123,12 +168,59 @@ func main() {
 	log.Printf("controlplane:   audit log      %s", auditPath)
 	log.Printf("controlplane:   gateway chain  mount-allowlist -> package-name -> always-require-human")
 	log.Printf("controlplane:   registry       in-memory (dev=%v)", *dev)
+	log.Printf("controlplane:   isolation      runtime=%q bundle-root=%s (rootfs provisioning pending)", *runtimeBin, *bundleRoot)
+	log.Printf("controlplane:   sweep          interval=%s (scheduling carries a prompt only — no script, no RCE)", *sweepInterval)
 	log.Printf("controlplane: send SIGINT/SIGTERM to stop.")
 
 	<-ctx.Done()
 	log.Printf("controlplane: shutting down")
 	wg.Wait()
 	os.Exit(0)
+}
+
+// --- sweep hook adapters ---
+//
+// These are deliberately minimal placeholders. They keep the daemon booting and
+// the sweep loop running over the (currently empty) live-session set; each binds
+// to the real per-session queue/isolation surface once the encrypted-SQLite
+// session binding (RFC-0001) lands. None of them executes anything — in
+// particular, scheduling only ever carries a prompt (no script field → no RCE).
+
+// healthyProber reports every session as healthy until the heartbeat-file probe
+// is wired to the live session mounts.
+type healthyProber struct{}
+
+func (healthyProber) Probe(contract.SessionID) (heartbeatAgeMs, oldestClaimAgeMs int64, err error) {
+	return 0, 0, nil
+}
+
+// logKiller records a kill request; the real killer wires to host/isolation once
+// session handles are tracked.
+type logKiller struct{}
+
+func (logKiller) Kill(id contract.SessionID, action sweep.StuckAction) error {
+	log.Printf("controlplane: sweep would kill session %s (action=%v) — isolation handle tracking pending", id, action)
+	return nil
+}
+
+// emptyDueSource reports no due messages until the inbound queues are bound.
+type emptyDueSource struct{}
+
+func (emptyDueSource) DueMessages(time.Time) ([]sweep.DueMessage, error) { return nil, nil }
+
+// logWaker records a wake request; the real waker wires to host/isolation.
+type logWaker struct{}
+
+func (logWaker) Wake(id contract.SessionID) error {
+	log.Printf("controlplane: sweep would wake session %s — isolation launch pending", id)
+	return nil
+}
+
+// logEnqueue records a recurrence re-enqueue; the real hook writes a future
+// MessageIn via the inbound queue binding.
+func logEnqueue(id contract.SessionID, prompt string, runAt time.Time, recurrence string) error {
+	log.Printf("controlplane: sweep would re-enqueue recurring prompt for %s at %s (recurrence=%s)", id, runAt.Format(time.RFC3339), recurrence)
+	return nil
 }
 
 // defaultStateDir returns a per-user state directory under the OS state/cache

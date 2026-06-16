@@ -163,6 +163,84 @@ func TestDestinationPermissionEnforced(t *testing.T) {
 	}
 }
 
+func TestScheduleTaskEnqueuesFutureInbound(t *testing.T) {
+	d, adapter, _, sess, w := newTestDelivery(t)
+
+	// Wire an inbound writer over a fresh shared store so we can read back what the
+	// schedule_task action enqueued.
+	inStore := queue.NewMemStore()
+	hostInbound := queue.NewMemInbound(inStore)
+	readView := queue.NewMemInbound(inStore)
+	d.WithInboundWriter(func(id contract.SessionID) (contract.InboundWriter, error) {
+		if id == sess.ID {
+			return hostInbound, nil
+		}
+		return queue.NewMemInbound(queue.NewMemStore()), nil
+	})
+
+	runAt := time.Now().Add(time.Hour).UTC().Format(time.RFC3339)
+	body := `{"action":"schedule_task","prompt":"run the daily report","run_at":"` + runAt + `","recurrence":"daily"}`
+	if err := w.WriteMessageOut(contract.MessageOut{ID: "s1", Seq: 1, Kind: contract.KindSystem, Content: body}); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Poll(context.Background()); err != nil {
+		t.Fatalf("Poll: %v", err)
+	}
+
+	// schedule_task must NOT have delivered anything to a channel.
+	if got := adapter.Delivered(); len(got) != 0 {
+		t.Fatalf("schedule_task must not deliver to a channel, got %+v", got)
+	}
+	// It must have enqueued exactly one future inbound message carrying the prompt.
+	msgs, _ := readView.PendingMessages(true)
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 enqueued inbound message, got %d", len(msgs))
+	}
+	m := msgs[0]
+	if m.Content != "run the daily report" {
+		t.Fatalf("enqueued prompt = %q", m.Content)
+	}
+	if m.ProcessAfter == nil {
+		t.Fatal("enqueued message must have a ProcessAfter time")
+	}
+	if m.Recurrence == nil || *m.Recurrence != "daily" {
+		t.Fatalf("enqueued message recurrence = %v, want daily", m.Recurrence)
+	}
+	if m.Seq%2 != 0 {
+		t.Fatalf("enqueued message seq must be even (host parity), got %d", m.Seq)
+	}
+}
+
+func TestScheduleTaskRejectsEmptyPrompt(t *testing.T) {
+	d, _, _, sess, w := newTestDelivery(t)
+	inStore := queue.NewMemStore()
+	hostInbound := queue.NewMemInbound(inStore)
+	d.WithInboundWriter(func(id contract.SessionID) (contract.InboundWriter, error) {
+		_ = sess
+		return hostInbound, nil
+	})
+	w.WriteMessageOut(contract.MessageOut{ID: "s1", Seq: 1, Kind: contract.KindSystem, Content: `{"action":"schedule_task","prompt":""}`})
+	if err := d.Poll(context.Background()); err == nil {
+		t.Fatal("expected schedule_task with empty prompt to error")
+	}
+}
+
+func TestScheduleTaskRefusedWithoutInboundWriter(t *testing.T) {
+	d, _, _, _, w := newTestDelivery(t)
+	// No WithInboundWriter call: schedule_task must be refused, not silently dropped.
+	w.WriteMessageOut(contract.MessageOut{ID: "s1", Seq: 1, Kind: contract.KindSystem, Content: `{"action":"schedule_task","prompt":"x"}`})
+	if err := d.Poll(context.Background()); err == nil {
+		t.Fatal("expected schedule_task to be refused without an inbound writer")
+	}
+}
+
+func TestScheduleTaskIsNonPrivileged(t *testing.T) {
+	// schedule_task must authorize as non-privileged (it only enqueues a prompt).
+	if _, priv := authorizeSystemAction("schedule_task"); priv {
+		t.Fatal("schedule_task must be non-privileged")
+	}
+}
+
 // waitPending polls the gateway's pending list until it reaches want or times out.
 func waitPending(d *Delivery, want int) bool {
 	for i := 0; i < 500; i++ {

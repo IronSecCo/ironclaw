@@ -13,17 +13,26 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/nivardsec/ironclaw/internal/contract"
 	"github.com/nivardsec/ironclaw/internal/host/channels"
 	"github.com/nivardsec/ironclaw/internal/host/gateway"
 	"github.com/nivardsec/ironclaw/internal/host/registry"
+	"github.com/nivardsec/ironclaw/internal/host/scheduling"
 )
 
 // OutboundReaderFactory returns the host's read-only outbound view for a session.
 // Tests inject a fake (host/queue.MemOutbound); production wires it to
 // host/queue.OpenOutbound once the encrypted-SQLite binding lands.
 type OutboundReaderFactory func(contract.SessionID) (contract.OutboundReader, error)
+
+// InboundWriterFactory returns the host's inbound writer for a session. Used by
+// the schedule_task system action to enqueue a future inbound prompt. Tests inject
+// a fake (host/queue.MemInbound); production wires it to host/queue.OpenInbound
+// once the encrypted-SQLite binding lands. May be nil if scheduling is not wired —
+// in that case schedule_task actions are refused rather than executed.
+type InboundWriterFactory func(contract.SessionID) (contract.InboundWriter, error)
 
 // Delivery polls outbound queues and delivers via channel adapters. It dedups
 // delivered messages in memory (mirrored in the inbound `delivered` table once
@@ -34,16 +43,23 @@ type Delivery struct {
 	gw        *gateway.Gateway
 	reg       registry.Registry
 	newReader OutboundReaderFactory
+	newWriter InboundWriterFactory // optional; enables schedule_task
 
 	mu        sync.Mutex
 	delivered map[contract.MessageID]struct{}
+	// seqCtr generates EVEN host seq numbers for scheduled inbound messages,
+	// matching the frozen host-parity rule. Process-local and monotonic.
+	seqCtr int64
+	// scheduleCtr disambiguates generated scheduled-message IDs within a process.
+	scheduleCtr int64
 }
 
 // New constructs a Delivery.
 //
 // reg (the control-plane registry) and newReader (the per-session outbound reader
 // factory) are required by Poll; channelReg and gw drive delivery and system
-// re-authorization respectively.
+// re-authorization respectively. The inbound-writer factory for schedule_task is
+// optional; set it with WithInboundWriter.
 func New(channelReg *channels.Registry, gw *gateway.Gateway, reg registry.Registry, newReader OutboundReaderFactory) *Delivery {
 	return &Delivery{
 		registry:  channelReg,
@@ -52,6 +68,13 @@ func New(channelReg *channels.Registry, gw *gateway.Gateway, reg registry.Regist
 		newReader: newReader,
 		delivered: make(map[contract.MessageID]struct{}),
 	}
+}
+
+// WithInboundWriter wires the inbound-writer factory used by the schedule_task
+// system action to enqueue a future inbound prompt. Returns d for chaining.
+func (d *Delivery) WithInboundWriter(f InboundWriterFactory) *Delivery {
+	d.newWriter = f
+	return d
 }
 
 // Poll reads due outbound messages for every active session and delivers them.
@@ -123,6 +146,12 @@ func (d *Delivery) handle(ctx context.Context, sess registry.Session, msg contra
 // non-privileged informational action delivers like a normal message.
 func (d *Delivery) handleSystem(ctx context.Context, sess registry.Session, msg contract.MessageOut) error {
 	action := parseSystemAction(msg.Content)
+	// schedule_task is an allowed, NON-privileged host action: it only enqueues a
+	// future inbound prompt (no execution path, no RCE). Handle it before the
+	// privilege routing.
+	if strings.EqualFold(strings.TrimSpace(action), "schedule_task") {
+		return d.handleScheduleTask(sess, msg)
+	}
 	kind, privileged := authorizeSystemAction(action)
 	if !privileged {
 		// Informational system message — deliver it like a normal reply.
@@ -145,6 +174,81 @@ func (d *Delivery) handleSystem(ctx context.Context, sess registry.Session, msg 
 	}
 	go func() { _, _ = d.gw.Submit(context.Background(), req) }()
 	return nil
+}
+
+// scheduleTaskPayload is the body of a schedule_task system message. It carries
+// ONLY a prompt plus timing — there is no script/command field, by design.
+type scheduleTaskPayload struct {
+	Action     string `json:"action"`
+	Prompt     string `json:"prompt"`
+	RunAt      string `json:"run_at"` // RFC3339; empty/"" means "now"
+	Recurrence string `json:"recurrence"`
+}
+
+// handleScheduleTask enqueues a future inbound prompt for the session. It NEVER
+// executes anything: it validates the request via scheduling.Validate and writes a
+// single MessageIn with ProcessAfter=RunAt (and Recurrence carried so the sweep
+// can re-enqueue it). The sweep wakes the session when the message comes due.
+func (d *Delivery) handleScheduleTask(sess registry.Session, msg contract.MessageOut) error {
+	if d.newWriter == nil {
+		return fmt.Errorf("host/delivery: schedule_task refused for session %s (no inbound-writer wired)", sess.ID)
+	}
+	var p scheduleTaskPayload
+	if err := json.Unmarshal([]byte(strings.TrimSpace(msg.Content)), &p); err != nil {
+		return fmt.Errorf("host/delivery: schedule_task body for %s is not valid JSON: %w", sess.ID, err)
+	}
+	runAt := time.Now().UTC()
+	if strings.TrimSpace(p.RunAt) != "" {
+		t, err := time.Parse(time.RFC3339, p.RunAt)
+		if err != nil {
+			return fmt.Errorf("host/delivery: schedule_task run_at for %s is not RFC3339: %w", sess.ID, err)
+		}
+		runAt = t.UTC()
+	}
+	req := scheduling.ScheduledRequest{Prompt: p.Prompt, RunAt: runAt, Recurrence: p.Recurrence}
+	if err := scheduling.Validate(req); err != nil {
+		return fmt.Errorf("host/delivery: schedule_task invalid for %s: %w", sess.ID, err)
+	}
+
+	writer, err := d.newWriter(sess.ID)
+	if err != nil {
+		return fmt.Errorf("host/delivery: open inbound writer for %s: %w", sess.ID, err)
+	}
+	defer writer.Close()
+
+	in := contract.MessageIn{
+		ID:           d.nextScheduledID(sess.ID),
+		Seq:          d.nextEvenSeq(),
+		Kind:         contract.KindTask,
+		Timestamp:    time.Now().UTC(),
+		Status:       "scheduled",
+		ProcessAfter: &runAt,
+		Content:      req.Prompt,
+	}
+	if req.Recurrence != "" {
+		rec := req.Recurrence
+		in.Recurrence = &rec
+	}
+	if err := writer.WriteMessageIn(in); err != nil {
+		return fmt.Errorf("host/delivery: enqueue scheduled message for %s: %w", sess.ID, err)
+	}
+	return nil
+}
+
+// nextEvenSeq returns the next EVEN host seq (frozen host-parity rule).
+func (d *Delivery) nextEvenSeq() int64 {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.seqCtr += 2
+	return d.seqCtr
+}
+
+// nextScheduledID returns a process-unique id for a scheduled inbound message.
+func (d *Delivery) nextScheduledID(sess contract.SessionID) contract.MessageID {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.scheduleCtr++
+	return contract.MessageID(fmt.Sprintf("sched_%s_%d", sess, d.scheduleCtr))
 }
 
 // deliver sends a message through the channel adapter for its channel, after a
@@ -238,6 +342,14 @@ func authorizeSystemAction(action string) (contract.ChangeKind, bool) {
 		// An unapproved script/RCE path: there is NO direct execution. Map it to the
 		// most privileged change kind so it is always human-gated, never run inline.
 		return contract.ChangePermissions, true
+	case "schedule_task", "schedule":
+		// Scheduling carries ONLY a prompt and enqueues a future inbound message —
+		// there is no script/command field and nothing is executed here, so it is a
+		// non-privileged host action. (Delivery special-cases it before reaching this
+		// switch; it is listed here so the authorization map is complete and any
+		// privileged future action that prompt requests still passes through the
+		// gateway.)
+		return "", false
 	case "typing", "presence", "ack", "noop", "":
 		// Informational, non-privileged: safe to deliver directly.
 		return "", false
