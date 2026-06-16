@@ -91,14 +91,20 @@ The encrypted-SQLite queue binding is live: the frozen contract exposes
 SQLCipher binding, and the cross-mount live-poll parity checks run in
 `test/parity`. See the RFC log in [contract.md](contract.md).
 
-- **Sandbox rootfs provisioning.** `isolation` builds a hardened OCI spec and
-  execs the runtime, but unpacking a container image into the bundle's `rootfs/`
-  needs an image unpacker (containerd / an OCI image tool) — an external dependency
-  kept out of the stdlib-only tree. `Launch` therefore requires a pre-provisioned
-  rootfs and returns `ErrRootfsMissing` otherwise; this is the one remaining
-  isolation integration point.
+- **Sandbox rootfs provisioning.** `isolation` builds a hardened OCI spec,
+  provisions the bundle `rootfs/` through a pluggable provisioner (verifying the
+  image digest/signature against a trust policy before unpack), and execs the
+  runtime. A live `Launch` now needs `runsc` and a provisioned/signed image
+  present in the environment rather than the stdlib tree itself.
+- **Daemon wiring of the Wave-4 hardening.** Durable key custody, the metrics
+  `/metrics` handler, structured logging, API hardening, respawn + provider
+  backoff, and model-proxy rate caps/audit land as standalone packages; composing
+  them into `cmd/controlplane` is the remaining integration step.
 
 ## Future extensions
 
-Agent egress firewalling (beyond the model-proxy allowlist) and a Kata isolation
-backend are documented but not built in the skeleton.
+Documented but design-gated (Wave 5): a Kata isolation backend behind the same
+`Isolator` interface, an egress broker for approved external APIs (beyond the
+model-proxy allowlist), a gateway auto-approval policy + RBAC over the
+mandatory-human floor, and agent-to-agent messaging with approval-gated
+`create_agent` (RFC-0004).

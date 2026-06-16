@@ -87,12 +87,17 @@ implemented and tested. The encrypted-queue binding is now wired:
   covers write→read, read-only-write rejection, wrong-key failure, and no-plaintext-on-disk. The
   build now requires `CGO_ENABLED=1` (a C toolchain). `internal/host/queue` uses the live binding;
   in-memory backends remain for `--dev` and tests.
-- **Sandbox rootfs provisioning** — still gated: `isolation` builds the hardened OCI spec and execs
-  `runsc`, but unpacking an OCI image into the bundle requires an external image tool; `Launch`
-  returns `ErrRootfsMissing` until a rootfs is pre-provisioned.
+- **Sandbox rootfs provisioning** — ✅ wired via a pluggable provisioner: `isolation` builds the
+  hardened OCI spec, provisions the bundle rootfs (with image digest/signature verification against a
+  trust policy), and execs `runsc`. A real launch still needs `runsc` and a provisioned/signed image
+  present in the environment.
+- **Production hardening (Wave 4)** — durable/pluggable master-key custody, a Prometheus `/metrics`
+  surface, structured logging, API hardening (TLS, rate-limit, body limits, `/readyz`), host respawn
+  + sandbox provider backoff, and model-proxy rate caps/audit/redaction have landed as packages;
+  composing them into the daemon entrypoint is the remaining wiring step (see the [roadmap](#roadmap)).
 
 See the [roadmap](#roadmap) for what remains. You can build, test, and run the control-plane today;
-live sandbox launch awaits rootfs provisioning.
+a live sandbox launch needs `runsc` plus a provisioned image.
 
 ## Prerequisites
 
@@ -280,10 +285,30 @@ To report a vulnerability, please open a private security advisory rather than a
 - [x] Compiling skeleton: frozen contract, control-plane and sandbox stubs, CI
 - [x] Control plane (routing, gateway, isolation spec, key custody, delivery, sweep) on in-memory backends
 - [x] Sandbox (agent loop, model provider, queue access, tools)
-- [ ] Encrypted-SQLite queue binding (RFC-0001) — unblocks live encrypted queues
-- [ ] Sandbox rootfs provisioning + real `runsc` launch
-- [ ] Cross-mount live-poll integration on the encrypted backend
-- [ ] Concrete channel adapters beyond the reference webhook
+- [x] Encrypted-SQLite queue binding (RFC-0001) — live encrypted per-session queues
+- [x] Cross-mount live-poll integration on the encrypted backend
+- [x] Sandbox rootfs provisioning (pluggable) + durable per-group workspace/memory + image trust-policy verification
+- [x] Concrete channel adapters: Telegram, Slack, Discord
+- [x] Registry admin HTTP API + `ironctl` resource subcommands
+- [x] Interactive `ask_user_question` + task-management tools (list/cancel/pause/resume/update)
+- [x] End-to-end lifecycle integration test (fake isolator/provider over the real stack)
+
+**Production hardening (Wave 4) — landed as packages, daemon wiring pending:**
+
+- [x] Durable / pluggable master-key custody (file-sealed keystore + KMS seam)
+- [x] Prometheus metrics package (`/metrics`) and structured (`slog`) logging
+- [x] API hardening: optional TLS, rate-limit, body limits, `/readyz`
+- [x] Host respawn crash-loop backoff + sandbox provider backoff/circuit breaker
+- [x] Model-proxy rate caps + audit logging + secret redaction
+- [ ] Daemon wiring v2 — compose the hardening subsystems into `cmd/controlplane`
+- [ ] Real `runsc` launch in a provisioned environment + production deployment units/installer/image
+
+**Future work (Wave 5, design-gated):**
+
+- [ ] Kata isolation backend behind the same hardened `Isolator` interface
+- [ ] Egress broker for approved external APIs (relaxes the sealed `network=none` posture)
+- [ ] Gateway auto-approval policy + RBAC (the mandatory-human floor stays the default)
+- [ ] Agent-to-agent messaging + approval-gated `create_agent` (RFC-0004)
 
 ## Contributing
 
