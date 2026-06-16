@@ -15,6 +15,20 @@ host before running in production.
    `no_new_privs`, runs non-root in a user namespace, and uses a read-only rootfs
    with only a small writable `/workspace` (see `internal/host/isolation`).
 
+   **Rootfs provisioning.** The pinned `/sandbox` image's filesystem is unpacked
+   into each bundle's `rootfs/` by the `ContainerdProvisioner`
+   (`internal/host/isolation/provisioner.go`), which shells out to containerd's
+   `ctr` CLI — no extra image toolchain, no Go dependency added to the stdlib-only
+   tree. The image is pulled and unpacked **once** host-side (the sandbox is
+   `network=none`) into a shared, digest-keyed rootfs and reused read-only across
+   sessions; `Launch` keeps a rootfs post-condition so a missing/broken
+   provisioner fails loudly (`ErrRootfsMissing`) rather than starting an empty
+   sandbox. Pre-pull the pinned image with
+   `ctr -n ironclaw images pull <image>` (see [install.sh](install.sh)). Hosts that
+   forbid `ctr images mount` (needs host `CAP_SYS_ADMIN`) can plug in an
+   extract-based unpack or a bind/reflink materializer via the provisioner's
+   options.
+
 2. **Tailscale** — the control-plane API has **no public port**. Bind it to the
    host's tailnet IP and reach `ironctl` over the tailnet. A host firewall should
    drop inbound to the API port on every interface except the Tailscale one.

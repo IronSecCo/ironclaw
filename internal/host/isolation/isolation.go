@@ -8,12 +8,15 @@
 // uses a read-only rootfs with a small writable /workspace. A future Kata backend
 // sits behind the same Isolator interface.
 //
-// One integration point remains: ROOTFS PROVISIONING. Unpacking a container image
-// into the bundle's rootfs/ needs an image unpacker (containerd / an OCI image
-// tool) which is an external dependency outside this stdlib-only tree. Launch
-// therefore REQUIRES the rootfs to already exist under the bundle dir and returns
-// a clear error if it does not. Everything else — spec building, bundle writing,
-// and the runtime exec/stop — is real here.
+// ROOTFS PROVISIONING is a pluggable seam (RootfsProvisioner, see provisioner.go).
+// Unpacking a container image into the bundle's rootfs/ needs an image unpacker
+// (containerd / an OCI image tool) which is an external host dependency outside
+// this stdlib-only tree, so it shells out behind the RootfsProvisioner interface
+// rather than vendoring a client. When a provisioner is configured Launch
+// populates rootfs out of band; when none is, Launch REQUIRES the rootfs to
+// already exist and returns a clear error otherwise. Either way the rootfs check
+// stays a real post-condition, so a missing or broken provisioner fails loudly
+// instead of launching an empty rootfs.
 package isolation
 
 import (
@@ -98,6 +101,11 @@ type RunscIsolator struct {
 	// BundleRoot is the directory under which per-session bundles are written. Each
 	// session gets BundleRoot/<sessionID>/ containing config.json and rootfs/.
 	BundleRoot string
+	// Provisioner populates each bundle's rootfs/ before Launch's rootfs gate. It is
+	// optional: a nil Provisioner preserves the pre-staged-rootfs behavior (the
+	// caller must ensure rootfs/ exists, else Launch returns ErrRootfsMissing). Set
+	// it with WithProvisioner — typically a *ContainerdProvisioner.
+	Provisioner RootfsProvisioner
 }
 
 // Option configures a RunscIsolator.
@@ -169,24 +177,37 @@ func (r *RunscIsolator) WriteBundle(spec SandboxSpec) (bundleDir string, err err
 	return bundleDir, nil
 }
 
-// Launch builds the hardened OCI spec, writes the per-session bundle, and execs
-// the runtime to run it: `<runtime> run --bundle <dir> <id>`.
+// Launch builds the hardened OCI spec, writes the per-session bundle, provisions
+// the rootfs (when a RootfsProvisioner is configured), and execs the runtime to
+// run it: `<runtime> run --bundle <dir> <id>`.
 //
-// Rootfs provisioning is the one remaining integration point: unpacking an image
-// into <bundle>/rootfs requires an external image unpacker, so Launch requires
-// the rootfs directory to already exist and returns a clear error otherwise. If
-// the runtime binary is absent, Launch returns a wrapped error (it never panics).
+// When a Provisioner is set it populates <bundle>/rootfs out of band (a host-side
+// image pull/unpack). With no Provisioner, the rootfs must already exist. In both
+// cases the rootfs directory check remains a post-condition, so a missing or
+// broken provisioner yields a clear ErrRootfsMissing rather than an empty-rootfs
+// launch. If the runtime binary is absent, Launch returns a wrapped error (it
+// never panics).
 func (r *RunscIsolator) Launch(ctx context.Context, spec SandboxSpec) (Handle, error) {
 	bundleDir, err := r.WriteBundle(spec)
 	if err != nil {
 		return nil, err
 	}
-
-	// Rootfs must be provisioned out of band (image unpacker). This is the single
-	// documented integration point; fail clearly rather than launch an empty rootfs.
 	rootfsDir := filepath.Join(bundleDir, "rootfs")
+
+	// Provision the rootfs out of band when a provisioner is configured. Image pull
+	// and unpack are host-side actions (the sandbox is network=none); see
+	// provisioner.go and the T-012 spike (.agents/spikes/rootfs.md).
+	if r.Provisioner != nil {
+		if err := r.Provisioner.Provision(ctx, spec.Image, rootfsDir); err != nil {
+			return nil, fmt.Errorf("host/isolation: provision rootfs for image %q: %w", spec.Image, err)
+		}
+	}
+
+	// Post-condition (unchanged gate): fail clearly rather than launch an empty
+	// rootfs. This stays a real check even with a provisioner, so a broken one is
+	// caught here instead of starting a sandbox with no filesystem.
 	if fi, statErr := os.Stat(rootfsDir); statErr != nil || !fi.IsDir() {
-		return nil, fmt.Errorf("host/isolation: rootfs not provisioned at %s for image %q — provision it with an image unpacker (the one remaining external integration point) before Launch: %w",
+		return nil, fmt.Errorf("host/isolation: rootfs not provisioned at %s for image %q — configure a RootfsProvisioner or pre-stage the rootfs before Launch: %w",
 			rootfsDir, spec.Image, ErrRootfsMissing)
 	}
 

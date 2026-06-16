@@ -24,6 +24,19 @@ set -euo pipefail
 #   #   [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
 #   #     runtime_type = "io.containerd.runsc.v1"
 #   systemctl restart containerd
+#
+# Rootfs provisioning uses containerd's `ctr` CLI (ships with containerd — no extra
+# tool). The control-plane's ContainerdProvisioner (internal/host/isolation) pulls
+# and unpacks the pinned /sandbox image ONCE into a shared, digest-keyed rootfs and
+# binds/copies it read-only per session. Image pull happens HOST-side only (the
+# sandbox is network=none). Pre-pull the pinned image once so the first launch is
+# warm (the provisioner also pulls on demand, idempotently):
+#
+#   SANDBOX_IMAGE="ghcr.io/your-org/ironclaw-sandbox@sha256:<pinned-digest>"
+#   ctr -n ironclaw images pull "$SANDBOX_IMAGE"
+#
+# `ctr images mount` (used by the provisioner to flatten the image) needs
+# CAP_SYS_ADMIN on the HOST — never inside a sandbox.
 
 # ---------------------------------------------------------------------------
 # 2. Tailscale (admin-only access to the control-plane API)
