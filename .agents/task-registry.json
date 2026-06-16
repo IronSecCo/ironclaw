@@ -1,0 +1,230 @@
+{
+  "repo": "nivardsec/ironclaw",
+  "base_sha": "33bb237",
+  "generated_by": "master-planner",
+  "claim_model": "first-come-first-serve; no fixed assignment; claim lowest wave + highest priority with deps done and locks free",
+  "validation_default": "CGO_ENABLED=1 go test ./...  (== make build vet test)",
+  "tasks": [
+    {
+      "task_id": "T-001", "title": "Adapt + promote protocol to root AGENTS.md",
+      "status": "done", "priority": "P0", "wave": 0, "size": "S", "category": "infra",
+      "related_gaps": ["G-001"], "owned_paths": ["AGENTS.md"], "forbidden_paths": ["internal/**", "cmd/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["Root AGENTS.md exists with IronClaw edits (lock:contract, Go/CGO preflight, unified labels, direct-push CAS)"],
+      "validation_commands": [], "requires_human_decision": false, "estimated_conflict_risk": "low",
+      "notes_for_worker": "Completed by planner rollout."
+    },
+    {
+      "task_id": "T-002", "title": "Emit .agents planning artifacts + registry",
+      "status": "done", "priority": "P0", "wave": 0, "size": "S", "category": "infra",
+      "related_gaps": ["G-001"], "owned_paths": [".agents/**"], "forbidden_paths": ["internal/**", "cmd/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["repo-map.md, gap-analysis.md, task-graph.md, task-registry.json present and valid"],
+      "validation_commands": ["python3 -m json.tool .agents/task-registry.json"], "requires_human_decision": false,
+      "estimated_conflict_risk": "low", "notes_for_worker": "Completed by planner rollout."
+    },
+    {
+      "task_id": "T-003", "title": "Create labels + per-task Issues + Coordination Board",
+      "status": "done", "priority": "P0", "wave": 0, "size": "S", "category": "infra",
+      "related_gaps": ["G-001"], "owned_paths": ["(github)"], "forbidden_paths": [],
+      "locks_required": [], "depends_on": ["T-002"], "blocks": [],
+      "acceptance_criteria": ["Unified labels exist; one [T-0xx] issue per open task; pinned Agent Coordination Board"],
+      "validation_commands": ["gh issue list"], "requires_human_decision": false, "estimated_conflict_risk": "low",
+      "notes_for_worker": "Completed by planner rollout."
+    },
+    {
+      "task_id": "T-004", "title": "Direct-push CAS infra + branch protection",
+      "status": "done", "priority": "P0", "wave": 0, "size": "S", "category": "infra",
+      "related_gaps": ["G-001"], "owned_paths": [".github/**", "scripts/agent/**"], "forbidden_paths": ["internal/**", "cmd/**"],
+      "locks_required": ["lock:ci"], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["scripts/agent/preflight.sh + push.sh present; main blocks force-push/deletion; CI runs on main"],
+      "validation_commands": ["bash -n scripts/agent/preflight.sh", "bash -n scripts/agent/push.sh"],
+      "requires_human_decision": false, "estimated_conflict_risk": "low", "notes_for_worker": "Completed by planner rollout."
+    },
+
+    {
+      "task_id": "T-010", "title": "Per-session encrypted queue factory",
+      "status": "available", "priority": "P0", "wave": 1, "size": "M", "category": "bug",
+      "related_gaps": ["G-002"], "owned_paths": ["internal/host/queue/**"], "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"],
+      "locks_required": [], "depends_on": [], "blocks": ["T-020", "T-021"],
+      "acceptance_criteria": ["A factory opens per-session inbound (RW host / RO sandbox) + outbound encrypted DBs via contract openers", "Unit tests cover create/open/wrong-key"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/queue/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "low", "notes_for_worker": "Use the now-wired contract.OpenInboundRW/RO + OpenOutboundRW/RO. Do not touch the contract."
+    },
+    {
+      "task_id": "T-011", "title": "Wire sandbox entrypoint to live binding; start loop",
+      "status": "available", "priority": "P1", "wave": 1, "size": "S", "category": "bug",
+      "related_gaps": ["G-007"], "owned_paths": ["cmd/sandbox/**"], "forbidden_paths": ["internal/contract/**", "internal/host/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["cmd/sandbox opens the encrypted queue and starts the poll loop (no early ErrCryptoBindingPending exit)", "Stale header comment removed"],
+      "validation_commands": ["CGO_ENABLED=1 go build ./cmd/sandbox", "CGO_ENABLED=1 go test ./internal/sandbox/..."],
+      "requires_human_decision": false, "estimated_conflict_risk": "low", "notes_for_worker": "RFC-0001 is applied; the early-exit comment is stale."
+    },
+    {
+      "task_id": "T-012", "title": "Spike: rootfs / image-unpacker approach",
+      "status": "available", "priority": "P2", "wave": 1, "size": "spike", "category": "spike",
+      "related_gaps": ["G-008"], "owned_paths": [".agents/spikes/rootfs.md"], "forbidden_paths": ["internal/**", "cmd/**"],
+      "locks_required": [], "depends_on": [], "blocks": ["T-022"],
+      "acceptance_criteria": ["A written recommendation (containerd vs standalone OCI unpacker) with integration sketch for isolation.Launch"],
+      "validation_commands": [], "requires_human_decision": false, "estimated_conflict_risk": "low",
+      "notes_for_worker": "Research only; no production code. Output feeds T-022."
+    },
+    {
+      "task_id": "T-013a", "title": "Parity specs: routing + engage",
+      "status": "available", "priority": "P2", "wave": 1, "size": "S", "category": "test",
+      "related_gaps": ["G-009"], "owned_paths": ["test/parity/routing_test.go", "test/parity/engage_test.go"], "forbidden_paths": ["internal/contract/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["Real black-box specs for inbound routing fan-out and engage modes over the harness"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./test/parity/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "low", "notes_for_worker": "Additive only; use the AGENT1 harness fake-sandbox hook."
+    },
+    {
+      "task_id": "T-013b", "title": "Parity specs: delivery + gateway",
+      "status": "available", "priority": "P2", "wave": 1, "size": "S", "category": "test",
+      "related_gaps": ["G-009"], "owned_paths": ["test/parity/delivery_test.go", "test/parity/gateway_test.go"], "forbidden_paths": ["internal/contract/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["Real black-box specs for outbound delivery dedup and mandatory-approval flow"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./test/parity/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "low", "notes_for_worker": "Additive only."
+    },
+    {
+      "task_id": "T-013c", "title": "Parity spec: session resolution",
+      "status": "available", "priority": "P2", "wave": 1, "size": "S", "category": "test",
+      "related_gaps": ["G-009"], "owned_paths": ["test/parity/session_test.go"], "forbidden_paths": ["internal/contract/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["Real black-box spec for session resolution across session modes"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./test/parity/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "low", "notes_for_worker": "Additive only."
+    },
+    {
+      "task_id": "T-014", "title": "Fix RFC-0001 doc/comment drift",
+      "status": "available", "priority": "P2", "wave": 1, "size": "XS", "category": "docs",
+      "related_gaps": ["G-011"], "owned_paths": ["docs/architecture.md", "docs/building.md"], "forbidden_paths": ["internal/**", "cmd/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["architecture.md no longer says OpenInboundRW is missing / openers return pending-binding error"],
+      "validation_commands": [], "requires_human_decision": false, "estimated_conflict_risk": "low",
+      "notes_for_worker": "Code-comment drift in cmd/* is fixed inside T-011/T-016, not here."
+    },
+    {
+      "task_id": "T-015", "title": "Durable encrypted registry backend",
+      "status": "available", "priority": "P1", "wave": 1, "size": "M", "category": "security",
+      "related_gaps": ["G-010"], "owned_paths": ["internal/host/registry/**"], "forbidden_paths": ["internal/contract/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["A durable backend implements the Registry interface with no caller changes", "Round-trip + reload tests"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/registry/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "med", "notes_for_worker": "Coordinate with T-083 (pending-questions also live in registry)."
+    },
+
+    {
+      "task_id": "T-020", "title": "SessionManager composing the live lifecycle",
+      "status": "blocked", "priority": "P0", "wave": 2, "size": "M", "category": "bug",
+      "related_gaps": ["G-003", "G-004"], "owned_paths": ["internal/host/session/**"], "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"],
+      "locks_required": [], "depends_on": ["T-010"], "blocks": ["T-016"],
+      "acceptance_criteria": ["New package composes per-session queues + router + delivery + isolation + key custodian into a session lifecycle (open/launch/track/stop)", "Unit tests"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/session/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "med", "notes_for_worker": "Compose existing exported APIs; do not edit main.go (that is T-016)."
+    },
+    {
+      "task_id": "T-021", "title": "Real sweep adapters bound to live deps",
+      "status": "blocked", "priority": "P1", "wave": 2, "size": "M", "category": "bug",
+      "related_gaps": ["G-005"], "owned_paths": ["internal/host/sweep/**"], "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"],
+      "locks_required": [], "depends_on": ["T-010"], "blocks": ["T-016"],
+      "acceptance_criteria": ["Prober/Killer/DueSource/Waker/Enqueue implementations bound to live queues + isolation; replaces log-only placeholders", "Unit tests"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/sweep/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "med", "notes_for_worker": "Scheduling carries a prompt only — never a script."
+    },
+    {
+      "task_id": "T-022", "title": "Rootfs provisioning implementation",
+      "status": "blocked", "priority": "P2", "wave": 2, "size": "L", "category": "infra",
+      "related_gaps": ["G-008"], "owned_paths": ["internal/host/isolation/**", "deploy/**"], "forbidden_paths": ["internal/contract/**"],
+      "locks_required": ["lock:release"], "depends_on": ["T-012"], "blocks": ["T-085"],
+      "acceptance_criteria": ["isolation.Launch can provision a bundle rootfs (per the T-012 spike) so ErrRootfsMissing no longer blocks a real launch"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/isolation/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "med", "notes_for_worker": "Follow the spike recommendation. External image tool stays optional/pluggable."
+    },
+    {
+      "task_id": "T-080", "title": "Registry admin CRUD API",
+      "status": "available", "priority": "P1", "wave": 2, "size": "M", "category": "feature",
+      "related_gaps": ["G-013"], "owned_paths": ["internal/host/api/**"], "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"],
+      "locks_required": [], "depends_on": [], "blocks": ["T-081"],
+      "acceptance_criteria": ["HTTP endpoints to create/list/update/delete agent groups, messaging groups, wirings, users, roles, members, destinations over existing Registry methods", "Auth + tests"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/api/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "low", "notes_for_worker": "Registry methods (PutAgentGroup, etc.) already exist; this exposes them. No registry-interface changes needed."
+    },
+    {
+      "task_id": "T-082", "title": "Sandbox send_message / send_file tools",
+      "status": "available", "priority": "P1", "wave": 2, "size": "M", "category": "feature",
+      "related_gaps": ["G-014"], "owned_paths": ["internal/sandbox/tools/messaging.go", "internal/sandbox/tools/destinations.go"], "forbidden_paths": ["internal/contract/**", "internal/host/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["send_message (named destination / current thread) + send_file tools emit outbound wire the host delivery already enforces", "Tests"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./internal/sandbox/tools/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "med", "notes_for_worker": "Soft-lock: registration in internal/sandbox/loop is shared with T-083/T-084 — coordinate."
+    },
+
+    {
+      "task_id": "T-016", "title": "Daemon wiring: compose SessionManager + sweep",
+      "status": "blocked", "priority": "P0", "wave": 3, "size": "M", "category": "bug",
+      "related_gaps": ["G-006"], "owned_paths": ["cmd/controlplane/**"], "forbidden_paths": ["internal/contract/**"],
+      "locks_required": [], "depends_on": ["T-020", "T-021"], "blocks": [],
+      "acceptance_criteria": ["main.go composes the SessionManager + real sweep; the _ = custodian / _ = isolator placeholders are gone; stale comments fixed", "Daemon boots in --dev"],
+      "validation_commands": ["CGO_ENABLED=1 go build ./cmd/controlplane", "CGO_ENABLED=1 go test ./..."],
+      "requires_human_decision": false, "estimated_conflict_risk": "med", "notes_for_worker": "Sole owner of cmd/controlplane/main.go."
+    },
+    {
+      "task_id": "T-040", "title": "Concrete channel adapter(s) beyond webhook",
+      "status": "needs-human", "priority": "P2", "wave": 3, "size": "L", "category": "feature",
+      "related_gaps": ["G-012"], "owned_paths": ["internal/host/channels/**"], "forbidden_paths": ["internal/contract/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["At least one concrete platform adapter behind the channel interface, with tests"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/channels/..."], "requires_human_decision": true,
+      "human_question": "Which platform(s) first (Slack/Telegram/Discord/WhatsApp/...)?", "estimated_conflict_risk": "med",
+      "notes_for_worker": "Blocked on platform choice. Do not start until a human picks the platform."
+    },
+    {
+      "task_id": "T-081", "title": "ironctl resource subcommands",
+      "status": "blocked", "priority": "P2", "wave": 3, "size": "M", "category": "feature",
+      "related_gaps": ["G-013"], "owned_paths": ["cmd/ironctl/**"], "forbidden_paths": ["internal/contract/**"],
+      "locks_required": [], "depends_on": ["T-080"], "blocks": [],
+      "acceptance_criteria": ["ironctl subcommands for groups/messaging-groups/wirings/users/roles/members/destinations wrapping the T-080 API"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./cmd/ironctl/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "low", "notes_for_worker": "Thin client of the admin API."
+    },
+    {
+      "task_id": "T-083", "title": "Interactive ask_user_question tool",
+      "status": "available", "priority": "P2", "wave": 3, "size": "M", "category": "feature",
+      "related_gaps": ["G-015"], "owned_paths": ["internal/sandbox/tools/interactive.go"], "forbidden_paths": ["internal/contract/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["ask_user_question (choice card) tool + host-side pending-question tracking", "Tests"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./internal/sandbox/tools/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "med", "notes_for_worker": "Touches registry pending-questions — coordinate with T-015. Soft-lock on loop registration with T-082/T-084."
+    },
+    {
+      "task_id": "T-084", "title": "Task-management tools (list/cancel/pause/resume/update)",
+      "status": "available", "priority": "P2", "wave": 3, "size": "M", "category": "feature",
+      "related_gaps": ["G-016"], "owned_paths": ["internal/sandbox/tools/tasks.go", "internal/host/scheduling/**"], "forbidden_paths": ["internal/contract/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["list_tasks/cancel_task/pause_task/resume_task/update_task over the scheduling store", "Tests"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./internal/sandbox/tools/... ./internal/host/scheduling/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "med", "notes_for_worker": "Soft-lock on loop registration with T-082/T-083."
+    },
+    {
+      "task_id": "T-085", "title": "Durable per-group memory + persistent workspace",
+      "status": "blocked", "priority": "P2", "wave": 3, "size": "L", "category": "feature",
+      "related_gaps": ["G-017"], "owned_paths": ["internal/host/isolation/**", "deploy/**"], "forbidden_paths": ["internal/contract/**"],
+      "locks_required": ["lock:release"], "depends_on": ["T-022"], "blocks": [],
+      "acceptance_criteria": ["Per-group persistent memory + a durable workspace + read-only global shared mount replace the ephemeral tmpfs-only workspace"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/isolation/..."], "requires_human_decision": false,
+      "estimated_conflict_risk": "med", "notes_for_worker": "Serialized after T-022 (same isolation tree)."
+    },
+    {
+      "task_id": "T-086", "title": "Agent-to-agent messaging + create_agent",
+      "status": "needs-human", "priority": "P3", "wave": 3, "size": "L", "category": "feature",
+      "related_gaps": ["G-018"], "owned_paths": ["(tbd after design)"], "forbidden_paths": ["internal/contract/**"],
+      "locks_required": [], "depends_on": [], "blocks": [],
+      "acceptance_criteria": ["Design + implement agent-to-agent send and approval-gated create_agent as a new gateway change-kind"],
+      "validation_commands": ["CGO_ENABLED=1 go test ./..."], "requires_human_decision": true,
+      "human_question": "Approve the agent-to-agent + create_agent model (likely a new gateway ChangeKind)?", "estimated_conflict_risk": "high",
+      "notes_for_worker": "Architecture decision; may touch the contract → would require a joint RFC. Do not start until scoped by a human."
+    }
+  ]
+}
