@@ -432,11 +432,20 @@ func TestCapabilityChangeForwardedToOutbound(t *testing.T) {
 		t.Fatalf("system (gateway) writes = %d, want 1", systemWrites)
 	}
 
-	cc, err := tools.ParseCapabilityChange(envelope.Content)
-	if err != nil {
-		t.Fatalf("forwarded envelope not a CapabilityChange: %v", err)
+	// The forwarded content must be in the host's system-action wire format
+	// (keyed on "action"), which host delivery parses and maps to a gateway
+	// ChangeKind. The action name is the ChangeKind string ("packages").
+	var sysAction struct {
+		Action  string          `json:"action"`
+		Payload json.RawMessage `json:"payload"`
 	}
-	if cc.Kind != contract.ChangePackages {
-		t.Fatalf("forwarded kind = %q, want packages", cc.Kind)
+	if err := json.Unmarshal([]byte(envelope.Content), &sysAction); err != nil {
+		t.Fatalf("forwarded system message not JSON: %v", err)
+	}
+	if sysAction.Action != string(contract.ChangePackages) {
+		t.Fatalf("forwarded action = %q, want %q (host maps this to a gateway ChangeKind)", sysAction.Action, contract.ChangePackages)
+	}
+	if len(sysAction.Payload) == 0 {
+		t.Fatal("forwarded system message dropped the payload")
 	}
 }

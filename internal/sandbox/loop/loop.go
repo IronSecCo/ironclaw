@@ -352,8 +352,12 @@ func (l *Loop) runAgent(ctx context.Context, converser provider.ToolConverser, p
 			out, isErr := l.invokeTool(ctx, call)
 			results = append(results, provider.ToolResult{ToolUseID: call.ID, Content: out, IsError: isErr})
 			if !isErr && call.Name == tools.CapabilityChangeToolName {
-				if _, perr := tools.ParseCapabilityChange(out); perr == nil {
-					capEnvelopes = append(capEnvelopes, out)
+				// Re-render into the host's system-action wire format before
+				// forwarding, so host delivery parses it and routes it to the gateway.
+				if cc, perr := tools.ParseCapabilityChange(out); perr == nil {
+					if sysAction, merr := cc.SystemActionJSON(); merr == nil {
+						capEnvelopes = append(capEnvelopes, sysAction)
+					}
 				}
 			}
 		}

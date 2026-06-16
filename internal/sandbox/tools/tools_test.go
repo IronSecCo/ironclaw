@@ -155,3 +155,28 @@ func TestCapabilityChangeTool(t *testing.T) {
 		t.Fatal("missing payload should error")
 	}
 }
+
+// TestSystemActionJSON asserts the capability change renders into the host's
+// system-action wire format (keyed on "action"), with the action name equal to
+// the ChangeKind string the host maps back to a gateway ChangeKind.
+func TestSystemActionJSON(t *testing.T) {
+	cc := CapabilityChange{Kind: "packages", Payload: json.RawMessage(`{"add":["jq"]}`), Reason: "need jq"}
+	s, err := cc.SystemActionJSON()
+	if err != nil {
+		t.Fatalf("SystemActionJSON: %v", err)
+	}
+	var obj struct {
+		Action  string          `json:"action"`
+		Payload json.RawMessage `json:"payload"`
+		Reason  string          `json:"reason"`
+	}
+	if err := json.Unmarshal([]byte(s), &obj); err != nil {
+		t.Fatalf("not JSON: %v", err)
+	}
+	if obj.Action != "packages" {
+		t.Fatalf("action = %q, want packages", obj.Action)
+	}
+	if obj.Reason != "need jq" || len(obj.Payload) == 0 {
+		t.Fatalf("payload/reason not preserved: %+v", obj)
+	}
+}

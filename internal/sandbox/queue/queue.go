@@ -41,8 +41,16 @@ const queryTimeout = 5 * time.Second
 // frozen schema. The contract pins the column types but not their encoding, so
 // host and sandbox must agree on this layout out of band; RFC3339 with
 // nanoseconds in UTC is the convention. It is centralized here so a future
-// contract RFC that pins the format only has to change one constant.
+// contract RFC that pins the format only has to change one constant. (Verified to
+// match the host: internal/host/queue tsString uses time.RFC3339Nano UTC.)
 const timeLayout = time.RFC3339Nano
+
+// statusReadyForSandbox is the messages_in.status value the host writes for a
+// message that is ready for the sandbox to process. The contract leaves status
+// freeform, so this is a seam value host and sandbox must agree on out of band:
+// the host router (internal/host/router) writes "queued"; the sandbox reads it
+// here. Candidate to pin in the contract via RFC alongside seq parity.
+const statusReadyForSandbox = "queued"
 
 // sandboxInbound is the sandbox's read-only implementation of the inbound queue.
 //
@@ -121,8 +129,8 @@ func (s *sandboxInbound) PendingMessages(firstPoll bool) ([]contract.MessageIn, 
 			       series_id, tries, "trigger", platform_id, channel_type,
 			       thread_id, content, source_session_id, on_wake
 			FROM messages_in
-			WHERE status = 'pending'
-			ORDER BY seq ASC`)
+			WHERE status = ?
+			ORDER BY seq ASC`, statusReadyForSandbox)
 		if err != nil {
 			return err
 		}
