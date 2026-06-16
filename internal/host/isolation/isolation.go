@@ -187,7 +187,7 @@ func (r *RunscIsolator) Launch(ctx context.Context, spec SandboxSpec) (Handle, e
 	rootfsDir := filepath.Join(bundleDir, "rootfs")
 	if fi, statErr := os.Stat(rootfsDir); statErr != nil || !fi.IsDir() {
 		return nil, fmt.Errorf("host/isolation: rootfs not provisioned at %s for image %q — provision it with an image unpacker (the one remaining external integration point) before Launch: %w",
-			rootfsDir, spec.Image, errRootfsMissing)
+			rootfsDir, spec.Image, ErrRootfsMissing)
 	}
 
 	containerID := "ironclaw-" + string(spec.SessionID)
@@ -209,13 +209,10 @@ func (r *RunscIsolator) Launch(ctx context.Context, spec SandboxSpec) (Handle, e
 	}, nil
 }
 
-// errRootfsMissing marks the rootfs-not-provisioned integration-point error so
-// callers/tests can detect it with errors.Is.
-var errRootfsMissing = errors.New("rootfs not provisioned")
-
-// ErrRootfsMissing is the sentinel returned (wrapped) when the bundle has no
-// provisioned rootfs.
-func ErrRootfsMissing() error { return errRootfsMissing }
+// ErrRootfsMissing is the sentinel Launch wraps when the bundle has no provisioned
+// rootfs (the one remaining external integration point). Callers/tests detect it
+// with errors.Is(err, isolation.ErrRootfsMissing).
+var ErrRootfsMissing = errors.New("rootfs not provisioned")
 
 // Stop kills then deletes the container via the runtime binary. It is safe to call
 // when the runtime binary is absent — any exec error is wrapped and returned

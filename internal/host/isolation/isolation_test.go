@@ -184,7 +184,7 @@ func TestLaunchRequiresProvisionedRootfs(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected Launch to fail without a provisioned rootfs")
 	}
-	if !errors.Is(err, ErrRootfsMissing()) {
+	if !errors.Is(err, ErrRootfsMissing) {
 		t.Fatalf("expected ErrRootfsMissing, got %v", err)
 	}
 	// config.json should still have been written even though launch did not proceed.
