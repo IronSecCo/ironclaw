@@ -34,10 +34,11 @@ parity (host=even, sandbox=odd) are part of the contract and follow the same rul
 
 ## RFC log
 
-### RFC-0001 (proposed): add `OpenInboundRW`
+### RFC-0001 (applied): add `OpenInboundRW` + wire the encrypted-SQLite binding
 
-**Status:** proposed, NOT applied. Requires both CODEOWNERS approvals per the
-freeze rule.
+**Status:** applied (owner sign-off). Adds `OpenInboundRW` and implements all four
+`Open*` helpers over the SQLite3/SQLCipher cgo binding
+(`github.com/mutecomm/go-sqlcipher/v4`). The whole tree now builds with `cgo`.
 
 **Motivation.** The host control-plane is the sole writer of the inbound queue:
 the router enqueues platform messages (`messages_in`), upserts `destinations`, and
@@ -75,9 +76,17 @@ minus `query_only`, so host and sandbox cannot drift on cipher params.
   read-only-inbound type segregation is unchanged. This RFC does not weaken the
   type-level guarantee on the sandbox side.
 
-**Why it is not applied here.** This control-plane pass is stdlib-only and may not
-edit `internal/contract/**`. The change must land together with the
-encrypted-SQLite binding and both CODEOWNERS' sign-off.
+**As applied.** `internal/contract/crypto.go` now opens encrypted databases with
+the per-session raw key carried in the DSN (`_pragma_key`), `journal_mode=DELETE`
+(writers), `mode=ro` + `query_only` (readers), and `mmap_size=0` everywhere; the
+cipher page size is left at SQLCipher v4's default (== the pinned `CipherPageSize`,
+4096). `OpenInboundRW`/`OpenOutboundRW` also ensure their schema. A round-trip test
+covers write→read, read-only write rejection, wrong-key failure, and absence of
+plaintext on disk. `internal/host/queue.openInboundRW` now calls
+`contract.OpenInboundRW`. The sandbox tree is unchanged except that the obsolete
+"binding pending" test now asserts the live binding; the read-only-inbound
+type-level guarantee is intact. `ErrCryptoBindingPending` is retained (no longer
+returned) so the sandbox tree keeps compiling. CI builds with `CGO_ENABLED=1`.
 
 ### RFC-0002 (applied): pin the cross-seam wire formats (`actions.go`)
 

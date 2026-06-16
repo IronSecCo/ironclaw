@@ -7,6 +7,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # CGO is required: the encrypted-SQLite binding (SQLite3/SQLCipher) builds via
+    # cgo. ubuntu-latest ships gcc; the driver vendors the SQLCipher C amalgamation,
+    # so no system libsqlcipher is needed.
+    env:
+      CGO_ENABLED: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

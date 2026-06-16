@@ -5,33 +5,23 @@
 // contract.OutboundReader (the host reads outbound read-only, with the
 // reopen-per-poll discipline from design-plan §1).
 //
-// The SQL below is real and parameterized; the only missing piece is the
-// encrypted-DB binding. The contract exposes OpenInboundRO/OpenOutboundRW/
-// OpenOutboundRO but NOT an OpenInboundRW — yet the host MUST open inbound
-// read-WRITE to enqueue messages. That seam is proposed as RFC-0001 in
-// docs/contract.md and, per the freeze rule, is NOT applied here. Until it lands,
-// openInboundRW / openOutboundRO return a clear pending error and the query
-// methods (written against *sql.DB) activate the moment a real handle is provided.
+// The SQL below is real and parameterized. As of RFC-0001 the contract exposes
+// OpenInboundRW (host is the sole inbound writer), so these openers now back onto
+// the live encrypted-SQLite binding (SQLite3/SQLCipher via CGo).
 package queue
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/nivardsec/ironclaw/internal/contract"
 )
 
-// errPendingBinding is returned by the open helpers until RFC-0001 (OpenInboundRW)
-// and the encrypted-SQLite binding land.
-var errPendingBinding = errors.New("host/queue: open helper pending — needs contract.OpenInboundRW (RFC-0001) + encrypted-SQLite binding; see docs/contract.md")
-
-// openInboundRW would open the inbound DB read/write for the host (the sole
-// inbound writer). It is the missing seam: contract/crypto.go only offers
-// OpenInboundRO. See RFC-0001.
+// openInboundRW opens the inbound DB read/write for the host (the sole inbound
+// writer), via the contract's encrypted opener (RFC-0001).
 func openInboundRW(path string, k contract.SessionKey) (*sql.DB, error) {
-	return nil, errPendingBinding
+	return contract.OpenInboundRW(path, k)
 }
 
 // hostInbound is the host's write implementation of the inbound queue. The host

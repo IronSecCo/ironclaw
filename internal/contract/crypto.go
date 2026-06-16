@@ -3,14 +3,13 @@
 package contract
 
 import (
-	"context"
 	"database/sql"
-	"database/sql/driver"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/url"
 
-	sqlite3 "github.com/mutecomm/go-sqlcipher/v4"
+	_ "github.com/mutecomm/go-sqlcipher/v4" // registers the "sqlite3" SQLCipher driver
 )
 
 // ErrCryptoBindingPending is retained for compatibility. The encrypted-SQLite
@@ -44,42 +43,38 @@ func KeyPragma(k SessionKey) string {
 // guest page cache so reopen-per-poll observes fresh writes. The file is NEVER
 // opened immutable=1 — it changes underneath the reader.
 func openEncrypted(path string, k SessionKey, readOnly bool) (*sql.DB, error) {
-	dsn := "file:" + path
+	// The raw key travels in the DSN (_pragma_key) so SQLCipher applies it on every
+	// pooled connection before any page is read; raw-key mode (no KDF). The cipher
+	// page size is left at SQLCipher v4's default, which equals the pinned
+	// CipherPageSize (4096) — setting it explicitly can desync writer and reader.
+	q := url.Values{}
+	q.Set("_pragma_key", `x'`+k.Hex()+`'`)
+	q.Set("_busy_timeout", "5000")
 	if readOnly {
-		dsn += "?mode=ro"
+		// mode=ro + query_only: the reader can never write. DELETE journal is set by
+		// the writer only; readers must not set journal_mode (it would require a write).
+		q.Set("mode", "ro")
+		q.Set("_query_only", "true")
+	} else {
+		// journal_mode=DELETE (not WAL — the WAL -shm mmap does not refresh across a
+		// bind mount).
+		q.Set("_journal_mode", "DELETE")
 	}
-	hexKey := k.Hex()
-	drv := &sqlite3.SQLiteDriver{
-		ConnectHook: func(c *sqlite3.SQLiteConn) error {
-			// Raw key first, before any page read. The cipher page size is left at
-			// SQLCipher v4's default, which equals the pinned CipherPageSize (4096);
-			// setting it explicitly is unnecessary and can desync the cipher config
-			// between writer and reader.
-			if _, err := c.Exec(`PRAGMA key = "x'`+hexKey+`'";`, nil); err != nil {
-				return fmt.Errorf("apply key: %w", err)
-			}
-			if _, err := c.Exec("PRAGMA busy_timeout = 5000;", nil); err != nil {
-				return fmt.Errorf("set busy_timeout: %w", err)
-			}
-			if _, err := c.Exec("PRAGMA mmap_size = 0;", nil); err != nil {
-				return fmt.Errorf("set mmap_size: %w", err)
-			}
-			if readOnly {
-				if _, err := c.Exec("PRAGMA query_only = ON;", nil); err != nil {
-					return fmt.Errorf("set query_only: %w", err)
-				}
-			} else {
-				if _, err := c.Exec("PRAGMA journal_mode = DELETE;", nil); err != nil {
-					return fmt.Errorf("set journal_mode: %w", err)
-				}
-			}
-			return nil
-		},
+	dsn := "file:" + path + "?" + q.Encode()
+
+	db, err := sql.Open("sqlite3", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("contract: open %q: %w", path, err)
 	}
-	db := sql.OpenDB(&sqliteConnector{driver: drv, dsn: dsn})
 	// One connection matches the open-write-close, reopen-per-poll discipline and
 	// avoids multiple keyed handles racing on the same file across the mount.
 	db.SetMaxOpenConns(1)
+	// Defeat the guest page cache so reopen-per-poll observes fresh writes. The file
+	// is never opened immutable=1 — it changes underneath the reader.
+	if _, err := db.Exec("PRAGMA mmap_size = 0;"); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("contract: set mmap_size for %q: %w", path, err)
+	}
 	// Force a real page read so a wrong key fails here (SQLITE_NOTADB) rather than
 	// silently at first query.
 	if _, err := db.Exec("SELECT count(*) FROM sqlite_master;"); err != nil {
@@ -88,19 +83,6 @@ func openEncrypted(path string, k SessionKey, readOnly bool) (*sql.DB, error) {
 	}
 	return db, nil
 }
-
-// sqliteConnector wires a per-open SQLiteDriver (carrying the keying ConnectHook)
-// into database/sql via sql.OpenDB. Each Open uses its own driver instance, so
-// there is no global driver registration or name collision.
-type sqliteConnector struct {
-	driver *sqlite3.SQLiteDriver
-	dsn    string
-}
-
-func (c *sqliteConnector) Connect(context.Context) (driver.Conn, error) {
-	return c.driver.Open(c.dsn)
-}
-func (c *sqliteConnector) Driver() driver.Driver { return c.driver }
 
 // ensureSchema applies ddl once, when probeTable is absent (idempotent across
 // reopens). Used by the read/write openers, which own creating their file.

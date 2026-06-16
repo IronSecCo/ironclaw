@@ -124,24 +124,19 @@ func TestNullStr(t *testing.T) {
 	}
 }
 
-// TestOpenPropagatesBindingPending asserts the queue surfaces the pending crypto
-// binding unchanged rather than mis-classifying it as corruption.
-func TestOpenPropagatesBindingPending(t *testing.T) {
-	_, err := OpenOutbound("/tmp/does-not-matter.db", contract.SessionKey{})
-	if !errors.Is(err, contract.ErrCryptoBindingPending) {
-		t.Fatalf("OpenOutbound err = %v, want ErrCryptoBindingPending", err)
-	}
-
-	// OpenInbound swallows the pending binding so it can retry per poll; it must
-	// return a usable reader and not the error.
-	r, err := OpenInbound("/tmp/does-not-matter.db", contract.SessionKey{})
+// TestOpenUsesLiveBinding verifies the encrypted-SQLite binding is wired
+// (RFC-0001 landed): OpenOutbound now creates a real encrypted DB and round-trips
+// a write, instead of returning the old ErrCryptoBindingPending sentinel.
+func TestOpenUsesLiveBinding(t *testing.T) {
+	path := t.TempDir() + "/outbound.db"
+	w, err := OpenOutbound(path, contract.SessionKey{})
 	if err != nil {
-		t.Fatalf("OpenInbound err = %v, want nil (binding pending is retried per poll)", err)
+		t.Fatalf("OpenOutbound err = %v, want nil (encrypted binding is live)", err)
 	}
-	if r == nil {
-		t.Fatal("OpenInbound returned nil reader")
+	if err := w.WriteMessageOut(contract.MessageOut{ID: "o1", Seq: 1, Kind: contract.KindChat, Content: "hi"}); err != nil {
+		t.Fatalf("WriteMessageOut: %v", err)
 	}
-	if _, err := r.PendingMessages(true); !errors.Is(err, contract.ErrCryptoBindingPending) {
-		t.Fatalf("PendingMessages err = %v, want ErrCryptoBindingPending", err)
+	if err := w.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
 	}
 }

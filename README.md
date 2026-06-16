@@ -80,27 +80,28 @@ For the full design, see [`docs/architecture.md`](docs/architecture.md),
 ## Project status
 
 **Pre-alpha.** The architecture is settled and the full control-plane and sandbox pipelines are
-implemented and tested against in-memory backends. Two integration points are deliberately gated
-behind external (non-stdlib) dependencies and are **not yet wired**:
+implemented and tested. The encrypted-queue binding is now wired:
 
-- **Encrypted-SQLite queue binding** (SQLite3 Multiple Ciphers, via CGo) — until it lands, the
-  `contract.Open*` helpers return `ErrCryptoBindingPending` and the queues run on the in-memory
-  backends. Tracked as **RFC-0001** in [`docs/contract.md`](docs/contract.md).
-- **Sandbox rootfs provisioning** — `isolation` builds the hardened OCI spec and execs `runsc`, but
-  unpacking an OCI image into the bundle requires an external image tool; `Launch` returns
-  `ErrRootfsMissing` until a rootfs is pre-provisioned.
+- **Encrypted-SQLite queue binding** — ✅ wired (**RFC-0001 applied**). `contract.Open*` open
+  per-session SQLCipher databases via cgo (`github.com/mutecomm/go-sqlcipher/v4`); a round-trip test
+  covers write→read, read-only-write rejection, wrong-key failure, and no-plaintext-on-disk. The
+  build now requires `CGO_ENABLED=1` (a C toolchain). `internal/host/queue` uses the live binding;
+  in-memory backends remain for `--dev` and tests.
+- **Sandbox rootfs provisioning** — still gated: `isolation` builds the hardened OCI spec and execs
+  `runsc`, but unpacking an OCI image into the bundle requires an external image tool; `Launch`
+  returns `ErrRootfsMissing` until a rootfs is pre-provisioned.
 
-See the [roadmap](#roadmap) for what this unblocks. You can build, test, and run the control-plane
-today; it will idle on the pending binding rather than process live encrypted queues.
+See the [roadmap](#roadmap) for what remains. You can build, test, and run the control-plane today;
+live sandbox launch awaits rootfs provisioning.
 
 ## Prerequisites
 
 | Requirement | For | Notes |
 |-------------|-----|-------|
-| **Go 1.23+** | building everything | the skeleton is stdlib-only and builds without CGo |
+| **Go 1.23+ and a C toolchain** | building everything | `CGO_ENABLED=1` is required — the encrypted-SQLite binding builds via cgo |
 | **containerd + gVisor (`runsc`)** | production sandboxing | runtime `io.containerd.runsc.v1`; not needed for `--dev` |
 | **Tailscale** | remote admin access | the control-plane API binds to the tailnet IP; no public port |
-| **C toolchain + SQLite3 Multiple Ciphers** | encrypted queues | only once the RFC-0001 CGo binding lands |
+| **SQLCipher (vendored)** | encrypted queues | the SQLCipher C amalgamation is vendored by the driver; no system lib needed |
 | **Anthropic API key** | live model calls | injected host-side into the model proxy, never into the sandbox |
 
 The three external runtime dependencies (gVisor, Tailscale, the encrypted-SQLite binding) are
