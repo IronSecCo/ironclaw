@@ -165,7 +165,11 @@ func (d *Delivery) handleSystem(ctx context.Context, sess registry.Session, msg 
 	// so a single stuck approval does not stall the whole delivery loop. The action
 	// is NOT executed here regardless of the outcome — the gateway's Applier owns
 	// any mutation.
-	after, _ := json.Marshal(msg.Content)
+	//
+	// After carries the STRUCTURED proposed config (the capability-change envelope's
+	// "payload") so the gateway's verifiers can inspect it and the human approver
+	// sees the real diff — not an opaque, double-encoded blob.
+	after := extractAfter(msg.Content)
 	req := contract.ChangeRequest{
 		Kind:         kind,
 		AgentGroupID: sess.AgentGroupID,
@@ -373,6 +377,28 @@ func parseSystemAction(content string) string {
 		}
 	}
 	return c
+}
+
+// extractAfter returns the structured proposed config to record as a
+// ChangeRequest.After. The sandbox's capability-change wire format is
+// {"action":"<kind>","payload":<obj>,"reason":"..."} (see the sandbox tools
+// package): when a "payload" object is present it is returned verbatim so the
+// gateway verifiers and the approver see the real config. If the body is a JSON
+// object without a payload, the whole object is used; a non-JSON body is encoded
+// as a JSON string so After is always valid JSON.
+func extractAfter(content string) json.RawMessage {
+	c := strings.TrimSpace(content)
+	if strings.HasPrefix(c, "{") && json.Valid([]byte(c)) {
+		var obj struct {
+			Payload json.RawMessage `json:"payload"`
+		}
+		if json.Unmarshal([]byte(c), &obj) == nil && len(obj.Payload) > 0 {
+			return obj.Payload
+		}
+		return json.RawMessage(c)
+	}
+	b, _ := json.Marshal(content)
+	return b
 }
 
 func deref(s *string) string {

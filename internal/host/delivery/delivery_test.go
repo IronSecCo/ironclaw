@@ -4,6 +4,7 @@ package delivery
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -129,6 +130,41 @@ func TestSystemActionReauthNotExecuted(t *testing.T) {
 	pending, _ := d.gw.Pending()
 	if pending[0].Kind != contract.ChangePackages {
 		t.Fatalf("pending change kind = %q, want packages", pending[0].Kind)
+	}
+}
+
+// TestCapabilityChangeCarriesStructuredPayload verifies the cross-agent seam:
+// the sandbox emits {"action":"<kind>","payload":<obj>,"reason":...} and the host
+// must route it to a gateway ChangeRequest whose Kind is correct AND whose After
+// is the STRUCTURED payload (so verifiers/approver see the real config, not an
+// opaque blob).
+func TestCapabilityChangeCarriesStructuredPayload(t *testing.T) {
+	d, adapter, _, _, w := newTestDelivery(t)
+	content := `{"action":"packages","payload":{"npm":["left-pad"]},"reason":"need it"}`
+	if err := w.WriteMessageOut(contract.MessageOut{ID: "sys-cap", Seq: 1, Kind: contract.KindSystem, Content: content}); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Poll(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if got := adapter.Delivered(); len(got) != 0 {
+		t.Fatalf("capability change must not be delivered to a channel, got %+v", got)
+	}
+	if !waitPending(d, 1) {
+		t.Fatal("expected one pending gateway change")
+	}
+	pending, _ := d.gw.Pending()
+	if pending[0].Kind != contract.ChangePackages {
+		t.Fatalf("kind = %q, want packages", pending[0].Kind)
+	}
+	var got struct {
+		NPM []string `json:"npm"`
+	}
+	if err := json.Unmarshal(pending[0].After, &got); err != nil {
+		t.Fatalf("After is not the structured payload: %v (After=%s)", err, pending[0].After)
+	}
+	if len(got.NPM) != 1 || got.NPM[0] != "left-pad" {
+		t.Fatalf("payload not threaded into After: %s", pending[0].After)
 	}
 }
 
