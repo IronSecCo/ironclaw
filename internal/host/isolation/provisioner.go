@@ -75,6 +75,11 @@ type ContainerdProvisioner struct {
 	// into SharedRoot/<key>/ exactly once and reused across sessions.
 	SharedRoot string
 
+	// policy, when set, must approve the pulled image (by reference + resolved
+	// digest) before any rootfs is unpacked. Nil preserves the prior behavior
+	// (no verification); production hosts should configure one.
+	policy TrustPolicy
+
 	// Injectable host steps; default to os/exec shell-outs. They let the
 	// orchestration (idempotency, ordering, error wrapping) be exercised without a
 	// real containerd, and let hosts swap the unpack/materialize strategy.
@@ -83,6 +88,70 @@ type ContainerdProvisioner struct {
 	materialize Materializer
 
 	mu sync.Mutex // serializes shared-rootfs unpacking within this process
+}
+
+// TrustPolicy decides whether a pulled sandbox image is trusted to be unpacked
+// into a rootfs, given its reference and the host-resolved content digest. A
+// policy MUST fail closed: an unresolved digest or an unknown image is a
+// rejection, not a pass. It is the gate that stops an attacker-substituted or
+// tampered image from ever reaching a sandbox.
+type TrustPolicy interface {
+	Verify(ctx context.Context, image, digest string) error
+}
+
+// TrustPolicyFunc adapts a function to a TrustPolicy — e.g. to wrap an external
+// signature verifier (cosign/notation) shelled out from the host.
+type TrustPolicyFunc func(ctx context.Context, image, digest string) error
+
+// Verify implements TrustPolicy.
+func (f TrustPolicyFunc) Verify(ctx context.Context, image, digest string) error {
+	return f(ctx, image, digest)
+}
+
+// PinnedDigestPolicy trusts an image only when its host-resolved digest exactly
+// matches the digest pinned for that exact image reference. An image with no
+// pin, or whose digest could not be resolved, is rejected. This is the
+// dependency-free baseline: pin the digests you build and the provisioner
+// refuses anything else (including a tag silently repointed to a new image).
+type PinnedDigestPolicy struct {
+	// pins maps an image reference to its expected "sha256:<hex>" digest.
+	pins map[string]string
+}
+
+// NewPinnedDigestPolicy builds a PinnedDigestPolicy from a copy of pins (image
+// reference -> "sha256:<hex>").
+func NewPinnedDigestPolicy(pins map[string]string) *PinnedDigestPolicy {
+	cp := make(map[string]string, len(pins))
+	for k, v := range pins {
+		cp[k] = strings.ToLower(strings.TrimSpace(v))
+	}
+	return &PinnedDigestPolicy{pins: cp}
+}
+
+// Verify implements TrustPolicy.
+func (p *PinnedDigestPolicy) Verify(_ context.Context, image, digest string) error {
+	want, ok := p.pins[image]
+	if !ok {
+		return fmt.Errorf("image %q has no pinned digest in the trust policy", image)
+	}
+	got := strings.ToLower(strings.TrimSpace(digest))
+	if got == "" {
+		return fmt.Errorf("image %q digest could not be resolved; refusing to unpack unverified content", image)
+	}
+	if got != want {
+		return fmt.Errorf("image %q digest %s does not match pinned %s", image, got, want)
+	}
+	return nil
+}
+
+// WithTrustPolicy attaches an image TrustPolicy enforced before any unpack. A nil
+// policy is ignored, preserving the unverified path.
+func WithTrustPolicy(tp TrustPolicy) ContainerdOption {
+	return func(p *ContainerdProvisioner) {
+		if tp != nil {
+			p.policy = tp
+		}
+	}
 }
 
 // ContainerdOption configures a ContainerdProvisioner.
@@ -157,12 +226,24 @@ func (p *ContainerdProvisioner) Provision(ctx context.Context, image, rootfsDir 
 	if image == "" {
 		return fmt.Errorf("host/isolation: containerd provisioner requires a non-empty image reference")
 	}
-	// Ensure the image is present host-side and resolve a content key. Pull is
-	// idempotent: containerd skips content it already has.
-	key, err := p.pull(ctx, image)
+	// Ensure the image is present host-side and resolve its content digest. Pull
+	// is idempotent: containerd skips content it already has.
+	digest, err := p.pull(ctx, image)
 	if err != nil {
 		return fmt.Errorf("host/isolation: pull %q: %w", image, err)
 	}
+
+	// Verify the resolved digest/signature against the trust policy BEFORE any
+	// rootfs is unpacked, so a substituted or tampered image never reaches a
+	// sandbox. The policy fails closed on an unresolved digest.
+	if p.policy != nil {
+		if err := p.policy.Verify(ctx, image, digest); err != nil {
+			return fmt.Errorf("host/isolation: refusing to unpack untrusted image %q: %w", image, err)
+		}
+	}
+
+	// Key the shared rootfs by digest when known, falling back to the reference.
+	key := digest
 	if key == "" {
 		key = image
 	}

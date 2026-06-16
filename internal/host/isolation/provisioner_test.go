@@ -199,6 +199,129 @@ func TestNewContainerdProvisionerDefaults(t *testing.T) {
 	}
 }
 
+// TestPinnedDigestPolicyVerify covers the pass/fail cases of the baseline policy.
+func TestPinnedDigestPolicyVerify(t *testing.T) {
+	pol := NewPinnedDigestPolicy(map[string]string{
+		"ghcr.io/example/sandbox:latest": "sha256:ABCDEF", // mixed case -> normalized
+	})
+	cases := []struct {
+		name, image, digest string
+		wantErr             bool
+	}{
+		{"match (case-insensitive)", "ghcr.io/example/sandbox:latest", "sha256:abcdef", false},
+		{"digest mismatch", "ghcr.io/example/sandbox:latest", "sha256:0000", true},
+		{"unresolved digest fails closed", "ghcr.io/example/sandbox:latest", "", true},
+		{"unpinned image rejected", "ghcr.io/evil/img:latest", "sha256:abcdef", true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := pol.Verify(context.Background(), c.image, c.digest)
+			if (err != nil) != c.wantErr {
+				t.Fatalf("Verify(%q,%q) err=%v, wantErr=%v", c.image, c.digest, err, c.wantErr)
+			}
+		})
+	}
+}
+
+// TestProvisionVerifiesBeforeUnpack: a trusted digest proceeds to unpack; an
+// untrusted one aborts Provision and unpack never runs.
+func TestProvisionVerifiesBeforeUnpack(t *testing.T) {
+	const image = "ghcr.io/example/sandbox:latest"
+	pol := NewPinnedDigestPolicy(map[string]string{image: "sha256:trusted"})
+
+	newProv := func(t *testing.T, digest string, unpacked *bool) *ContainerdProvisioner {
+		p := NewContainerdProvisioner(WithSharedRoot(t.TempDir()), WithTrustPolicy(pol))
+		p.pull = func(ctx context.Context, img string) (string, error) { return digest, nil }
+		p.unpack = func(ctx context.Context, img, destDir string) error {
+			*unpacked = true
+			return os.WriteFile(filepath.Join(destDir, "f"), []byte("x"), 0o600)
+		}
+		p.materialize = func(ctx context.Context, srcDir, dstDir string) error {
+			if err := os.MkdirAll(dstDir, 0o700); err != nil {
+				return err
+			}
+			return os.WriteFile(filepath.Join(dstDir, "rootfs-file"), []byte("x"), 0o600)
+		}
+		return p
+	}
+
+	t.Run("trusted digest unpacks", func(t *testing.T) {
+		var unpacked bool
+		p := newProv(t, "sha256:trusted", &unpacked)
+		if err := p.Provision(context.Background(), image, filepath.Join(t.TempDir(), "rootfs")); err != nil {
+			t.Fatalf("Provision (trusted): %v", err)
+		}
+		if !unpacked {
+			t.Fatal("a trusted image should be unpacked")
+		}
+	})
+
+	t.Run("untrusted digest is refused before unpack", func(t *testing.T) {
+		var unpacked bool
+		p := newProv(t, "sha256:tampered", &unpacked)
+		err := p.Provision(context.Background(), image, filepath.Join(t.TempDir(), "rootfs"))
+		if err == nil {
+			t.Fatal("an untrusted digest must abort Provision")
+		}
+		if unpacked {
+			t.Fatal("unpack must NOT run for an untrusted image")
+		}
+	})
+}
+
+// TestProvisionTrustPolicyFuncAdapter: a TrustPolicyFunc is honored and can wrap
+// an external verifier; its rejection aborts Provision.
+func TestProvisionTrustPolicyFuncAdapter(t *testing.T) {
+	called := false
+	deny := TrustPolicyFunc(func(_ context.Context, image, digest string) error {
+		called = true
+		return errors.New("signature invalid")
+	})
+	p := NewContainerdProvisioner(WithSharedRoot(t.TempDir()), WithTrustPolicy(deny))
+	p.pull = func(ctx context.Context, image string) (string, error) { return "sha256:whatever", nil }
+	p.unpack = func(ctx context.Context, image, destDir string) error {
+		t.Fatal("unpack must not run when the policy rejects")
+		return nil
+	}
+
+	err := p.Provision(context.Background(), "img:latest", filepath.Join(t.TempDir(), "rootfs"))
+	if err == nil || !called {
+		t.Fatalf("policy func should be called and reject; called=%v err=%v", called, err)
+	}
+}
+
+// TestProvisionNoPolicyUnverified: with no trust policy the prior behavior is
+// preserved (unpack proceeds without verification).
+func TestProvisionNoPolicyUnverified(t *testing.T) {
+	var unpacked bool
+	p := NewContainerdProvisioner(WithSharedRoot(t.TempDir()))
+	p.pull = func(ctx context.Context, image string) (string, error) { return "sha256:any", nil }
+	p.unpack = func(ctx context.Context, image, destDir string) error {
+		unpacked = true
+		return os.WriteFile(filepath.Join(destDir, "f"), []byte("x"), 0o600)
+	}
+	p.materialize = func(ctx context.Context, srcDir, dstDir string) error {
+		if err := os.MkdirAll(dstDir, 0o700); err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(dstDir, "rootfs-file"), []byte("x"), 0o600)
+	}
+	if err := p.Provision(context.Background(), "img:latest", filepath.Join(t.TempDir(), "rootfs")); err != nil {
+		t.Fatalf("Provision: %v", err)
+	}
+	if !unpacked {
+		t.Fatal("with no policy, unpack should proceed as before")
+	}
+}
+
+// TestWithTrustPolicyNilIsIgnored: WithTrustPolicy(nil) leaves verification off.
+func TestWithTrustPolicyNilIsIgnored(t *testing.T) {
+	p := NewContainerdProvisioner(WithTrustPolicy(nil))
+	if p.policy != nil {
+		t.Fatal("WithTrustPolicy(nil) must not set a policy")
+	}
+}
+
 // TestCopyTree exercises the default materializer: dirs, files, a symlink, and the
 // ready-marker skip.
 func TestCopyTree(t *testing.T) {
