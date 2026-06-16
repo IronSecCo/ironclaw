@@ -56,6 +56,16 @@ type SandboxSpec struct {
 	NonRootUID     int  // run as this non-zero UID inside a user namespace.
 	ReadOnlyRootfs bool // mount the rootfs read-only; only the writable mounts below.
 
+	// Resource limits (cgroup). A zero value applies BuildOCISpec's safe default
+	// so a sandbox is ALWAYS bounded; set explicitly to override.
+	//   MemoryLimitBytes   — cgroup memory cap in bytes            (default 512 MiB)
+	//   CPUQuota/CPUPeriod — CPU bandwidth: Quota µs per Period µs (default 1 vCPU)
+	//   PidsLimit          — max processes/threads in the cgroup   (default 256)
+	MemoryLimitBytes int64
+	CPUQuota         int64
+	CPUPeriod        uint64
+	PidsLimit        int64
+
 	// Durable storage (host-side paths). When set they replace the ephemeral
 	// tmpfs-only workspace with per-group persistent storage:
 	//   WorkspacePath      — per-group durable scratch, bound rw at /workspace

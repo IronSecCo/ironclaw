@@ -71,6 +71,33 @@ type OCILinux struct {
 	Namespaces  []OCINamespace `json:"namespaces"`
 	UIDMappings []OCIIDMapping `json:"uidMappings,omitempty"`
 	GIDMappings []OCIIDMapping `json:"gidMappings,omitempty"`
+	// Resources caps memory/CPU/pids via the cgroup. Seccomp restricts the
+	// syscall surface. Both are always set by BuildOCISpec (defense in depth).
+	Resources *OCIResources `json:"resources,omitempty"`
+	Seccomp   *OCISeccomp   `json:"seccomp,omitempty"`
+}
+
+// OCIResources is the linux.resources cgroup-limit section.
+type OCIResources struct {
+	Memory *OCIMemoryLimit `json:"memory,omitempty"`
+	CPU    *OCICPULimit    `json:"cpu,omitempty"`
+	Pids   *OCIPidsLimit   `json:"pids,omitempty"`
+}
+
+// OCIMemoryLimit caps the cgroup memory (bytes).
+type OCIMemoryLimit struct {
+	Limit int64 `json:"limit"`
+}
+
+// OCICPULimit caps CPU bandwidth: Quota microseconds of runtime per Period.
+type OCICPULimit struct {
+	Quota  int64  `json:"quota"`
+	Period uint64 `json:"period"`
+}
+
+// OCIPidsLimit caps the number of processes/threads in the cgroup.
+type OCIPidsLimit struct {
+	Limit int64 `json:"limit"`
 }
 
 // OCINamespace is one Linux namespace the container enters.
@@ -100,6 +127,15 @@ const (
 	// containerShared is the global READ-ONLY shared assets mount; omitted when
 	// SandboxSpec.SharedReadOnlyPath is empty.
 	containerShared = "/shared"
+)
+
+// Default cgroup resource limits, applied by BuildOCISpec when the corresponding
+// SandboxSpec knob is left at its zero value so a sandbox is ALWAYS bounded.
+const (
+	defaultMemoryLimitBytes int64  = 512 * 1024 * 1024 // 512 MiB
+	defaultCPUQuota         int64  = 100_000           // with the period below => 1 vCPU
+	defaultCPUPeriod        uint64 = 100_000           // 100 ms scheduling period
+	defaultPidsLimit        int64  = 256
 )
 
 // BuildOCISpec turns a SandboxSpec into a hardened OCI runtime spec. It encodes
@@ -262,6 +298,11 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 		GIDMappings: []OCIIDMapping{
 			{ContainerID: 0, HostID: gid, Size: 1},
 		},
+		// cgroup resource caps (zero knobs fall back to the safe defaults) and the
+		// restrictive default seccomp profile — both always present so a sandbox is
+		// bounded and its syscall surface reduced without per-call opt-in.
+		Resources: buildResources(spec),
+		Seccomp:   DefaultSeccompProfile(),
 	}
 
 	return &OCISpec{
@@ -272,4 +313,31 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 		Mounts:     mounts,
 		Linux:      linux,
 	}, nil
+}
+
+// buildResources derives the cgroup limits from spec, substituting the safe
+// defaults for any knob left at its zero value, so every emitted spec carries
+// memory, CPU, and pids caps.
+func buildResources(spec SandboxSpec) *OCIResources {
+	memLimit := spec.MemoryLimitBytes
+	if memLimit <= 0 {
+		memLimit = defaultMemoryLimitBytes
+	}
+	cpuQuota := spec.CPUQuota
+	if cpuQuota <= 0 {
+		cpuQuota = defaultCPUQuota
+	}
+	cpuPeriod := spec.CPUPeriod
+	if cpuPeriod == 0 {
+		cpuPeriod = defaultCPUPeriod
+	}
+	pidsLimit := spec.PidsLimit
+	if pidsLimit <= 0 {
+		pidsLimit = defaultPidsLimit
+	}
+	return &OCIResources{
+		Memory: &OCIMemoryLimit{Limit: memLimit},
+		CPU:    &OCICPULimit{Quota: cpuQuota, Period: cpuPeriod},
+		Pids:   &OCIPidsLimit{Limit: pidsLimit},
+	}
 }
