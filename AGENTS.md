@@ -67,8 +67,23 @@ Base-SHA: <origin/main sha>
 - Claim by commenting `/agent-claim` with your `agent_id`, `base_sha`, and `scope` (the task's
   `owned_paths`); then set labels `agent:claimed` + `agent:in-progress`. Lease = 60 min, heartbeat
   every 20 min (`/agent-heartbeat`). Expired leases may be stolen after a warning comment.
-- **Scope is binding.** Edit only files inside `owned_paths`. Before pushing, verify
-  `git diff --name-only origin/main...HEAD` is within scope; revert or re-scope anything outside it.
+- **Scope is `owned_paths` first, with bounded expansion.** Do your work inside the task's
+  `owned_paths`. When — and only when — a task's **acceptance criteria genuinely require** touching an
+  adjacent package (e.g. a registry/host store a sandbox tool needs), you **may expand** to those
+  files, subject to ALL of these:
+  - **Never the frozen contract or any hard-lock path without its lock.** `internal/contract/**` stays
+    RFC-gated + `agent:needs-human` (§5); `.github/**`/`Makefile`, `go.mod`/`go.sum`, `deploy/**` need
+    their lock first.
+  - **Never another task's actively-claimed `owned_paths`, nor a single-owner shared file**
+    (`cmd/controlplane/main.go`, `AGENTS.md`, `.agents/task-registry.json`) without coordinating on the
+    Coordination Board first.
+  - **Stay minimal and task-scoped** — only the adjacent edits the acceptance demands, nothing more.
+  - **Declare it.** Note the expansion in the `/agent-claim` comment and add an
+    `Expanded-Scope: <paths> (why)` trailer to the commit.
+  - If the needed expansion would hit a forbidden/contract/locked path you cannot take, **don't
+    partial-land** — report the gap (`/agent-blocked`) or re-label `agent:needs-human` instead.
+- **Verify before pushing.** `git diff --name-only origin/main...HEAD` must be within `owned_paths` plus
+  any declared expansion; revert anything else.
 
 ## 5. Locks (IronClaw high-risk paths)
 
