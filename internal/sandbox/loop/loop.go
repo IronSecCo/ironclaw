@@ -30,6 +30,19 @@ const (
 	defaultHeartbeatPath = "/workspace/.heartbeat"
 )
 
+// DefaultSystemPrompt frames the agent's role and the security boundary in-band,
+// as defense in depth alongside the structural guarantees (no self-edit/install
+// tools exist; capability changes only flow through the host gateway). cmd/sandbox
+// wires it into the provider so every turn carries it.
+const DefaultSystemPrompt = `You are IronClaw, a security-isolated assistant running inside a sandbox.
+
+Operating constraints (these are enforced by the platform; do not claim to bypass them):
+- You run in an isolated sandbox with no direct network access. Model calls go through a host proxy.
+- You CANNOT install packages, add integrations or MCP servers, change your persona, edit your enabled tools, change permissions, or alter mounts on your own. To request any such change, call the request_capability_change tool — it submits the request to a control-plane gateway that requires human approval. Never claim to have applied such a change yourself.
+- File operations are limited to your workspace directory.
+
+Be concise and helpful. Use the available tools when they help; otherwise answer directly.`
+
 // Config wires the loop's dependencies. Inbound, Outbound, and Provider are
 // required; the rest take defaults.
 type Config struct {
@@ -435,15 +448,40 @@ func (l *Loop) newOutboundID() string {
 	return fmt.Sprintf("out-%d-%d", l.cfg.Clock().UnixNano(), l.outCounter)
 }
 
-// formatPrompt renders the buffered chat messages into a single prompt. Richer
-// formatting (sender attribution, conversation history) is a later enhancement;
-// for now contents are concatenated in seq order.
+// formatPrompt renders the buffered chat messages into a single prompt in seq
+// order. Platform messages get a light source-attribution header so the model
+// can tell who/where a multi-message turn came from; plain messages with no
+// platform context stay bare.
 func formatPrompt(msgs []contract.MessageIn) string {
 	parts := make([]string, 0, len(msgs))
 	for _, m := range msgs {
-		parts = append(parts, strings.TrimSpace(m.Content))
+		content := strings.TrimSpace(m.Content)
+		if hdr := messageHeader(m); hdr != "" {
+			content = hdr + "\n" + content
+		}
+		parts = append(parts, content)
 	}
 	return strings.Join(parts, "\n\n")
+}
+
+// messageHeader builds a one-line source attribution for a platform message, or
+// "" when there is no platform context (a plain chat turn stays unannotated).
+func messageHeader(m contract.MessageIn) string {
+	if m.ChannelType == nil && m.PlatformID == nil {
+		return ""
+	}
+	kind := m.Kind
+	if kind == "" {
+		kind = contract.KindChat
+	}
+	parts := []string{string(kind)}
+	if m.ChannelType != nil {
+		parts = append(parts, "via "+*m.ChannelType)
+	}
+	if m.PlatformID != nil {
+		parts = append(parts, *m.PlatformID)
+	}
+	return "[" + strings.Join(parts, " ") + "]"
 }
 
 // isSlashCommand reports whether content is a slash command.

@@ -127,6 +127,27 @@ func TestQueryTransportError(t *testing.T) {
 	}
 }
 
+func TestQuerySendsSystemPrompt(t *testing.T) {
+	var gotBody []byte
+	sock := serveUnix(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotBody, _ = io.ReadAll(r.Body)
+		w.Header().Set("content-type", "application/json")
+		io.WriteString(w, `{"content":[{"type":"text","text":"ok"}],"stop_reason":"end_turn"}`)
+	}))
+
+	p := NewAnthropic(Config{SocketPath: sock, System: "be terse"})
+	if _, err := p.Query(context.Background(), "x"); err != nil {
+		t.Fatalf("Query: %v", err)
+	}
+	var req messagesRequest
+	if err := json.Unmarshal(gotBody, &req); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if req.System != "be terse" {
+		t.Fatalf("system = %q, want %q", req.System, "be terse")
+	}
+}
+
 func TestConverseParsesToolUse(t *testing.T) {
 	var gotBody []byte
 	sock := serveUnix(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

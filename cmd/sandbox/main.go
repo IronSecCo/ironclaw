@@ -75,7 +75,11 @@ func run() error {
 		return err
 	}
 
-	prov := provider.NewAnthropic(provider.Config{SocketPath: *modelSocket, Model: *model})
+	prov := provider.NewAnthropic(provider.Config{
+		SocketPath: *modelSocket,
+		Model:      *model,
+		System:     loop.DefaultSystemPrompt,
+	})
 
 	l, err := loop.New(loop.Config{
 		Inbound:       inbound,

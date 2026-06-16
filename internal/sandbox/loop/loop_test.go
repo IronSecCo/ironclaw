@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -230,6 +231,31 @@ func TestNewRequiresDependencies(t *testing.T) {
 	}
 	if _, err := New(Config{Inbound: &fakeInbound{}}); err == nil {
 		t.Fatal("New without Outbound/Provider should error")
+	}
+}
+
+// TestFormatPrompt asserts plain messages stay bare and platform messages get a
+// source-attribution header.
+func TestFormatPrompt(t *testing.T) {
+	plain := []contract.MessageIn{msg("a", "hello", 0), msg("b", "world", 0)}
+	if got := formatPrompt(plain); got != "hello\n\nworld" {
+		t.Fatalf("plain prompt = %q, want %q", got, "hello\n\nworld")
+	}
+
+	ct, pid := "slack", "C123"
+	m := contract.MessageIn{ID: "c", Kind: contract.KindChat, Content: "hi", ChannelType: &ct, PlatformID: &pid}
+	got := formatPrompt([]contract.MessageIn{m})
+	if !strings.Contains(got, "[chat via slack C123]") || !strings.Contains(got, "hi") {
+		t.Fatalf("attributed prompt = %q, want header + content", got)
+	}
+}
+
+// TestDefaultSystemPrompt asserts the system prompt frames the security boundary.
+func TestDefaultSystemPrompt(t *testing.T) {
+	for _, want := range []string{"request_capability_change", "sandbox"} {
+		if !strings.Contains(DefaultSystemPrompt, want) {
+			t.Fatalf("DefaultSystemPrompt missing %q", want)
+		}
 	}
 }
 
