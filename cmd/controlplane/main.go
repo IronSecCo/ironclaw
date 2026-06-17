@@ -237,6 +237,9 @@ func main() {
 	// skill install's bundle) are materialized into the broker's allowlist so the
 	// grant takes effect; every other kind is logged.
 	var capApplier contract.Applier = gateway.NewLogApplier()
+	capApplier = gateway.NewPersonaApplier(func(id contract.AgentGroupID, persona string) error {
+		return registry.SetPersona(reg, id, persona)
+	}, capApplier)
 	if broker != nil {
 		capApplier = gateway.NewEgressApplier(broker, capApplier)
 	}

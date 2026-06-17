@@ -32,6 +32,10 @@ type AgentGroup struct {
 	// provider's credential enabled for it to be reachable.
 	Provider string
 	Model    string
+	// Persona is the group's system-persona text, appended to the sandbox system
+	// prompt at launch (T-234). It is set only via a gateway-approved ChangePersona
+	// change — never by the sandbox itself — and is read-only to the agent.
+	Persona string
 }
 
 // MessagingGroup is a single chat/channel on one platform. The triple
