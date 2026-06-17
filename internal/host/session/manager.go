@@ -65,10 +65,25 @@ type Config struct {
 	// Defaults to <os.TempDir>/ironclaw/workspaces.
 	WorkspaceRoot string
 
+	// SelectModel optionally resolves a per-session model backend at launch (T-233).
+	// Nil (the default) launches every sandbox with the default Anthropic backend.
+	// A typical wiring maps the session's agent group to its registry-configured
+	// Provider/Model. The host model-proxy still authenticates and allowlists, so a
+	// selection is only reachable if the host enabled that provider's credential.
+	SelectModel func(contract.SessionID) ModelSelection
+
 	// Clock returns the current time; injectable for tests. Defaults to time.Now.
 	Clock func() time.Time
 	// Logger receives lifecycle diagnostics. Defaults to log.Default().
 	Logger *log.Logger
+}
+
+// ModelSelection is an optional per-session model backend override. The zero value
+// (empty Provider) keeps the default Anthropic backend and its default host/model.
+type ModelSelection struct {
+	Provider string // "anthropic" (default), "openai", or "openrouter"
+	Model    string // model id override; empty = the provider's default
+	Host     string // upstream host override; empty = the provider's default
 }
 
 // tracked is a launched sandbox the Manager is responsible for.
@@ -260,6 +275,12 @@ func (m *Manager) Wake(id contract.SessionID) error {
 	}
 
 	spec := isolation.HardenedSpec(id, m.cfg.Image, paths.Inbound, paths.Outbound, m.cfg.ModelProxySocket)
+	if m.cfg.SelectModel != nil {
+		sel := m.cfg.SelectModel(id)
+		spec.ModelProvider = sel.Provider
+		spec.ModelID = sel.Model
+		spec.ModelHost = sel.Host
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

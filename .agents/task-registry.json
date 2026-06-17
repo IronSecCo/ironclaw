@@ -846,7 +846,7 @@
     {
       "task_id": "T-227",
       "title": "[spike] Host-side skills / extension system design",
-      "status": "needs-human",
+      "status": "done",
       "priority": "P2",
       "wave": 7,
       "size": "spike",
@@ -870,11 +870,11 @@
       "validation_commands": [
         "test -f .agents/spikes/skills-system.md"
       ],
-      "requires_human_decision": true,
+      "requires_human_decision": false,
       "human_question": "Do we add a host-side, gateway-approved skills/extension mechanism (manifest + capability grant), given the 'sealed runtime / no in-sandbox install' pillar? If yes, what is the trust model for third-party skills?",
       "good_first_issue": false,
       "summary": "Skills are the headline extensibility of both peers (nanoclaw /add-* branch-copy model; openclaw SKILL.md + ClawHub, 13.7k+ skills). IronClaw deliberately forbids in-sandbox self-install. A host-side, gateway-approved capability-bundle mechanism could give parity without breaking the seal \u2014 but it is an architecture + threat-model decision, not a unilateral build.",
-      "notes_for_worker": "Do not implement before the design is approved. The seal (no in-sandbox mutation) is non-negotiable; any skill capability must be a host-side, human-approved grant."
+      "notes_for_worker": "SPIKE LANDED 2026-06-17 at .agents/spikes/skills-system.md. Maintainer decision (needs-human): BUILD host-side, gateway-gated capability bundles (manifest + capability grants via the gateway; NO in-sandbox install; third-party skills untrusted; curated+signed source addressing the ClawHub 341-malicious-skills failure). Follow-up task breakdown T-227a..f in the spike."
     },
     {
       "task_id": "T-228",
@@ -1056,7 +1056,7 @@
     {
       "task_id": "T-233",
       "title": "Multi-provider model support (per-agent provider)",
-      "status": "needs-human",
+      "status": "done",
       "priority": "P3",
       "wave": 7,
       "size": "L",
@@ -1082,11 +1082,11 @@
         "CGO_ENABLED=1 go test ./internal/host/modelproxy/...",
         "CGO_ENABLED=1 go test ./internal/sandbox/..."
       ],
-      "requires_human_decision": true,
+      "requires_human_decision": false,
       "human_question": "Do we relax the Anthropic-via-proxy posture to allow per-agent providers (OpenAI/Codex, Ollama/local, OpenRouter)? What is the egress + audit story for each, and does the model proxy allowlist expand?",
       "good_first_issue": false,
       "summary": "Peers allow per-agent provider selection via drop-in modules (/add-codex, /add-ollama-provider, OpenCode). IronClaw is Anthropic-via-host-proxy by threat model. Supporting others means new egress destinations through the model proxy \u2014 a deliberate threat-model decision.",
-      "notes_for_worker": "Do not start before the network-posture decision is approved (related to the egress-broker work)."
+      "notes_for_worker": "LANDED 2026-06-17. Maintainer decision (needs-human): FULL multi-provider. Implemented: modelproxy MultiInjector + OpenAI/OpenRouter injectors (host-held key per provider), provider.New factory + OpenAIProvider (Chat Completions), --provider sandbox flag, control-plane enables providers from env keys (union allowlist + redaction), SandboxSpec.Model{Provider,ID,Host} -> oci args, session.Manager.SelectModel resolver, AgentGroup.Provider/Model. Threat-model section 10 documents the posture + sign-off; section 9 non-goal removed."
     },
     {
       "task_id": "T-234",
@@ -1492,7 +1492,7 @@
     {
       "task_id": "T-260",
       "title": "End-user credential vault (OneCLI-style request-time injection)",
-      "status": "needs-human",
+      "status": "done",
       "priority": "P3",
       "wave": 8,
       "size": "L",
@@ -1517,11 +1517,11 @@
       "validation_commands": [
         "CGO_ENABLED=1 go test ./internal/host/egress/..."
       ],
-      "requires_human_decision": true,
+      "requires_human_decision": false,
       "human_question": "Do we add an end-user credential vault so agents can call arbitrary approved APIs without holding raw keys (nanoclaw's OneCLI pattern), building on the egress broker? Or integrate onecli rather than build?",
       "good_first_issue": false,
       "summary": "nanoclaw's headline secret story is OneCLI's Agent Vault: agents never hold raw keys; the gateway injects credentials at request time with per-agent policies and rate limits. IronClaw injects only the model credential and now has a gateway-approved egress broker \u2014 extending that into a general vault is the parity gap, and a threat-model decision (build vs integrate onecli).",
-      "notes_for_worker": "Builds on T-111 (egress broker, landed). Keep the no-secrets-in-sandbox invariant."
+      "notes_for_worker": "SPIKE LANDED 2026-06-17 at .agents/spikes/credential-vault.md. Maintainer decision (needs-human): INTEGRATE OneCLI as a host-side vault BEHIND the egress broker (broker stays secrets-free per B4-E); do NOT build a bespoke secret-injection path into the broker. Building our own vault stays a non-goal. Follow-up task breakdown T-260a..f in the spike."
     }
   ]
 }

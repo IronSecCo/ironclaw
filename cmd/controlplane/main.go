@@ -30,6 +30,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -129,14 +130,44 @@ func main() {
 	// the model host. It is the sole authenticator (host-held key injected per
 	// request, never in the sandbox) and is hardened (T-107) with an egress rate
 	// cap, per-request audit that also feeds metrics, and response secret redaction.
-	var proxyOpts []modelproxy.Option
-	credInjected := false
+	//
+	// Multi-provider (T-233): each provider is enabled only when its credential is
+	// present in the control-plane environment. The proxy then allowlists exactly
+	// the enabled providers' hosts and injects the matching credential per upstream;
+	// a per-agent-group provider selection is reachable only if its host is enabled
+	// here. Anthropic is the primary; OpenAI and OpenRouter are opt-in and only
+	// widen egress when their key is set.
+	var (
+		proxyOpts  []modelproxy.Option
+		injectors  []modelproxy.Injector
+		allowHosts []string
+		redactKeys []string
+	)
+	addProvider := func(host string, inj modelproxy.Injector, key string) {
+		allowHosts = append(allowHosts, host)
+		injectors = append(injectors, inj)
+		redactKeys = append(redactKeys, key)
+	}
 	if apiKey := os.Getenv("ANTHROPIC_API_KEY"); apiKey != "" {
+		addProvider("api.anthropic.com", modelproxy.AnthropicInjector(apiKey, "2023-06-01"), apiKey)
+	}
+	if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
+		addProvider("api.openai.com", modelproxy.OpenAIInjector(apiKey), apiKey)
+	}
+	if apiKey := os.Getenv("OPENROUTER_API_KEY"); apiKey != "" {
+		addProvider("openrouter.ai", modelproxy.OpenRouterInjector(apiKey), apiKey)
+	}
+	credInjected := len(injectors) > 0
+	if credInjected {
 		proxyOpts = append(proxyOpts,
-			modelproxy.WithInjector(modelproxy.AnthropicInjector(apiKey, "2023-06-01")),
-			modelproxy.WithRedactedSecrets(apiKey),
+			modelproxy.WithInjector(modelproxy.MultiInjector(injectors...)),
+			modelproxy.WithRedactedSecrets(redactKeys...),
 		)
-		credInjected = true
+	}
+	if len(allowHosts) == 0 {
+		// No provider credential configured (e.g. dev): keep Anthropic allowlisted so
+		// the proxy still routes — the unauthenticated upstream rejects, not the proxy.
+		allowHosts = []string{"api.anthropic.com"}
 	}
 	if *proxyRPS > 0 {
 		proxyOpts = append(proxyOpts,
@@ -150,7 +181,7 @@ func main() {
 			"host", rec.Host, "method", rec.Method, "status", rec.Status,
 			"allowed", rec.Allowed, "rate_limited", rec.RateLimited, "duration_ms", rec.Duration.Milliseconds())
 	}))
-	proxy := modelproxy.New([]string{"api.anthropic.com"}, proxyOpts...)
+	proxy := modelproxy.New(allowHosts, proxyOpts...)
 
 	// Gateway: durable FileStore + append-only audit log. The chain is the
 	// deterministic rejecters, then the create_agent verifier (RFC-0004 — always
@@ -269,7 +300,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		logger.Info("model proxy listening", "socket", *socket, "allowlist", "api.anthropic.com")
+		logger.Info("model proxy listening", "socket", *socket, "allowlist", strings.Join(allowHosts, ","))
 		if err := proxy.Serve(ctx, *socket); err != nil && err != context.Canceled {
 			logger.Error("model proxy stopped", "error", err)
 			stop()

@@ -21,6 +21,40 @@ func hardenedTestSpec() SandboxSpec {
 	)
 }
 
+// TestBuildOCISpecModelProvider asserts the multi-provider selection (T-233) is
+// passed to the sandbox process only when set, and that the sealed default keeps
+// the bare "/sandbox" args (the default Anthropic backend).
+func TestBuildOCISpecModelProvider(t *testing.T) {
+	// Default (HardenedSpec): bare args, no provider flags.
+	sealed, err := BuildOCISpec(hardenedTestSpec())
+	if err != nil {
+		t.Fatalf("BuildOCISpec: %v", err)
+	}
+	if got := sealed.Process.Args; len(got) != 1 || got[0] != "/sandbox" {
+		t.Fatalf("default args = %v, want [/sandbox] (sealed Anthropic default)", got)
+	}
+
+	// Provider selection set: flags appended in order after /sandbox.
+	s := hardenedTestSpec()
+	s.ModelProvider = "openai"
+	s.ModelID = "gpt-4o"
+	s.ModelHost = "api.openai.com"
+	withProvider, err := BuildOCISpec(s)
+	if err != nil {
+		t.Fatalf("BuildOCISpec (provider): %v", err)
+	}
+	want := []string{"/sandbox", "--provider", "openai", "--model", "gpt-4o", "--model-host", "api.openai.com"}
+	got := withProvider.Process.Args
+	if len(got) != len(want) {
+		t.Fatalf("args = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("args = %v, want %v", got, want)
+		}
+	}
+}
+
 func TestBuildOCISpecHardening(t *testing.T) {
 	spec, err := BuildOCISpec(hardenedTestSpec())
 	if err != nil {

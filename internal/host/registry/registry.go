@@ -25,6 +25,13 @@ type AgentGroup struct {
 	ID     contract.AgentGroupID
 	Name   string
 	Folder string
+	// Provider and Model select this group's model backend (T-233). An empty
+	// Provider selects the default Anthropic backend, so existing groups are
+	// unaffected. They are consumed at sandbox launch (see
+	// internal/host/session.Manager); the host model-proxy must have the chosen
+	// provider's credential enabled for it to be reachable.
+	Provider string
+	Model    string
 }
 
 // MessagingGroup is a single chat/channel on one platform. The triple

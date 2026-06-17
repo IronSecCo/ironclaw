@@ -57,6 +57,19 @@ type SandboxSpec struct {
 	// network=none either way (egress is a host-mediated socket, not a NIC).
 	EgressSocket string
 
+	// Model provider selection (T-233). All optional; empty selects the default
+	// Anthropic backend with its default host and model, preserving the sealed
+	// single-provider posture. These are non-secret config flags passed to the
+	// sandbox process — the host model-proxy still authenticates and enforces the
+	// egress allowlist, so a sandbox cannot reach a provider the host has not
+	// enabled regardless of what it is told here.
+	//   ModelProvider — "anthropic" (default), "openai", or "openrouter".
+	//   ModelID       — model id override (empty = the provider's default).
+	//   ModelHost     — upstream host override (empty = the provider's default).
+	ModelProvider string
+	ModelID       string
+	ModelHost     string
+
 	// Security knobs — all should be the hardened value in production.
 	NetworkNone    bool // network=none: no NIC inside the sandbox at all.
 	DropAllCaps    bool // drop every Linux capability.

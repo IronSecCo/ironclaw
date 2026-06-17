@@ -95,6 +95,48 @@ func AnthropicInjector(apiKey, version string) Injector {
 	}
 }
 
+// OpenAIInjector returns an Injector that authenticates requests to the OpenAI
+// API with a host-held API key via the Bearer scheme. Like AnthropicInjector the
+// key lives only on the host (e.g. from OPENAI_API_KEY) and never enters the
+// sandbox. It self-guards on the upstream host so it no-ops for any other
+// provider — safe to compose through MultiInjector.
+func OpenAIInjector(apiKey string) Injector {
+	return func(upstreamHost string, req *http.Request) {
+		if !strings.Contains(strings.ToLower(upstreamHost), "openai.com") {
+			return
+		}
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+}
+
+// OpenRouterInjector returns an Injector that authenticates requests to the
+// OpenRouter API — an OpenAI-compatible multi-model gateway — with a host-held
+// API key via the Bearer scheme (e.g. from OPENROUTER_API_KEY). It self-guards on
+// the upstream host so it no-ops for any other provider.
+func OpenRouterInjector(apiKey string) Injector {
+	return func(upstreamHost string, req *http.Request) {
+		if !strings.Contains(strings.ToLower(upstreamHost), "openrouter.ai") {
+			return
+		}
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+}
+
+// MultiInjector composes several provider injectors into one. Each injector
+// self-guards on the upstream host, so for any given request exactly the matching
+// provider's credential is stamped and the rest no-op. This is how the proxy
+// authenticates a multi-provider allowlist (per-agent-group provider selection)
+// with a single Injector. nil injectors are skipped.
+func MultiInjector(injectors ...Injector) Injector {
+	return func(upstreamHost string, req *http.Request) {
+		for _, in := range injectors {
+			if in != nil {
+				in(upstreamHost, req)
+			}
+		}
+	}
+}
+
 // allowed reports whether host (as it appears in a request, possibly host:port)
 // is on the allowlist. The bare hostname is also checked so an allowlist entry of
 // "api.anthropic.com" matches "api.anthropic.com:443".

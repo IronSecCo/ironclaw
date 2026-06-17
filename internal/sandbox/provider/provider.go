@@ -56,8 +56,59 @@ const (
 	anthropicVersion    = "2023-06-01"
 )
 
-// Config configures an AnthropicProvider.
+// Provider kinds selectable per agent group. The default (empty) is Anthropic, so
+// the sealed single-provider posture is unchanged unless a group opts into another
+// backend. Each kind maps to a model-proxy-allowlisted upstream host that the host
+// authenticates with its own credential (see internal/host/modelproxy).
+const (
+	KindAnthropic  = "anthropic"
+	KindOpenAI     = "openai"
+	KindOpenRouter = "openrouter"
+
+	openAIUpstreamHost     = "api.openai.com"
+	openRouterUpstreamHost = "openrouter.ai"
+
+	defaultOpenAIModel     = "gpt-4o"
+	defaultOpenRouterModel = "openai/gpt-4o"
+)
+
+// New builds the Provider for cfg.Kind, applying that kind's default upstream host
+// and model when cfg leaves them zero. An empty kind selects Anthropic. The
+// returned Provider always reaches the network only through the host model-proxy
+// unix socket (cfg.SocketPath) — the sandbox has network=none — and holds no
+// credentials; the proxy authenticates per provider and enforces the egress
+// allowlist. An unknown kind is an error.
+func New(cfg Config) (Provider, error) {
+	switch strings.ToLower(strings.TrimSpace(cfg.Kind)) {
+	case "", KindAnthropic:
+		return NewAnthropic(cfg), nil
+	case KindOpenAI:
+		if cfg.UpstreamHost == "" {
+			cfg.UpstreamHost = openAIUpstreamHost
+		}
+		if cfg.Model == "" {
+			cfg.Model = defaultOpenAIModel
+		}
+		return NewOpenAI(cfg), nil
+	case KindOpenRouter:
+		if cfg.UpstreamHost == "" {
+			cfg.UpstreamHost = openRouterUpstreamHost
+		}
+		if cfg.Model == "" {
+			cfg.Model = defaultOpenRouterModel
+		}
+		return NewOpenAI(cfg), nil
+	default:
+		return nil, fmt.Errorf("sandbox/provider: unknown provider kind %q", cfg.Kind)
+	}
+}
+
+// Config configures a Provider. The same struct serves every backend; fields a
+// given backend ignores (e.g. DisableThinking for OpenAI) are simply unused.
 type Config struct {
+	// Kind selects the backend: "" / "anthropic" (default), "openai", or
+	// "openrouter". See New. The kind is chosen per agent group host-side.
+	Kind string
 	// SocketPath is the host model-proxy unix socket. Defaults to DefaultSocketPath.
 	SocketPath string
 	// UpstreamHost is the model API host the proxy allowlists and routes to.
@@ -103,18 +154,25 @@ func NewAnthropic(cfg Config) *AnthropicProvider {
 		cfg.HTTPTimeout = defaultHTTPTimeout
 	}
 
-	socket := cfg.SocketPath
-	transport := &http.Transport{
-		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-			return (&net.Dialer{}).DialContext(ctx, "unix", socket)
-		},
-	}
 	return &AnthropicProvider{
 		cfg:    cfg,
-		client: &http.Client{Transport: transport, Timeout: cfg.HTTPTimeout},
+		client: newSocketClient(cfg.SocketPath, cfg.HTTPTimeout),
 		// Plain http over the unix socket; the proxy upgrades to https upstream.
 		url: "http://" + cfg.UpstreamHost + "/v1/messages",
 	}
+}
+
+// newSocketClient returns an HTTP client whose every dial goes to the host
+// model-proxy unix socket regardless of the request address — the sandbox has no
+// NIC. The request still addresses the real upstream host so the proxy's
+// allowlist matches and routes it.
+func newSocketClient(socketPath string, timeout time.Duration) *http.Client {
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
+		},
+	}
+	return &http.Client{Transport: transport, Timeout: timeout}
 }
 
 // ToolSpec describes a tool offered to the model.

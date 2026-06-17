@@ -121,6 +121,84 @@ func TestInjectorAuthenticatesAndStripsSandboxAuth(t *testing.T) {
 	}
 }
 
+func TestMultiInjectorRoutesCredentialByHost(t *testing.T) {
+	// One proxy fronting three providers; the MultiInjector must stamp exactly the
+	// matching provider's credential and nothing else, regardless of which upstream
+	// the (untrusted) sandbox addresses.
+	cases := []struct {
+		host        string
+		wantAPIKey  string // x-api-key (Anthropic)
+		wantAuth    string // Authorization (OpenAI / OpenRouter)
+		wantVersion string
+	}{
+		{"api.anthropic.com", "anthropic-secret", "", "2023-06-01"},
+		{"api.openai.com", "", "Bearer openai-secret", ""},
+		{"openrouter.ai", "", "Bearer openrouter-secret", ""},
+	}
+
+	inject := MultiInjector(
+		AnthropicInjector("anthropic-secret", "2023-06-01"),
+		OpenAIInjector("openai-secret"),
+		OpenRouterInjector("openrouter-secret"),
+	)
+
+	for _, tc := range cases {
+		t.Run(tc.host, func(t *testing.T) {
+			var gotAPIKey, gotAuth, gotVersion string
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotAPIKey = r.Header.Get("x-api-key")
+				gotAuth = r.Header.Get("Authorization")
+				gotVersion = r.Header.Get("anthropic-version")
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer upstream.Close()
+
+			p := New([]string{"api.anthropic.com", "api.openai.com", "openrouter.ai"},
+				WithInjector(inject),
+				WithTransport(&redirectTransport{target: upstream.Listener.Addr().String()}),
+			)
+			srv := httptest.NewServer(p.Handler())
+			defer srv.Close()
+
+			req, _ := http.NewRequest("GET", srv.URL+"/v1/x", nil)
+			req.Host = tc.host
+			// The sandbox forges both credential shapes; the proxy must strip them.
+			req.Header.Set("Authorization", "Bearer sandbox-forged")
+			req.Header.Set("x-api-key", "sandbox-forged")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			resp.Body.Close()
+
+			if gotAPIKey != tc.wantAPIKey {
+				t.Errorf("x-api-key = %q, want %q", gotAPIKey, tc.wantAPIKey)
+			}
+			if gotAuth != tc.wantAuth {
+				t.Errorf("Authorization = %q, want %q", gotAuth, tc.wantAuth)
+			}
+			if gotVersion != tc.wantVersion {
+				t.Errorf("anthropic-version = %q, want %q", gotVersion, tc.wantVersion)
+			}
+		})
+	}
+}
+
+func TestProviderInjectorsNoOpOffHost(t *testing.T) {
+	// Each provider injector must touch only its own upstream so MultiInjector can
+	// compose them without cross-contamination.
+	req, _ := http.NewRequest("GET", "http://example.test/x", nil)
+	OpenAIInjector("k")("api.anthropic.com", req)
+	OpenRouterInjector("k")("api.openai.com", req)
+	AnthropicInjector("k", "v")("openrouter.ai", req)
+	if got := req.Header.Get("Authorization"); got != "" {
+		t.Errorf("Authorization set off-host: %q", got)
+	}
+	if got := req.Header.Get("x-api-key"); got != "" {
+		t.Errorf("x-api-key set off-host: %q", got)
+	}
+}
+
 func TestServeUnixSocketRoundTrip(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, "via-socket")

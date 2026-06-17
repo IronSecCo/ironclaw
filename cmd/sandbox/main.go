@@ -65,8 +65,9 @@ func run() error {
 		heartbeat    = flag.String("heartbeat", filepath.Join(ws, ".heartbeat"), "heartbeat file touched every poll")
 		modelSocket  = flag.String("model-socket", filepath.Join(qd, "modelproxy.sock"), "host model-proxy unix socket")
 		egressSocket = flag.String("egress-socket", "", "host egress-broker unix socket; when set, enables the http_fetch tool for operator-approved external APIs (empty = no egress, sandbox reaches only the model proxy)")
-		modelHost    = flag.String("model-host", "", "upstream model host the proxy allowlists (defaults to api.anthropic.com)")
+		modelHost    = flag.String("model-host", "", "upstream model host the proxy allowlists (defaults to the provider's host)")
 		model        = flag.String("model", "", "model id override (defaults to the provider's default)")
+		modelKind    = flag.String("provider", "", "model provider: anthropic (default), openai, or openrouter; selected per agent group host-side")
 		showVersion  = flag.Bool("version", false, "print version and exit")
 	)
 	flag.Parse()
@@ -100,12 +101,16 @@ func run() error {
 		return err
 	}
 
-	prov := provider.NewAnthropic(provider.Config{
+	prov, err := provider.New(provider.Config{
+		Kind:         *modelKind,
 		SocketPath:   *modelSocket,
 		UpstreamHost: *modelHost,
 		Model:        *model,
 		System:       loop.DefaultSystemPrompt,
 	})
+	if err != nil {
+		return err
+	}
 
 	l, err := loop.New(loop.Config{
 		Inbound:       inbound,

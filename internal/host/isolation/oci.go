@@ -204,10 +204,25 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 		Ambient:     []string{},
 	}
 
+	// Model provider selection (T-233): pass non-secret provider/model/host flags to
+	// the sandbox process when set. The default (all empty) keeps the bare
+	// "/sandbox" args, so the sealed Anthropic posture is unchanged. Credential
+	// injection and the egress allowlist remain host-side regardless of these flags.
+	args := []string{"/sandbox"}
+	if spec.ModelProvider != "" {
+		args = append(args, "--provider", spec.ModelProvider)
+	}
+	if spec.ModelID != "" {
+		args = append(args, "--model", spec.ModelID)
+	}
+	if spec.ModelHost != "" {
+		args = append(args, "--model-host", spec.ModelHost)
+	}
+
 	process := &OCIProcess{
 		Terminal:        false,
 		User:            OCIUser{UID: spec.NonRootUID, GID: gid},
-		Args:            []string{"/sandbox"},
+		Args:            args,
 		Env:             []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
 		Cwd:             containerWorkspace,
 		Capabilities:    caps,

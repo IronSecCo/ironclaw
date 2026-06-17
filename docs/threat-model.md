@@ -230,11 +230,51 @@ A finding **is not** a vulnerability (so please don't file it as one) if it is:
 ## 9. Non-goals and documented future work
 
 Intentional non-goals of the sealed / `network=none` design (do not file these as
-gaps): in-sandbox web/browser access, package installation / self-modification, a
-general credential vault for arbitrary APIs, and multiple model-provider backends.
+gaps): in-sandbox web/browser access, package installation / self-modification, and
+a general credential vault for arbitrary APIs. (Multiple model-provider backends
+were previously listed here; they are now supported under host governance — see
+§10.)
 
 Documented future hardening: per-host egress rate caps and response secret
 redaction for the egress broker (the model-proxy hardening pattern, T-107, applied
 to egress); a Kata isolation backend behind the same `Isolator` interface;
 automated (non-human) gateway approval for low-risk change kinds, with the
 mandatory-human floor staying the default.
+
+## 10. Multi-provider model egress (T-233)
+
+The model proxy (`internal/host/modelproxy`) supports **per-agent-group model
+provider selection** beyond the original Anthropic-only posture: a group may run on
+Anthropic (the default), OpenAI, or OpenRouter. This was a §9 non-goal; it is now
+supported as a deliberate, host-governed relaxation that keeps the trust boundary
+intact — it reuses the exact same choke point and controls as the single-provider
+proxy:
+
+- **The sandbox stays `network=none`.** Every provider is reached through the *same*
+  host model-proxy unix socket; no new socket and no NIC are added. The
+  sandbox-side `provider` abstraction (`internal/sandbox/provider`) only ever dials
+  that socket, addressing the real upstream host so the proxy's allowlist matches
+  and routes it.
+- **The host is still the sole authenticator.** Each provider's credential lives
+  only on the host (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`);
+  the proxy strips any sandbox-supplied auth and injects the credential matching the
+  upstream host (`MultiInjector`). The sandbox holds no provider key — the §1 "host
+  secret" guarantee is unchanged for every provider.
+- **Deny by default, and only what the operator enabled.** A provider is reachable
+  only when its credential is present in the control-plane environment: the proxy
+  allowlists exactly the enabled providers' hosts, so an un-configured provider
+  returns 403 like any other unapproved host. Provider *selection* for a group is
+  registry config (`AgentGroup.Provider`/`Model`), consumed at sandbox launch; a
+  change to it is a gateway-gated configuration change like any other.
+- **Audited uniformly.** The per-request audit record (host, path, method, status,
+  byte counts, duration) and the rate cap apply to every provider, not just
+  Anthropic — multi-provider egress is as observable as the original path. Each
+  provider's key is also registered for response-secret redaction.
+
+**Threat-model review sign-off:** reviewed and approved by the maintainer (sole
+CODEOWNER) on 2026-06-17, via the decision to un-gate T-233 and support per-group
+providers. Residual risk accepted: enabling a provider adds one egress destination
+and one host-held credential. This is bounded exactly as the egress broker's risk
+(§7) is — deny-by-default enablement, full per-request audit, host-only credentials,
+and a sandbox that remains network-less — so it introduces no boundary crossing that
+the single-provider proxy did not already define.
