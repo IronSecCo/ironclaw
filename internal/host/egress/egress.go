@@ -51,6 +51,11 @@ type AuditRecord struct {
 	RequestBytes  int64         `json:"requestBytes"`
 	ResponseBytes int64         `json:"responseBytes"`
 	Duration      time.Duration `json:"durationNanos"`
+	// CorrelationID joins this record to the vault injector's audit for a vaulted
+	// request; VaultCredential is the logical credential name (never a key). Both are
+	// empty for ordinary egress (T-260d).
+	CorrelationID   string `json:"correlationId,omitempty"`
+	VaultCredential string `json:"vaultCredential,omitempty"`
 }
 
 // AuditSink receives one AuditRecord per request. Implementations must be safe for
@@ -60,11 +65,14 @@ type AuditSink func(AuditRecord)
 // Broker forwards sandbox-originated requests to allowlisted external hosts over a
 // unix-domain socket. A request to a host not on the allowlist is rejected 403.
 type Broker struct {
-	mu        sync.RWMutex
-	allowed   map[string]struct{}
-	transport http.RoundTripper
-	audit     AuditSink
-	identify  func(*http.Request) string
+	mu         sync.RWMutex
+	allowed    map[string]struct{}
+	transport  http.RoundTripper
+	audit      AuditSink
+	identify   func(*http.Request) string
+	vault      *Vault      // optional vault:// routing to a host-local injector (T-260b)
+	correlator *Correlator // optional broker<->vault audit correlation (T-260d)
+	redactor   *Redactor   // optional broker->sandbox response redaction (T-260e)
 }
 
 // Option configures a Broker at construction.
@@ -92,6 +100,32 @@ func WithSessionIdentifier(f func(*http.Request) string) Option {
 			b.identify = f
 		}
 	}
+}
+
+// WithVault enables vault:// routing: a vault-addressed request is forwarded by NAME
+// to the configured host-local injector (a SEPARATE principal that holds the
+// credential), the broker injecting no secret of its own (T-260b). The injector
+// endpoint is still subject to the allowlist, so it must be Allow'd.
+func WithVault(v *Vault) Option {
+	return func(b *Broker) {
+		if v != nil && v.Configured() {
+			b.vault = v
+		}
+	}
+}
+
+// WithCorrelator stamps a host-generated correlation id on each broker->vault
+// request and records it in the audit, joining the broker and injector audit trails
+// (T-260d). Only meaningful alongside WithVault.
+func WithCorrelator(c *Correlator) Option {
+	return func(b *Broker) { b.correlator = c }
+}
+
+// WithResponseRedactor scrubs configured secrets (and credential-bearing headers)
+// from responses on the broker->sandbox hop, so an injected credential can never
+// echo back (T-260e, the T-107 pattern).
+func WithResponseRedactor(rd *Redactor) Option {
+	return func(b *Broker) { b.redactor = rd }
 }
 
 // sessionHeader is the request header the sandbox may set to attribute an egress
@@ -174,26 +208,63 @@ func (b *Broker) Handler() http.Handler {
 		start := time.Now()
 		session := b.identify(r)
 
+		// Vault routing (T-260): a vault://<cred>/<path> request is rewritten to the
+		// configured host-local injector — a SEPARATE principal that holds the
+		// credential. Forward injects no secret (it strips Authorization and tags only
+		// the credential NAME); a correlation id joins this hop to the injector's own
+		// audit. After this, the request targets the injector, which is itself subject
+		// to the allowlist below (deny-by-default like any host).
+		var correlationID, vaultCred string
+		if b.vault != nil {
+			scheme := ""
+			if r.URL != nil {
+				scheme = r.URL.Scheme
+			}
+			if IsVaultAddressed(r.Host, scheme) {
+				cred, err := b.vault.Forward(r)
+				if err != nil {
+					http.Error(w, "egress: "+err.Error(), http.StatusForbidden)
+					b.emitAudit(AuditRecord{
+						Time: start, Session: session, Method: r.Method, Host: hostLabel(r.Host), Path: pathOf(r),
+						Status: http.StatusForbidden, Allowed: false, RequestBytes: r.ContentLength,
+						Duration: time.Since(start),
+					})
+					return
+				}
+				vaultCred = cred
+				if b.correlator != nil {
+					if id, e := b.correlator.Stamp(r); e == nil {
+						correlationID = id
+					}
+				}
+			}
+		}
+
 		host := r.Host
 		if r.URL != nil && r.URL.Host != "" {
 			host = r.URL.Host
 		}
-		path := ""
-		if r.URL != nil {
-			path = r.URL.Path
-		}
+		path := pathOf(r)
 
 		if !b.Allowed(host) {
 			http.Error(w, "egress: destination not on allowlist", http.StatusForbidden)
 			b.emitAudit(AuditRecord{
 				Time: start, Session: session, Method: r.Method, Host: host, Path: path,
 				Status: http.StatusForbidden, Allowed: false, RequestBytes: r.ContentLength,
-				Duration: time.Since(start),
+				Duration: time.Since(start), CorrelationID: correlationID, VaultCredential: vaultCred,
 			})
 			return
 		}
 
-		target := &url.URL{Scheme: "https", Host: hostOnly(host)}
+		// Upstream target: external hosts are dialed over HTTPS with the port implied
+		// (the allowlist is bare-host). The host-local vault injector keeps the exact
+		// scheme AND host:port Forward set on it (it may be plain http on a loopback
+		// port).
+		scheme, targetHost := "https", hostOnly(host)
+		if vaultCred != "" && r.URL != nil {
+			scheme, targetHost = r.URL.Scheme, r.URL.Host
+		}
+		target := &url.URL{Scheme: scheme, Host: targetHost}
 		rp := &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
 				req.URL.Scheme = target.Scheme
@@ -205,6 +276,11 @@ func (b *Broker) Handler() http.Handler {
 			},
 			Transport: b.transport,
 		}
+		if b.redactor != nil {
+			// Scrub configured secrets + credential headers from the response before
+			// it reaches the sandbox (T-260e).
+			rp.ModifyResponse = b.redactor.Redact
+		}
 
 		rec := &countingRW{ResponseWriter: w}
 		rp.ServeHTTP(rec, r)
@@ -212,8 +288,17 @@ func (b *Broker) Handler() http.Handler {
 			Time: start, Session: session, Method: r.Method, Host: host, Path: path,
 			Status: rec.status, Allowed: true, RequestBytes: r.ContentLength,
 			ResponseBytes: rec.n, Duration: time.Since(start),
+			CorrelationID: correlationID, VaultCredential: vaultCred,
 		})
 	})
+}
+
+// pathOf safely reads the request path.
+func pathOf(r *http.Request) string {
+	if r.URL != nil {
+		return r.URL.Path
+	}
+	return ""
 }
 
 // emitAudit delivers a record to the sink if one is configured.

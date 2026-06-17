@@ -55,6 +55,12 @@ type Config struct {
 	// ModelProxySocket is the host unix socket bound into each sandbox as its only
 	// model egress path.
 	ModelProxySocket string
+	// EgressSocket is the OPTIONAL host unix socket of the egress broker (T-111),
+	// bound into each sandbox so an agent can reach operator-approved external APIs
+	// (and vault://-addressed credentials, T-260). Empty (the default) binds no egress
+	// socket, leaving the sandbox sealed to the model proxy alone; the sandbox stays
+	// network=none either way.
+	EgressSocket string
 	// Image is the sandbox container image reference recorded in the OCI spec.
 	Image string
 	// KeyDir is where per-session key files are written for hand-off to the sandbox
@@ -280,6 +286,12 @@ func (m *Manager) Wake(id contract.SessionID) error {
 		spec.ModelProvider = sel.Provider
 		spec.ModelID = sel.Model
 		spec.ModelHost = sel.Host
+	}
+	// Bind the egress-broker socket when the daemon configured one (opt-in); the
+	// sandbox then gets the http_fetch tool and can reach approved hosts + vault://
+	// credentials. Empty keeps the sealed default.
+	if m.cfg.EgressSocket != "" {
+		spec.EgressSocket = m.cfg.EgressSocket
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

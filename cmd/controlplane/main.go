@@ -40,6 +40,7 @@ import (
 	"github.com/nivardsec/ironclaw/internal/host/api"
 	"github.com/nivardsec/ironclaw/internal/host/channels"
 	"github.com/nivardsec/ironclaw/internal/host/delivery"
+	"github.com/nivardsec/ironclaw/internal/host/egress"
 	"github.com/nivardsec/ironclaw/internal/host/gateway"
 	"github.com/nivardsec/ironclaw/internal/host/isolation"
 	"github.com/nivardsec/ironclaw/internal/host/keys"
@@ -80,6 +81,12 @@ func main() {
 		"model-proxy egress rate cap in requests/second (per session when the sandbox sends an X-Ironclaw-Session header, otherwise global); 0 disables the cap")
 	proxyBurst := flag.Int("model-proxy-burst", 100,
 		"model-proxy rate-cap burst size")
+	egressSocket := flag.String("egress-socket", "",
+		"OPT-IN: host unix socket for the egress broker, bound into each sandbox so an agent can reach approved external hosts (empty keeps the sandbox sealed to the model proxy)")
+	egressAllow := flag.String("egress-allow", "",
+		"comma-separated hostnames the egress broker permits (deny-by-default; only used with --egress-socket)")
+	vaultEndpoint := flag.String("vault-endpoint", "",
+		"OPT-IN: host-local credential-injector URL; enables vault://<cred>/<path> routing through the egress broker (T-260). Requires --egress-socket")
 	skillsDir := flag.String("skills-dir", "",
 		"curated skills source directory; setting it enables the host-side /v1/skills endpoints (empty disables skills)")
 	skillsTrustKey := flag.String("skills-trust-key", "",
@@ -191,6 +198,17 @@ func main() {
 	}))
 	proxy := modelproxy.New(allowHosts, proxyOpts...)
 
+	// Egress broker (T-111/T-260): OPT-IN. With --egress-socket set, each sandbox gets
+	// a second host unix socket to reach operator-approved external hosts
+	// (deny-by-default), and with --vault-endpoint set, vault://<cred> credentials via
+	// a host-local injector (a SEPARATE principal — the broker injects no secret).
+	// Empty keeps the sealed default: the sandbox reaches only the model proxy.
+	broker, err := buildEgressBroker(*egressSocket, *egressAllow, *vaultEndpoint, logger)
+	if err != nil {
+		logger.Error("egress broker", "error", err)
+		os.Exit(1)
+	}
+
 	// Gateway: durable FileStore + append-only audit log. The chain is the
 	// deterministic rejecters, then the create_agent verifier (RFC-0004 — always
 	// holds a new agent for a human, never auto-approved), then the
@@ -254,6 +272,7 @@ func main() {
 		Isolator:         isolator,
 		Registry:         reg,
 		ModelProxySocket: *socket,
+		EgressSocket:     *egressSocket,
 		Image:            *sandboxImage,
 		KeyDir:           filepath.Join(*stateDir, "keys"),
 		WorkspaceRoot:    filepath.Join(*stateDir, "workspaces"),
@@ -351,6 +370,19 @@ func main() {
 			stop()
 		}
 	}()
+
+	// Egress broker serve loop (only when --egress-socket configured).
+	if broker != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			logger.Info("egress broker listening", "socket", *egressSocket, "vault", *vaultEndpoint != "")
+			if err := broker.Serve(ctx, *egressSocket); err != nil && err != context.Canceled {
+				logger.Error("egress broker stopped", "error", err)
+				stop()
+			}
+		}()
+	}
 
 	wg.Add(1)
 	go func() {
@@ -530,6 +562,42 @@ func defaultModelProxySocket() string {
 		return filepath.Join(d, "ironclaw", "run", "modelproxy.sock")
 	}
 	return filepath.Join(os.TempDir(), "ironclaw", "modelproxy.sock")
+}
+
+// buildEgressBroker constructs the opt-in egress broker. It returns (nil, nil) when
+// socket is empty — egress is then disabled and sandboxes stay sealed to the model
+// proxy. When a vaultEndpoint is given, it enables vault:// routing (the injector
+// endpoint is itself allowlisted) plus audit correlation; the broker always strips
+// credential-bearing headers from responses on the way back to the sandbox.
+func buildEgressBroker(socket, allow, vaultEndpoint string, logger *obs.Logger) (*egress.Broker, error) {
+	if socket == "" {
+		return nil, nil
+	}
+	var hosts []string
+	for _, h := range strings.Split(allow, ",") {
+		if h = strings.TrimSpace(h); h != "" {
+			hosts = append(hosts, h)
+		}
+	}
+	opts := []egress.Option{
+		egress.WithResponseRedactor(egress.NewRedactor()),
+		egress.WithSessionIdentifier(func(r *http.Request) string { return r.Header.Get("X-Ironclaw-Session") }),
+		egress.WithAudit(func(rec egress.AuditRecord) {
+			logger.Info("egress request",
+				"host", rec.Host, "path", rec.Path, "status", rec.Status, "allowed", rec.Allowed,
+				"vault_cred", rec.VaultCredential, "correlation_id", rec.CorrelationID,
+				"duration_ms", rec.Duration.Milliseconds())
+		}),
+	}
+	if vaultEndpoint != "" {
+		v, err := egress.NewVault(vaultEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("vault endpoint: %w", err)
+		}
+		opts = append(opts, egress.WithVault(v), egress.WithCorrelator(egress.NewCorrelator()))
+		hosts = append(hosts, v.Endpoint()) // the host-local injector is allowlisted
+	}
+	return egress.New(hosts, opts...), nil
 }
 
 // buildSkillsResolver constructs the curated, signature-verifying skills resolver
