@@ -1,25 +1,69 @@
-# IronClaw
+<div align="center">
 
-**Security-first, self-hosted AI agents — isolation you can prove, not just promise.**
+<img src="docs/assets/logo.svg" alt="IronClaw" width="380">
+
+### Security-first, self-hosted AI agents — isolation you can prove, not just promise.
 
 [![CI](https://github.com/nivardsec/ironclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/nivardsec/ironclaw/actions/workflows/ci.yml)
-[![Release](https://github.com/nivardsec/ironclaw/actions/workflows/release.yml/badge.svg)](https://github.com/nivardsec/ironclaw/actions/workflows/release.yml)
 [![Latest release](https://img.shields.io/github/v/release/nivardsec/ironclaw?sort=semver)](https://github.com/nivardsec/ironclaw/releases/latest)
 [![Go Reference](https://pkg.go.dev/badge/github.com/nivardsec/ironclaw.svg)](https://pkg.go.dev/github.com/nivardsec/ironclaw)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange.svg)](#project-status)
+
+</div>
 
 IronClaw is an open-source platform for running personal AI assistants on infrastructure you
 control. You talk to them through the chat apps you already use; each assistant runs as a real,
-autonomous agent that can read, write, schedule, and reply. What makes IronClaw different is the
-threat model: it assumes the agent (and the box it runs in) could be compromised at any moment,
-and builds hard, provable walls so that even a misbehaving agent can't reach your data or your
-machine.
+autonomous agent that can read, write, schedule, and reply. What makes it different is the threat
+model: it assumes the agent — and the box it runs in — could be compromised at any moment, and
+builds hard, provable walls so that even a misbehaving agent can't reach your data or your machine.
+
+> **The security model, in one line:** each sandboxed agent runs with `network=none`, reaches the
+> model only through a host proxy, and **cannot change its own configuration** — every capability
+> change is held at a gateway for a human decision. The full design is in the
+> [architecture overview](docs/architecture.md) and the [threat model](docs/threat-model.md).
+
+<div align="center">
+
+<img src="docs/assets/demo.svg" width="800" alt="Quickstart terminal session: one command installs ironctl and the control-plane; the control-plane starts in dev mode on http://127.0.0.1:8787; a capability change is submitted and HELD at the gateway pending human approval, then approved.">
+
+</div>
+
+## Get running in under two minutes
+
+One command installs the two host binaries (`ironctl` + `ironclaw-controlplane`); in dev mode the
+control-plane serves its API at **`http://127.0.0.1:8787`**. From a cold machine, you'll have a
+capability change waiting at the security gateway in **under two minutes**:
+
+```sh
+# 1. Install — detects your OS/arch and verifies the SHA-256 checksum before installing
+curl -fsSL https://raw.githubusercontent.com/nivardsec/ironclaw/main/scripts/install.sh | sh
+
+# 2. Start the control-plane in dev mode — API base URL: http://127.0.0.1:8787
+export IRONCLAW_API_TOKEN=$(openssl rand -hex 32)
+ironclaw-controlplane --dev --api-addr 127.0.0.1:8787 &
+
+# 3. Your first command — submit a change; it is HELD at the gateway for a human decision
+ironctl change submit --kind persona --group default --by you
+ironctl change pending                       # see it waiting
+ironctl change approve <change-id> --by you   # apply it
+```
+
+On Windows, install with `irm https://raw.githubusercontent.com/nivardsec/ironclaw/main/scripts/install.ps1 | iex`.
+Version pinning, system-wide installs, and building from source are all in [Installation](#installation).
+
+## CLI-first and API-first
+
+This is a feature, not a missing dashboard. Every capability is a documented HTTP endpoint **and** an
+`ironctl` subcommand, so IronClaw is scriptable, auditable, and CI-friendly from the first command —
+with **no public web surface to phish, misconfigure, or leave exposed.** (A private, mesh-only web
+console is on the [roadmap](#roadmap) — additive, and never the only way in.)
 
 ---
 
 ## Table of contents
 
+- [Get running in under two minutes](#get-running-in-under-two-minutes)
+- [CLI-first and API-first](#cli-first-and-api-first)
 - [Why it's different](#why-its-different)
 - [How it works](#how-it-works)
 - [Project status](#project-status)
@@ -31,6 +75,7 @@ machine.
 - [Development](#development)
 - [Repository layout](#repository-layout)
 - [Security](#security)
+- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -187,8 +232,8 @@ For a guided host install (containerd + runsc + Tailscale + a systemd unit), run
 
 ## Quickstart
 
-Run the control-plane locally in dev mode (no gVisor, binds to loopback) and drive it with the
-admin CLI:
+A fuller local walkthrough — run the control-plane **from source** in dev mode (no gVisor, binds to
+loopback) and drive it with the admin CLI:
 
 ```sh
 # Terminal 1 — start the control-plane in dev mode
