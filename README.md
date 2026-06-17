@@ -70,6 +70,7 @@ console is on the [roadmap](#roadmap) — additive, and never the only way in.)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Quickstart](#quickstart)
+- [Examples](#examples)
 - [Usage](#usage)
 - [Configuration](#configuration)
 - [Development](#development)
@@ -257,6 +258,15 @@ ironctl audit --limit 20
 
 Every mutation — persona, enabled tools, packages, wiring, permissions, mounts — flows through this
 same gateway. There is no file-edit path that bypasses it.
+
+## Examples
+
+Runnable templates that configure a real agent against a running control-plane live in
+[`examples/`](examples/) — each is a directory with a `README.md` and a `setup.sh`:
+
+- [`personal-assistant/`](examples/personal-assistant/) — a private 1:1 assistant on Telegram, plus a walk-through of the mandatory change-approval flow.
+- [`channel-triage/`](examples/channel-triage/) — a Slack triage bot that engages only on `@mention`, only for known senders.
+- [`multi-agent-team/`](examples/multi-agent-team/) — two agents sharing one channel, separated by engage mode and priority.
 
 ## Usage
 
