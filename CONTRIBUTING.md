@@ -44,3 +44,12 @@ fake-sandbox hook that AGENT2's specs use. Do not rewrite each other's specs.
 The skeleton builds, vets, and tests stdlib-only. See
 [`docs/building.md`](docs/building.md). Run `make build vet test` before opening a
 PR.
+
+## Adding a channel adapter
+
+Channel adapters (`internal/host/channels/`) are small, uniform, and
+dependency-free — a good first contribution. See
+[**Writing a channel adapter**](docs/writing-a-channel-adapter.md) for the interface,
+the house pattern (stdlib HTTP, test-overridable `BaseURL`, secret redaction,
+threading), and the test pattern; and [`docs/channels.md`](docs/channels.md) for what
+each existing adapter needs to be configured.

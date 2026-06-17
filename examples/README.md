@@ -10,6 +10,7 @@ API allows).
 | [`personal-assistant/`](personal-assistant/) | A private 1:1 assistant on Telegram that replies to every message — plus the mandatory change-approval flow. |
 | [`channel-triage/`](channel-triage/) | A triage bot in a shared Slack channel: engages only on `@mention`, only for known senders, and accumulates context from the messages it ignores. |
 | [`multi-agent-team/`](multi-agent-team/) | Two agents wired into one group chat (a frontline responder + a scribe), showing priorities, multi-agent wiring, and where agent-to-agent / `create_agent` sits. |
+| [`keyword-watcher/`](keyword-watcher/) | A quiet ops agent in a Discord channel that engages only on a `pattern` match (`deploy`/`incident`/`outage`), from any sender, one session per incident thread. |
 
 ## Prerequisites
 
