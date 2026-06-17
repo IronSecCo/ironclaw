@@ -51,21 +51,12 @@ function loadApprovals() {
 }
 
 // ---- Audit -----------------------------------------------------------------
+// The logs & audit viewer is owned by audit.js (T-224): a filterable, searchable,
+// exportable, live-tailing read-only view over the read-model /v1/ui/audit. The
+// shell delegates so connection, tabs, and the refresh button stay in one place.
 
-async function loadAudit() {
-  const host = document.getElementById("audit-list");
-  host.replaceChildren(el("p", { class: "muted", text: "Loading…" }));
-  try {
-    const entries = (await api("/v1/audit?limit=50")) || [];
-    if (entries.length === 0) {
-      host.replaceChildren(el("p", { class: "muted", text: "No audit entries." }));
-      return;
-    }
-    host.replaceChildren(...entries.map((e) =>
-      el("pre", { class: "payload", text: JSON.stringify(e, null, 2) })));
-  } catch (e) {
-    host.replaceChildren(el("p", { class: "error", text: String(e.message || e) }));
-  }
+function loadAudit() {
+  return Audit.load();
 }
 
 // ---- Connection + tabs -----------------------------------------------------

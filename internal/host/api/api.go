@@ -142,6 +142,7 @@ func (s *Server) routes() {
 	s.uiRoutes()          // embedded web console at GET /ui/ (T-220; see ui.go)
 	s.uiApprovalsRoutes() // approvals read-model at GET /v1/ui/approvals (T-221; see ui_approvals.go)
 	s.uiSessionsRoutes()  // sessions read-model + terminate at /v1/ui/sessions (T-222; see ui_sessions.go)
+	s.uiAuditRoutes()     // audit read-model at GET /v1/ui/audit (T-224; see ui_audit.go)
 }
 
 // auth wraps h with optional bearer-token authentication. With no token set, the
