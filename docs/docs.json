@@ -1,0 +1,98 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "IronClaw",
+  "description": "Security-first, self-hosted AI agents — isolation you can prove, not just claim.",
+  "colors": {
+    "primary": "#ff7a2e",
+    "light": "#ff9a5c",
+    "dark": "#11161f"
+  },
+  "favicon": "/site/favicon.svg",
+  "logo": {
+    "light": "/assets/logo.svg",
+    "dark": "/assets/logo.svg",
+    "href": "https://github.com/nivardsec/ironclaw"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "site/index",
+          "site/quickstart",
+          "site/installation"
+        ]
+      },
+      {
+        "group": "Concepts",
+        "pages": [
+          "site/concepts/how-it-works",
+          "site/concepts/gateway",
+          "site/concepts/sandbox-isolation",
+          "site/concepts/channels"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "site/guides/first-agent",
+          "site/guides/approvals",
+          "site/guides/wiring-channels"
+        ]
+      },
+      {
+        "group": "Self-Hosting",
+        "pages": [
+          "site/self-hosting/docker",
+          "site/self-hosting/from-source",
+          "site/self-hosting/production"
+        ]
+      },
+      {
+        "group": "Configuration",
+        "pages": [
+          "site/configuration"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "site/reference/cli",
+          "site/reference/api"
+        ]
+      },
+      {
+        "group": "Architecture",
+        "pages": [
+          "site/architecture/overview",
+          "site/architecture/contract"
+        ]
+      },
+      {
+        "group": "Security",
+        "pages": [
+          "site/security/model"
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Security Policy",
+        "href": "https://github.com/nivardsec/ironclaw/security/policy"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "GitHub",
+      "href": "https://github.com/nivardsec/ironclaw"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/nivardsec/ironclaw"
+    }
+  }
+}

@@ -1,0 +1,57 @@
+---
+title: "Architecture"
+description: "Components, the trust model, and the host packages that compose the control plane."
+---
+
+IronClaw is a security-hardened assistant platform written entirely in Go. A host **control-plane**
+orchestrates per-session **sandboxes**; the two sides communicate only through a pair of encrypted SQLite
+queues.
+
+## Components
+
+- **Control-plane (host)** — the mesh-only HTTP API, the mandatory gateway, the isolation launcher, the
+  router, delivery, the maintenance sweep, the key custodian, the channel adapters, and the model-egress
+  proxy.
+- **Sandbox** — the reasoning poll loop, the model provider, the in-sandbox tools, and the queue access
+  layer.
+- **Frozen contract** (`internal/contract`) — the only package both sides import: typed IDs, enums, row
+  structs, the embedded SQL schema, crypto open helpers, interface-segregated queue access, and the
+  gateway protocol. See [the frozen contract](/site/architecture/contract).
+
+## Trust model
+
+1. **Compiled Go, no interpreter in the sandbox** — the agent cannot read or edit its own source.
+2. **A mandatory gateway** — every control-plane mutation is a deterministic, human-approved, auditable
+   transaction. No file is the source of truth.
+3. **Encrypted per-session queues** — disk theft and cross-session reads are useless.
+4. **Least-privilege queue access** — the sandbox can only read inbound and write outbound, enforced at
+   the Go type level and the OS mount level.
+5. **gVisor (`runsc`)** wraps every sandbox, behind a pluggable `Isolator`.
+6. **Tailscale** fronts the control-plane API; no public port.
+7. The sandbox has **`network=none`**; model calls go through the host proxy.
+
+## Host packages
+
+The control-plane pipeline is interface-driven, with in-memory backends alongside the durable ones (so the
+pipeline and its tests run under `--dev` without provisioning encrypted on-disk files):
+
+| Package | Responsibility |
+|---|---|
+| `internal/host/registry` | The control-plane data model: agent groups, messaging groups, wirings, sessions, users, roles, members, destinations. Host-internal — the sandbox never sees it, so it is **not** part of the frozen contract. Owns session partitioning and access precedence. |
+| `internal/host/queue` | Encrypted inbound/outbound queue openers over the live SQLCipher binding (plus in-memory backends). Seq parity enforced: host writes **even**, sandbox **odd**. |
+| `internal/host/router` | `RouteInbound` fans an inbound event out to every wired agent group. |
+| `internal/host/delivery` | `Poll` reads due outbound messages, dedups, re-authorizes privileged system actions host-side, and enforces destination permission. `schedule_task` only **enqueues** a future prompt — it executes nothing, adding no RCE surface. |
+| `internal/host/scheduling` | Pure scheduling logic (`Validate`, `NextRun`). A `ScheduledRequest` carries **only a prompt** — never a script/command — so scheduling can never become an unapproved execution path. |
+| `internal/host/isolation` | `BuildOCISpec` turns a `SandboxSpec` into a hardened OCI spec (`network=none`, empty capabilities, `no_new_privs`, non-root user namespace, read-only rootfs, inbound `ro` / outbound `rw`, model-proxy socket bound in). `RunscIsolator` writes the bundle and execs the runtime. |
+| `internal/host/sweep` | Probes session liveness, kills stuck sandboxes, wakes due/recurring scheduled messages — again only carrying a prompt. |
+| `internal/host/gateway` | The durable change store, the append-only audit log, and the deterministic verifier chain ending at the `always-require-human` floor. |
+| `internal/host/keys` | Durable key custody — a file-backed master key seals per-session keys so they survive a restart. |
+| `internal/host/modelproxy` | The egress proxy: allowlist, host-side credential injection, rate caps, per-request audit, secret redaction. |
+
+## Pluggable by design
+
+Two seams are deliberately swappable so the project can grow without risky rewrites:
+
+- **The model provider** — change which model powers the agents (behind a clean interface).
+- **The isolation layer** — gVisor is the default; the same `Isolator` interface leaves room for stronger
+  boxes such as lightweight VMs (Kata).

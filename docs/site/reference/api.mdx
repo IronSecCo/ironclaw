@@ -1,0 +1,82 @@
+---
+title: "Control-plane API"
+description: "The small HTTP API that drives the gateway, plus health and metrics endpoints."
+---
+
+The control-plane exposes a small HTTP API that drives the [gateway](/site/concepts/gateway) — the single
+choke point for every control-plane mutation. `ironctl` is a thin client of this API. The server **must**
+bind only to the mesh (Tailscale) interface so there is no public port.
+
+All request and response bodies are JSON; times are RFC 3339.
+
+<Note>
+A complete, machine-readable **OpenAPI specification** lives at `api/openapi.yaml` in the repository,
+alongside the prose reference at `api/control-plane.md`.
+</Note>
+
+## Authentication
+
+The tailnet boundary is the primary control. As defense-in-depth, start the control-plane with
+`IRONCLAW_API_TOKEN` set and every request (except `GET /healthz`) must carry:
+
+```
+Authorization: Bearer <token>
+```
+
+Requests without a valid token get `401 Unauthorized` (constant-time comparison). With no token
+configured, the check is disabled and the API relies on the tailnet boundary alone.
+
+## Health & metrics
+
+| Endpoint | Auth | Response |
+|---|---|---|
+| `GET /healthz` | none | `200 OK` — `{ "status": "ok" }` |
+| `GET /readyz` | none | readiness probe |
+| `GET /metrics` | token | Prometheus metrics |
+
+## Gateway endpoints
+
+### `POST /v1/changes`
+
+Submit a control-plane mutation as a `ChangeRequest`. The gateway runs its deterministic verifier chain
+and (per the floor) holds the change pending a human decision; the server processes it in the background
+and returns immediately.
+
+```json
+{ "Kind": "persona", "AgentGroupID": "g1", "RequestedBy": "slack:alice", "Before": null, "After": null }
+```
+
+`Kind` is one of `persona`, `enabled_tools`, `packages`, `wiring`, `permissions`, `mounts`. Response —
+`202 Accepted`: `{ "id": "chg_..." }`.
+
+### `GET /v1/changes/pending`
+
+List change requests awaiting a decision. `200 OK` — a JSON array of `ChangeRequest` objects.
+
+### `GET /v1/changes/history`
+
+List applied + rejected changes (everything no longer pending). Each entry carries the `ChangeRequest`,
+its terminal `status` (`applied` | `rejected` | `approved`), and the recorded `decision`.
+
+### `POST /v1/changes/{id}/decision`
+
+Record a human decision for a pending change.
+
+```json
+{ "outcome": "approve", "decidedBy": "slack:admin" }
+```
+
+`outcome` must be `approve` or `reject`. Responses: `200 OK` `{ "status": "recorded" }`; `400` missing
+id / invalid outcome; `409` no change awaiting that id.
+
+### `GET /v1/audit`
+
+Recent gateway audit entries (append-only: submit / verdict / decision / apply). Optional `?limit=N`
+(default 100). Each entry: `{ "time", "stage", "changeId", "kind", "detail" }`.
+
+## Registry & UI endpoints
+
+The API also serves the registry admin surface (`/v1/registry/*` — agent groups, messaging groups,
+wirings, users, roles, members, destinations, sessions, access) that [`ironctl registry`](/site/reference/cli)
+wraps, and a read-only console read-model (`/v1/ui/*`) for approvals, sessions, channels, audit, config,
+and chat. See `api/openapi.yaml` for the full set.

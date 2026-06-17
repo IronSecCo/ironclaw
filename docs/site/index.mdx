@@ -1,0 +1,67 @@
+---
+title: "IronClaw"
+sidebarTitle: "Introduction"
+description: "Security-first, self-hosted AI agents — isolation you can prove, not just claim."
+---
+
+IronClaw is a personal AI assistant platform that runs on **your own** machine. You talk to it through
+chat apps you already use (Slack, Discord, Telegram, and more), and behind the scenes it runs real AI
+agents that can read, write, schedule things, and reply to you.
+
+Plenty of tools do that. IronClaw's reason to exist is _how_ it does it: **security first.** It treats
+every agent — and the sealed box it runs in — as something that could be tricked or turned against you
+at any moment, and it builds hard walls so that even a fully-compromised agent can't reach your data or
+your machine.
+
+## The four promises
+
+Everything in the design follows from four guarantees:
+
+<CardGroup cols={2}>
+  <Card title="The agent can't turn on itself" icon="lock">
+    It runs as a compiled Go binary — there is no source code inside the box to edit, and no
+    self-modification tools exist.
+  </Card>
+  <Card title="You approve every change" icon="user-check">
+    Nothing about an agent changes — persona, tools, packages, wiring, permissions, mounts — without a
+    human seeing the exact change and approving it at the gateway.
+  </Card>
+  <Card title="Your data stays sealed" icon="shield">
+    Every conversation lives in its own encrypted queue with its own key. Disk theft and cross-session
+    reads are useless.
+  </Card>
+  <Card title="Nothing escapes the box" icon="ban">
+    Each agent runs under gVisor with <code>network=none</code>. Its only path out is a host-chaperoned
+    model proxy.
+  </Card>
+</CardGroup>
+
+## Start here
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/site/quickstart">
+    From a clean clone to submitting and approving your first gateway change in five minutes.
+  </Card>
+  <Card title="Installation" icon="download" href="/site/installation">
+    Prebuilt binaries, Docker Compose, or build from source.
+  </Card>
+  <Card title="How it works" icon="diagram-project" href="/site/concepts/how-it-works">
+    Follow a single message end to end through the control plane and the sealed sandbox.
+  </Card>
+  <Card title="Security model" icon="shield-halved" href="/site/security/model">
+    The trust boundaries IronClaw defends, and what is deliberately out of scope.
+  </Card>
+</CardGroup>
+
+## The security scorecard
+
+| Pillar | What it is | Attack surface it removes |
+|--------|------------|----------------------------|
+| **Sealed runtime** | Compiled Go agent | Agent self-modification |
+| **Approved by humans** | Mandatory change gateway | Silent setting changes |
+| **Encrypted queues** | Per-session encrypted files, read-only inbox | Data theft at rest |
+| **Sealed sandbox** | gVisor container, no network, chaperoned model calls | Data exfiltration and escape |
+| **Private control panel** | Access over a private mesh (Tailscale) only | Remote attacks on the controls |
+
+The throughline: **treat the agent as untrusted, and make the security boundary something you can prove —
+not something you take on faith.** IronClaw is open source under the MIT license.

@@ -1,0 +1,57 @@
+---
+title: "Channels & wiring"
+description: "How chat platforms connect to agent groups through messaging groups and wirings."
+---
+
+You talk to IronClaw through chat apps you already use. A **channel adapter** bridges a platform to the
+control plane; a **wiring** connects a messaging group to an agent group with explicit engage rules.
+
+## The pieces
+
+| Concept | What it is |
+|---|---|
+| **Channel adapter** | The platform integration (Slack, Discord, Telegram, …). Registers at startup when its bot token is present in the environment. |
+| **Agent group** | A configured agent: a workspace folder, persona, model backend, and container config. |
+| **Messaging group** | A conversation surface on a platform (a channel/DM/instance) the control plane routes. |
+| **Wiring** | The link between a messaging group and an agent group, plus the engage policy. |
+| **Destination** | An approved place an agent may send to (enforced host-side on delivery). |
+
+## Built-in channel adapters
+
+Each adapter registers only when its credential/URL is set in the control-plane environment:
+
+| Channel | Environment variable(s) |
+|---|---|
+| Slack | `SLACK_BOT_TOKEN` |
+| Discord | `DISCORD_BOT_TOKEN` |
+| Telegram | `TELEGRAM_BOT_TOKEN` |
+| Microsoft Teams | `IRONCLAW_TEAMS_WEBHOOK_URL` |
+| Signal (via signal-cli bridge) | `IRONCLAW_SIGNAL_CLI_URL`, `IRONCLAW_SIGNAL_NUMBER` |
+| iMessage (macOS host) | `IRONCLAW_IMESSAGE_ENABLE=1` |
+
+See [Configuration](/site/configuration) for the full variable list.
+
+## Engage modes & sessions
+
+A wiring controls _when_ an agent engages and _how_ conversations are partitioned:
+
+- **Engage mode** — e.g. always, on mention/pattern, or accumulate-until-triggered.
+- **Scope** — engage with `all` senders or only `known` ones.
+- **Session partitioning** — `shared`, `per-thread`, or `agent-shared`, so one busy channel doesn't blur
+  into a single context.
+
+Routing fans an inbound event out to every wired agent group, and delivery re-authorizes any privileged
+system action host-side and enforces destination permission before anything leaves the box.
+
+## Wiring one up
+
+Channels and wirings are registry objects, created with [`ironctl registry`](/site/reference/cli):
+
+```sh
+# Register a messaging group for a Slack channel
+ironctl registry messaging-group create --channel slack --platform C0123 --policy strict
+# Wire it to an agent group, engaging on mention, one session per thread
+ironctl registry wiring create --mg <mg-id> --agent default --engage mention --session per-thread
+```
+
+The [Wiring a channel guide](/site/guides/wiring-channels) walks through it end to end.
