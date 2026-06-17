@@ -234,6 +234,33 @@ run [`sudo deploy/install.sh`](deploy/install.sh). It needs root to write under 
 and `/var/lib`. The external runtime dependencies it relies on (containerd + gVisor and
 Tailscale) are set up separately — see [`deploy/README.md`](deploy/README.md).
 
+### With Docker (`docker compose`)
+
+Self-host the control-plane in one command. From a clone:
+
+```sh
+cp .env.example .env          # fill in ANTHROPIC_API_KEY (optional to boot)
+docker compose up -d          # builds locally on first run, or pulls the GHCR image
+docker compose logs -f controlplane   # CLAIM the admin token printed once on first run
+```
+
+The admin/API token is **minted on first run and printed once** in the logs (there is
+no recovery) unless you set `IRONCLAW_API_TOKEN` yourself. The admin API is published
+on `127.0.0.1:8787` only — front it with Tailscale for remote access.
+
+Prefer the published image? It is pushed to GitHub Container Registry on every release:
+
+```sh
+docker pull ghcr.io/nivardsec/ironclaw-controlplane:latest
+# or pin a release: docker pull ghcr.io/nivardsec/ironclaw-controlplane:v0.1.0
+```
+
+Set `IRONCLAW_IMAGE` in `.env` to pin that tag for `docker compose`. Every variable the
+control-plane reads is documented in [`.env.example`](.env.example). The agent sandboxes
+themselves are **not** compose services — the control-plane launches them as gVisor
+(`runsc`) children with `network=none`; running real sandboxes needs a runsc-capable
+host (see [`deploy/README.md`](deploy/README.md)).
+
 ## Quickstart
 
 A fuller local walkthrough — run the control-plane **from source** in dev mode (no gVisor, binds to

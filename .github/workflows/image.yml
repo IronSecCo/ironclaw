@@ -1,0 +1,103 @@
+name: Image
+
+# Build and publish the control-plane container image to GHCR on release.
+#
+# It chains off the "Release" workflow via workflow_run: the Release workflow cuts a
+# GitHub Release on every push to main, and this runs right after it succeeds. (A
+# release created by the workflow's GITHUB_TOKEN does NOT fire a `release:` event —
+# GitHub's recursion guard — so workflow_run is the reliable chain.) workflow_dispatch
+# allows a manual rebuild of any tag.
+#
+# The image bundles ironclaw-controlplane + ironctl (container/controlplane.Dockerfile);
+# docker-compose.yml and the README pull it from ghcr.io/<owner>/ironclaw-controlplane.
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to stamp + publish (e.g. v0.1.99). Blank = latest only."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  packages: write # push to GHCR under the repository owner
+
+# Never publish two image builds at once; a half-pushed manifest is worse than a wait.
+concurrency:
+  group: image
+  cancel-in-progress: false
+
+jobs:
+  controlplane:
+    runs-on: ubuntu-latest
+    # On the workflow_run path, only build when the Release actually succeeded.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      # Build the exact commit the release was cut from (workflow_run), else the ref
+      # the dispatch was started on.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      # Resolve the lowercased GHCR ref and the version to stamp/tag. On the
+      # workflow_run path the version is the just-published release tag (read back via
+      # gh); on dispatch it is the optional input. Blank version → publish :latest only.
+      - name: Resolve image ref + version
+        id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+          EVENT: ${{ github.event_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          owner="$(printf '%s' "${OWNER}" | tr '[:upper:]' '[:lower:]')"
+          image="ghcr.io/${owner}/ironclaw-controlplane"
+          if [ "${EVENT}" = "workflow_dispatch" ]; then
+            version="${INPUT_TAG}"
+          else
+            # The latest release is the one the Release workflow just published.
+            version="$(gh release view --json tagName -q .tagName 2>/dev/null || true)"
+          fi
+          # Newline-separated tags, no leading whitespace (build-push-action splits on \n).
+          tags="${image}:latest"
+          if [ -n "${version}" ]; then
+            tags="$(printf '%s\n%s' "${image}:latest" "${image}:${version}")"
+          fi
+          {
+            echo "image=${image}"
+            echo "version=${version:-dev}"
+            echo "tags<<EOF"
+            printf '%s\n' "${tags}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+          echo "Publishing ${tags} (VERSION=${version:-dev})"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: container/controlplane.Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+          # linux/amd64 only: the image embeds a CGO (SQLCipher) binary, and an
+          # emulated arm64 CGO build is slow and flaky. Add linux/arm64 with a QEMU
+          # setup step when arm64 servers need a native image.
+          platforms: linux/amd64
+          # Keep the published artifact a plain single-platform image; release signing
+          # / SBOM / SLSA provenance are owned by the supply-chain tasks, not here.
+          provenance: false
+          sbom: false
