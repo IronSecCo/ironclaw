@@ -106,6 +106,16 @@ h2 { font-size: 16px; margin: 0 0 4px; }
 }
 .id { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
 
+.meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+.meta dt { color: var(--muted); }
+.meta dd { margin: 0; }
+
 .payload {
   background: var(--bg);
   border: 1px solid var(--border);

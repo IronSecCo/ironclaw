@@ -218,7 +218,10 @@ func main() {
 		store,
 	).SetAudit(audit)
 
-	server := api.New(gw).WithHistory(store).WithAuditPath(auditPath).WithMetrics(m.Handler())
+	// WithRegistry attaches the control-plane registry so the /v1/registry admin
+	// endpoints are live and the approvals read-model (/v1/ui/approvals, T-221) can
+	// resolve agent-group/requester names instead of showing raw ids.
+	server := api.New(gw).WithHistory(store).WithAuditPath(auditPath).WithMetrics(m.Handler()).WithRegistry(reg)
 	// Optional bearer-token auth (defense-in-depth behind the tailnet). Read from
 	// the host environment; never logged.
 	apiToken := os.Getenv("IRONCLAW_API_TOKEN")

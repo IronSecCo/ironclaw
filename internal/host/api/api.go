@@ -138,7 +138,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/changes/{id}/decision", s.handleDecision)
 	s.mux.HandleFunc("GET /v1/audit", s.handleAudit)
 	s.registryRoutes()
-	s.uiRoutes() // embedded web console at GET /ui/ (T-220; see ui.go)
+	s.uiRoutes()          // embedded web console at GET /ui/ (T-220; see ui.go)
+	s.uiApprovalsRoutes() // approvals read-model at GET /v1/ui/approvals (T-221; see ui_approvals.go)
 }
 
 // auth wraps h with optional bearer-token authentication. With no token set, the

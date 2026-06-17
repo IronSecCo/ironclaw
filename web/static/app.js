@@ -42,52 +42,12 @@ function el(tag, attrs = {}, ...children) {
 }
 
 // ---- Approvals -------------------------------------------------------------
+// The approvals inbox is owned by approvals.js (T-221), which renders the
+// read-model-backed list (/v1/ui/approvals) with approve/reject. The shell just
+// delegates so connection, tabs, and the refresh button stay in one place.
 
-async function loadApprovals() {
-  const host = document.getElementById("approvals-list");
-  host.replaceChildren(el("p", { class: "muted", text: "Loading…" }));
-  try {
-    const pending = (await api("/v1/changes/pending")) || [];
-    if (pending.length === 0) {
-      host.replaceChildren(el("p", { class: "muted", text: "No pending changes." }));
-      return;
-    }
-    host.replaceChildren(...pending.map(renderChange));
-  } catch (e) {
-    host.replaceChildren(el("p", { class: "error", text: String(e.message || e) }));
-  }
-}
-
-function renderChange(c) {
-  const card = el("article", { class: "card" });
-  card.append(
-    el("div", { class: "card-head" },
-      el("span", { class: "kind", text: String(c.kind ?? "change") }),
-      el("span", { class: "id", text: String(c.id ?? "") })
-    ),
-    el("pre", { class: "payload", text: JSON.stringify(c, null, 2) })
-  );
-
-  const approve = el("button", { type: "button", text: "Approve" });
-  const reject = el("button", { class: "danger", type: "button", text: "Reject" });
-  approve.addEventListener("click", () => decide(c.id, "approve"));
-  reject.addEventListener("click", () => decide(c.id, "reject"));
-  card.append(el("div", { class: "actions" }, approve, reject));
-  return card;
-}
-
-async function decide(id, outcome) {
-  if (!id) return;
-  try {
-    await api("/v1/changes/" + encodeURIComponent(id) + "/decision", {
-      method: "POST",
-      body: JSON.stringify({ outcome, decidedBy: "console" }),
-    });
-    setStatus(outcome + "d " + id, "ok");
-    await loadApprovals();
-  } catch (e) {
-    setStatus(String(e.message || e), "error");
-  }
+function loadApprovals() {
+  return Approvals.load();
 }
 
 // ---- Audit -----------------------------------------------------------------
