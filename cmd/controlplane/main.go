@@ -232,6 +232,14 @@ func main() {
 	createAgent := func(id contract.AgentGroupID, name, folder string) error {
 		return reg.PutAgentGroup(registry.AgentGroup{ID: id, Name: name, Folder: folder})
 	}
+	// Applier chain (apply-side, T-096): create_agent is materialized into the
+	// registry; when egress is enabled, an approved change's egress grants (e.g. a
+	// skill install's bundle) are materialized into the broker's allowlist so the
+	// grant takes effect; every other kind is logged.
+	var capApplier contract.Applier = gateway.NewLogApplier()
+	if broker != nil {
+		capApplier = gateway.NewEgressApplier(broker, capApplier)
+	}
 	gw := gateway.New(
 		gateway.VerifierChain{
 			gateway.MountAllowlistVerifier{AllowedPrefixes: []string{filepath.Join(*stateDir, "mounts")}},
@@ -240,7 +248,7 @@ func main() {
 			gateway.AlwaysRequireHuman{},
 		},
 		gateway.NewManualApprover(),
-		gateway.NewCreateAgentApplier(createAgent, gateway.NewLogApplier()),
+		gateway.NewCreateAgentApplier(createAgent, capApplier),
 		store,
 	).SetAudit(audit)
 
