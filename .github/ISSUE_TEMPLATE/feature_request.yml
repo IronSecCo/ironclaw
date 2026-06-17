@@ -1,0 +1,57 @@
+name: "✨ Feature request"
+description: Suggest a capability or improvement for IronClaw
+title: "[feat]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Please search existing issues and the
+        [roadmap](https://github.com/nivardsec/ironclaw/blob/main/.agents/ROADMAP-TO-1.0.md) first —
+        it may already be planned (Waves 6–8).
+
+        > [!NOTE]
+        > IronClaw is **security-first**. Some capabilities are intentional **non-goals** by threat model
+        > (see [`AGENTS.md`](https://github.com/nivardsec/ironclaw/blob/main/AGENTS.md) §10): in-sandbox
+        > web/browser access, in-sandbox `install_packages` / self-modification. Requests that relax the
+        > sealed / `network=none` posture (egress, vault, multi-provider) are evaluated as deliberate,
+        > human-gated decisions — say so explicitly below.
+  - type: checkboxes
+    id: dupes
+    attributes:
+      label: Confirmation
+      options:
+        - label: I searched existing issues and the roadmap; this is not already tracked.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What are you trying to do, and why is it hard or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like IronClaw to do? Be concrete.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches, workarounds, or how peer tools (nanoclaw/openclaw) handle it.
+    validations:
+      required: false
+  - type: dropdown
+    id: security-impact
+    attributes:
+      label: Does this change the security posture?
+      description: e.g. network egress, the sandbox seal, the approval gateway, credential handling.
+      options:
+        - "No — stays within the current threat model"
+        - "Yes — relaxes/extends the threat model (expect a human decision + threat-model review)"
+        - "Not sure"
+    validations:
+      required: true

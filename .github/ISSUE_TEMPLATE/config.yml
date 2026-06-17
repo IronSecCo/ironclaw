@@ -1,0 +1,13 @@
+# Force chooser-based reporting so security reports don't land in the public tracker.
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/nivardsec/ironclaw/security/policy
+    about: "Never file security issues publicly. Use the Security policy / 'Report a vulnerability' button. See SECURITY.md."
+  - name: 💬 Questions & ideas (Discussions)
+    url: https://github.com/nivardsec/ironclaw/discussions
+    about: Ask questions, share setups, and discuss direction. Not for bug reports.
+  - name: 📖 Documentation
+    url: https://github.com/nivardsec/ironclaw/blob/main/README.md
+    about: Quickstart, architecture, threat model, and the Road to 1.0 roadmap.
+  # TODO(T-210): add the Discord invite as a contact link once the community server is stood up.
