@@ -1,20 +1,32 @@
 // OWNER: T-016
 
-// Command controlplane is the IronClaw host daemon entrypoint. It wires the
-// control-plane API, gateway (durable FileStore + append-only audit log), keys,
-// registry, model proxy, and the live per-session lifecycle (SessionManager over
-// the encrypted queue factory + isolator) plus the maintenance sweep and outbound
-// delivery loop, and runs them until a signal arrives. The API binds to a single
-// address that SHOULD be the Tailscale (tailnet) interface so the control-plane
-// has no public port.
+// Command controlplane is the IronClaw host daemon entrypoint. It composes the
+// control-plane subsystems and runs them until a signal arrives:
+//
+//   - structured logging (internal/obs) — text or JSON, secret-redacting;
+//   - durable key custody (internal/host/keys) — a file-backed master key seals
+//     per-session keys that survive a restart;
+//   - the gateway (durable FileStore + append-only audit) with the deterministic
+//     rejecters, the create_agent verifier/applier (RFC-0004), and the
+//     AlwaysRequireHuman floor;
+//   - the control-plane API, with Prometheus metrics exposed at /metrics;
+//   - the model-proxy egress with rate caps, per-request audit (feeding metrics),
+//     and response secret redaction;
+//   - the live per-session lifecycle (SessionManager over the encrypted queue
+//     factory + isolator), the maintenance sweep with respawn backoff, and the
+//     outbound delivery loop;
+//   - channel adapters (Slack/Discord/Telegram) registered when their bot token
+//     is present in the environment.
+//
+// The API binds to a single address that SHOULD be the Tailscale (tailnet)
+// interface so the control-plane has no public port.
 package main
 
 import (
 	"context"
-	"crypto/rand"
 	"flag"
 	"fmt"
-	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -29,18 +41,20 @@ import (
 	"github.com/nivardsec/ironclaw/internal/host/gateway"
 	"github.com/nivardsec/ironclaw/internal/host/isolation"
 	"github.com/nivardsec/ironclaw/internal/host/keys"
+	"github.com/nivardsec/ironclaw/internal/host/metrics"
 	"github.com/nivardsec/ironclaw/internal/host/modelproxy"
 	"github.com/nivardsec/ironclaw/internal/host/questions"
 	"github.com/nivardsec/ironclaw/internal/host/queue"
 	"github.com/nivardsec/ironclaw/internal/host/registry"
 	"github.com/nivardsec/ironclaw/internal/host/session"
 	"github.com/nivardsec/ironclaw/internal/host/sweep"
+	"github.com/nivardsec/ironclaw/internal/obs"
 	"github.com/nivardsec/ironclaw/internal/version"
 )
 
 func main() {
 	apiAddr := flag.String("api-addr", "127.0.0.1:8787",
-		"control-plane API listen address — set to the Tailscale (tailnet) IP in production so there is no public port")
+		"control-plane API listen address (also serves /metrics) — set to the Tailscale (tailnet) IP in production so there is no public port")
 	socket := flag.String("model-proxy-socket", "/run/ironclaw/modelproxy.sock",
 		"unix socket the model proxy listens on (bound into each sandbox)")
 	stateDir := flag.String("state-dir", defaultStateDir(),
@@ -55,6 +69,12 @@ func main() {
 		"how often the maintenance sweep runs (stale-sandbox detection + due-message wake)")
 	deliveryInterval := flag.Duration("delivery-interval", 2*time.Second,
 		"how often the outbound delivery loop polls per-session outbound queues")
+	logFormat := flag.String("log-format", "text",
+		"structured log format: \"text\" (human-readable) or \"json\" (log shippers)")
+	proxyRPS := flag.Float64("model-proxy-rps", 50,
+		"model-proxy egress rate cap in requests/second (per session when the sandbox sends an X-Ironclaw-Session header, otherwise global); 0 disables the cap")
+	proxyBurst := flag.Int("model-proxy-burst", 100,
+		"model-proxy rate-cap burst size")
 	dev := flag.Bool("dev", false,
 		"seed the registry with a tiny dev owner/agent-group for local testing")
 	showVersion := flag.Bool("version", false, "print version and exit")
@@ -65,69 +85,109 @@ func main() {
 		return
 	}
 
+	// Structured, secret-redacting logger for the whole daemon (T-101).
+	logger := obs.New(obs.Options{Format: obs.Format(*logFormat)}).Component("controlplane")
+
 	if err := os.MkdirAll(*stateDir, 0o700); err != nil {
-		log.Fatalf("controlplane: create state dir %s: %v", *stateDir, err)
+		logger.Error("create state dir", "dir", *stateDir, "error", err)
+		os.Exit(1)
 	}
 
-	// Host master key for the session-key custodian. In production this is loaded
-	// from a host secret store / KMS; here it is generated per process.
-	var master [32]byte
-	if _, err := rand.Read(master[:]); err != nil {
-		log.Fatalf("controlplane: generate master key: %v", err)
-	}
-	custodian, err := keys.New(master)
+	// Durable host key custody (T-100): the master key is loaded from (or created
+	// at) a 0600 file, and the sealed per-session keys are mirrored to a durable
+	// store, so session keys survive a control-plane restart instead of being lost
+	// with a per-process master.
+	masterPath := filepath.Join(*stateDir, "host-master.key")
+	keySource, err := keys.NewFileKeySource(masterPath)
 	if err != nil {
-		log.Fatalf("controlplane: keys: %v", err)
+		logger.Error("key source", "path", masterPath, "error", err)
+		os.Exit(1)
+	}
+	sealedPath := filepath.Join(*stateDir, "sealed-keys.json")
+	sealedStore, err := keys.NewFileStore(sealedPath)
+	if err != nil {
+		logger.Error("sealed key store", "path", sealedPath, "error", err)
+		os.Exit(1)
+	}
+	custodian, err := keys.NewDurable(keySource, sealedStore)
+	if err != nil {
+		logger.Error("keys", "error", err)
+		os.Exit(1)
 	}
 
 	// Registry: the control-plane data model (in-memory dev backend until the
 	// durable, encrypted store is selected at startup).
 	reg := registry.NewMemRegistry()
 	if *dev {
-		seedDev(reg)
+		seedDev(reg, logger)
 	}
 
-	// Model egress: the sandbox has network=none, so the proxy is its only path.
-	// The proxy is also the sole authenticator — the host-held API key is read
-	// here from the environment and injected per request; it never enters the
-	// sandbox image or environment. With no key set, the proxy still runs but
-	// forwards unauthenticated (useful for local/dev upstreams).
+	// Metrics (T-102): pre-wired domain metrics, exposed at /metrics on the API.
+	m := metrics.New()
+
+	// Model egress: the sandbox has network=none, so the proxy is its only path to
+	// the model host. It is the sole authenticator (host-held key injected per
+	// request, never in the sandbox) and is hardened (T-107) with an egress rate
+	// cap, per-request audit that also feeds metrics, and response secret redaction.
 	var proxyOpts []modelproxy.Option
 	credInjected := false
-	if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
-		proxyOpts = append(proxyOpts, modelproxy.WithInjector(
-			modelproxy.AnthropicInjector(key, "2023-06-01")))
+	if apiKey := os.Getenv("ANTHROPIC_API_KEY"); apiKey != "" {
+		proxyOpts = append(proxyOpts,
+			modelproxy.WithInjector(modelproxy.AnthropicInjector(apiKey, "2023-06-01")),
+			modelproxy.WithRedactedSecrets(apiKey),
+		)
 		credInjected = true
 	}
+	if *proxyRPS > 0 {
+		proxyOpts = append(proxyOpts,
+			modelproxy.WithRateCap(*proxyRPS, *proxyBurst),
+			modelproxy.WithIdentity(func(r *http.Request) string { return r.Header.Get("X-Ironclaw-Session") }),
+		)
+	}
+	proxyOpts = append(proxyOpts, modelproxy.WithAudit(func(rec modelproxy.AuditRecord) {
+		m.ObserveModelCall(rec.Duration.Seconds(), rec.Status >= 400 || !rec.Allowed)
+		logger.Info("model-proxy request",
+			"host", rec.Host, "method", rec.Method, "status", rec.Status,
+			"allowed", rec.Allowed, "rate_limited", rec.RateLimited, "duration_ms", rec.Duration.Milliseconds())
+	}))
 	proxy := modelproxy.New([]string{"api.anthropic.com"}, proxyOpts...)
 
-	// Gateway: durable FileStore + append-only audit log. The v1 floor is
-	// AlwaysRequireHuman, preceded by the deterministic rejecters (these only ADD
-	// rejections; they never bypass the human floor).
+	// Gateway: durable FileStore + append-only audit log. The chain is the
+	// deterministic rejecters, then the create_agent verifier (RFC-0004 — always
+	// holds a new agent for a human, never auto-approved), then the
+	// AlwaysRequireHuman floor. The applier materializes an approved create_agent
+	// into the registry and delegates every other kind to the log applier.
 	storePath := filepath.Join(*stateDir, "changes")
 	store, err := gateway.NewFileStore(storePath)
 	if err != nil {
-		log.Fatalf("controlplane: gateway store: %v", err)
+		logger.Error("gateway store", "path", storePath, "error", err)
+		os.Exit(1)
 	}
 	auditPath := filepath.Join(*stateDir, "audit.jsonl")
 	audit, err := gateway.NewAuditLog(auditPath)
 	if err != nil {
-		log.Fatalf("controlplane: audit log: %v", err)
+		logger.Error("gateway audit log", "path", auditPath, "error", err)
+		os.Exit(1)
 	}
 	defer audit.Close()
 
+	agentExists := func(id contract.AgentGroupID) bool { _, ok := reg.GetAgentGroup(id); return ok }
+	createAgent := func(id contract.AgentGroupID, name, folder string) error {
+		return reg.PutAgentGroup(registry.AgentGroup{ID: id, Name: name, Folder: folder})
+	}
 	gw := gateway.New(
 		gateway.VerifierChain{
 			gateway.MountAllowlistVerifier{AllowedPrefixes: []string{filepath.Join(*stateDir, "mounts")}},
 			gateway.PackageNameVerifier{},
+			gateway.NewCreateAgentVerifier(agentExists),
 			gateway.AlwaysRequireHuman{},
 		},
 		gateway.NewManualApprover(),
-		gateway.NewLogApplier(),
+		gateway.NewCreateAgentApplier(createAgent, gateway.NewLogApplier()),
 		store,
 	).SetAudit(audit)
 
-	server := api.New(gw).WithHistory(store).WithAuditPath(auditPath)
+	server := api.New(gw).WithHistory(store).WithAuditPath(auditPath).WithMetrics(m.Handler())
 	// Optional bearer-token auth (defense-in-depth behind the tailnet). Read from
 	// the host environment; never logged.
 	apiToken := os.Getenv("IRONCLAW_API_TOKEN")
@@ -135,20 +195,16 @@ func main() {
 		server = server.WithToken(apiToken)
 	}
 
-	// Isolation: build a hardened OCI bundle per session and exec the runtime. The
-	// runtime can't actually launch until rootfs provisioning (the one external
-	// image-unpacker integration point) lands, but the spec building, bundle
-	// writing, and exec wiring are real.
+	// Isolation: build a hardened OCI bundle per session and exec the runtime.
 	isolator := isolation.NewRunsc(
 		isolation.WithRuntimeBinary(*runtimeBin),
 		isolation.WithBundleRoot(*bundleRoot),
 	)
 
 	// Per-session lifecycle: the SessionManager composes the encrypted queue
-	// factory, the key custodian, and the isolator. It provides the inbound-writer
-	// / outbound-reader factories the delivery loop uses and serves as the sweep's
-	// Prober/Killer/Waker. Launch is best-effort (a triggering message is durably
-	// queued first), so an un-provisioned rootfs in dev never breaks the pipeline.
+	// factory, the durable key custodian, and the isolator. It provides the
+	// inbound-writer / outbound-reader factories the delivery loop uses and serves
+	// as the sweep's Prober/Killer/Waker.
 	factory := queue.NewFactory(filepath.Join(*stateDir, "sessions"))
 	manager, err := session.New(session.Config{
 		Factory:          factory,
@@ -161,25 +217,34 @@ func main() {
 		WorkspaceRoot:    filepath.Join(*stateDir, "workspaces"),
 	})
 	if err != nil {
-		log.Fatalf("controlplane: session manager: %v", err)
+		logger.Error("session manager", "error", err)
+		os.Exit(1)
 	}
 
 	// Delivery: poll per-session outbound queues and deliver via channel adapters,
-	// re-authorizing privileged system actions through the gateway. The channel
-	// registry starts empty; concrete platform adapters register here once
-	// configured. The schedule_task system action enqueues a future inbound prompt
-	// via the SessionManager's inbound-writer factory; the ask_user_question action
-	// (RFC-0003) records into the pending-question store for an operator to answer.
+	// re-authorizing privileged system actions through the gateway. Concrete
+	// platform adapters register when their bot token is configured.
 	channelReg := channels.NewRegistry()
+	registerChannelAdapters(channelReg, logger)
 	pendingQuestions := questions.NewStore()
 	deliverer := delivery.New(channelReg, gw, reg, manager.OutboundReader).
 		WithInboundWriter(manager.InboundWriter).
 		WithQuestions(pendingQuestions)
 
-	// Sweep: live hooks — Prober/Killer/Waker are the SessionManager; the DueSource
-	// and recurrence Enqueue read/write the per-session inbound queues via the
-	// factory. Scheduling carries only a prompt (no script field → no RCE).
-	sweeper := sweep.New(reg, manager, manager).
+	// Respawn backoff (T-105): wrap the SessionManager (which is the sweep's Prober
+	// and Killer) so a crash-looping sandbox is tracked — each stuck-kill records a
+	// failure, a healthy probe resets it, and after the failure ceiling the session
+	// is parked (needs-human) via the escalation callback.
+	respawn := sweep.DefaultRespawnBackoff().OnEscalate(func(id contract.SessionID, failures int) {
+		logger.Warn("sandbox parked after repeated failures (needs human)", "session", id, "failures", failures)
+	})
+	prober := backoffProber{inner: manager, backoff: respawn}
+	killer := backoffKiller{inner: manager, backoff: respawn, metrics: m, logger: logger}
+
+	// Sweep: live hooks — Prober/Killer are the backoff-wrapped SessionManager; the
+	// Waker is the SessionManager; the DueSource and recurrence Enqueue read/write
+	// the per-session inbound queues via the factory.
+	sweeper := sweep.New(reg, prober, killer).
 		WithScheduling(
 			sweep.NewQueueDueSource(reg, factory, custodian),
 			manager,
@@ -194,9 +259,9 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		log.Printf("controlplane: API listening on %s (bind to the tailnet IP in production)", *apiAddr)
+		logger.Info("API listening (bind to the tailnet IP in production)", "addr", *apiAddr)
 		if err := server.Run(ctx, *apiAddr); err != nil && err != context.Canceled {
-			log.Printf("controlplane: API stopped: %v", err)
+			logger.Error("API stopped", "error", err)
 			stop()
 		}
 	}()
@@ -204,9 +269,9 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		log.Printf("controlplane: model proxy listening on unix:%s (allowlist: api.anthropic.com)", *socket)
+		logger.Info("model proxy listening", "socket", *socket, "allowlist", "api.anthropic.com")
 		if err := proxy.Serve(ctx, *socket); err != nil && err != context.Canceled {
-			log.Printf("controlplane: model proxy stopped: %v", err)
+			logger.Error("model proxy stopped", "error", err)
 			stop()
 		}
 	}()
@@ -216,14 +281,14 @@ func main() {
 		defer wg.Done()
 		ticker := time.NewTicker(*sweepInterval)
 		defer ticker.Stop()
-		log.Printf("controlplane: sweep running every %s (stale-sandbox + due-message wake)", *sweepInterval)
+		logger.Info("sweep running", "interval", sweepInterval.String())
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
 				if err := sweeper.Run(ctx); err != nil && err != context.Canceled {
-					log.Printf("controlplane: sweep pass error: %v", err)
+					logger.Error("sweep pass error", "error", err)
 				}
 			}
 		}
@@ -234,44 +299,112 @@ func main() {
 		defer wg.Done()
 		ticker := time.NewTicker(*deliveryInterval)
 		defer ticker.Stop()
-		log.Printf("controlplane: delivery polling every %s (outbound → channel adapters)", *deliveryInterval)
+		logger.Info("delivery polling", "interval", deliveryInterval.String())
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
 				if err := deliverer.Poll(ctx); err != nil && err != context.Canceled {
-					log.Printf("controlplane: delivery poll error: %v", err)
+					logger.Error("delivery poll error", "error", err)
 				}
 			}
 		}
 	}()
 
 	pending, _ := store.Pending()
-	log.Printf("controlplane: started")
-	log.Printf("controlplane:   state dir      %s", *stateDir)
-	log.Printf("controlplane:   change store   %s (%d pending)", storePath, len(pending))
-	log.Printf("controlplane:   audit log      %s", auditPath)
-	log.Printf("controlplane:   gateway chain  mount-allowlist -> package-name -> always-require-human")
-	log.Printf("controlplane:   registry       in-memory (dev=%v)", *dev)
-	log.Printf("controlplane:   api auth       bearer-token=%v (set IRONCLAW_API_TOKEN; tailnet is the primary boundary)", apiToken != "")
-	log.Printf("controlplane:   model proxy    socket=%s allowlist=[api.anthropic.com] credential-injection=%v", *socket, credInjected)
-	log.Printf("controlplane:   sessions       queue-root=%s key-hand-off=tmpfs image=%q", filepath.Join(*stateDir, "sessions"), *sandboxImage)
-	log.Printf("controlplane:   isolation      runtime=%q bundle-root=%s (live launch needs a provisioned rootfs)", *runtimeBin, *bundleRoot)
-	log.Printf("controlplane:   sweep          interval=%s (scheduling carries a prompt only — no script, no RCE)", *sweepInterval)
-	log.Printf("controlplane:   delivery       interval=%s (channel adapters registered when configured)", *deliveryInterval)
-	log.Printf("controlplane: send SIGINT/SIGTERM to stop.")
+	logger.Info("started",
+		"state_dir", *stateDir,
+		"change_store", storePath, "pending_changes", len(pending),
+		"audit_log", auditPath,
+		"gateway_chain", "mount-allowlist -> package-name -> create-agent -> always-require-human",
+		"metrics", "/metrics on the API",
+		"registry", "in-memory", "dev", *dev,
+		"custody", "durable (file master + sealed store)",
+		"api_gated", apiToken != "",
+		"model_proxy_socket", *socket, "cred_injection", credInjected,
+		"model_proxy_rate_cap_rps", *proxyRPS, "model_proxy_burst", *proxyBurst,
+		"channel_adapters", channelReg.List(),
+		"runtime", *runtimeBin, "bundle_root", *bundleRoot,
+		"sweep_interval", sweepInterval.String(), "delivery_interval", deliveryInterval.String(),
+	)
+	logger.Info("send SIGINT/SIGTERM to stop")
 
 	<-ctx.Done()
-	log.Printf("controlplane: shutting down")
+	logger.Info("shutting down")
 	// Stop any sandboxes the SessionManager launched before exiting.
 	stopCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	if err := manager.StopAll(stopCtx); err != nil {
-		log.Printf("controlplane: stop sandboxes: %v", err)
+		logger.Error("stop sandboxes", "error", err)
 	}
 	cancel()
 	wg.Wait()
 	os.Exit(0)
+}
+
+// backoffProber wraps a sweep.Prober so a healthy probe (a fresh heartbeat) clears
+// the session's crash-loop state in the RespawnBackoff. It never changes the probe
+// result — it only observes liveness to reset the backoff.
+type backoffProber struct {
+	inner   sweep.Prober
+	backoff *sweep.RespawnBackoff
+}
+
+func (p backoffProber) Probe(id contract.SessionID) (int64, int64, error) {
+	hb, claim, err := p.inner.Probe(id)
+	// A present, fresh heartbeat means the sandbox is healthy → reset its backoff.
+	if err == nil && hb >= 0 && hb <= sweep.HeartbeatStaleMs {
+		p.backoff.Succeed(id)
+	}
+	return hb, claim, err
+}
+
+// backoffKiller wraps a sweep.Killer so every stuck-kill records a failure in the
+// RespawnBackoff (escalating to parked/needs-human after the ceiling via the
+// OnEscalate callback) and increments the sandbox-kill metric.
+type backoffKiller struct {
+	inner   sweep.Killer
+	backoff *sweep.RespawnBackoff
+	metrics *metrics.Metrics
+	logger  *obs.Logger
+}
+
+func (k backoffKiller) Kill(id contract.SessionID, action sweep.StuckAction) error {
+	st := k.backoff.Fail(id)
+	if err := k.inner.Kill(id, action); err != nil {
+		return err
+	}
+	k.metrics.SandboxKills.Inc()
+	k.logger.Info("sandbox killed (stuck)",
+		"session", id, "action", int(action), "consecutive_failures", st.Failures, "parked", st.Parked)
+	return nil
+}
+
+// registerChannelAdapters registers the Slack/Discord/Telegram adapters whose bot
+// token is present in the environment, so the daemon still boots with none set
+// (e.g. in --dev). Tokens are read from the environment and never logged.
+func registerChannelAdapters(reg *channels.Registry, logger *obs.Logger) {
+	type adapterSpec struct {
+		name string
+		env  string
+		make func(name, token string) channels.Adapter
+	}
+	specs := []adapterSpec{
+		{"slack", "SLACK_BOT_TOKEN", func(n, t string) channels.Adapter { return channels.NewSlackAdapter(n, t) }},
+		{"discord", "DISCORD_BOT_TOKEN", func(n, t string) channels.Adapter { return channels.NewDiscordAdapter(n, t) }},
+		{"telegram", "TELEGRAM_BOT_TOKEN", func(n, t string) channels.Adapter { return channels.NewTelegramAdapter(n, t) }},
+	}
+	for _, s := range specs {
+		token := os.Getenv(s.env)
+		if token == "" {
+			continue
+		}
+		if err := reg.Register(s.make(s.name, token)); err != nil {
+			logger.Error("register channel adapter", "adapter", s.name, "error", err)
+			continue
+		}
+		logger.Info("channel adapter registered", "adapter", s.name)
+	}
 }
 
 // defaultStateDir returns a per-user state directory under the OS state/cache
@@ -285,7 +418,7 @@ func defaultStateDir() string {
 
 // seedDev inserts a minimal owner, agent group, and DM messaging-group wiring so a
 // local operator can exercise the pipeline without a real platform.
-func seedDev(reg *registry.MemRegistry) {
+func seedDev(reg *registry.MemRegistry, logger *obs.Logger) {
 	const (
 		owner   = "cli:dev"
 		groupID = "dev-agent"
@@ -302,5 +435,5 @@ func seedDev(reg *registry.MemRegistry) {
 		SessionMode:      contract.SessionShared,
 		Priority:         1,
 	})
-	log.Printf("controlplane: dev seed — owner=%s agent-group=%s messaging-group=%s", owner, groupID, mg.ID)
+	logger.Info("dev seed", "owner", owner, "agent_group", groupID, "messaging_group", mg.ID)
 }
