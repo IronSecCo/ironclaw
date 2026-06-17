@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IronClaw · Pitch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070a0e;
+    --steel-1:#f3f6fb;
+    --steel-2:#b9c2d0;
+    --steel-3:#7c8696;
+    --steel-4:#4b545f;
+    --line:rgba(160,180,210,.12);
+    --line-strong:rgba(180,200,230,.22);
+    --ember-1:#ffd7a6;
+    --ember-2:#ff7a2e;
+    --ember-3:#e0481a;
+    --good:#46d39a;
+    --panel:rgba(255,255,255,.018);
+    --display:"Space Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --body:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(140% 120% at 50% -20%, #11161f 0%, var(--bg) 55%);
+    font-family:var(--body);
+    color:var(--steel-2);
+    display:grid;
+    place-items:center;
+    min-height:100vh;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ===== stage: 16:9 letterbox that scales to the window ===== */
+  .stage{
+    container-type:size;
+    width:min(97vw, calc(95vh * 16 / 9));
+    aspect-ratio:16 / 9;
+    position:relative;
+  }
+
+  .slide{
+    position:absolute;
+    inset:0;
+    font-size:1cqw;                 /* 1em = 1% of slide width -everything scales */
+    border-radius:1.4em;
+    overflow:hidden;
+    border:1px solid var(--line-strong);
+    background:
+      radial-gradient(120% 90% at 82% -10%, rgba(120,150,190,.10), transparent 45%),
+      radial-gradient(120% 120% at 50% 132%, rgba(255,110,40,.15), transparent 50%),
+      radial-gradient(90% 80% at 12% 8%, rgba(150,170,200,.06), transparent 55%),
+      linear-gradient(180deg,#0d1118 0%, #090c11 55%, #070a0e 100%);
+    box-shadow:0 3em 8em -3em rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.05);
+    opacity:0;visibility:hidden;
+    transition:opacity .42s ease;
+  }
+  .slide.active{opacity:1;visibility:visible;z-index:2}
+  .slide.active .pad > *{animation:rise .55s cubic-bezier(.2,.7,.2,1) both}
+  .slide.active .pad > *:nth-child(2){animation-delay:.05s}
+  .slide.active .pad > *:nth-child(3){animation-delay:.10s}
+  .slide.active .pad > *:nth-child(4){animation-delay:.15s}
+  .slide.active .pad > *:nth-child(5){animation-delay:.20s}
+  @keyframes rise{from{opacity:0;transform:translateY(1.1em)}to{opacity:1;transform:none}}
+
+  /* brushed-metal + grid texture overlay */
+  .slide::before{
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 3px),
+      radial-gradient(rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size:auto, 2.4em 2.4em;
+    mask:radial-gradient(120% 100% at 50% 40%, #000 35%, transparent 92%);
+    opacity:.6;
+  }
+  /* hot baseline */
+  .slide::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:.16em;z-index:5;
+    background:linear-gradient(90deg,transparent, var(--ember-3) 30%, var(--ember-2) 50%, var(--ember-3) 70%, transparent);
+    opacity:.85;filter:blur(.02em);
+  }
+
+  .pad{position:absolute;inset:0;padding:5em 6em 4.4em;display:flex;flex-direction:column;z-index:3}
+
+  /* ===== shared header bits ===== */
+  .topbar{display:flex;align-items:center;justify-content:space-between}
+  .eyebrow{
+    display:flex;align-items:center;gap:1em;
+    font-size:1.04em;letter-spacing:.4em;font-weight:600;
+    color:var(--steel-3);text-transform:uppercase;
+  }
+  .eyebrow .dot{width:.42em;height:.42em;border-radius:50%;background:var(--ember-2);box-shadow:0 0 1.2em var(--ember-2)}
+  .minilogo{display:flex;align-items:center;gap:.85em;opacity:.92}
+  .minilogo svg{width:2.3em;height:2.55em;flex:none}
+  .minilogo .nm{font-family:var(--display);font-weight:600;font-size:1.18em;letter-spacing:.02em;
+    background:linear-gradient(180deg,#fff,#94a0b1);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  h2.title{
+    font-family:var(--display);font-weight:700;letter-spacing:-.01em;line-height:1.02;
+    color:var(--steel-1);font-size:4.3em;margin-top:.7em;
+  }
+  h2.title .accent{
+    background:linear-gradient(90deg,var(--ember-1),var(--ember-2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .kicker{margin-top:.5em;font-size:1.5em;color:var(--steel-3);font-weight:500;max-width:46em;line-height:1.4}
+  .kicker b{color:var(--steel-1);font-weight:600}
+
+  .spacer{margin-top:auto}
+
+  /* ===== chips ===== */
+  .chips{display:flex;gap:.7em;flex-wrap:wrap}
+  .chip{
+    font-size:1.06em;font-weight:500;letter-spacing:.01em;color:var(--steel-2);
+    border:1px solid var(--line);border-radius:2em;padding:.46em 1.05em;
+    background:rgba(255,255,255,.012);
+  }
+  .chip b{color:var(--ember-1);font-weight:600}
+
+  /* ===== pillar cards (reused) ===== */
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:1.3em}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5em}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:2.4em}
+  .card{
+    border:1px solid var(--line);
+    background:linear-gradient(180deg, var(--panel), rgba(255,255,255,.006));
+    border-radius:1em;padding:1.6em 1.5em;position:relative;overflow:hidden;
+  }
+  .card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent, rgba(255,160,90,.45), transparent)}
+  .card .ic{
+    width:2.6em;height:2.6em;border-radius:.66em;display:grid;place-items:center;margin-bottom:1em;
+    background:radial-gradient(120% 120% at 30% 20%, rgba(255,122,46,.22), rgba(255,122,46,.05));
+    border:1px solid rgba(255,140,70,.28);
+  }
+  .card .ic svg{width:1.5em;height:1.5em;stroke:var(--ember-1);stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .card h3{font-family:var(--display);font-size:1.34em;font-weight:600;color:var(--steel-1);letter-spacing:-.005em;margin-bottom:.4em}
+  .card p{font-size:1.08em;line-height:1.42;color:var(--steel-3)}
+  .card p .em{color:var(--ember-1);font-weight:600}
+
+  /* ===== big stat numbers ===== */
+  .stat .n{font-family:var(--display);font-weight:700;font-size:3.2em;line-height:1;
+    background:linear-gradient(180deg,#fff,#9fb6d6);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat .n .u{font-size:.5em;color:var(--ember-2);-webkit-text-fill-color:var(--ember-2)}
+  .stat .l{margin-top:.7em;font-size:1.12em;color:var(--steel-3);line-height:1.4}
+
+  /* ===== table ===== */
+  table.bench{width:100%;border-collapse:collapse;margin-top:1.4em;font-size:1.16em}
+  table.bench th,table.bench td{text-align:left;padding:.74em .9em;border-bottom:1px solid var(--line);vertical-align:middle}
+  table.bench thead th{font-family:var(--display);font-size:.86em;letter-spacing:.06em;text-transform:uppercase;color:var(--steel-3);font-weight:600}
+  table.bench td .tool{font-family:var(--display);font-weight:600;color:var(--steel-1);font-size:1.04em}
+  table.bench td .star{color:var(--steel-3);font-size:.92em}
+  table.bench tr.us td{background:linear-gradient(90deg, rgba(255,122,46,.12), rgba(255,122,46,.02))}
+  table.bench tr.us .tool{color:var(--ember-1)}
+  .gap{color:var(--steel-3)}
+  .gap.warn{color:var(--ember-1)}
+
+  /* ===== flow / pipeline ===== */
+  .flow{display:flex;align-items:stretch;gap:.7em;margin-top:1.4em}
+  .step{flex:1;border:1px solid var(--line);border-radius:.8em;padding:1.1em 1em;background:var(--panel);position:relative}
+  .step .k{font-family:var(--display);font-size:.92em;color:var(--ember-2);font-weight:600;letter-spacing:.04em}
+  .step .t{margin-top:.45em;font-size:1.12em;color:var(--steel-1);font-weight:500;line-height:1.32}
+  .step.hold{border-color:rgba(255,140,70,.5);background:linear-gradient(180deg, rgba(255,122,46,.14), rgba(255,122,46,.03))}
+  .arrow{display:flex;align-items:center;color:var(--steel-4);font-size:1.6em}
+
+  /* ===== always-on guarantees panel ===== */
+  .guards{display:flex;flex-direction:column;gap:.55em}
+  .guards .gh{font-family:var(--display);font-size:.86em;letter-spacing:.1em;text-transform:uppercase;color:var(--ember-2);font-weight:600;margin-bottom:.1em}
+  .guard{display:flex;gap:.7em;align-items:flex-start;border:1px solid var(--line);border-radius:.7em;padding:.72em .9em;background:var(--panel)}
+  .guard .ck{flex:none;width:1.45em;height:1.45em;margin-top:.05em}
+  .guard .ck svg{width:100%;height:100%;stroke:var(--good);stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .guard .gt{font-size:1.04em;line-height:1.34;color:var(--steel-3)}
+  .guard .gt b{color:var(--steel-1);font-weight:600}
+
+  /* ===== terminal block ===== */
+  .term{border:1px solid var(--line-strong);border-radius:.9em;overflow:hidden;background:#0a0e14;font-size:1.04em}
+  .term .bar{display:flex;align-items:center;gap:.6em;padding:.7em 1em;background:rgba(255,255,255,.025);border-bottom:1px solid var(--line)}
+  .term .bar i{width:.7em;height:.7em;border-radius:50%;display:inline-block}
+  .term .bar i:nth-child(1){background:#ff5f57}.term .bar i:nth-child(2){background:#febc2e}.term .bar i:nth-child(3){background:#28c840}
+  .term .bar span{margin-left:.6em;font-family:var(--display);font-size:.86em;color:var(--steel-3);letter-spacing:.03em}
+  .term pre{padding:1.1em 1.3em;font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:1em;line-height:1.62;color:var(--steel-2);white-space:pre-wrap}
+  .term .c{color:var(--steel-4)}
+  .term .p{color:var(--ember-2)}
+  .term .ok{color:var(--good)}
+  .term .hold{color:var(--ember-1);font-weight:600}
+
+  /* ===== two-binary diagram ===== */
+  .arch{display:flex;flex-direction:column;gap:.6em;font-size:1.06em}
+  .node{border:1px solid var(--line-strong);border-radius:.8em;padding:1em 1.2em;background:var(--panel)}
+  .node .h{font-family:var(--display);font-weight:600;color:var(--steel-1);font-size:1.1em;display:flex;align-items:center;gap:.6em}
+  .node .h .tag{font-size:.72em;font-weight:600;letter-spacing:.04em;color:var(--ember-2);border:1px solid rgba(255,140,70,.3);border-radius:1em;padding:.12em .7em;text-transform:uppercase}
+  .node .sub{margin-top:.4em;color:var(--steel-3);font-size:.96em}
+  .node.host{background:linear-gradient(180deg, rgba(120,150,190,.08), rgba(255,255,255,.006))}
+  .node.box{background:linear-gradient(180deg, rgba(255,122,46,.07), rgba(255,255,255,.004));border-color:rgba(255,140,70,.28)}
+  .pipe{display:flex;justify-content:center;gap:3em;color:var(--steel-3);font-size:.92em;font-family:ui-monospace,monospace}
+  .pipe span b{color:var(--ember-1);font-weight:600}
+
+  /* ===== cover ===== */
+  .cover .lockup{display:flex;align-items:center;gap:2.2em;margin-top:1.3em}
+  .cover .mark{width:9em;height:9.9em;flex:none;filter:drop-shadow(0 1.2em 1.6em rgba(0,0,0,.55))}
+  .glow{transform-origin:64px 78px;animation:pulse 4.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+  .cover h1{
+    font-family:var(--display);font-weight:700;font-size:7.6em;line-height:.84;letter-spacing:-.012em;
+    background:linear-gradient(180deg,#ffffff 0%, #d7deea 38%, #97a2b2 72%, #6c7686 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;position:relative;
+  }
+  .cover h1 .sheen{position:absolute;inset:0;
+    background:linear-gradient(105deg,transparent 38%, rgba(255,255,255,.85) 50%, transparent 62%);
+    background-size:240% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:sheen 6s ease-in-out infinite;mix-blend-mode:screen}
+  @keyframes sheen{0%{background-position:160% 0}55%,100%{background-position:-60% 0}}
+  .cover .tag{font-family:var(--display);font-size:1.95em;font-weight:500;color:var(--steel-2);margin-top:.5em}
+  .cover .tag b{color:var(--ember-2);font-weight:600}
+  .team{margin-top:2.4em;display:grid;grid-template-columns:repeat(4,1fr);gap:1.2em}
+  .team .b{border:1px solid var(--line);border-radius:.85em;padding:1.15em 1.2em;background:var(--panel)}
+  .team .b .who{font-family:var(--display);font-weight:600;color:var(--steel-1);font-size:1.12em}
+  .team .b .what{margin-top:.35em;font-size:1.02em;color:var(--steel-3);line-height:1.38}
+
+  .lead{font-size:1.62em;line-height:1.5;font-weight:400;color:var(--steel-2);max-width:50em}
+  .lead strong{color:var(--steel-1);font-weight:600}
+  .big{font-family:var(--display);font-weight:600;color:var(--steel-1);font-size:2.1em;line-height:1.25;letter-spacing:-.01em}
+  .big .accent{background:linear-gradient(90deg,var(--ember-1),var(--ember-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .note{font-size:.96em;color:var(--steel-4);margin-top:1.1em;font-style:normal}
+
+  /* ===== ask columns ===== */
+  .asks{display:grid;grid-template-columns:1fr 1fr;gap:1.6em;margin-top:.4em}
+  .asks .col{border:1px solid var(--line);border-radius:1em;padding:1.5em 1.6em;background:var(--panel)}
+  .asks .col h4{font-family:var(--display);font-size:1.3em;color:var(--steel-1);font-weight:600;margin-bottom:.7em;display:flex;align-items:center;gap:.6em}
+  .asks .col h4 .pin{width:.5em;height:.5em;border-radius:50%;background:var(--ember-2);box-shadow:0 0 .8em var(--ember-2)}
+  .asks ul{list-style:none;display:flex;flex-direction:column;gap:.5em}
+  .asks li{font-size:1.12em;color:var(--steel-2);padding-left:1.3em;position:relative;line-height:1.35}
+  .asks li::before{content:"";position:absolute;left:0;top:.55em;width:.42em;height:.42em;border-radius:50%;background:var(--ember-3)}
+
+  /* ===== closing band ===== */
+  .band{border:1px solid rgba(255,140,70,.3);border-radius:1em;padding:1.4em 1.7em;margin-top:1.5em;
+    background:linear-gradient(90deg, rgba(255,122,46,.12), rgba(255,122,46,.02))}
+  .band p{font-family:var(--display);font-size:1.74em;font-weight:600;color:var(--steel-1);line-height:1.3}
+  .band p .accent{color:var(--ember-2)}
+
+  /* ===== chrome: progress + dots + counter ===== */
+  .chrome{position:fixed;left:0;right:0;bottom:0;height:.36em;background:rgba(255,255,255,.05);z-index:40}
+  .chrome .bar{height:100%;width:0;background:linear-gradient(90deg,var(--ember-3),var(--ember-2));transition:width .4s ease;box-shadow:0 0 1.4em rgba(255,122,46,.6)}
+  .dots{position:fixed;bottom:1.5em;left:50%;transform:translateX(-50%);display:flex;gap:.6em;z-index:41}
+  .dots b{width:.55em;height:.55em;border-radius:50%;background:rgba(255,255,255,.18);cursor:pointer;transition:.25s;border:none;padding:0}
+  .dots b.on{background:var(--ember-2);box-shadow:0 0 .7em var(--ember-2);transform:scale(1.25)}
+  .counter{position:fixed;bottom:1.25em;right:1.6em;font-family:var(--display);font-size:.95rem;color:var(--steel-3);z-index:41;letter-spacing:.05em}
+  .counter b{color:var(--steel-1)}
+  .hint{position:fixed;bottom:1.25em;left:1.6em;font-size:.82rem;color:var(--steel-4);z-index:41;letter-spacing:.02em}
+  kbd{font-family:var(--display);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:.3em;padding:.05em .45em;color:var(--steel-2);font-size:.9em}
+
+  /* ===== speaker notes overlay ===== */
+  .notes{position:fixed;inset:auto 1.6em 3.2em 1.6em;max-width:62em;margin:0 auto;z-index:50;
+    background:rgba(8,11,16,.96);border:1px solid var(--line-strong);border-radius:.9em;
+    padding:1.3em 1.6em;display:none;backdrop-filter:blur(8px);box-shadow:0 2em 5em -1em rgba(0,0,0,.8)}
+  .notes.show{display:block}
+  .notes .h{font-family:var(--display);font-size:.92rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ember-2);margin-bottom:.5em}
+  .notes p{font-size:1rem;line-height:1.55;color:var(--steel-2)}
+  .notes p + p{margin-top:.5em}
+
+  .legend{position:fixed;inset:0;background:rgba(5,7,10,.86);z-index:60;display:none;place-items:center;backdrop-filter:blur(4px)}
+  .legend.show{display:grid}
+  .legend .box{background:#0c1118;border:1px solid var(--line-strong);border-radius:1em;padding:2em 2.4em;font-size:1.05rem;line-height:2}
+  .legend .box h3{font-family:var(--display);color:var(--steel-1);margin-bottom:.6em}
+  .legend .box span{color:var(--steel-3)}
+
+  /* ===== orphan control: stop single words dropping to a new line ===== */
+  h2.title,.kicker,.lead,.big,.band p,.card p,.team .who-sub,.asks li,.note,.subtitle{text-wrap:balance}
+  .nowrap{white-space:nowrap}
+
+  /* ===== cover subtitle + footer ===== */
+  .subtitle{margin-top:1.7em;font-size:1.6em;line-height:1.45;color:var(--steel-2);max-width:42em;font-weight:400}
+  .subtitle b{color:var(--steel-1);font-weight:600}
+  .coverfoot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding-top:1.9em;border-top:1px solid var(--line)}
+  .status{display:flex;align-items:center;gap:.7em;font-family:var(--display);font-size:1.25em;font-weight:600;color:var(--steel-2);letter-spacing:.04em}
+  .status .pip{width:.5em;height:.5em;border-radius:50%;background:var(--ember-2);box-shadow:0 0 .9em var(--ember-2);animation:blink 2s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* ===== team slide ===== */
+  .people{display:grid;grid-template-columns:1fr 1fr;gap:1.8em;margin-top:1.5em}
+  .person{border:1px solid var(--line);border-radius:1em;padding:1.6em 1.7em;background:linear-gradient(180deg,var(--panel),rgba(255,255,255,.006));position:relative;overflow:hidden}
+  .person::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,160,90,.45),transparent)}
+  .person .head{display:flex;align-items:center;gap:1em}
+  .person .ini{width:3.1em;height:3.1em;flex:none;border-radius:.7em;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:1.5em;color:var(--ember-1);
+    background:radial-gradient(120% 120% at 30% 20%,rgba(255,122,46,.24),rgba(255,122,46,.05));border:1px solid rgba(255,140,70,.3)}
+  .person .who-name{font-family:var(--display);font-weight:700;font-size:1.7em;color:var(--steel-1);letter-spacing:-.01em}
+  .person .who-sub{font-size:1.08em;color:var(--steel-3);margin-top:.15em;line-height:1.35}
+  .creds{display:flex;flex-wrap:wrap;gap:.55em;margin-top:1.25em}
+  .cred{display:inline-flex;align-items:center;gap:.45em;border:1px solid var(--line);background:rgba(255,255,255,.022);border-radius:.55em;padding:.36em .66em;line-height:1}
+  .cred svg{height:1.25em;width:auto;display:block;flex:none}
+  .cred .lbl{color:var(--steel-2);font-size:.96em;font-weight:500;white-space:nowrap}
+  .cred .ic-mark{stroke:var(--steel-2);stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .context{border:1px solid rgba(255,140,70,.28);border-radius:1em;padding:1.4em 1.7em;margin-top:auto;
+    background:linear-gradient(90deg,rgba(255,122,46,.1),rgba(255,122,46,.02))}
+  .context p{font-size:1.42em;line-height:1.45;color:var(--steel-1);font-weight:500}
+  .context p b{color:var(--ember-2);font-weight:600}
+
+  /* ===== per-stat source attribution ===== */
+  .src{display:flex;align-items:center;gap:.6em;margin-top:1.05em;padding-top:.85em;border-top:1px solid var(--line)}
+  .src .lbl-src{font-family:var(--display);font-size:.78em;letter-spacing:.12em;text-transform:uppercase;color:var(--steel-4)}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important}
+  }
+
+  /* ===== print: one slide per page ===== */
+  @media print{
+    @page{size:1280px 720px;margin:0}
+    body{display:block;background:#070a0e}
+    .stage{width:1280px;height:720px;page-break-after:always;display:block}
+    .slide{position:relative;opacity:1 !important;visibility:visible !important;font-size:12.8px;border-radius:0;page-break-inside:avoid}
+    .slide.active .pad > *{animation:none}
+    .chrome,.dots,.counter,.hint,.notes,.legend,.minilogo .nm{display:none !important}
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+
+  <!-- ============ SLIDE 1 -WHO WE ARE (team) ============ -->
+  <section class="slide active">
+    <div class="pad">
+      <div class="topbar">
+        <div class="eyebrow"><span class="dot"></span>Who we are</div>
+        <div class="minilogo" data-mini></div>
+      </div>
+      <h2 class="title">Two builders who kept seeing the same gap, <span class="accent">and turned co-founders.</span></h2>
+
+      <div class="people">
+        <div class="person">
+          <div class="head">
+            <div class="ini">T</div>
+            <div>
+              <div class="who-name">Topaz</div>
+              <div class="who-sub">Product and go-to-market. Just finished the MIT Sloan MBA.</div>
+            </div>
+          </div>
+          <div class="creds">
+            <!-- Technion -->
+            <span class="cred"><svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="#6ca8ff" stroke-width="1.8"/><path d="M11 4 L11 18 M6 7 L16 7" stroke="#6ca8ff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg><span class="lbl">Technion</span></span>
+            <!-- MIT -->
+            <span class="cred"><svg viewBox="0 0 40 22"><text x="0" y="17" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="18" fill="#ea3a4e" letter-spacing="1">MIT</text></svg></span>
+            <!-- Intel -->
+            <span class="cred"><svg viewBox="0 0 46 22"><text x="0" y="17" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="17" fill="#4da6e8" letter-spacing="-.3">intel</text></svg></span>
+            <!-- IBM -->
+            <span class="cred"><svg viewBox="0 0 42 22"><text x="0" y="17" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="17" fill="#4fa0e0" letter-spacing="1.2">IBM</text><g stroke="#0d1118" stroke-width="1.1" opacity=".55"><line x1="0" y1="8" x2="42" y2="8"/><line x1="0" y1="12" x2="42" y2="12"/></g></svg></span>
+            <!-- AWS -->
+            <span class="cred"><svg viewBox="0 0 40 26"><text x="2" y="15" font-family="Inter,Arial,sans-serif" font-weight="700" font-size="14" fill="#e7ecf3">aws</text><path d="M4 20 q14 6 28 0" fill="none" stroke="#ff9900" stroke-width="2.1" stroke-linecap="round"/><path d="M29 18.4 l4 1.6 -3.4 2.4" fill="#ff9900"/></svg></span>
+          </div>
+        </div>
+
+        <div class="person">
+          <div class="head">
+            <div class="ini">O</div>
+            <div>
+              <div class="who-name">Omer</div>
+              <div class="who-sub">Security and architecture. From the Intelligence Corps into cybersecurity.</div>
+            </div>
+          </div>
+          <div class="creds">
+            <!-- Intelligence Corps -->
+            <span class="cred"><svg viewBox="0 0 22 22"><path class="ic-mark" d="M11 3 L18 6 V11 C18 15.5 15 18.4 11 20 C7 18.4 4 15.5 4 11 V6 Z" stroke="#9fd0ff"/><circle cx="11" cy="10.5" r="2.1" fill="none" stroke="#9fd0ff" stroke-width="1.5"/><path d="M11 12.6 V15.5" stroke="#9fd0ff" stroke-width="1.5" stroke-linecap="round"/></svg><span class="lbl">Intelligence Corps</span></span>
+            <!-- Data Architect -->
+            <span class="cred"><svg viewBox="0 0 22 22"><ellipse cx="11" cy="6" rx="6.2" ry="2.4" class="ic-mark"/><path class="ic-mark" d="M4.8 6 V16 C4.8 17.3 7.6 18.4 11 18.4 C14.4 18.4 17.2 17.3 17.2 16 V6"/><path class="ic-mark" d="M4.8 11 C4.8 12.3 7.6 13.4 11 13.4 C14.4 13.4 17.2 12.3 17.2 11"/></svg><span class="lbl">Data Architect</span></span>
+            <!-- Cybersecurity -->
+            <span class="cred"><svg viewBox="0 0 22 22"><path class="ic-mark" d="M11 3 L18 6 V11 C18 15.5 15 18.4 11 20 C7 18.4 4 15.5 4 11 V6 Z"/><rect x="8.3" y="10" width="5.4" height="4.4" rx="1" class="ic-mark"/><path class="ic-mark" d="M9.3 10 V8.6 A1.7 1.7 0 0 1 12.7 8.6 V10"/></svg><span class="lbl">Cybersecurity</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="context">
+        <p>We worked together for years in Tel Aviv, then reconnected as <b>co-founders</b> to build a secure
+        <b>AI agents platform for enterprises</b>. We came to this hackathon as <b>mentors</b>. On day two we
+        decided to build for the developer community too. <b>48 hours later</b>, this is IronClaw.</p>
+      </div>
+    </div>
+    <div class="notes" data-note="1">
+      <div class="h">Speaker · ~35s</div>
+      <p>"Hi, quick on us. I'm Topaz, product and go-to-market, I just finished my MBA at MIT Sloan, with a background from the Technion, Intel, IBM and AWS. Omer leads security and architecture, from the Intelligence Corps into data architecture and cybersecurity."</p>
+      <p>"We worked together for years in Tel Aviv, then reconnected as co-founders to build a secure AI agents platform for enterprises. We actually came here as mentors. On day two we decided to build something for the developer community too. Forty-eight hours later, this is IronClaw."</p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 2 -IRONCLAW (reveal) ============ -->
+  <section class="slide cover">
+    <div class="pad">
+      <div class="topbar">
+        <div class="eyebrow"><span class="dot"></span>Secure · Self-hosted · Open source</div>
+      </div>
+
+      <div class="lockup">
+        <svg class="mark" viewBox="0 0 128 140" aria-label="IronClaw logo" role="img">
+          <defs>
+            <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#f6f9fd"/><stop offset=".34" stop-color="#cdd5e1"/>
+              <stop offset=".66" stop-color="#8b96a6"/><stop offset="1" stop-color="#454e5b"/>
+            </linearGradient>
+            <linearGradient id="steelEdge" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#dfe6f0"/><stop offset="1" stop-color="#2c333d"/>
+            </linearGradient>
+            <linearGradient id="ember" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ffe3bd"/><stop offset=".45" stop-color="#ff8636"/><stop offset="1" stop-color="#d33f12"/>
+            </linearGradient>
+            <radialGradient id="emberGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0" stop-color="#ff7a2e" stop-opacity=".9"/><stop offset="1" stop-color="#ff7a2e" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1.4"/></filter>
+          </defs>
+          <path d="M64 8 L112 30 L112 70 C112 102 90 120 64 132 C38 120 16 102 16 70 L16 30 Z" fill="url(#steel)" stroke="url(#steelEdge)" stroke-width="2.4"/>
+          <path d="M64 18 L104 36 L104 70 C104 96 86 111 64 121 C42 111 24 96 24 70 L24 36 Z" fill="none" stroke="#2e353f" stroke-opacity=".55" stroke-width="1.5"/>
+          <path d="M64 11 L108 31 L108 44 C92 33 76 29 64 29 C52 29 36 33 20 44 L20 31 Z" fill="#ffffff" opacity=".14"/>
+          <ellipse class="glow" cx="64" cy="74" rx="34" ry="42" fill="url(#emberGlow)" opacity=".7"/>
+          <g filter="url(#soft)" opacity=".55">
+            <path d="M44 34 Q66 68 36 104 Q50 68 44 34 Z" fill="#ff7a2e"/>
+            <path d="M64 30 Q88 66 58 106 Q70 66 64 30 Z" fill="#ff7a2e"/>
+            <path d="M86 36 Q108 68 78 104 Q92 68 86 36 Z" fill="#ff7a2e"/>
+          </g>
+          <g>
+            <path d="M44 34 Q66 68 36 104 Q50 68 44 34 Z" fill="url(#ember)"/>
+            <path d="M64 30 Q88 66 58 106 Q70 66 64 30 Z" fill="url(#ember)"/>
+            <path d="M86 36 Q108 68 78 104 Q92 68 86 36 Z" fill="url(#ember)"/>
+          </g>
+          <!-- keyhole where the claws converge: ties iron + security -->
+          <g>
+            <circle cx="64" cy="70" r="6.4" fill="#0c1016" stroke="url(#ember)" stroke-width="2"/>
+            <path d="M61.6 73 L66.4 73 L68 84 L60 84 Z" fill="#0c1016" stroke="url(#ember)" stroke-width="1.6" stroke-linejoin="round"/>
+            <circle cx="64" cy="70" r="2.2" fill="url(#ember)"/>
+          </g>
+          <g fill="#fff" opacity=".4">
+            <path d="M45 40 Q58 60 47 84 Q52 64 45 40 Z"/>
+            <path d="M87 42 Q100 62 89 84 Q94 64 87 42 Z"/>
+          </g>
+        </svg>
+
+        <div>
+          <h1>IRONCLAW<span class="sheen" aria-hidden="true">IRONCLAW</span></h1>
+          <div class="tag">AI agents you can <b>actually trust</b>.</div>
+        </div>
+      </div>
+
+      <p class="subtitle">
+        A secure developer <span class="nowrap">control plane</span> for OpenClaw-style agents.
+        <b>Sandboxed, governed, and auditable</b> from the first line.
+      </p>
+
+      <div class="coverfoot">
+        <div class="chips">
+          <span class="chip">Written in <b>Go</b></span>
+          <span class="chip"><b>gVisor</b> isolation</span>
+          <span class="chip"><b>Encrypted</b> queues</span>
+          <span class="chip"><b>MIT</b> · open source</span>
+        </div>
+        <div class="status"><span class="pip"></span>BUILT IN 48 HOURS</div>
+      </div>
+    </div>
+    <div class="notes" data-note="2">
+      <div class="h">Speaker · ~15s</div>
+      <p>"And here is what that turned into. IronClaw. AI agents you can actually trust. A secure developer control plane for the OpenClaw-style agents everyone is starting to build."</p>
+      <p>This is the product reveal right after the intro. Land the name and the one-line promise, then move into the problem.</p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 3 -THE ISSUE ============ -->
+  <section class="slide">
+    <div class="pad">
+      <div class="topbar">
+        <div class="eyebrow"><span class="dot"></span>The issue</div>
+        <div class="minilogo" data-mini></div>
+      </div>
+      <h2 class="title">The more useful an agent gets,<br><span class="accent">the more dangerous it gets.</span></h2>
+      <p class="kicker">An agent only earns its keep if it can act on its own. But every action it can take is also a way
+        to do harm, and today those actions land in the most sensitive parts of your stack:</p>
+
+      <div class="chips" style="margin-top:1.6em">
+        <span class="chip"><b>+</b> your code repos</span>
+        <span class="chip"><b>+</b> the terminal</span>
+        <span class="chip"><b>+</b> secrets and tokens</span>
+        <span class="chip"><b>+</b> Slack · Discord · Telegram</span>
+        <span class="chip"><b>+</b> browsers and APIs</span>
+        <span class="chip"><b>+</b> long-running memory</span>
+      </div>
+
+      <div class="band spacer">
+        <p>The usual reassurance is "we keep audit logs." But an agent that can rewrite its own code can rewrite how it logs. <span class="accent">Auditing you cannot trust is not auditing.</span></p>
+      </div>
+    </div>
+    <div class="notes" data-note="3">
+      <div class="h">Speaker · ~50s</div>
+      <p>"Here's the problem we kept running into. An agent only earns its keep if it can act on its own. But the moment it can act, it can also do harm. And today those actions land in the most sensitive parts of your stack: your repos, your terminal, your secrets, your chat channels, your APIs, and memory that lasts."</p>
+      <p>"Now the part people miss. The standard answer to all of this is 'don't worry, we keep audit logs.' But think it through. If the agent can change its own code, it can change how it writes those logs. An agent auditing itself is not an audit. Once you see that, you realize the whole trust model has to sit outside the agent."</p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 3 -THE DIAGNOSIS ============ -->
+  <section class="slide">
+    <div class="pad">
+      <div class="topbar">
+        <div class="eyebrow"><span class="dot"></span>The diagnosis · why now</div>
+        <div class="minilogo" data-mini></div>
+      </div>
+      <h2 class="title">Adoption is here. <span class="accent">Trust is the bottleneck.</span></h2>
+      <p class="kicker">Developers are not waiting to be convinced that agents are useful. They already use them.
+        What they do not have yet is a reason to trust them with real access.</p>
+
+      <div class="grid3" style="margin-top:1.9em">
+        <div class="card stat">
+          <div class="n">$307B<span class="u">→ $632B</span></div>
+          <div class="l">Projected AI spend, 2025 to 2028. Budgets are big enough to fund a new infrastructure layer.</div>
+          <div class="src"><span class="lbl-src">Source</span>
+            <span class="cred"><svg viewBox="0 0 38 22"><text x="0" y="17" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="17" fill="#38b6e0" letter-spacing="-.2">IDC</text></svg></span>
+          </div>
+        </div>
+        <div class="card stat">
+          <div class="n">84<span class="u">%</span></div>
+          <div class="l">of developers use or plan to use AI tools. The adoption funnel already exists.</div>
+          <div class="src"><span class="lbl-src">Source</span>
+            <span class="cred"><svg viewBox="0 0 22 22" fill="none"><path d="M6.6 18 V20.4 H15.4 V18" stroke="#9aa3b2" stroke-width="1.8" stroke-linecap="round"/><g stroke="#f48024" stroke-width="1.8" stroke-linecap="round"><line x1="9.2" y1="16.2" x2="15" y2="16.2"/><line x1="9.5" y1="13.2" x2="15.2" y2="14.2"/><line x1="10.3" y1="10.4" x2="15.6" y2="12"/><line x1="11.7" y1="7.9" x2="16.2" y2="10.2"/></g></svg><span class="lbl">Stack Overflow</span></span>
+          </div>
+        </div>
+        <div class="card stat">
+          <div class="n">1.1M<span class="u">+</span></div>
+          <div class="l">public repos already wiring an LLM SDK into real code, up sharply year over year.</div>
+          <div class="src"><span class="lbl-src">Source</span>
+            <span class="cred"><svg viewBox="0 0 24 24"><path fill="#c9d3e0" d="M12 .5C5.7.5.5 5.6.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.7.4-1.3.7-1.5-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2.9-.3 1.9-.4 2.9-.4 1 0 2 .1 2.9.4 2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.6 18.3.5 12 .5z"/></svg><span class="lbl">GitHub</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="band spacer">
+        <p>Existing tools prove the demand. <span class="accent">The security layer is the piece nobody owns yet.</span></p>
+      </div>
+    </div>
+    <div class="notes" data-note="3">
+      <div class="h">Speaker · ~45s</div>
+      <p>"And the demand is not theoretical. AI spend is going from three hundred billion to over six hundred billion in three years. Eighty-four percent of developers already use or plan to use AI tools. Over a million public repos already have an LLM wired in."</p>
+      <p>"So adoption is solved. The missing piece is trust. Nobody owns the security layer yet. That's the opening."</p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 4 -PRODUCT ============ -->
+  <section class="slide">
+    <div class="pad">
+      <div class="topbar">
+        <div class="eyebrow"><span class="dot"></span>How we addressed it</div>
+        <div class="minilogo" data-mini></div>
+      </div>
+      <h2 class="title">A secure developer <span class="accent">control plane</span> for agents.</h2>
+      <p class="kicker">We give developers OpenClaw-style power, but we treat the agent as untrusted from the first
+        line. The boundary is something you can verify, not something you take on faith.</p>
+
+      <div class="grid4" style="margin-top:1.6em">
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l7 2.5v5.5c0 4.5-3 7.4-7 9-4-1.6-7-4.5-7-9V5.5z"/><path d="M9.2 12.2l2 2 3.6-4"/></svg></div>
+          <h3>Sealed runtime</h3>
+          <p>Compiled Go. The agent <span class="em">cannot rewrite itself</span>, so it cannot forge its own audit trail.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></div>
+          <h3>Sealed sandbox</h3>
+          <p>gVisor, <span class="em">network=none</span>. The model is reachable only through a host proxy.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.4" r="1.1" fill="currentColor" stroke="none"/></svg></div>
+          <h3>Encrypted queues</h3>
+          <p>Per-session keys. Inbound is <span class="em">read-only by design</span>. No cross-session reads.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.4l2.6 2.6L16 9"/></svg></div>
+          <h3>Approval gateway</h3>
+          <p>Only the agent's <span class="em">own capability changes</span> stop for a human. It works freely otherwise.</p>
+        </div>
+      </div>
+
+      <div class="band spacer">
+        <p>The agent does its job on its own, but it can <span class="accent">never grant itself new powers,</span> and it cannot tamper with the record. The trust sits outside the agent, where it cannot reach.</p>
+      </div>
+    </div>
+    <div class="notes" data-note="4">
+      <div class="h">Speaker · ~75s</div>
+      <p>"So here is what we built. IronClaw is a secure control plane for agents. Four walls, all of them things you can check, not promises."</p>
+      <p>"Sealed runtime: it ships as compiled Go, so the agent can't rewrite itself. Sealed sandbox: gVisor with no network at all, the model only reachable through our host proxy. Encrypted queues: every session has its own keys and the inbox is read-only."</p>
+      <p>"And the one I want you to remember. The approval gateway is not a speed bump on every action. The agent works on its own. The only thing that stops for a human is a change to the agent's own powers. It can ask for more access. It can never grant itself more access. That distinction is the whole product."</p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 5 -COMPETITORS ============ -->
+  <section class="slide">
+    <div class="pad">
+      <div class="topbar">
+        <div class="eyebrow"><span class="dot"></span>Where we sit</div>
+        <div class="minilogo" data-mini></div>
+      </div>
+      <h2 class="title">The market already <span class="accent">proves the demand.</span></h2>
+
+      <table class="bench">
+        <thead><tr><th>Project</th><th>Traction signal</th><th>What it proves</th><th>The gap we fill</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tool">OpenClaw</span></td><td><span class="star">~379K ★ · 104K Reddit · 448K video views</span></td><td>Breadth and mindshare</td><td class="gap warn">Security is not the product story</td></tr>
+          <tr><td><span class="tool">Hermes</span></td><td><span class="star">~196K ★ · 124K Reddit</span></td><td>Rich capability, learning loop</td><td class="gap warn">Broad surface means more risk</td></tr>
+          <tr><td><span class="tool">NanoClaw</span></td><td><span class="star">~30K ★ · per-agent containers</span></td><td>Isolation matters</td><td class="gap">Still early and narrow</td></tr>
+          <tr><td><span class="tool">LangGraph</span></td><td><span class="star">~35K ★ · orchestration standard</span></td><td>Agent orchestration</td><td class="gap warn">Not a secure execution product</td></tr>
+          <tr><td><span class="tool">OpenHands</span></td><td><span class="star">~77K ★ · coding-agent workflows</span></td><td>Dev workflows are real</td><td class="gap warn">Security depends on how you deploy</td></tr>
+          <tr class="us"><td><span class="tool">IronClaw</span></td><td><span class="star">Secure by default · open source · Go + gVisor</span></td><td>Trust is the product</td><td class="gap">The one a security team can approve</td></tr>
+        </tbody>
+      </table>
+
+      <div class="band spacer">
+        <p>OpenClaw proved demand. NanoClaw proved isolation matters. <span class="accent">IronClaw makes security the default.</span></p>
+      </div>
+    </div>
+    <div class="notes" data-note="5">
+      <div class="h">Speaker · ~60s</div>
+      <p>"We are not alone, and that's good news. OpenClaw has nearly four hundred thousand stars. That tells you the demand is real. Hermes is rich and capable. NanoClaw made isolation a feature. LangGraph owns orchestration. OpenHands proved developers want coding agents."</p>
+      <p>"But look at the last column. In every one of them security is either not the story, or it depends on how you happen to deploy. We're not trying to beat OpenClaw on community. We're building the one a security team can actually approve. OpenClaw proved demand, NanoClaw proved isolation matters, we make security the default."</p>
+      <p>(Star counts are research snapshots, verify before going live.)</p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 6 -MARKET + WEDGE ============ -->
+  <section class="slide">
+    <div class="pad">
+      <div class="topbar">
+        <div class="eyebrow"><span class="dot"></span>Market · go-to-market</div>
+        <div class="minilogo" data-mini></div>
+      </div>
+      <h2 class="title">Start with developers. <span class="accent">Expand to teams.</span></h2>
+
+      <div class="grid2" style="margin-top:1.5em">
+        <div>
+          <div class="grid3" style="grid-template-columns:repeat(3,1fr)">
+            <div class="card stat"><div class="n">$52<span class="u">B</span></div><div class="l">TAM · the agentic-AI market by 2030, growing <b>46% a year</b>. Every autonomous agent needs a secure runtime to act in the real world. That is the layer we own.</div></div>
+            <div class="card stat"><div class="n">$9.5<span class="u">B</span></div><div class="l">SAM · the secure-runtime slice: 47M developers × 84% adopting agents × $20/mo, the orgs that will not run agents without isolation and audit.</div></div>
+            <div class="card stat"><div class="n">$38<span class="u">M</span></div><div class="l">SOM · 3-year ARR target. Open-source wedge → enterprise governance, seeded by 20 design partners, about 0.4% of SAM.</div></div>
+          </div>
+          <div class="note">One funnel, one unit: a <b>$52B</b> agent market, the <b>$9.5B</b> slice that demands isolation and audit, and the <b>$38M</b> we can realistically win in three years. We do not compete with Cursor or Copilot. We are the secured layer their agents run inside. Those seat prices already prove the market pays for agent tooling; we price the control plane beneath it.</div>
+        </div>
+        <div class="arch" style="gap:1em">
+          <div class="node host">
+            <div class="h">Developer wedge <span class="tag">PLG</span></div>
+            <div class="sub">Open source, one-command setup, CLI and chat first, secure defaults out of the box. Useful in five minutes.</div>
+          </div>
+          <div class="pipe"><span>expands into &#8595;</span></div>
+          <div class="node box">
+            <div class="h">Enterprise <span class="tag">Governance</span></div>
+            <div class="sub">SSO, RBAC, policy-as-code, audit export, central secret management, deployment controls.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="band spacer">
+        <p>Win the developer in <span class="accent">five minutes</span>. Win the company by making <span class="accent">security review easy</span>.</p>
+      </div>
+    </div>
+    <div class="notes" data-note="6">
+      <div class="h">Speaker · ~60s</div>
+      <p>"One thing to be clear about. We are not another coding assistant competing with Cursor or Copilot. We are the secured layer their agents run inside. And the market math is a clean funnel. The agentic-AI market is heading to over fifty billion dollars by 2030, growing about forty-six percent a year. The slice we directly serve, the secure runtime every developer adopting an agent needs, is around nine and a half billion. And realistically, in three years, we win on the order of forty million in ARR, through design partners and the open-source wedge converting to enterprise governance. Those seat prices just show the market already pays for agent tooling; we price the control plane beneath it."</p>
+      <p>"The motion is simple. We win the individual developer because it's open source and useful in five minutes. Then the same architecture, the sandbox and the gateway, is exactly what a security team needs to sign off. We win the company by making their review easy."</p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 7 -WHAT WE BUILT ============ -->
+  <section class="slide">
+    <div class="pad">
+      <div class="topbar">
+        <div class="eyebrow"><span class="dot"></span>What we built in 48 hours · open source</div>
+        <div class="minilogo" data-mini></div>
+      </div>
+      <h2 class="title">It is <span class="accent">real, runnable,</span> and on GitHub.</h2>
+
+      <div class="grid2" style="margin-top:1.3em;grid-template-columns:1.15fr .85fr">
+        <div class="term">
+          <div class="bar"><i></i><i></i><i></i><span>ironctl · live on a sealed, sandboxed runtime</span></div>
+<pre><span class="c"># one command installs the two host binaries</span>
+<span class="p">$</span> curl -fsSL .../install.sh | sh   <span class="ok">✓ checksum verified</span>
+<span class="p">$</span> ironclaw-controlplane --dev    <span class="ok">✓ api on 127.0.0.1:8787</span>
+
+<span class="c"># the agent asks to change its own powers</span>
+<span class="p">$</span> ironctl change submit --kind persona --group default
+<span class="hold">  ↳ HELD at gateway, waiting for a human</span>
+<span class="p">$</span> ironctl change pending          1 change waiting
+<span class="p">$</span> ironctl change approve &lt;id&gt;     <span class="ok">✓ applied · written to audit log</span></pre>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:.9em">
+          <div class="guards">
+            <div class="gh">Enforced by design, not by good behavior</div>
+            <div class="guard"><span class="ck"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span><span class="gt"><b>Sealed Go binary</b>:no source in the box to rewrite, so it cannot fake its own audit trail.</span></div>
+            <div class="guard"><span class="ck"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span><span class="gt"><b>gVisor, network=none</b>:even a hostile agent has nowhere to send your data.</span></div>
+            <div class="guard"><span class="ck"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span><span class="gt"><b>Per-session encrypted SQLite</b>:keys are host-held; no session can read another.</span></div>
+            <div class="guard"><span class="ck"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span><span class="gt"><b>Capability changes can't self-apply</b>:the agent can ask for power, never take it.</span></div>
+          </div>
+          <div class="chips">
+            <span class="chip"><b>Go</b> + CGO</span>
+            <span class="chip"><b>gVisor</b> network=none</span>
+            <span class="chip"><b>Encrypted</b> SQLite queues</span>
+            <span class="chip"><b>~200</b> tests green</span>
+            <span class="chip"><b>CI</b> passing</span>
+            <span class="chip"><b>6</b> channel adapters</span>
+            <span class="chip"><b>MIT</b> licensed</span>
+          </div>
+          <div class="card" style="padding:1.1em 1.3em">
+            <p style="color:var(--steel-3);font-size:1.08em;line-height:1.45">Channels shipped: webhook, Telegram, Slack, Discord, Matrix, Google Chat. Two compiled binaries that never share memory and talk only through encrypted per-session files.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="band spacer">
+        <p>We are not claiming a finished enterprise suite. We are proving the <span class="accent">trust wedge</span>, and you can clone it today.</p>
+      </div>
+    </div>
+    <div class="notes" data-note="7">
+      <div class="h">Speaker · ~75s · live if the room allows</div>
+      <p>"This is not slideware. It's open source, it's on GitHub, and it runs. One command installs it, with a checksum check, and the control-plane comes up in dev mode."</p>
+      <p>"And this is the part I care about. The security here is not a human clicking approve on everything. It is enforced by the design, whether the agent behaves or not. The agent ships as a sealed Go binary, so it can't rewrite itself or fake its own logs. The sandbox has no network, so even a hostile agent has nowhere to send your data. Every session is encrypted with its own key. The approval gate is just the last line: the agent can ask for more power, but it physically cannot grant it to itself."</p>
+      <p>"Under the hood: two Go binaries that never share memory, around two hundred tests green, six chat channels, MIT licensed. We're proving the wedge, not claiming the whole enterprise suite. And because it's open source, the real proof is that you can clone it and try to break it tonight."</p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 9 -WHAT'S IN IT FOR YOU (FOMO) ============ -->
+  <section class="slide">
+    <div class="pad">
+      <div class="topbar">
+        <div class="eyebrow"><span class="dot"></span>Spread the word</div>
+        <div class="minilogo" data-mini></div>
+      </div>
+      <h2 class="title">Now help it <span class="accent">get everywhere.</span></h2>
+      <p class="kicker">IronClaw is open source, it runs today, and it is the secure foundation the agent wave is missing. We are not here to raise money, we are here to get it into the right hands. Here is how each of you can help:</p>
+
+      <div class="grid4" style="margin-top:1.4em">
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11 L12 4 L21 11"/><path d="M5 10 V20 H19 V10"/><path d="M10 20 V15 H14 V20"/></svg></div>
+          <h3>ClawComp</h3>
+          <p><span class="em">Showcase it.</span> Feature IronClaw as something real that was built here, and put it in front of the next competitions.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="9" r="3"/><path d="M3.5 19 a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="10" r="2.4"/><path d="M16 14.6 a4.6 4.6 0 0 1 4.5 4.4"/></svg></div>
+          <h3>Builder &amp; AI-first teams</h3>
+          <p><span class="em">Adopt it.</span> Pull the IronClaw suite into your products, so your agents get real access and ship secure from day one, not patched later.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 18 L10 11 L14 14 L20 7"/><path d="M15 7 H20 V12"/></svg></div>
+          <h3>Investors</h3>
+          <p><span class="em">Recommend it.</span> If you want your portfolio to go AI-first without going exposed, send them the project.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M9 8 L5 12 L9 16"/><path d="M15 8 L19 12 L15 16"/><path d="M13.5 6 L10.5 18"/></svg></div>
+          <h3>Developers</h3>
+          <p><span class="em">Contribute to it.</span> It is open source. Send a PR, harden a wall, and make IronClaw's security stronger for everyone who builds on it.</p>
+        </div>
+      </div>
+
+      <div class="band spacer">
+        <p>Open source. Running today.<br><span class="accent">IronClaw is the next big thing in secure agents, so help us put it everywhere.</span></p>
+      </div>
+    </div>
+    <div class="notes" data-note="9">
+      <div class="h">Speaker · ~35s + close</div>
+      <p>"One last thing, and it is the real ask. We are not here for a check today. We want IronClaw in front of the people who need it. ClawComp, showcase it: it was built at your event, feature it in the next competitions. Builder and AI-first teams, adopt it: pull the suite into your products so your agents get real access and ship secure from day one. Investors, recommend it: if you want your portfolio to go AI-first without going exposed, send them the project. And developers, contribute to it: it is open source, send a PR, harden a wall, and make it stronger for everyone."</p>
+      <p>"It is open source and it runs today. If you want to go deeper, including on the investment side, find us right after."</p>
+      <p><b>Closing line:</b> "The market already wants persistent developer agents. The blocker is trust. IronClaw removes that blocker, and it is the next big thing in secure agents. Help us spread the word. Thank you."</p>
+    </div>
+  </section>
+
+</div>
+
+<!-- chrome -->
+<div class="chrome"><div class="bar" id="bar"></div></div>
+<div class="dots" id="dots"></div>
+<div class="counter"><b id="cur">1</b> / <span id="tot">9</span></div>
+<div class="hint"><kbd>&#8594;</kbd> next · <kbd>S</kbd> notes · <kbd>F</kbd> full · <kbd>?</kbd> keys</div>
+
+<div class="notes" id="liveNote"></div>
+
+<div class="legend" id="legend">
+  <div class="box">
+    <h3>Keyboard</h3>
+    <div><kbd>&#8594;</kbd> <kbd>Space</kbd> <span>next slide</span></div>
+    <div><kbd>&#8592;</kbd> <span>previous slide</span></div>
+    <div><kbd>S</kbd> <span>toggle speaker notes</span></div>
+    <div><kbd>F</kbd> <span>fullscreen</span></div>
+    <div><kbd>1</kbd>–<kbd>9</kbd> <span>jump to slide</span></div>
+    <div><kbd>?</kbd> <span>close this help</span></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length, i = 0, notesOn = false;
+  var bar = document.getElementById('bar'), cur = document.getElementById('cur'),
+      dots = document.getElementById('dots'), legend = document.getElementById('legend');
+  document.getElementById('tot').textContent = total;
+
+  // mini logo markup (small lockup, reused on every content slide)
+  var miniSVG = '<svg viewBox="0 0 128 140" aria-hidden="true">'+document.querySelector('.cover .mark').innerHTML+'</svg><span class="nm">IronClaw</span>';
+  Array.prototype.forEach.call(document.querySelectorAll('[data-mini]'), function(m){ m.innerHTML = miniSVG; });
+
+  // dots
+  slides.forEach(function(_, n){
+    var b = document.createElement('button'); b.className = 'dot';
+    b.addEventListener('click', function(){ go(n); });
+    dots.appendChild(b);
+  });
+  var dotEls = Array.prototype.slice.call(dots.children);
+
+  function render(){
+    slides.forEach(function(s, n){ s.classList.toggle('active', n === i); });
+    dotEls.forEach(function(d, n){ d.className = 'dot' + (n === i ? ' on' : ''); });
+    bar.style.width = ((i)/(total-1)*100) + '%';
+    cur.textContent = i + 1;
+    syncNote();
+  }
+  function syncNote(){
+    var live = document.getElementById('liveNote');
+    var src = slides[i].querySelector('.notes');
+    if(notesOn && src){ live.innerHTML = src.innerHTML; live.classList.add('show'); }
+    else { live.classList.remove('show'); }
+  }
+  function go(n){ i = Math.max(0, Math.min(total-1, n)); render(); }
+  function next(){ go(i+1); } function prev(){ go(i-1); }
+
+  document.addEventListener('keydown', function(e){
+    var k = e.key;
+    if(k === 'ArrowRight' || k === ' ' || k === 'PageDown'){ e.preventDefault(); next(); }
+    else if(k === 'ArrowLeft' || k === 'PageUp'){ e.preventDefault(); prev(); }
+    else if(k === 'Home'){ go(0); } else if(k === 'End'){ go(total-1); }
+    else if(k.toLowerCase() === 's'){ notesOn = !notesOn; syncNote(); }
+    else if(k.toLowerCase() === 'f'){ if(!document.fullscreenElement){ document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen(); } else { document.exitFullscreen&&document.exitFullscreen(); } }
+    else if(k === '?'){ legend.classList.toggle('show'); }
+    else if(k === 'Escape'){ legend.classList.remove('show'); }
+    else if(/^[1-9]$/.test(k)){ go(parseInt(k,10)-1); }
+  });
+
+  // swipe / click-advance on touch
+  var sx = 0;
+  document.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    var dx = e.changedTouches[0].clientX - sx;
+    if(Math.abs(dx) > 40){ dx < 0 ? next() : prev(); }
+  }, {passive:true});
+
+  render();
+})();
+</script>
+</body>
+</html>
