@@ -23,6 +23,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/nivardsec/ironclaw/internal/version"
 )
 
 const defaultAddr = "http://127.0.0.1:8787"
@@ -39,6 +41,12 @@ func main() {
 }
 
 func run(args []string) error {
+	// `ironctl version` / `--version` short-circuits before any flag parsing.
+	if len(args) >= 1 && (args[0] == "version" || args[0] == "--version" || args[0] == "-version") {
+		fmt.Println("ironctl " + version.String())
+		return nil
+	}
+
 	// Global --addr / --token can appear (in any order) before the subcommand.
 	addr := defaultAddr
 	token = os.Getenv("IRONCLAW_API_TOKEN")

@@ -3,6 +3,8 @@
 **Security-first, self-hosted AI agents — isolation you can prove, not just promise.**
 
 [![CI](https://github.com/nivardsec/ironclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/nivardsec/ironclaw/actions/workflows/ci.yml)
+[![Release](https://github.com/nivardsec/ironclaw/actions/workflows/release.yml/badge.svg)](https://github.com/nivardsec/ironclaw/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/nivardsec/ironclaw?sort=semver)](https://github.com/nivardsec/ironclaw/releases/latest)
 [![Go Reference](https://pkg.go.dev/badge/github.com/nivardsec/ironclaw.svg)](https://pkg.go.dev/github.com/nivardsec/ironclaw)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange.svg)](#project-status)
@@ -113,6 +115,59 @@ The three external runtime dependencies (gVisor, Tailscale, the encrypted-SQLite
 intentionally **not vendored**. See [`deploy/README.md`](deploy/README.md) for host setup.
 
 ## Installation
+
+### Prebuilt binaries (recommended)
+
+One command installs the latest release — `ironctl` and `ironclaw-controlplane`. The script
+detects your OS/arch, downloads the matching archive from
+[GitHub Releases](https://github.com/nivardsec/ironclaw/releases), and verifies its SHA-256
+checksum before installing.
+
+**macOS / Linux**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nivardsec/ironclaw/main/scripts/install.sh | sh
+```
+
+**Windows (PowerShell)**
+
+```powershell
+irm https://raw.githubusercontent.com/nivardsec/ironclaw/main/scripts/install.ps1 | iex
+```
+
+A fresh release is published on every push to `main`, with prebuilt archives for:
+
+| OS | Architectures |
+|----|---------------|
+| macOS | Intel (`amd64`) · Apple Silicon (`arm64`) |
+| Linux | `amd64` · `arm64` |
+| Windows | `amd64` |
+
+The installer reads a few environment variables (pass them on the `sh` side of the pipe):
+
+```sh
+# Pin a version instead of latest
+curl -fsSL https://raw.githubusercontent.com/nivardsec/ironclaw/main/scripts/install.sh | IRONCLAW_VERSION=v0.1.66 sh
+
+# Install system-wide (a normal user defaults to ~/.local/bin)
+curl -fsSL https://raw.githubusercontent.com/nivardsec/ironclaw/main/scripts/install.sh | sudo sh
+
+# Choose the install directory
+curl -fsSL https://raw.githubusercontent.com/nivardsec/ironclaw/main/scripts/install.sh | IRONCLAW_BINDIR="$HOME/bin" sh
+```
+
+Then confirm what you installed:
+
+```sh
+ironctl --version
+```
+
+Prefer to grab files by hand? Download the archive and `SHA256SUMS` for your platform from the
+[latest release](https://github.com/nivardsec/ironclaw/releases/latest).
+
+### From source
+
+Requires Go 1.23+ and a C toolchain (`CGO_ENABLED=1` — the encrypted-SQLite binding builds via cgo).
 
 ```sh
 # Clone

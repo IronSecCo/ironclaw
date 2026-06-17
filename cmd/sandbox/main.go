@@ -28,6 +28,7 @@ import (
 	"github.com/nivardsec/ironclaw/internal/sandbox/provider"
 	"github.com/nivardsec/ironclaw/internal/sandbox/queue"
 	"github.com/nivardsec/ironclaw/internal/sandbox/tools"
+	"github.com/nivardsec/ironclaw/internal/version"
 )
 
 // defaultDirs returns the default queue/key/socket directory and the workspace
@@ -65,8 +66,14 @@ func run() error {
 		modelSocket  = flag.String("model-socket", filepath.Join(qd, "modelproxy.sock"), "host model-proxy unix socket")
 		modelHost    = flag.String("model-host", "", "upstream model host the proxy allowlists (defaults to api.anthropic.com)")
 		model        = flag.String("model", "", "model id override (defaults to the provider's default)")
+		showVersion  = flag.Bool("version", false, "print version and exit")
 	)
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println("ironclaw-sandbox " + version.String())
+		return nil
+	}
 
 	key, err := loadSessionKey(*keyPath)
 	if err != nil {

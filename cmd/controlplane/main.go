@@ -13,6 +13,7 @@ import (
 	"context"
 	"crypto/rand"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -34,6 +35,7 @@ import (
 	"github.com/nivardsec/ironclaw/internal/host/registry"
 	"github.com/nivardsec/ironclaw/internal/host/session"
 	"github.com/nivardsec/ironclaw/internal/host/sweep"
+	"github.com/nivardsec/ironclaw/internal/version"
 )
 
 func main() {
@@ -55,7 +57,13 @@ func main() {
 		"how often the outbound delivery loop polls per-session outbound queues")
 	dev := flag.Bool("dev", false,
 		"seed the registry with a tiny dev owner/agent-group for local testing")
+	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println("ironclaw-controlplane " + version.String())
+		return
+	}
 
 	if err := os.MkdirAll(*stateDir, 0o700); err != nil {
 		log.Fatalf("controlplane: create state dir %s: %v", *stateDir, err)

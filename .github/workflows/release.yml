@@ -1,0 +1,218 @@
+name: Release
+
+# Cut a release on every push to main: derive a version, build the binaries for
+# every supported platform, and publish a GitHub Release with checksummed archives
+# that scripts/install.sh can curl down.
+#
+# CGO is mandatory (the encrypted-SQLite binding compiles the vendored SQLCipher C
+# amalgamation), so each target is built on a runner with a matching C toolchain
+# rather than cross-compiled blind. The only cross-build is linux/arm64, which is
+# pure C and links cleanly with the aarch64 GNU cross-compiler.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag to cut (e.g. v0.1.99). Blank = auto-derive vBASE.<commit-count>."
+        required: false
+        default: ""
+
+# Serialize releases. Never cancel a half-finished one — that could orphan a tag.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write # create tags + releases
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Resolve the version/tag once, so the matrix and the release agree on it.
+  # Version = vBASE_VERSION.<total commit count>: monotonic, no manual bumps, and
+  # tied to a specific commit. Bump BASE_VERSION below to roll major/minor.
+  # ---------------------------------------------------------------------------
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      version: ${{ steps.v.outputs.version }}
+      exists: ${{ steps.v.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - id: v
+        env:
+          BASE_VERSION: "0.1"
+          OVERRIDE: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -n "${OVERRIDE}" ]; then
+            tag="${OVERRIDE}"
+          else
+            tag="v${BASE_VERSION}.$(git rev-list --count HEAD)"
+          fi
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            exists=true
+          else
+            exists=false
+          fi
+          {
+            echo "tag=${tag}"
+            echo "version=${tag#v}"
+            echo "exists=${exists}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Resolved ${tag} (already tagged: ${exists})"
+
+  # ---------------------------------------------------------------------------
+  # Build one checksummed archive per platform on a runner with a native (or, for
+  # linux/arm64, a cross) C toolchain.
+  # ---------------------------------------------------------------------------
+  build:
+    needs: version
+    if: needs.version.outputs.exists == 'false'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS Intel — native clang on the last Intel-hosted runner. If GitHub
+          # retires macos-13, build this on macos-14 with `CC="clang -arch x86_64"`.
+          - { goos: darwin, goarch: amd64, runner: macos-13, name: darwin_amd64 }
+          # macOS Apple Silicon — native clang.
+          - { goos: darwin, goarch: arm64, runner: macos-14, name: darwin_arm64 }
+          # Linux x86_64 — native gcc.
+          - { goos: linux, goarch: amd64, runner: ubuntu-latest, name: linux_amd64 }
+          # Linux arm64 — cross-compiled with the aarch64 GNU toolchain.
+          - { goos: linux, goarch: arm64, runner: ubuntu-latest, name: linux_arm64, cc: aarch64-linux-gnu-gcc, apt: gcc-aarch64-linux-gnu }
+          # Windows x86_64 — native mingw-w64 gcc (preinstalled on the runner).
+          - { goos: windows, goarch: amd64, runner: windows-latest, name: windows_amd64 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Install cross C toolchain
+        if: matrix.apt != ''
+        env:
+          APT_PKG: ${{ matrix.apt }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y "${APT_PKG}"
+
+      - name: Build binaries
+        shell: bash
+        env:
+          CGO_ENABLED: "1"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CC_OVERRIDE: ${{ matrix.cc }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          [ -n "${CC_OVERRIDE}" ] && export CC="${CC_OVERRIDE}"
+          ext=""
+          [ "${GOOS}" = "windows" ] && ext=".exe"
+          ldflags="-s -w -X github.com/nivardsec/ironclaw/internal/version.Version=${TAG}"
+          mkdir -p dist/pkg
+          for cmd in controlplane ironctl sandbox; do
+            out="ironctl"
+            case "$cmd" in
+              controlplane) out="ironclaw-controlplane" ;;
+              sandbox)      out="ironclaw-sandbox" ;;
+            esac
+            echo "==> building ${out}${ext} (${GOOS}/${GOARCH})"
+            go build -trimpath -ldflags "${ldflags}" -o "dist/pkg/${out}${ext}" "./cmd/${cmd}"
+          done
+          cp LICENSE README.md dist/pkg/
+
+      - name: Package archive
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          VERSION: ${{ needs.version.outputs.version }}
+          MATRIX_NAME: ${{ matrix.name }}
+        run: |
+          set -euo pipefail
+          base="ironclaw_${VERSION}_${MATRIX_NAME}"
+          mkdir -p dist/out
+          if [ "${GOOS}" = "windows" ]; then
+            ( cd dist/pkg && 7z a -tzip "../out/${base}.zip" ./* >/dev/null )
+          else
+            tar -czf "dist/out/${base}.tar.gz" -C dist/pkg .
+          fi
+          ls -l dist/out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/out/*
+          if-no-files-found: error
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Collect every archive, write SHA256SUMS, and publish the release + tag at the
+  # exact commit that triggered the run. Runs only if all builds succeeded, so a
+  # release is never partial.
+  # ---------------------------------------------------------------------------
+  release:
+    needs: [version, build]
+    if: needs.version.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Assemble release assets
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} dist/ \;
+          ( cd dist && sha256sum ./* > SHA256SUMS )
+          echo "Release assets:"
+          cat dist/SHA256SUMS
+
+      - name: Write release notes
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          cat > notes.md <<EOF
+          Automated release for commit \`${GITHUB_SHA}\`.
+
+          ### Install (macOS / Linux)
+
+          \`\`\`sh
+          curl -fsSL https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/scripts/install.sh | sh
+          \`\`\`
+
+          ### Install (Windows, PowerShell)
+
+          \`\`\`powershell
+          irm https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/scripts/install.ps1 | iex
+          \`\`\`
+
+          To pin this version, set \`IRONCLAW_VERSION=${TAG}\` before running the installer.
+
+          Archives are attached below; verify them against \`SHA256SUMS\`.
+          EOF
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release create "${TAG}" dist/* \
+            --title "${TAG}" \
+            --notes-file notes.md \
+            --target "${GITHUB_SHA}" \
+            --latest
+          echo "Released ${TAG} → ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
