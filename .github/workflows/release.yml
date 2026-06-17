@@ -176,20 +176,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # SBOMs are generated on the CLEAN checkout (before the build artifacts are
-      # downloaded) so they describe the source/module graph, not the dist tarballs.
-      - name: Generate SBOMs (syft → SPDX + CycloneDX)
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "$RUNNER_TEMP/bin"
-          "$RUNNER_TEMP/bin/syft" version
-          mkdir -p sbom
-          "$RUNNER_TEMP/bin/syft" scan dir:. \
-            -o "spdx-json=sbom/ironclaw_${VERSION}.spdx.json" \
-            -o "cyclonedx-json=sbom/ironclaw_${VERSION}.cdx.json"
-
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -199,10 +185,7 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} dist/ \;
-          # Checksum the binaries ONLY (before adding SBOMs), so SHA256SUMS is the
-          # signed manifest of the release binaries.
           ( cd dist && sha256sum ./* > SHA256SUMS )
-          cp sbom/*.json dist/
           echo "Release assets:"
           cat dist/SHA256SUMS
 
@@ -244,9 +227,23 @@ jobs:
             --latest
           echo "Released ${TAG} → ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
 
-      # Signing + attestation run AFTER publish so a Sigstore/tooling hiccup can never
-      # block a release — the binaries + checksums + SBOMs are already out; the
-      # signature is uploaded to the existing release.
+      # Everything below runs AFTER publish so a tooling/Sigstore hiccup can never block
+      # a release — the binaries + checksums are already out; SBOMs and the signature
+      # are uploaded to the existing release.
+      - name: Generate SBOMs (syft → SPDX + CycloneDX) and attach them
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "$RUNNER_TEMP/bin"
+          "$RUNNER_TEMP/bin/syft" version
+          "$RUNNER_TEMP/bin/syft" scan dir:. \
+            -o "spdx-json=ironclaw_${VERSION}.spdx.json" \
+            -o "cyclonedx-json=ironclaw_${VERSION}.cdx.json"
+          gh release upload "${TAG}" "ironclaw_${VERSION}.spdx.json" "ironclaw_${VERSION}.cdx.json" --clobber
+
       - uses: sigstore/cosign-installer@v3
 
       - name: Sign the checksum file (cosign keyless) and attach it
