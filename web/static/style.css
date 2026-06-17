@@ -106,6 +106,26 @@ h2 { font-size: 16px; margin: 0 0 4px; }
 }
 .id { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
 
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+}
+.form-row input,
+.form-row select {
+  padding: 7px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.form-row input { flex: 1 1 180px; min-width: 140px; }
+.chk { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+details { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; margin: 10px 0; }
+details > summary { cursor: pointer; font-weight: 600; }
+
 .meta {
   display: grid;
   grid-template-columns: max-content 1fr;

@@ -24,6 +24,7 @@
   <nav class="tabs" aria-label="Console sections">
     <button class="tab active" data-panel="approvals" type="button">Approvals</button>
     <button class="tab" data-panel="sessions" type="button">Sessions</button>
+    <button class="tab" data-panel="channels" type="button">Channels</button>
     <button class="tab" data-panel="audit" type="button">Audit</button>
     <button class="tab" data-panel="about" type="button">About</button>
   </nav>
@@ -43,6 +44,75 @@
         <button id="refresh-sessions" class="ghost" type="button">Refresh</button>
       </div>
       <div id="sessions-list" class="list"><p class="muted">Not connected.</p></div>
+    </section>
+
+    <section id="channels" class="panel" aria-label="Channels and wiring" hidden>
+      <h2>Channels &amp; wiring</h2>
+
+      <details open>
+        <summary>Messaging group</summary>
+        <div class="form-row">
+          <input id="ch-mg-id" placeholder="messaging group id — view its wirings" />
+          <button id="ch-mg-load" class="ghost" type="button">View</button>
+        </div>
+        <div class="form-row">
+          <input id="ch-mg-channel" placeholder="channel type (slack/discord/telegram)" />
+          <input id="ch-mg-platform" placeholder="platform id (channel/chat id)" />
+          <input id="ch-mg-instance" placeholder="instance (optional)" />
+          <select id="ch-mg-policy" title="unknown-sender policy">
+            <option value="strict">strict</option>
+            <option value="request_approval">request_approval</option>
+            <option value="public">public</option>
+          </select>
+          <label class="chk"><input type="checkbox" id="ch-mg-isgroup" /> group chat</label>
+          <button id="ch-mg-create" type="button">Create group</button>
+        </div>
+        <div id="ch-channel-view" class="list"></div>
+      </details>
+
+      <details>
+        <summary>Create wiring</summary>
+        <div class="form-row">
+          <input id="ch-w-mg" placeholder="messaging group id" />
+          <input id="ch-w-ag" placeholder="agent group id" />
+          <select id="ch-w-engage" title="engage mode">
+            <option value="pattern">pattern</option>
+            <option value="mention">mention</option>
+            <option value="mention-sticky">mention-sticky</option>
+          </select>
+          <input id="ch-w-pattern" placeholder="engage pattern (regex; pattern mode)" />
+          <select id="ch-w-session" title="session mode">
+            <option value="shared">shared</option>
+            <option value="per-thread">per-thread</option>
+            <option value="agent-shared">agent-shared</option>
+          </select>
+          <input id="ch-w-priority" type="number" value="1" title="priority" />
+          <button id="ch-w-create" type="button">Create wiring</button>
+        </div>
+      </details>
+
+      <details>
+        <summary>Destinations</summary>
+        <div class="form-row">
+          <input id="ch-d-ag" placeholder="agent group id" />
+          <button id="ch-d-load" class="ghost" type="button">List</button>
+        </div>
+        <div class="form-row">
+          <input id="ch-d-channel" placeholder="channel type" />
+          <input id="ch-d-platform" placeholder="platform id" />
+          <button id="ch-d-add" type="button">Add destination</button>
+        </div>
+        <div id="ch-dest-view" class="list"></div>
+      </details>
+
+      <details>
+        <summary>Channel credentials (guided)</summary>
+        <p class="muted">Bot tokens are set as environment variables on the
+          control-plane host and are <strong>never stored by this console</strong>
+          (sealed design — there is no credential vault). Set the variable on the
+          host, then restart the daemon.</p>
+        <div id="ch-cred-guide" class="list"></div>
+      </details>
     </section>
 
     <section id="audit" class="panel" aria-label="Audit log" hidden>
@@ -70,5 +140,6 @@
   <script src="approvals.js"></script>
   <script src="sessions.js"></script>
   <script src="audit.js"></script>
+  <script src="channels.js"></script>
 </body>
 </html>

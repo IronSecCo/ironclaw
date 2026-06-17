@@ -69,6 +69,14 @@ type Session struct {
 	LastActive       time.Time
 }
 
+// Destination is one (channel, platform) coordinate an agent group is allowed to
+// send to. It is the structured form returned by ListDestinations.
+type Destination struct {
+	AgentGroupID contract.AgentGroupID `json:"agentGroupId"`
+	ChannelType  string                `json:"channelType"`
+	PlatformID   string                `json:"platformID"`
+}
+
 // User is a platform identity (id is "<channel>:<handle>").
 type User struct {
 	ID          contract.UserID
@@ -150,6 +158,10 @@ type Registry interface {
 	// platformID). The session's own origin chat is handled by the caller and does
 	// not require a destination row.
 	IsAllowedDestination(agentGroupID contract.AgentGroupID, channelType, platformID string) bool
+	// ListDestinations returns the destinations agentGroupID may send to — the read
+	// counterpart of AddDestination, used by admin/management surfaces (the web
+	// console). The result is empty (never nil) for an agent group with none.
+	ListDestinations(agentGroupID contract.AgentGroupID) []Destination
 
 	// CanAccess reports whether userID may access agentGroupID, with a reason. The
 	// precedence is owner > global-admin > scoped-admin > member.

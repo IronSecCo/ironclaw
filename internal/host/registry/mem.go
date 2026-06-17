@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -358,6 +359,26 @@ func (r *MemRegistry) IsAllowedDestination(agentGroupID contract.AgentGroupID, c
 	}
 	_, ok = set[destKey(channelType, platformID)]
 	return ok
+}
+
+// ListDestinations implements Registry. It returns the agent group's destinations
+// sorted by (channel, platform) for stable output; empty (never nil) when none.
+func (r *MemRegistry) ListDestinations(agentGroupID contract.AgentGroupID) []Destination {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	set := r.dests[agentGroupID]
+	out := make([]Destination, 0, len(set))
+	for key := range set {
+		ct, pid, _ := strings.Cut(key, "\x00")
+		out = append(out, Destination{AgentGroupID: agentGroupID, ChannelType: ct, PlatformID: pid})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].ChannelType != out[j].ChannelType {
+			return out[i].ChannelType < out[j].ChannelType
+		}
+		return out[i].PlatformID < out[j].PlatformID
+	})
+	return out
 }
 
 // CanAccess implements Registry with precedence owner > global-admin >

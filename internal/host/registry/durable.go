@@ -496,6 +496,12 @@ func (r *SQLRegistry) FindSession(agentGroupID contract.AgentGroupID, messagingG
 func (r *SQLRegistry) IsAllowedDestination(agentGroupID contract.AgentGroupID, channelType, platformID string) bool {
 	return r.mem.IsAllowedDestination(agentGroupID, channelType, platformID)
 }
+
+// ListDestinations reads from the in-memory working set (kept in sync with the
+// destinations table on every AddDestination and rebuilt on Open).
+func (r *SQLRegistry) ListDestinations(agentGroupID contract.AgentGroupID) []Destination {
+	return r.mem.ListDestinations(agentGroupID)
+}
 func (r *SQLRegistry) CanAccess(userID contract.UserID, agentGroupID contract.AgentGroupID) (bool, string) {
 	return r.mem.CanAccess(userID, agentGroupID)
 }
