@@ -407,6 +407,39 @@ func (s *sandboxOutbound) PutSessionState(key, value string) error {
 	return err
 }
 
+// LoadSessionState returns every durable key/value pair previously written via
+// PutSessionState. The sandbox is the sole writer of the outbound DB and holds
+// it open for the session, so reading its own session_state table back on
+// startup restores per-session loop state (accumulated and deduped message ids)
+// that would otherwise be lost when the process exits and the host respawns it.
+//
+// This read method is deliberately NOT part of the frozen contract.OutboundWriter
+// interface (which stays write-only by design); it is a sandbox-internal
+// capability the poll loop discovers by type assertion (T-114).
+func (s *sandboxOutbound) LoadSessionState() (map[string]string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
+	defer cancel()
+	rows, err := s.db.QueryContext(ctx, `SELECT key, value FROM session_state`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := map[string]string{}
+	for rows.Next() {
+		var k string
+		var v sql.NullString
+		if err := rows.Scan(&k, &v); err != nil {
+			return nil, err
+		}
+		out[k] = v.String
+	}
+	return out, rows.Err()
+}
+
 // Close closes the outbound handle.
 func (s *sandboxOutbound) Close() error {
 	if s.db == nil {

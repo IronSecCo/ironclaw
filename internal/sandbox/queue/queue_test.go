@@ -140,3 +140,51 @@ func TestOpenUsesLiveBinding(t *testing.T) {
 		t.Fatalf("Close: %v", err)
 	}
 }
+
+// TestSessionStateDurableAcrossReopen verifies that session state written by one
+// outbound handle survives a Close + reopen of the same encrypted DB — the
+// durability T-114 relies on to restore loop state after a sandbox restart.
+func TestSessionStateDurableAcrossReopen(t *testing.T) {
+	path := t.TempDir() + "/outbound.db"
+	key := contract.SessionKey{}
+
+	w, err := OpenOutbound(path, key)
+	if err != nil {
+		t.Fatalf("OpenOutbound: %v", err)
+	}
+	if err := w.PutSessionState("loop.buffer", `[{"ID":"m1","Content":"hold"}]`); err != nil {
+		t.Fatalf("PutSessionState buffer: %v", err)
+	}
+	if err := w.PutSessionState("loop.done_ids", `["d1","d2"]`); err != nil {
+		t.Fatalf("PutSessionState done: %v", err)
+	}
+	// Overwrite one key to confirm the upsert wins on reload (last write).
+	if err := w.PutSessionState("loop.done_ids", `["d1","d2","d3"]`); err != nil {
+		t.Fatalf("PutSessionState done (update): %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	// Reopen the same encrypted DB — this is the sandbox-restart path.
+	w2, err := OpenOutbound(path, key)
+	if err != nil {
+		t.Fatalf("reopen OpenOutbound: %v", err)
+	}
+	defer w2.Close()
+
+	store, ok := w2.(*sandboxOutbound)
+	if !ok {
+		t.Fatalf("OpenOutbound returned %T, want *sandboxOutbound", w2)
+	}
+	state, err := store.LoadSessionState()
+	if err != nil {
+		t.Fatalf("LoadSessionState: %v", err)
+	}
+	if got, want := state["loop.buffer"], `[{"ID":"m1","Content":"hold"}]`; got != want {
+		t.Fatalf("loop.buffer = %q, want %q", got, want)
+	}
+	if got, want := state["loop.done_ids"], `["d1","d2","d3"]`; got != want {
+		t.Fatalf("loop.done_ids = %q, want %q", got, want)
+	}
+}

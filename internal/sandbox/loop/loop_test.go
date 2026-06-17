@@ -57,6 +57,17 @@ func (f *fakeOutbound) PutSessionState(k, v string) error {
 	f.state[k] = v
 	return nil
 }
+
+// LoadSessionState makes fakeOutbound satisfy the loop's sessionStateLoader, so
+// New restores from it — the same object that persisted the state reads it back,
+// mirroring the real outbound queue's single-handle behavior (T-114).
+func (f *fakeOutbound) LoadSessionState() (map[string]string, error) {
+	out := map[string]string{}
+	for k, v := range f.state {
+		out[k] = v
+	}
+	return out, nil
+}
 func (f *fakeOutbound) Close() error { return nil }
 
 // fakeProvider records prompts and returns a canned reply.
@@ -475,5 +486,101 @@ func TestCapabilityChangeForwardedToOutbound(t *testing.T) {
 	}
 	if len(sysAction.Payload) == 0 {
 		t.Fatal("forwarded system message dropped the payload")
+	}
+}
+
+// TestPersistsBufferedState asserts that accumulating a trigger=0 message writes
+// the buffer to durable session state, so an unclean exit before engagement can
+// recover it (T-114).
+func TestPersistsBufferedState(t *testing.T) {
+	in := &fakeInbound{pending: []contract.MessageIn{msg("m1", "hold me", 0)}}
+	out := &fakeOutbound{}
+	prov := &fakeProvider{reply: "unused"}
+	l := newTestLoop(t, in, out, prov)
+
+	if err := l.poll(context.Background(), false); err != nil {
+		t.Fatalf("poll: %v", err)
+	}
+	if prov.calls != 0 {
+		t.Fatalf("trigger=0 should not engage: calls=%d", prov.calls)
+	}
+	raw := out.state[stateKeyBuffer]
+	if raw == "" || raw == "null" || raw == "[]" {
+		t.Fatalf("buffer not persisted: %q", raw)
+	}
+	var buf []contract.MessageIn
+	if err := json.Unmarshal([]byte(raw), &buf); err != nil {
+		t.Fatalf("persisted buffer not valid JSON: %v", err)
+	}
+	if len(buf) != 1 || buf[0].ID != "m1" || buf[0].Content != "hold me" {
+		t.Fatalf("persisted buffer = %+v, want [m1 \"hold me\"]", buf)
+	}
+}
+
+// TestRestoresBufferAcrossRestart asserts a fresh Loop over the same outbound
+// state recovers an accumulated (un-engaged) message and engages it on the
+// cold-start poll, instead of dropping it (T-114).
+func TestRestoresBufferAcrossRestart(t *testing.T) {
+	in := &fakeInbound{}
+	out := &fakeOutbound{}
+	prov := &fakeProvider{reply: "ok"}
+
+	// Incarnation 1 accumulates a trigger=0 message but never engages it.
+	l1 := newTestLoop(t, in, out, prov)
+	in.pending = []contract.MessageIn{msg("m1", "remember me", 0)}
+	if err := l1.poll(context.Background(), false); err != nil {
+		t.Fatalf("incarnation 1 poll: %v", err)
+	}
+	if prov.calls != 0 {
+		t.Fatalf("incarnation 1 should not engage: calls=%d", prov.calls)
+	}
+
+	// Incarnation 2 is a new Loop sharing the persisted outbound state. The
+	// message is still pending (the host has not advanced it). The cold-start
+	// poll must engage on the restored buffer.
+	l2 := newTestLoop(t, in, out, prov)
+	if len(l2.buffer) != 1 || l2.buffer[0].ID != "m1" {
+		t.Fatalf("restored buffer = %+v, want [m1]", l2.buffer)
+	}
+	if err := l2.poll(context.Background(), true); err != nil {
+		t.Fatalf("restart poll: %v", err)
+	}
+	if prov.calls != 1 {
+		t.Fatalf("restart dropped the restored buffer: calls=%d, want 1", prov.calls)
+	}
+	if !strings.Contains(prov.lastPrompt, "remember me") {
+		t.Fatalf("restored prompt = %q, want it to contain the buffered message", prov.lastPrompt)
+	}
+}
+
+// TestDoneIDsSurviveRestart asserts the restored dedup set prevents re-engaging a
+// message that was completed before the restart but still shows pending due to
+// host status lag (T-114).
+func TestDoneIDsSurviveRestart(t *testing.T) {
+	in := &fakeInbound{}
+	out := &fakeOutbound{}
+	prov := &fakeProvider{reply: "ok"}
+
+	// Incarnation 1 engages and completes m1 (trigger=1 engages immediately).
+	l1 := newTestLoop(t, in, out, prov)
+	in.pending = []contract.MessageIn{msg("m1", "hello", 1)}
+	if err := l1.poll(context.Background(), false); err != nil {
+		t.Fatalf("incarnation 1 poll: %v", err)
+	}
+	if prov.calls != 1 {
+		t.Fatalf("incarnation 1 calls = %d, want 1", prov.calls)
+	}
+
+	// Incarnation 2 restarts while the host still reports m1 pending. The restored
+	// done set must suppress a second engage.
+	l2 := newTestLoop(t, in, out, prov)
+	if _, done := l2.doneIDs["m1"]; !done {
+		t.Fatalf("restored done set missing m1: %v", l2.doneIDs)
+	}
+	if err := l2.poll(context.Background(), true); err != nil {
+		t.Fatalf("restart poll: %v", err)
+	}
+	if prov.calls != 1 {
+		t.Fatalf("m1 was reprocessed after restart: calls=%d, want 1", prov.calls)
 	}
 }

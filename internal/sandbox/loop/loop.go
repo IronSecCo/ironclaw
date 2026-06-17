@@ -11,6 +11,7 @@ package loop
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -103,6 +104,25 @@ type Loop struct {
 // cannot spin forever.
 const maxToolIterations = 8
 
+// Durable session-state keys (T-114). The loop persists its in-memory poll state
+// under these keys via contract.OutboundWriter.PutSessionState so a sandbox
+// restart resumes mid-accumulation instead of dropping work. They share the
+// session_state table with other keys (e.g. "reset_at") and are namespaced to
+// avoid collision.
+const (
+	stateKeyBuffer  = "loop.buffer"   // JSON array of contract.MessageIn awaiting engagement
+	stateKeyDoneIDs = "loop.done_ids" // JSON array of contract.MessageID already engaged
+)
+
+// sessionStateLoader reads back durable per-session state previously written via
+// contract.OutboundWriter.PutSessionState. The sandbox outbound queue satisfies
+// it; it is kept loop-local (not added to the frozen OutboundWriter interface)
+// so the contract stays write-only by design. When the configured Outbound
+// implements it, New restores the loop's buffered + deduped message state.
+type sessionStateLoader interface {
+	LoadSessionState() (map[string]string, error)
+}
+
 // New constructs a Loop, validating required dependencies and applying defaults.
 func New(cfg Config) (*Loop, error) {
 	if cfg.Inbound == nil {
@@ -135,12 +155,83 @@ func New(cfg Config) (*Loop, error) {
 	if cfg.ProviderBreakerThreshold <= 0 {
 		cfg.ProviderBreakerThreshold = defaultBreakerThreshold
 	}
-	return &Loop{
+	l := &Loop{
 		cfg:         cfg,
 		breaker:     newBackoff(cfg.PollInterval, cfg.ProviderBackoffMax, cfg.ProviderBreakerThreshold, cfg.Jitter),
 		bufferedIDs: make(map[contract.MessageID]struct{}),
 		doneIDs:     make(map[contract.MessageID]struct{}),
-	}, nil
+	}
+	// Restore durable poll state so a respawn resumes mid-accumulation (T-114).
+	l.restoreState()
+	return l, nil
+}
+
+// restoreState rehydrates the poll loop's buffer and dedup set from durable
+// session state, so a sandbox restart resumes accumulated trigger=0 messages and
+// does not re-engage messages already completed before the restart. It is
+// best-effort: if the Outbound does not persist state, the crypto binding is
+// pending, or a value is unreadable, the loop simply starts with empty state —
+// the pre-T-114 behavior. Buffered ids are rederived from the restored buffer.
+func (l *Loop) restoreState() {
+	loader, ok := l.cfg.Outbound.(sessionStateLoader)
+	if !ok {
+		return
+	}
+	state, err := loader.LoadSessionState()
+	if err != nil {
+		l.cfg.Logger.Printf("sandbox/loop: restore session state: %v", err)
+		return
+	}
+	if raw := state[stateKeyBuffer]; raw != "" {
+		var buf []contract.MessageIn
+		if err := json.Unmarshal([]byte(raw), &buf); err != nil {
+			l.cfg.Logger.Printf("sandbox/loop: restore buffer: %v", err)
+		} else {
+			l.buffer = buf
+			for _, m := range buf {
+				l.bufferedIDs[m.ID] = struct{}{}
+			}
+		}
+	}
+	if raw := state[stateKeyDoneIDs]; raw != "" {
+		var ids []contract.MessageID
+		if err := json.Unmarshal([]byte(raw), &ids); err != nil {
+			l.cfg.Logger.Printf("sandbox/loop: restore done ids: %v", err)
+		} else {
+			for _, id := range ids {
+				l.doneIDs[id] = struct{}{}
+			}
+		}
+	}
+}
+
+// persistState snapshots the loop's buffer and dedup set to durable session
+// state (T-114). It is best-effort: a write failure is logged, not fatal —
+// losing the snapshot only reverts to the pre-T-114 behavior of dropping
+// in-flight state on an unclean exit. Called after the buffer grows (new
+// messages accumulated) and after an engage clears it / extends the done set.
+func (l *Loop) persistState() {
+	buf, err := json.Marshal(l.buffer)
+	if err != nil {
+		l.cfg.Logger.Printf("sandbox/loop: marshal buffer: %v", err)
+		return
+	}
+	if err := l.cfg.Outbound.PutSessionState(stateKeyBuffer, string(buf)); err != nil {
+		l.cfg.Logger.Printf("sandbox/loop: persist buffer: %v", err)
+	}
+
+	ids := make([]contract.MessageID, 0, len(l.doneIDs))
+	for id := range l.doneIDs {
+		ids = append(ids, id)
+	}
+	done, err := json.Marshal(ids)
+	if err != nil {
+		l.cfg.Logger.Printf("sandbox/loop: marshal done ids: %v", err)
+		return
+	}
+	if err := l.cfg.Outbound.PutSessionState(stateKeyDoneIDs, string(done)); err != nil {
+		l.cfg.Logger.Printf("sandbox/loop: persist done ids: %v", err)
+	}
 }
 
 // Run drives the poll loop until ctx is cancelled. A corruption streak on the
@@ -208,6 +299,7 @@ func (l *Loop) poll(ctx context.Context, firstPoll bool) error {
 	}
 
 	// Buffer freshly-seen messages (not already done or buffered).
+	added := false
 	for _, m := range pending {
 		if _, done := l.doneIDs[m.ID]; done {
 			continue
@@ -217,6 +309,12 @@ func (l *Loop) poll(ctx context.Context, firstPoll bool) error {
 		}
 		l.buffer = append(l.buffer, m)
 		l.bufferedIDs[m.ID] = struct{}{}
+		added = true
+	}
+	// Persist the grown buffer so an unclean exit before engagement does not drop
+	// accumulated trigger=0 messages (T-114). Best-effort; engage persists again.
+	if added {
+		l.persistState()
 	}
 
 	if !l.shouldEngage(firstPoll) {
@@ -311,6 +409,9 @@ func (l *Loop) engage(ctx context.Context) error {
 		l.doneIDs[id] = struct{}{}
 	}
 	l.buffer = nil
+	// Persist the cleared buffer + extended done set so a restart neither replays
+	// these messages nor loses the dedup record of them (T-114).
+	l.persistState()
 	return nil
 }
 
