@@ -22,6 +22,7 @@ import (
 	"github.com/nivardsec/ironclaw/internal/host/gateway"
 	"github.com/nivardsec/ironclaw/internal/host/registry"
 	"github.com/nivardsec/ironclaw/internal/host/router"
+	"github.com/nivardsec/ironclaw/internal/host/skills"
 )
 
 // HistoryProvider returns the applied/rejected change history. A FileStore
@@ -41,6 +42,7 @@ type Server struct {
 	terminate  SessionTerminator        // host action behind POST /v1/ui/sessions/{id}/terminate (T-222)
 	chatRouter *router.Router           // inbound router for the chat playground (T-226)
 	webchat    *channels.WebchatAdapter // outbound buffer for the chat playground (T-226)
+	skills     *skills.Resolver         // curated, signature-verifying skills resolver (T-096); nil = skills disabled
 	mux        *http.ServeMux
 
 	// Hardening (all opt-in; see hardening.go). Zero values disable the feature.
@@ -150,6 +152,7 @@ func (s *Server) routes() {
 	s.uiChannelsRoutes()  // channels/wiring read-models at /v1/ui/channels|destinations (T-223; see ui_channels.go)
 	s.uiConfigRoutes()    // setup wizard + config editor at /v1/ui/onboard|config (T-225; see ui_config.go)
 	s.uiChatRoutes()      // chat playground at /v1/ui/chat (T-226; see ui_chat.go)
+	s.skillsRoutes()      // skills install/list/remove at /v1/skills (T-096; see skills.go)
 }
 
 // auth wraps h with optional bearer-token authentication. With no token set, the
