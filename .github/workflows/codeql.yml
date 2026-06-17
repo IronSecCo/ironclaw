@@ -1,0 +1,45 @@
+# CodeQL static analysis for Go (T-254).
+#
+# Cost note: this runs on PRs to main and once weekly — deliberately NOT on every
+# push — to keep Actions minutes bounded. (The per-push release build in release.yml
+# is the heavy consumer; CodeQL is kept light.)
+name: CodeQL
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "27 3 * * 1" # Mondays 03:27 UTC
+
+# Least privilege at the top level; the analyze job elevates only what it needs.
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (Go)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # required to upload CodeQL results
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: go
+
+      # IronClaw is CGO (the SQLCipher encrypted-queue binding), so build explicitly
+      # with CGO enabled rather than relying on autobuild.
+      - name: Build
+        run: CGO_ENABLED=1 go build ./...
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:go"

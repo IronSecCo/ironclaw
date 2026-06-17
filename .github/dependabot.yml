@@ -1,0 +1,26 @@
+# Dependabot keeps the supply chain current (T-254): Go modules and the GitHub
+# Actions used by the workflows. Weekly to keep PR volume (and Actions minutes from
+# the resulting CI runs) bounded.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+    groups:
+      go-deps:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
