@@ -74,6 +74,11 @@ func run(args []string) error {
 		return cmdRegistry(addr, args[1:])
 	}
 
+	// Top-level "onboard" command (guided first-run wizard).
+	if args[0] == "onboard" {
+		return cmdOnboard(addr, args[1:])
+	}
+
 	if args[0] != "change" || len(args) < 2 {
 		usage()
 		return fmt.Errorf("expected: change <submit|pending|history|approve|reject>")
@@ -221,6 +226,7 @@ func usage() {
   ironctl [--addr URL] [--token T] change reject  <id> --by <user>
   ironctl [--addr URL] [--token T] audit [--limit N]
   ironctl [--addr URL] [--token T] registry <resource> <verb> ...   (see: registry --help)
+  ironctl [--addr URL] onboard [--yes] [--dry-run] [--force] [--config PATH]
 
   --addr  defaults to `+defaultAddr+`
   --token defaults to $IRONCLAW_API_TOKEN`)
