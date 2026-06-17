@@ -345,14 +345,20 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 		Seccomp:   DefaultSeccompProfile(),
 	}
 
-	return &OCISpec{
+	ociSpec := &OCISpec{
 		OCIVersion: "1.0.2",
 		Process:    process,
 		Root:       root,
 		Hostname:   "ironclaw-sandbox",
 		Mounts:     mounts,
 		Linux:      linux,
-	}, nil
+	}
+	// Bind any installed-skill asset directories read-only at /skills/<name>
+	// (ro,nosuid,nodev,noexec — T-227d/T-096). None set => spec unchanged.
+	if err := AddSkillMounts(ociSpec, spec.SkillMounts...); err != nil {
+		return nil, fmt.Errorf("host/isolation: skill mounts: %w", err)
+	}
+	return ociSpec, nil
 }
 
 // buildResources derives the cgroup limits from spec, substituting the safe

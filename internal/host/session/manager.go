@@ -61,6 +61,10 @@ type Config struct {
 	// socket, leaving the sandbox sealed to the model proxy alone; the sandbox stays
 	// network=none either way.
 	EgressSocket string
+	// SkillsDir is the curated skills source root. When set, a group's installed
+	// skills are mounted read-only at /skills/<name> from <SkillsDir>/<name>/<version>
+	// (T-096). Empty mounts no skills.
+	SkillsDir string
 	// Image is the sandbox container image reference recorded in the OCI spec.
 	Image string
 	// KeyDir is where per-session key files are written for hand-off to the sandbox
@@ -301,6 +305,16 @@ func (m *Manager) Wake(id contract.SessionID) error {
 		if g, ok := m.cfg.Registry.GetAgentGroup(sess.AgentGroupID); ok {
 			spec.Persona = g.Persona
 			spec.EnabledTools = g.EnabledTools
+			// Mount each installed skill's bundle read-only at /skills/<name> from the
+			// curated source (only when a SkillsDir is configured).
+			if m.cfg.SkillsDir != "" {
+				for _, s := range g.InstalledSkills {
+					spec.SkillMounts = append(spec.SkillMounts, isolation.SkillMount{
+						Name:     s.Name,
+						HostPath: filepath.Join(m.cfg.SkillsDir, s.Name, s.Version),
+					})
+				}
+			}
 		}
 	}
 

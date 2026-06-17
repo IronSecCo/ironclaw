@@ -81,6 +81,11 @@ type SandboxSpec struct {
 	// launch (the mandatory request/ask tools are always kept — see tools.FilterRegistry).
 	EnabledTools []string
 
+	// SkillMounts are the group's installed-skill asset directories, each bound
+	// read-only at /skills/<name> (ro,nosuid,nodev,noexec) by BuildOCISpec. Empty
+	// (the default) mounts no skills.
+	SkillMounts []SkillMount
+
 	// Security knobs — all should be the hardened value in production.
 	NetworkNone    bool // network=none: no NIC inside the sandbox at all.
 	DropAllCaps    bool // drop every Linux capability.

@@ -41,6 +41,18 @@ type AgentGroup struct {
 	// unaffected. Set only via a gateway-approved ChangeEnabledTools; enforced at
 	// launch (the mandatory request/ask tools are always kept).
 	EnabledTools []string
+	// InstalledSkills records the skills installed into this group via gateway-approved
+	// installs (T-227/T-096). At launch each one's bundle is bound read-only at
+	// /skills/<name>. Empty (the default) mounts nothing.
+	InstalledSkills []InstalledSkill
+}
+
+// InstalledSkill is one gateway-approved skill installed into an agent group. Its
+// read-only assets are bound at /skills/<Name> from the curated source's
+// <Name>/<Version> bundle directory.
+type InstalledSkill struct {
+	Name    string
+	Version string
 }
 
 // MessagingGroup is a single chat/channel on one platform. The triple

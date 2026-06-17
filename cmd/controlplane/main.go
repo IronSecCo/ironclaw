@@ -248,6 +248,9 @@ func main() {
 		g.EnabledTools = tools
 		return reg.PutAgentGroup(g)
 	}, capApplier)
+	capApplier = gateway.NewSkillInstallApplier(func(id contract.AgentGroupID, name, version string) error {
+		return registry.AddInstalledSkill(reg, id, name, version)
+	}, capApplier)
 	if broker != nil {
 		capApplier = gateway.NewEgressApplier(broker, capApplier)
 	}
@@ -292,6 +295,7 @@ func main() {
 		Registry:         reg,
 		ModelProxySocket: *socket,
 		EgressSocket:     *egressSocket,
+		SkillsDir:        *skillsDir,
 		Image:            *sandboxImage,
 		KeyDir:           filepath.Join(*stateDir, "keys"),
 		WorkspaceRoot:    filepath.Join(*stateDir, "workspaces"),
