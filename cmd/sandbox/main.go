@@ -21,6 +21,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 
 	"github.com/nivardsec/ironclaw/internal/contract"
@@ -69,6 +70,7 @@ func run() error {
 		model        = flag.String("model", "", "model id override (defaults to the provider's default)")
 		modelKind    = flag.String("provider", "", "model provider: anthropic (default), openai, or openrouter; selected per agent group host-side")
 		persona      = flag.String("persona", "", "group system-persona text appended to the system prompt (set host-side from the registry; never by the sandbox)")
+		enabledTools = flag.String("enabled-tools", "", "comma-separated subset of compiled tools to enable (empty = all; set host-side per agent group)")
 		showVersion  = flag.Bool("version", false, "print version and exit")
 	)
 	flag.Parse()
@@ -98,6 +100,11 @@ func run() error {
 	defer inbound.Close()
 
 	registry, err := buildTools(*workspace, inbound, *egressSocket, *persona)
+	if err != nil {
+		return err
+	}
+	// Restrict to the group's gateway-approved enabled tools when set (empty = all).
+	registry, err = tools.FilterRegistry(registry, splitCSV(*enabledTools))
 	if err != nil {
 		return err
 	}
@@ -132,6 +139,17 @@ func run() error {
 		return err
 	}
 	return nil
+}
+
+// splitCSV splits a comma-separated flag value into trimmed, non-empty items.
+func splitCSV(s string) []string {
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // buildTools assembles the in-sandbox tool registry: workspace file operations,

@@ -36,6 +36,11 @@ type AgentGroup struct {
 	// prompt at launch (T-234). It is set only via a gateway-approved ChangePersona
 	// change — never by the sandbox itself — and is read-only to the agent.
 	Persona string
+	// EnabledTools optionally restricts the group to a subset of the compiled sandbox
+	// tools. Empty (the default) means ALL compiled tools, so existing groups are
+	// unaffected. Set only via a gateway-approved ChangeEnabledTools; enforced at
+	// launch (the mandatory request/ask tools are always kept).
+	EnabledTools []string
 }
 
 // MessagingGroup is a single chat/channel on one platform. The triple

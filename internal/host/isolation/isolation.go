@@ -75,6 +75,12 @@ type SandboxSpec struct {
 	// Empty (the default) leaves the base prompt unchanged.
 	Persona string
 
+	// EnabledTools optionally restricts the sandbox to a subset of the compiled tools
+	// (the group's gateway-approved enabled set). Empty (the default) keeps ALL
+	// compiled tools, preserving existing behavior; a non-empty set is enforced at
+	// launch (the mandatory request/ask tools are always kept — see tools.FilterRegistry).
+	EnabledTools []string
+
 	// Security knobs — all should be the hardened value in production.
 	NetworkNone    bool // network=none: no NIC inside the sandbox at all.
 	DropAllCaps    bool // drop every Linux capability.

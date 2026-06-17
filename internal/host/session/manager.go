@@ -293,12 +293,14 @@ func (m *Manager) Wake(id contract.SessionID) error {
 	if m.cfg.EgressSocket != "" {
 		spec.EgressSocket = m.cfg.EgressSocket
 	}
-	// Load the group's gateway-approved persona into the spec so the sandbox prompt
-	// includes it (T-234). Best-effort: session -> agent group -> persona; an
-	// unresolved session or empty persona just leaves the base prompt.
+	// Load the group's gateway-approved persona and enabled-tools restriction into the
+	// spec (T-234/T-096). Best-effort: session -> agent group; an unresolved session,
+	// empty persona, or empty enabled-tools just leaves the defaults (base prompt, all
+	// compiled tools).
 	if sess, ok := m.cfg.Registry.GetSession(id); ok {
 		if g, ok := m.cfg.Registry.GetAgentGroup(sess.AgentGroupID); ok {
 			spec.Persona = g.Persona
+			spec.EnabledTools = g.EnabledTools
 		}
 	}
 

@@ -240,6 +240,14 @@ func main() {
 	capApplier = gateway.NewPersonaApplier(func(id contract.AgentGroupID, persona string) error {
 		return registry.SetPersona(reg, id, persona)
 	}, capApplier)
+	capApplier = gateway.NewEnabledToolsApplier(func(id contract.AgentGroupID, tools []string) error {
+		g, ok := reg.GetAgentGroup(id)
+		if !ok {
+			return fmt.Errorf("agent group %q not found", id)
+		}
+		g.EnabledTools = tools
+		return reg.PutAgentGroup(g)
+	}, capApplier)
 	if broker != nil {
 		capApplier = gateway.NewEgressApplier(broker, capApplier)
 	}

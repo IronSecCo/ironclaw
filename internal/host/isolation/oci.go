@@ -4,6 +4,7 @@ package isolation
 
 import (
 	"fmt"
+	"strings"
 )
 
 // This file defines a MINIMAL, self-contained subset of the OCI runtime
@@ -220,6 +221,9 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 	}
 	if spec.Persona != "" {
 		args = append(args, "--persona", spec.Persona)
+	}
+	if len(spec.EnabledTools) > 0 {
+		args = append(args, "--enabled-tools", strings.Join(spec.EnabledTools, ","))
 	}
 
 	process := &OCIProcess{
