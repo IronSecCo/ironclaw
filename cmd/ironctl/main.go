@@ -90,6 +90,11 @@ func run(args []string) error {
 		return cmdUsage(addr, args[1:])
 	}
 
+	// Top-level "skill" command (host-side skills: add/list/remove, T-227e).
+	if args[0] == "skill" {
+		return cmdSkill(addr, args[1:])
+	}
+
 	if args[0] != "change" || len(args) < 2 {
 		usage()
 		return fmt.Errorf("expected: change <submit|pending|history|approve|reject>")
@@ -241,6 +246,9 @@ func usage() {
   ironctl [--addr URL] [--token T] status [--json]
   ironctl [--addr URL] [--token T] doctor [--runtime BIN] [--model-proxy-socket PATH]
   ironctl [--addr URL] [--token T] usage [--json]
+  ironctl [--addr URL] [--token T] skill add <name>@<version> --group <id> [--by <user>]
+  ironctl [--addr URL] [--token T] skill list
+  ironctl [--addr URL] [--token T] skill remove <name>[@<version>]
 
   --addr  defaults to `+defaultAddr+`
   --token defaults to $IRONCLAW_API_TOKEN`)
