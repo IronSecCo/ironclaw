@@ -79,6 +79,17 @@ func run(args []string) error {
 		return cmdOnboard(addr, args[1:])
 	}
 
+	// Top-level observability commands (read-only over existing endpoints, T-235).
+	if args[0] == "status" {
+		return cmdStatus(addr, args[1:])
+	}
+	if args[0] == "doctor" {
+		return cmdDoctor(addr, args[1:])
+	}
+	if args[0] == "usage" {
+		return cmdUsage(addr, args[1:])
+	}
+
 	if args[0] != "change" || len(args) < 2 {
 		usage()
 		return fmt.Errorf("expected: change <submit|pending|history|approve|reject>")
@@ -227,6 +238,9 @@ func usage() {
   ironctl [--addr URL] [--token T] audit [--limit N]
   ironctl [--addr URL] [--token T] registry <resource> <verb> ...   (see: registry --help)
   ironctl [--addr URL] onboard [--yes] [--dry-run] [--force] [--config PATH]
+  ironctl [--addr URL] [--token T] status [--json]
+  ironctl [--addr URL] [--token T] doctor [--runtime BIN] [--model-proxy-socket PATH]
+  ironctl [--addr URL] [--token T] usage [--json]
 
   --addr  defaults to `+defaultAddr+`
   --token defaults to $IRONCLAW_API_TOKEN`)
