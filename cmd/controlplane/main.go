@@ -255,6 +255,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Wire the web console's terminate action (T-222) to the SessionManager now
+	// that it exists. Stop is idempotent; this is the only host-control surface the
+	// read-only console exposes.
+	server = server.WithSessionTerminator(manager.Stop)
+
 	// Delivery: poll per-session outbound queues and deliver via channel adapters,
 	// re-authorizing privileged system actions through the gateway. Concrete
 	// platform adapters register when their bot token is configured.

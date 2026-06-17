@@ -36,6 +36,7 @@ type Server struct {
 	auditPath string
 	token     string
 	reg       registry.Registry
+	terminate SessionTerminator // host action behind POST /v1/ui/sessions/{id}/terminate (T-222)
 	mux       *http.ServeMux
 
 	// Hardening (all opt-in; see hardening.go). Zero values disable the feature.
@@ -140,6 +141,7 @@ func (s *Server) routes() {
 	s.registryRoutes()
 	s.uiRoutes()          // embedded web console at GET /ui/ (T-220; see ui.go)
 	s.uiApprovalsRoutes() // approvals read-model at GET /v1/ui/approvals (T-221; see ui_approvals.go)
+	s.uiSessionsRoutes()  // sessions read-model + terminate at /v1/ui/sessions (T-222; see ui_sessions.go)
 }
 
 // auth wraps h with optional bearer-token authentication. With no token set, the

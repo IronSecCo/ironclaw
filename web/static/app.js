@@ -95,6 +95,7 @@ function showPanel(name) {
   }
   if (name === "audit") loadAudit();
   if (name === "approvals") loadApprovals();
+  if (name === "sessions") Sessions.load();
 }
 
 function init() {
@@ -104,6 +105,7 @@ function init() {
   });
   document.getElementById("refresh-approvals").addEventListener("click", loadApprovals);
   document.getElementById("refresh-audit").addEventListener("click", loadAudit);
+  document.getElementById("refresh-sessions").addEventListener("click", () => Sessions.load());
   for (const tab of document.querySelectorAll(".tab")) {
     tab.addEventListener("click", () => showPanel(tab.dataset.panel));
   }
