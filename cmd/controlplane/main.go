@@ -50,8 +50,10 @@ import (
 	"github.com/nivardsec/ironclaw/internal/host/registry"
 	"github.com/nivardsec/ironclaw/internal/host/router"
 	"github.com/nivardsec/ironclaw/internal/host/session"
+	"github.com/nivardsec/ironclaw/internal/host/skills"
 	"github.com/nivardsec/ironclaw/internal/host/sweep"
 	"github.com/nivardsec/ironclaw/internal/obs"
+	"github.com/nivardsec/ironclaw/internal/sandbox/tools"
 	"github.com/nivardsec/ironclaw/internal/version"
 )
 
@@ -78,6 +80,10 @@ func main() {
 		"model-proxy egress rate cap in requests/second (per session when the sandbox sends an X-Ironclaw-Session header, otherwise global); 0 disables the cap")
 	proxyBurst := flag.Int("model-proxy-burst", 100,
 		"model-proxy rate-cap burst size")
+	skillsDir := flag.String("skills-dir", "",
+		"curated skills source directory; setting it enables the host-side /v1/skills endpoints (empty disables skills)")
+	skillsTrustKey := flag.String("skills-trust-key", "",
+		"path to the minisign public-key file that skill bundles must be signed by (required when --skills-dir is set)")
 	dev := flag.Bool("dev", false,
 		"seed the registry with a tiny dev owner/agent-group for local testing")
 	showVersion := flag.Bool("version", false, "print version and exit")
@@ -280,6 +286,21 @@ func main() {
 	}
 	chatRouter := router.New(reg, manager.InboundWriter, manager)
 	server = server.WithChat(chatRouter, webchat)
+
+	// Skills (T-096/T-227): when a curated source + trust root are configured, expose
+	// the host-side /v1/skills endpoints so `ironctl skill add/list/remove` can install
+	// a signed, gateway-approved capability bundle. Off by default (no --skills-dir),
+	// in which case the daemon exposes no skills surface and a sandbox can never trigger
+	// an install — only a host admin can, and only a human approves it.
+	skillsResolver, err := buildSkillsResolver(*skillsDir, *skillsTrustKey)
+	if err != nil {
+		logger.Error("skills", "error", err)
+		os.Exit(1)
+	}
+	if skillsResolver != nil {
+		server = server.WithSkills(skillsResolver)
+		logger.Info("skills enabled", "source", *skillsDir)
+	}
 
 	pendingQuestions := questions.NewStore()
 	deliverer := delivery.New(channelReg, gw, reg, manager.OutboundReader).
@@ -509,6 +530,34 @@ func defaultModelProxySocket() string {
 		return filepath.Join(d, "ironclaw", "run", "modelproxy.sock")
 	}
 	return filepath.Join(os.TempDir(), "ironclaw", "modelproxy.sock")
+}
+
+// buildSkillsResolver constructs the curated, signature-verifying skills resolver
+// from a source directory + a minisign trust-key file, using the COMPILED sandbox
+// tool set for manifest validation (a skill can only enable tools the binary already
+// implements). It returns (nil, nil) when sourceDir is empty — skills are then
+// disabled and the daemon exposes no skills surface. It fails closed: a configured
+// source with no trust key, an unreadable key, or an invalid key is an error.
+func buildSkillsResolver(sourceDir, trustKeyPath string) (*skills.Resolver, error) {
+	if sourceDir == "" {
+		return nil, nil
+	}
+	if trustKeyPath == "" {
+		return nil, fmt.Errorf("--skills-trust-key is required when --skills-dir is set")
+	}
+	key, err := os.ReadFile(trustKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("read skills trust key: %w", err)
+	}
+	trust, err := skills.LoadTrustRoot(string(key))
+	if err != nil {
+		return nil, err
+	}
+	return &skills.Resolver{
+		Source:     skills.DirSource{Root: sourceDir},
+		Trust:      trust,
+		KnownTools: tools.CompiledToolSet(),
+	}, nil
 }
 
 // seedDev inserts a minimal owner, agent group, and DM messaging-group wiring so a
