@@ -36,16 +36,24 @@ if (-not $asset) { throw "no asset for $target in release '$version' — see htt
 $sums = $rel.assets | Where-Object { $_.name -eq "SHA256SUMS" } | Select-Object -First 1
 Write-Host "==> Asset: $($asset.name)"
 
+# In token mode download via the asset API URL with an octet-stream Accept header,
+# so private-repo assets (which 404 on the public browser URL) download correctly.
+$useApi = [bool]$env:GITHUB_TOKEN
+$dlHeaders = @{} + $headers
+if ($useApi) { $dlHeaders["Accept"] = "application/octet-stream" }
+$assetUrl = if ($useApi) { $asset.url } else { $asset.browser_download_url }
+
 $tmp = Join-Path $env:TEMP ("ironclaw_" + [Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $tmp | Out-Null
 try {
   $zip = Join-Path $tmp $asset.name
   Write-Host "==> Downloading $($asset.name)"
-  Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zip -Headers $headers
+  Invoke-WebRequest -Uri $assetUrl -OutFile $zip -Headers $dlHeaders
 
   if ($sums) {
     $sumsFile = Join-Path $tmp "SHA256SUMS"
-    Invoke-WebRequest -Uri $sums.browser_download_url -OutFile $sumsFile -Headers $headers
+    $sumsUrl = if ($useApi) { $sums.url } else { $sums.browser_download_url }
+    Invoke-WebRequest -Uri $sumsUrl -OutFile $sumsFile -Headers $dlHeaders
     $line = Select-String -Path $sumsFile -Pattern ([regex]::Escape($asset.name)) | Select-Object -First 1
     if ($line) {
       $want = ($line.Line -split '\s+')[0].ToLower()
