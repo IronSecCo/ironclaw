@@ -211,6 +211,34 @@ ironctl --version
 Prefer to grab files by hand? Download the archive and `SHA256SUMS` for your platform from the
 [latest release](https://github.com/nivardsec/ironclaw/releases/latest).
 
+### Verifying a release
+
+Every release is **signed and attested** so you can prove a binary came from this repo's
+release pipeline, not a tampered mirror. Each release carries:
+
+- `SHA256SUMS` — checksums of the archives, plus `SHA256SUMS.sig` + `SHA256SUMS.pem` (a
+  **keyless [cosign](https://docs.sigstore.dev/) signature** + its certificate).
+- `*.spdx.json` and `*.cdx.json` — an **SBOM** in SPDX and CycloneDX formats.
+- **Build provenance attestations** for each archive and for the container image
+  (GitHub artifact attestations, verifiable with the `gh` CLI).
+
+Verify the checksum signature (no key to manage — the identity is the release workflow):
+
+```sh
+cosign verify-blob SHA256SUMS \
+  --signature SHA256SUMS.sig --certificate SHA256SUMS.pem \
+  --certificate-identity-regexp '^https://github.com/nivardsec/ironclaw/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+sha256sum -c SHA256SUMS        # then confirm your archive matches
+```
+
+Verify build provenance for a binary archive or the image:
+
+```sh
+gh attestation verify ironclaw_<version>_<platform>.tar.gz --repo nivardsec/ironclaw
+gh attestation verify oci://ghcr.io/nivardsec/ironclaw-controlplane:latest --repo nivardsec/ironclaw
+```
+
 ### From source
 
 Requires Go 1.23+ and a C toolchain (`CGO_ENABLED=1` — the encrypted-SQLite binding builds via cgo).

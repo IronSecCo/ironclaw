@@ -25,6 +25,8 @@ on:
 permissions:
   contents: read
   packages: write # push to GHCR under the repository owner
+  id-token: write # keyless provenance signing (Sigstore OIDC)
+  attestations: write # actions/attest-build-provenance for the image
 
 # Serialize image publishes so two builds never race the :latest tag.
 concurrency:
@@ -99,6 +101,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/build-push-action@v6
+        id: build
         if: ${{ steps.meta.outputs.present == 'true' }}
         with:
           context: .
@@ -111,7 +114,18 @@ jobs:
           # emulated arm64 CGO build is slow and flaky. Add linux/arm64 with a QEMU
           # setup step when arm64 servers need a native image.
           platforms: linux/amd64
-          # Keep the published artifact a plain single-platform image; release signing
-          # / SBOM / SLSA provenance are owned by the supply-chain tasks, not here.
+          # Keep the published artifact a plain single-platform image; the build's own
+          # inline attestations are off — provenance is attached separately below
+          # (GitHub artifact attestation, T-253) so it matches the release binaries.
           provenance: false
           sbom: false
+
+      # SLSA-style build provenance for the published image, signed keylessly and
+      # pushed to GHCR next to the image (verify with `gh attestation verify oci://…`).
+      - name: Attest the control-plane image
+        if: ${{ steps.meta.outputs.present == 'true' }}
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.meta.outputs.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
