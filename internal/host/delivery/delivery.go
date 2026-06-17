@@ -55,6 +55,15 @@ type Delivery struct {
 	seqCtr int64
 	// scheduleCtr disambiguates generated scheduled-message IDs within a process.
 	scheduleCtr int64
+	// a2aCtr disambiguates generated agent-to-agent inbound message IDs.
+	a2aCtr int64
+	// a2aHops tracks the incoming a2a chain depth per session so a2a fan-out cannot
+	// ping-pong indefinitely (RFC-0004). Guarded by mu.
+	a2aHops map[contract.SessionID]int
+	// a2aHopLimit caps the a2a chain depth (default defaultA2AHopLimit).
+	a2aHopLimit int
+	// a2aQuota bounds per-agent-group a2a send rate (default defaultA2ASendsPerMinute/min).
+	a2aQuota *a2aQuota
 }
 
 // New constructs a Delivery.
@@ -65,12 +74,29 @@ type Delivery struct {
 // optional; set it with WithInboundWriter.
 func New(channelReg *channels.Registry, gw *gateway.Gateway, reg registry.Registry, newReader OutboundReaderFactory) *Delivery {
 	return &Delivery{
-		registry:  channelReg,
-		gw:        gw,
-		reg:       reg,
-		newReader: newReader,
-		delivered: make(map[contract.MessageID]struct{}),
+		registry:    channelReg,
+		gw:          gw,
+		reg:         reg,
+		newReader:   newReader,
+		delivered:   make(map[contract.MessageID]struct{}),
+		a2aHops:     make(map[contract.SessionID]int),
+		a2aHopLimit: defaultA2AHopLimit,
+		a2aQuota:    newA2AQuota(defaultA2ASendsPerMinute),
 	}
+}
+
+// WithA2ALimits overrides the agent-to-agent safety bounds (RFC-0004): the maximum
+// chain hop depth and the per-agent-group send quota per minute. A non-positive
+// value keeps the default. Returns d for chaining; intended for the daemon's
+// config and for tests.
+func (d *Delivery) WithA2ALimits(hopLimit, sendsPerMinute int) *Delivery {
+	if hopLimit > 0 {
+		d.a2aHopLimit = hopLimit
+	}
+	if sendsPerMinute > 0 {
+		d.a2aQuota = newA2AQuota(sendsPerMinute)
+	}
+	return d
 }
 
 // WithInboundWriter wires the inbound-writer factory used by the schedule_task
@@ -148,6 +174,12 @@ func (d *Delivery) pollSession(ctx context.Context, sess registry.Session) error
 func (d *Delivery) handle(ctx context.Context, sess registry.Session, msg contract.MessageOut) error {
 	if msg.Kind == contract.KindSystem {
 		return d.handleSystem(ctx, sess, msg)
+	}
+	// Agent-to-agent (RFC-0004): an outbound chat addressed to the "agent" sentinel
+	// channel is routed INBOUND to the target agent group, not to a platform
+	// adapter. The target group id rides in PlatformID.
+	if deref(msg.ChannelType) == agentChannel {
+		return d.handleA2A(sess, msg)
 	}
 	return d.deliver(ctx, sess, msg)
 }
@@ -372,6 +404,10 @@ func authorizeSystemAction(action string) (contract.ChangeKind, bool) {
 		return contract.ChangePermissions, true
 	case "add_mount", "mounts", "set_mounts":
 		return contract.ChangeMounts, true
+	case "create_agent":
+		// Provisioning a NEW agent group (RFC-0004): a new trust principal, always
+		// privileged → gateway (the CreateAgentVerifier holds it for a human).
+		return contract.ChangeCreateAgent, true
 	case "script", "exec", "run", "shell":
 		// An unapproved script/RCE path: there is NO direct execution. Map it to the
 		// most privileged change kind so it is always human-gated, never run inline.

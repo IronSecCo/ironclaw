@@ -65,6 +65,13 @@ const (
 	ChangeWiring       ChangeKind = "wiring"
 	ChangePermissions  ChangeKind = "permissions"
 	ChangeMounts       ChangeKind = "mounts"
+	// ChangeCreateAgent provisions a NEW agent group (RFC-0004, T-086). Privileged:
+	// always routed through the gateway's mandatory human-approval floor — a new
+	// agent is a new trust principal and is never auto-approved. It rides the
+	// existing SystemAction envelope (action == "create_agent"); the payload
+	// describes the proposed agent group (see docs/contract.md). This is the only
+	// frozen-contract change for T-086 — a2a messaging needs none.
+	ChangeCreateAgent ChangeKind = "create_agent"
 )
 
 // Verdict is the deterministic result of a single verifier in the gateway chain.

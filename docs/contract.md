@@ -200,9 +200,15 @@ The whole tree builds, vets, and tests green after the change.
 
 ### RFC-0004 (proposed): agent-to-agent messaging + approval-gated `create_agent`
 
-**Status:** PROPOSED — awaiting both CODEOWNERS' sign-off. **No code landed.** This
-is the design RFC for T-086 (`#20`), drafted at the maintainer's request before any
-implementation. Scope it down or amend before approval.
+**Status:** APPROVED & LANDED (2026-06-16) — signed off by the sole CODEOWNER
+(`@ToPmit26` / maintainer) via the decision to un-gate T-086. Implemented in T-086
+(`#20`): the single contract edit (`ChangeCreateAgent`) plus the host-internal
+`create_agent` verifier/applier (`internal/host/gateway/create_agent.go`), the
+sandbox `create_agent` tool, and a2a routing with hop-depth + send-quota safety
+(`internal/host/delivery/a2a.go`). The maintainer's answers to the open questions
+below are recorded inline. Daemon composition (chaining the verifier/applier,
+wiring agent-destination grants, restricting create_agent approval to owners/admins
+via the T-112 PolicyApprover) is wired by T-120.
 
 **Motivation.** Two capabilities are missing: (1) an agent has no way to hand work
 to *another* agent group (agent-to-agent, "a2a"); (2) there is no way to create a
@@ -280,18 +286,23 @@ on the existing capability-change wire — `action == "create_agent"`):
 - *Sandbox:* a `create_agent` tool (a `HostForwarder`, like the capability tools);
   a2a reuses the existing `send_message` tool unchanged.
 
-**Open questions for the maintainer (please decide before sign-off):**
+**Maintainer decisions (resolved 2026-06-16):**
 
-1. **Who may create agents** — owners only, or owners + global admins?
-2. **a2a default posture** — deny-by-default (explicit agent-destination grants
-   required) vs. allow within a trust group? (Recommend deny-by-default.)
-3. **a2a hop-depth limit** and **per-agent send quota** values.
-4. **Pin `DestinationTypeAgent = "agent"` in the contract?** Only needed if the
-   sandbox must itself distinguish agent vs. channel destinations; if destinations
-   stay name-addressed (host resolves type), keep it host-internal. (Recommend
-   host-internal — keeps the contract minimal.)
-5. **Scope split** — land `create_agent` and a2a as two separate tasks (they are
-   independent), or together?
+1. **Who may create agents** — **owners + admins.** Every create_agent still hits
+   the human floor; restricting the *approver* to owner/admin roles is done with the
+   T-112 `PolicyApprover` (`ApproverRoles{create_agent: [owner, admin]}`), wired by
+   the daemon. The `CreateAgentVerifier` hard-requires a human regardless, so
+   create_agent can never be auto-approved even if misconfigured into a policy.
+2. **a2a posture** — **allow within a trust group**, expressed as deny-by-default
+   agent-destination grants the operator configures among trust-group members. The
+   mechanism reuses the existing registry destination allowlist with the `"agent"`
+   channel sentinel (`IsAllowedDestination(sender, "agent", targetGroupID)`).
+3. **a2a hop-depth limit = 5; per-agent send quota = 120/min.** Both are
+   configurable via `delivery.Delivery.WithA2ALimits`.
+4. **Kept host-internal.** The `"agent"` sentinel / destination type is NOT pinned
+   in the contract; the host resolves type. The contract stays minimal — the only
+   frozen-file edit is `ChangeCreateAgent`.
+5. **Landed together** as T-086.
 
 ## Capability-change payload conventions
 
