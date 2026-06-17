@@ -68,6 +68,7 @@ func run() error {
 		modelHost    = flag.String("model-host", "", "upstream model host the proxy allowlists (defaults to the provider's host)")
 		model        = flag.String("model", "", "model id override (defaults to the provider's default)")
 		modelKind    = flag.String("provider", "", "model provider: anthropic (default), openai, or openrouter; selected per agent group host-side")
+		persona      = flag.String("persona", "", "group system-persona text appended to the system prompt (set host-side from the registry; never by the sandbox)")
 		showVersion  = flag.Bool("version", false, "print version and exit")
 	)
 	flag.Parse()
@@ -106,7 +107,7 @@ func run() error {
 		SocketPath:   *modelSocket,
 		UpstreamHost: *modelHost,
 		Model:        *model,
-		System:       loop.DefaultSystemPrompt,
+		System:       loop.SystemPromptWith(*persona),
 	})
 	if err != nil {
 		return err

@@ -218,6 +218,9 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 	if spec.ModelHost != "" {
 		args = append(args, "--model-host", spec.ModelHost)
 	}
+	if spec.Persona != "" {
+		args = append(args, "--persona", spec.Persona)
+	}
 
 	process := &OCIProcess{
 		Terminal:        false,

@@ -70,6 +70,11 @@ type SandboxSpec struct {
 	ModelID       string
 	ModelHost     string
 
+	// Persona is the group's system-persona text (T-234), passed to the sandbox as a
+	// non-secret flag and appended (after the security framing) to its system prompt.
+	// Empty (the default) leaves the base prompt unchanged.
+	Persona string
+
 	// Security knobs — all should be the hardened value in production.
 	NetworkNone    bool // network=none: no NIC inside the sandbox at all.
 	DropAllCaps    bool // drop every Linux capability.
