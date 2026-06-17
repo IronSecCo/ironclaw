@@ -1,222 +1,1527 @@
 {
   "repo": "nivardsec/ironclaw",
-  "base_sha": "58b009b",
+  "base_sha": "cd9911c",
   "generated_by": "master-planner",
   "claim_model": "first-come-first-serve; no fixed assignment; claim lowest wave + highest priority with deps done and locks free",
   "validation_default": "CGO_ENABLED=1 go test ./...  (== make build vet test)",
-  "phase": "Wave 1 complete (skeleton wired + core features). Waves 4-5 = production hardening + future-work roadmap.",
+  "phase": "Backend roadmap COMPLETE (Waves 0-5, T-001..T-120 all landed). Road to 1.0 = Wave 6 launch readiness + Wave 7 product parity & web UI + Wave 8 trust & ecosystem.",
   "completed": [
-    {"task_id": "T-001", "title": "Adapt + promote protocol to root AGENTS.md", "status": "done"},
-    {"task_id": "T-002", "title": "Emit .agents planning artifacts + registry", "status": "done"},
-    {"task_id": "T-003", "title": "Create labels + Issues + Coordination Board", "status": "done"},
-    {"task_id": "T-004", "title": "Direct-push CAS infra", "status": "done"},
-    {"task_id": "T-010", "title": "Per-session encrypted queue factory", "status": "done"},
-    {"task_id": "T-011", "title": "Sandbox entrypoint on live binding", "status": "done"},
-    {"task_id": "T-012", "title": "Rootfs spike", "status": "done"},
-    {"task_id": "T-013a", "title": "Parity routing+engage", "status": "done"},
-    {"task_id": "T-013b", "title": "Parity delivery+gateway", "status": "done"},
-    {"task_id": "T-013c", "title": "Parity session", "status": "done"},
-    {"task_id": "T-013d", "title": "Parity sandbox-outbound (landed in 33bb237)", "status": "done"},
-    {"task_id": "T-014", "title": "RFC-0001 doc drift fix", "status": "done"},
-    {"task_id": "T-015", "title": "Durable encrypted registry backend", "status": "done"},
-    {"task_id": "T-016", "title": "Daemon wiring: SessionManager + sweep", "status": "done"},
-    {"task_id": "T-020", "title": "SessionManager composing the lifecycle", "status": "done"},
-    {"task_id": "T-021", "title": "Real sweep adapters", "status": "done"},
-    {"task_id": "T-022", "title": "Rootfs provisioning (pluggable)", "status": "done"},
-    {"task_id": "T-030", "title": "Crossmount live-poll parity (landed in 33bb237)", "status": "done"},
-    {"task_id": "T-040", "title": "Telegram channel adapter", "status": "done"},
-    {"task_id": "T-080", "title": "Registry admin CRUD API", "status": "done"},
-    {"task_id": "T-081", "title": "ironctl resource subcommands", "status": "done"},
-    {"task_id": "T-082", "title": "Sandbox send_message/send_file", "status": "done"},
-    {"task_id": "T-083", "title": "ask_user_question (RFC-0003)", "status": "done"},
-    {"task_id": "T-084", "title": "Task-management tools", "status": "done"},
-    {"task_id": "T-085", "title": "Durable per-group memory + workspace", "status": "done"}
+    {
+      "task_id": "T-001",
+      "title": "Adapt + promote protocol to root AGENTS.md",
+      "status": "done"
+    },
+    {
+      "task_id": "T-002",
+      "title": "Emit .agents planning artifacts + registry",
+      "status": "done"
+    },
+    {
+      "task_id": "T-003",
+      "title": "Create labels + Issues + Coordination Board",
+      "status": "done"
+    },
+    {
+      "task_id": "T-004",
+      "title": "Direct-push CAS infra",
+      "status": "done"
+    },
+    {
+      "task_id": "T-010",
+      "title": "Per-session encrypted queue factory",
+      "status": "done"
+    },
+    {
+      "task_id": "T-011",
+      "title": "Sandbox entrypoint on live binding",
+      "status": "done"
+    },
+    {
+      "task_id": "T-012",
+      "title": "Rootfs spike",
+      "status": "done"
+    },
+    {
+      "task_id": "T-013a",
+      "title": "Parity routing+engage",
+      "status": "done"
+    },
+    {
+      "task_id": "T-013b",
+      "title": "Parity delivery+gateway",
+      "status": "done"
+    },
+    {
+      "task_id": "T-013c",
+      "title": "Parity session",
+      "status": "done"
+    },
+    {
+      "task_id": "T-013d",
+      "title": "Parity sandbox-outbound (landed in 33bb237)",
+      "status": "done"
+    },
+    {
+      "task_id": "T-014",
+      "title": "RFC-0001 doc drift fix",
+      "status": "done"
+    },
+    {
+      "task_id": "T-015",
+      "title": "Durable encrypted registry backend",
+      "status": "done"
+    },
+    {
+      "task_id": "T-016",
+      "title": "Daemon wiring: SessionManager + sweep",
+      "status": "done"
+    },
+    {
+      "task_id": "T-020",
+      "title": "SessionManager composing the lifecycle",
+      "status": "done"
+    },
+    {
+      "task_id": "T-021",
+      "title": "Real sweep adapters",
+      "status": "done"
+    },
+    {
+      "task_id": "T-022",
+      "title": "Rootfs provisioning (pluggable)",
+      "status": "done"
+    },
+    {
+      "task_id": "T-030",
+      "title": "Crossmount live-poll parity (landed in 33bb237)",
+      "status": "done"
+    },
+    {
+      "task_id": "T-040",
+      "title": "Telegram channel adapter",
+      "status": "done"
+    },
+    {
+      "task_id": "T-080",
+      "title": "Registry admin CRUD API",
+      "status": "done"
+    },
+    {
+      "task_id": "T-081",
+      "title": "ironctl resource subcommands",
+      "status": "done"
+    },
+    {
+      "task_id": "T-082",
+      "title": "Sandbox send_message/send_file",
+      "status": "done"
+    },
+    {
+      "task_id": "T-083",
+      "title": "ask_user_question (RFC-0003)",
+      "status": "done"
+    },
+    {
+      "task_id": "T-084",
+      "title": "Task-management tools",
+      "status": "done"
+    },
+    {
+      "task_id": "T-085",
+      "title": "Durable per-group memory + workspace",
+      "status": "done"
+    },
+    {
+      "task_id": "T-086",
+      "title": "Agent-to-agent messaging + create_agent (RFC-0004)",
+      "status": "done"
+    },
+    {
+      "task_id": "T-100",
+      "title": "Durable / pluggable master-key custody",
+      "status": "done"
+    },
+    {
+      "task_id": "T-101",
+      "title": "Structured logging (slog) abstraction",
+      "status": "done"
+    },
+    {
+      "task_id": "T-102",
+      "title": "Prometheus metrics package",
+      "status": "done"
+    },
+    {
+      "task_id": "T-103",
+      "title": "API hardening (TLS, rate-limit, body limits, /readyz, /metrics)",
+      "status": "done"
+    },
+    {
+      "task_id": "T-104",
+      "title": "OCI resource limits + seccomp profile",
+      "status": "done"
+    },
+    {
+      "task_id": "T-105",
+      "title": "Host respawn crash-loop backoff",
+      "status": "done"
+    },
+    {
+      "task_id": "T-106",
+      "title": "Sandbox provider backoff + circuit breaker",
+      "status": "done"
+    },
+    {
+      "task_id": "T-107",
+      "title": "Model proxy: rate caps + audit logging + secret redaction",
+      "status": "done"
+    },
+    {
+      "task_id": "T-108",
+      "title": "End-to-end lifecycle integration test",
+      "status": "done"
+    },
+    {
+      "task_id": "T-109a",
+      "title": "Slack channel adapter",
+      "status": "done"
+    },
+    {
+      "task_id": "T-109b",
+      "title": "Discord channel adapter",
+      "status": "done"
+    },
+    {
+      "task_id": "T-113",
+      "title": "Production deployment: units + installer + sandbox image",
+      "status": "done"
+    },
+    {
+      "task_id": "T-114",
+      "title": "Session-state persistence across sandbox restart",
+      "status": "done"
+    },
+    {
+      "task_id": "T-116",
+      "title": "Roadmap + docs refresh",
+      "status": "done"
+    },
+    {
+      "task_id": "T-118",
+      "title": "Sandbox image signature/digest verification",
+      "status": "done"
+    },
+    {
+      "task_id": "T-120",
+      "title": "Daemon wiring v2: compose the new subsystems",
+      "status": "done"
+    },
+    {
+      "task_id": "T-110",
+      "title": "Kata isolation backend",
+      "status": "done"
+    },
+    {
+      "task_id": "T-111",
+      "title": "Egress broker for approved external APIs",
+      "status": "done"
+    },
+    {
+      "task_id": "T-112",
+      "title": "Gateway auto-approval policy + RBAC",
+      "status": "done"
+    }
   ],
   "tasks": [
     {
-      "task_id": "T-086", "title": "Agent-to-agent messaging + create_agent (RFC-0004)",
-      "status": "needs-human", "priority": "P3", "wave": 5, "size": "L", "category": "feature",
-      "related_gaps": ["G-018"], "owned_paths": ["internal/host/delivery/**", "internal/sandbox/tools/create_agent.go", "internal/contract/**"],
-      "forbidden_paths": [], "locks_required": ["lock:contract"], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["RFC-0004 approved by both CODEOWNERS", "ChangeCreateAgent added to contract via joint RFC", "a2a routing + approval-gated create_agent with hop-depth + send-quota safety"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./..."], "requires_human_decision": true,
-      "human_question": "Approve RFC-0004 (a2a posture, who may create_agent, hop/quota limits, contract pin)?",
-      "estimated_conflict_risk": "high", "notes_for_worker": "Open issue #20. Touches the frozen contract — joint RFC required before any code. Do not start until RFC-0004 is approved."
-    },
-
-    {
-      "task_id": "T-100", "title": "Durable / pluggable master-key custody",
-      "status": "done", "priority": "P0", "wave": 4, "size": "M", "category": "security",
-      "related_gaps": ["G-019"], "owned_paths": ["internal/host/keys/**"],
-      "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"], "locks_required": [], "depends_on": [], "blocks": ["T-120"],
-      "acceptance_criteria": ["A pluggable KeySource replaces the ephemeral per-process master key (file-sealed keystore at 0600 + interface for an external KMS)", "Session keys survive a control-plane restart", "Unit tests cover load/persist/rotate"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/keys/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "low", "notes_for_worker": "main.go currently generates the master with crypto/rand each boot (main.go:64). Provide the loader; daemon wiring is T-120. Do not weaken the at-rest sealing."
-    },
-    {
-      "task_id": "T-101", "title": "Structured logging (slog) abstraction",
-      "status": "done", "priority": "P1", "wave": 4, "size": "M", "category": "infra",
-      "related_gaps": ["G-020"], "owned_paths": ["internal/obs/**"],
-      "forbidden_paths": ["internal/contract/**"], "locks_required": [], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["A log/slog-based structured logger (text + JSON option) usable by host and sandbox", "No secrets/keys logged; redaction helper"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/obs/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "low", "notes_for_worker": "Provide the logger; adoption by other packages is incremental and may be a declared bounded-scope expansion."
-    },
-    {
-      "task_id": "T-102", "title": "Prometheus metrics package",
-      "status": "done", "priority": "P1", "wave": 4, "size": "M", "category": "infra",
-      "related_gaps": ["G-021"], "owned_paths": ["internal/host/metrics/**"],
-      "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"], "locks_required": [], "depends_on": [], "blocks": ["T-103", "T-120"],
-      "acceptance_criteria": ["Metric registry + counters/histograms for model calls, gateway approvals, deliveries, sandbox launches/kills", "Exposes an http.Handler factory for /metrics"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/metrics/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "low", "notes_for_worker": "Prefer adding a dependency only with lock:dependency. A stdlib-only expvar-style registry is acceptable to avoid new deps."
+      "task_id": "T-200",
+      "title": "SECURITY.md + Private Vulnerability Reporting",
+      "status": "available",
+      "priority": "P0",
+      "wave": 6,
+      "size": "S",
+      "category": "security",
+      "related_gaps": [
+        "G-044"
+      ],
+      "owned_paths": [
+        "SECURITY.md"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "SECURITY.md at repo root: supported-versions table, security@ contact, instruction to use PVR as the primary channel",
+        "Response-time commitment (initial response <= 14 days), coordinated-disclosure timeline, safe-harbor language, optional PGP key",
+        "Private Vulnerability Reporting enabled in repo Settings -> Code security (manual; documented in the issue)"
+      ],
+      "validation_commands": [
+        "test -f SECURITY.md"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": true,
+      "summary": "A security product with no disclosure policy is a trust smell \u2014 and both peers (nanoclaw, openclaw) fail GitHub's check here. Ship a SECURITY.md in a recognized location and enable native Private Vulnerability Reporting.",
+      "notes_for_worker": "Single most important file for a security product. Bug-report issue template (T-202) must redirect here."
     },
     {
-      "task_id": "T-103", "title": "API hardening (TLS, rate-limit, body limits, /readyz, /metrics)",
-      "status": "done", "priority": "P1", "wave": 4, "size": "M", "category": "security",
-      "related_gaps": ["G-022"], "owned_paths": ["internal/host/api/**"],
-      "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"], "locks_required": [], "depends_on": [], "blocks": ["T-120"],
-      "acceptance_criteria": ["Optional TLS (cert/key) option", "Token-bucket rate-limit middleware", "Request body + header size limits", "/readyz readiness endpoint", "Mounts an injected metrics handler at /metrics"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/api/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "low", "notes_for_worker": "Keep /healthz unauthenticated. Metrics handler is injected (from T-102) so this task does not depend on T-102 landing first."
+      "task_id": "T-201",
+      "title": "CODE_OF_CONDUCT.md (Contributor Covenant)",
+      "status": "available",
+      "priority": "P0",
+      "wave": 6,
+      "size": "XS",
+      "category": "docs",
+      "related_gaps": [
+        "G-044"
+      ],
+      "owned_paths": [
+        "CODE_OF_CONDUCT.md"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "CODE_OF_CONDUCT.md at root, Contributor Covenant 2.1, enforcement email filled in (not the placeholder)",
+        "Green check on the repo community profile"
+      ],
+      "validation_commands": [
+        "test -f CODE_OF_CONDUCT.md"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": true,
+      "summary": "Required community-health file; both peers ship one. Adopt Contributor Covenant 2.1 with a real enforcement contact.",
+      "notes_for_worker": "GitHub can add this via the web UI in two clicks; commit the result so it is version-controlled."
     },
     {
-      "task_id": "T-104", "title": "OCI resource limits + seccomp profile",
-      "status": "available", "priority": "P1", "wave": 4, "size": "M", "category": "security",
-      "related_gaps": ["G-023"], "owned_paths": ["internal/host/isolation/oci.go", "internal/host/isolation/seccomp.go"],
-      "forbidden_paths": ["internal/contract/**", "internal/host/isolation/provisioner.go", "internal/host/isolation/kata.go"], "locks_required": [], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["memory/CPU/pids cgroup limits added to the OCI spec via SandboxSpec knobs", "A restrictive default seccomp profile applied", "Tests assert the spec fields"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/isolation/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "med", "notes_for_worker": "Soft-coordinate on the isolation package (Isolator interface) with T-118/T-110. Own oci.go + a new seccomp.go only."
+      "task_id": "T-202",
+      "title": "Issue templates (forms) + PR template",
+      "status": "available",
+      "priority": "P0",
+      "wave": 6,
+      "size": "S",
+      "category": "docs",
+      "related_gaps": [
+        "G-044"
+      ],
+      "owned_paths": [
+        ".github/ISSUE_TEMPLATE/**",
+        ".github/pull_request_template.md"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Bug Report + Feature Request as .yml issue forms with valid name/description keys",
+        "config.yml: blank_issues_enabled false + contact links (Security policy, Discussions, Discord); bug form redirects security issues to SECURITY.md",
+        "pull_request_template.md with a checklist (tests pass, docs updated, contract impact, AGENTS.md scope honored)"
+      ],
+      "validation_commands": [
+        "test -d .github/ISSUE_TEMPLATE",
+        "test -f .github/pull_request_template.md"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": true,
+      "summary": "Reduce triage burden and route security reports correctly. Add bug-report + feature-request issue forms, a config.yml that disables blank issues and links Discussions/Discord/Security, and a PR template.",
+      "notes_for_worker": "Templates must live in .github/ISSUE_TEMPLATE with exact key names or GitHub ignores them."
     },
     {
-      "task_id": "T-105", "title": "Host respawn crash-loop backoff",
-      "status": "done", "priority": "P1", "wave": 4, "size": "M", "category": "bug",
-      "related_gaps": ["G-024"], "owned_paths": ["internal/host/sweep/**"],
-      "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"], "locks_required": [], "depends_on": [], "blocks": ["T-120"],
-      "acceptance_criteria": ["Per-session failure counter + exponential backoff before respawn", "Escalates to an alert/needs-human signal after N consecutive failures", "Tests"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/sweep/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "low", "notes_for_worker": "Prevents a misconfigured image from hammering the host."
+      "task_id": "T-203",
+      "title": "README overhaul: hero command, asciinema cast, security teaser",
+      "status": "available",
+      "priority": "P0",
+      "wave": 6,
+      "size": "M",
+      "category": "docs",
+      "related_gaps": [
+        "G-045"
+      ],
+      "owned_paths": [
+        "README.md"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Hero section: logo, one-line pitch, <=4 meaningful badges (release, license, CI, Discord) \u2014 not a wall of shields",
+        "One hero install command (the existing install.sh) immediately followed by the first command + API base URL, and a time-to-result phrase",
+        "An asciinema cast or terminal GIF embedded; CLI+API-first explicitly framed as a feature; security-model teaser + docs links"
+      ],
+      "validation_commands": [
+        "test -f README.md"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "The README is the whole first impression. Lead with logo + one-line pitch, a single hero install command and the exact next command/API URL it yields, a security-model teaser, and links to docs. Since there is no UI, substitute an asciinema cast (install -> first approval -> result) for the missing screenshot and frame CLI+API-first as a feature.",
+      "notes_for_worker": "A static screenshot is the one near-universal element a UI-less product lacks; the asciinema recording is the idiomatic fix."
     },
     {
-      "task_id": "T-106", "title": "Sandbox provider backoff + circuit breaker",
-      "status": "done", "priority": "P1", "wave": 4, "size": "M", "category": "bug",
-      "related_gaps": ["G-025"], "owned_paths": ["internal/sandbox/loop/**", "internal/sandbox/provider/**"],
-      "forbidden_paths": ["internal/contract/**"], "locks_required": [], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["Exponential backoff with jitter on provider errors", "Circuit breaker after a failure streak instead of fixed-interval retry forever", "Tests"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/sandbox/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "low", "notes_for_worker": "Today loop retries at a fixed 2s interval (loop.go:146) — thundering herd if the model API is down."
+      "task_id": "T-204",
+      "title": "Repo metadata: description, topics, social-preview image",
+      "status": "available",
+      "priority": "P0",
+      "wave": 6,
+      "size": "XS",
+      "category": "docs",
+      "related_gaps": [
+        "G-045"
+      ],
+      "owned_paths": [
+        "docs/assets/social-preview.png"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Description set; 8-12 topics (ai-agents, ai-assistant, self-hosted, security, sandbox, golang, claude, personal-assistant, mcp, agent-platform)",
+        "1280x640 branded social-preview image committed to docs/assets/ and set in Settings -> Social preview"
+      ],
+      "validation_commands": [],
+      "requires_human_decision": false,
+      "good_first_issue": true,
+      "summary": "Drive discovery and control how the repo looks when shared. Set a crisp description, 8-12 topics, and an Open-Graph social-preview image.",
+      "notes_for_worker": "Description/topics are GitHub repo settings (manual); commit the preview asset so it is reproducible."
     },
     {
-      "task_id": "T-107", "title": "Model proxy: rate caps + audit logging + secret redaction",
-      "status": "done", "priority": "P1", "wave": 4, "size": "M", "category": "security",
-      "related_gaps": ["G-026"], "owned_paths": ["internal/host/modelproxy/**"],
-      "forbidden_paths": ["internal/contract/**", "cmd/controlplane/main.go"], "locks_required": [], "depends_on": [], "blocks": ["T-120"],
-      "acceptance_criteria": ["Per-session/token rate caps on model egress", "Request/response audit records", "Secret redaction on forwarded responses", "Tests"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/modelproxy/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "low", "notes_for_worker": "modelproxy.go:12 already flags this as future work."
+      "task_id": "T-205",
+      "title": "docker-compose.yml + .env.example + published image",
+      "status": "available",
+      "priority": "P0",
+      "wave": 6,
+      "size": "M",
+      "category": "infra",
+      "related_gaps": [
+        "G-046"
+      ],
+      "owned_paths": [
+        "docker-compose.yml",
+        ".env.example",
+        ".github/workflows/image.yml"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [
+        "lock:ci",
+        "lock:release"
+      ],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "`docker compose up -d` from a clone brings up the control-plane + gateway; .env.example documents every required var",
+        "First run mints the admin/API token with a 'claim it / no recovery' warning",
+        "A workflow publishes the control-plane image to GHCR on release; README documents the pull"
+      ],
+      "validation_commands": [
+        "docker compose config -q"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "The most standardized onboarding pattern in the category is `cp .env.example .env && docker compose up -d`. Ship it, and publish the control-plane image to GHCR. The compose topology must reflect the real isolation posture (sandbox network=none), not flatten it.",
+      "notes_for_worker": "Coordinate on .github/workflows with T-208/T-253/T-254 via lock:ci/lock:release. Do not weaken network=none in compose."
     },
     {
-      "task_id": "T-108", "title": "End-to-end lifecycle integration test",
-      "status": "available", "priority": "P1", "wave": 4, "size": "L", "category": "test",
-      "related_gaps": ["G-027"], "owned_paths": ["test/e2e/**"],
-      "forbidden_paths": ["internal/contract/**"], "locks_required": [], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["A test drives the full lifecycle inbound -> router -> session launch -> agent loop -> outbound -> delivery using a fake Isolator", "An optional runsc-gated variant skipped when runsc is absent"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./test/e2e/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "low", "notes_for_worker": "Additive new dir. Use a fake Isolator + fake provider so it runs in CI without runsc."
+      "task_id": "T-206",
+      "title": "Guided onboarding wizard (ironctl init / onboard)",
+      "status": "available",
+      "priority": "P1",
+      "wave": 6,
+      "size": "L",
+      "category": "feature",
+      "related_gaps": [
+        "G-038"
+      ],
+      "owned_paths": [
+        "cmd/ironctl/onboard.go",
+        "internal/host/onboard/**"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "`ironctl onboard` runs an idempotent, resumable wizard (detect runtime -> token -> model credential -> sandbox image -> pair one channel -> verify)",
+        "Flags --yes (non-interactive) and --dry-run; refuses to overwrite existing config without --force",
+        "On success prints the first message to send and the gateway/API URL"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./cmd/ironctl/...",
+        "CGO_ENABLED=1 go build ./cmd/ironctl"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "nanoclaw.sh and `openclaw onboard` get a user to a working assistant in minutes; IronClaw leaves env wiring, service install and channel auth as manual steps. Add an interactive `ironctl onboard` that detects the container runtime, mints the API token, registers the Anthropic credential host-side, builds/pulls the sandbox image, pairs a first channel, and verifies end to end.",
+      "notes_for_worker": "Pure host-side orchestration over existing APIs; do not touch the frozen contract."
     },
     {
-      "task_id": "T-109a", "title": "Slack channel adapter",
-      "status": "available", "priority": "P2", "wave": 4, "size": "M", "category": "feature",
-      "related_gaps": ["G-028"], "owned_paths": ["internal/host/channels/slack.go", "internal/host/channels/slack_test.go"],
-      "forbidden_paths": ["internal/contract/**", "internal/host/channels/channels.go", "cmd/controlplane/main.go"], "locks_required": [], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["Adapter implements the channels.Adapter interface for Slack (follow telegram.go)", "Token redaction in errors", "Tests"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/channels/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "low", "notes_for_worker": "Adapter registration in main.go is wired by T-120 (single-owner file) — do not edit main.go here."
+      "task_id": "T-207",
+      "title": "5-minute Quickstart tutorial",
+      "status": "available",
+      "priority": "P1",
+      "wave": 6,
+      "size": "S",
+      "category": "docs",
+      "related_gaps": [
+        "G-038"
+      ],
+      "owned_paths": [
+        "docs/quickstart.md"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "docs/quickstart.md: prerequisites, install, run --dev, submit a change, approve, read audit \u2014 each step copy-pasteable",
+        "Linked from README and the docs site (T-250)"
+      ],
+      "validation_commands": [
+        "test -f docs/quickstart.md"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": true,
+      "summary": "A copy-pasteable 'zero to first approved action in 5 minutes' guide using --dev mode (no gVisor), ending at a real approve + audit.",
+      "notes_for_worker": "Mirror the local-dev flow already in the inventory; keep it provider-key-light."
     },
     {
-      "task_id": "T-109b", "title": "Discord channel adapter",
-      "status": "available", "priority": "P2", "wave": 4, "size": "M", "category": "feature",
-      "related_gaps": ["G-028"], "owned_paths": ["internal/host/channels/discord.go", "internal/host/channels/discord_test.go"],
-      "forbidden_paths": ["internal/contract/**", "internal/host/channels/channels.go", "cmd/controlplane/main.go"], "locks_required": [], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["Adapter implements the channels.Adapter interface for Discord", "Token redaction", "Tests"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/channels/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "low", "notes_for_worker": "Registration via T-120. Disjoint file from T-109a."
+      "task_id": "T-208",
+      "title": "Homebrew tap + CHANGELOG + curated release notes",
+      "status": "available",
+      "priority": "P1",
+      "wave": 6,
+      "size": "S",
+      "category": "infra",
+      "related_gaps": [
+        "G-052"
+      ],
+      "owned_paths": [
+        "CHANGELOG.md",
+        "packaging/homebrew/**"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [
+        "lock:release"
+      ],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "`brew install nivardsec/tap/ironclaw` installs ironctl + control-plane (formula generated from releases)",
+        "CHANGELOG.md (Keep a Changelog format) and curated GitHub Release notes templated from commits"
+      ],
+      "validation_commands": [
+        "test -f CHANGELOG.md"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "IronClaw's Go binary + existing release pipeline is its distribution edge over the Node/Python peers. A Homebrew tap is the standard instant-install for a CLI; a CHANGELOG is an opensource.guide expectation and a Scorecard signal.",
+      "notes_for_worker": "The tap may live in a sibling repo (nivardsec/homebrew-tap); keep the formula source under packaging/homebrew. Coordinate on release.yml via lock:release (T-253)."
     },
     {
-      "task_id": "T-113", "title": "Production deployment: units + installer + sandbox image",
-      "status": "available", "priority": "P2", "wave": 4, "size": "L", "category": "infra",
-      "related_gaps": ["G-032"], "owned_paths": ["deploy/**", "container/**"],
-      "forbidden_paths": ["internal/**", "cmd/**", "internal/contract/**"], "locks_required": ["lock:release"], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["Real systemd .service unit + macOS launchd plist", "An executable installer (not a comment scaffold)", "A sandbox container-image build (Dockerfile + build script) the provisioner can consume"],
-      "validation_commands": ["bash -n deploy/install.sh"], "requires_human_decision": false,
-      "estimated_conflict_risk": "low", "notes_for_worker": "Acquire lock:release. container/** is a new dir for the sandbox image."
+      "task_id": "T-209",
+      "title": "Public-repo ruleset adapted to the push-to-main flow",
+      "status": "available",
+      "priority": "P0",
+      "wave": 6,
+      "size": "S",
+      "category": "infra",
+      "related_gaps": [
+        "G-058"
+      ],
+      "owned_paths": [
+        ".github/rulesets/main.json"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [
+        "lock:ci"
+      ],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Ruleset on main: require CI + CodeQL green, block force-push, require linear history and signed commits \u2014 while still permitting direct pushes by authorized actors",
+        "Ruleset exported to .github/rulesets/main.json (documented as the source of truth)"
+      ],
+      "validation_commands": [],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "Public repos are expected to protect the default branch, but a hard PR-review gate would break IronClaw's authorized two-agent push-to-main build. Keep the trust signal via required status checks + signed commits + linear history instead of a review gate.",
+      "notes_for_worker": "Do NOT add required PR reviews \u2014 that contradicts AGENTS.md direct-push CAS. CAS preflight stays the guard."
     },
     {
-      "task_id": "T-114", "title": "Session-state persistence across sandbox restart",
-      "status": "available", "priority": "P2", "wave": 4, "size": "M", "category": "feature",
-      "related_gaps": ["G-033"], "owned_paths": ["internal/sandbox/queue/**"],
-      "forbidden_paths": ["internal/contract/**", "internal/sandbox/loop/**", "internal/sandbox/provider/**"], "locks_required": [], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["Per-session agent state persists in the outbound DB and is restored after a restart", "No frozen-contract change (host-internal schema only) — if cross-seam, STOP and file an RFC"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/sandbox/queue/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "med", "notes_for_worker": "Confirm the state schema does not cross the frozen seam; if it does, this becomes lock:contract + agent:needs-human."
+      "task_id": "T-210",
+      "title": "Support path: Discussions + Discord + seeded good-first-issues",
+      "status": "available",
+      "priority": "P1",
+      "wave": 6,
+      "size": "S",
+      "category": "docs",
+      "related_gaps": [
+        "G-053"
+      ],
+      "owned_paths": [
+        ".github/DISCUSSIONS.md"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Discussions enabled (Q&A + Announcements); Discord invite linked from README + issue-template config.yml",
+        "5-10 real, well-described starter issues labeled 'good first issue' and pinned"
+      ],
+      "validation_commands": [],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "A chat community is mandatory in this category (both peers run a Discord). Enable GitHub Discussions (Q&A + Announcements), stand up a Discord, and seed 5-10 scoped good-first-issues so the tracker does not look inactive.",
+      "notes_for_worker": "Mostly GitHub settings; commit a short DISCUSSIONS.md describing which channel is for what."
     },
     {
-      "task_id": "T-116", "title": "Roadmap + docs refresh",
-      "status": "available", "priority": "P3", "wave": 4, "size": "S", "category": "docs",
-      "related_gaps": ["G-034"], "owned_paths": ["README.md", "docs/threat-model.md", "docs/architecture.md"],
-      "forbidden_paths": ["internal/**", "cmd/**", "internal/contract/**", "docs/contract.md"], "locks_required": [], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["README roadmap checkboxes reflect landed work (RFC-0001, rootfs, cross-mount, Telegram)", "Future-work lists updated to the Wave 4/5 backlog"],
-      "validation_commands": [], "requires_human_decision": false,
-      "estimated_conflict_risk": "low", "notes_for_worker": "Do not edit docs/contract.md (RFC log; contract-adjacent)."
+      "task_id": "T-220",
+      "title": "[spike] Web console architecture + scaffold",
+      "status": "available",
+      "priority": "P1",
+      "wave": 7,
+      "size": "spike",
+      "category": "spike",
+      "related_gaps": [
+        "G-037"
+      ],
+      "owned_paths": [
+        ".agents/spikes/web-console.md",
+        "web/**"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Spike doc: stack choice (SPA framework, embed vs separate, auth reuse of the API token, loopback-only binding), security review of serving a UI from the control-plane",
+        "Scaffold: web/ app builds and is served by the control-plane at a loopback port behind the existing bearer-token auth; CI builds it"
+      ],
+      "validation_commands": [
+        "test -f .agents/spikes/web-console.md"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "Every exemplar ships a web dashboard as its primary interface; IronClaw is CLI+API only \u2014 its single biggest structural gap. Decide the stack (recommended: an embedded Go-served SPA on a loopback port, like openclaw's Control UI) and land the scaffold that T-221..T-226 build on.",
+      "notes_for_worker": "Bind loopback-only by default (cf. openclaw 127.0.0.1:18789). The UI must never widen the network posture. Sole owner of the web/ scaffold; feature tasks own subtrees under it."
     },
     {
-      "task_id": "T-118", "title": "Sandbox image signature/digest verification",
-      "status": "available", "priority": "P2", "wave": 4, "size": "M", "category": "security",
-      "related_gaps": ["G-035"], "owned_paths": ["internal/host/isolation/provisioner.go", "internal/host/isolation/provisioner_test.go"],
-      "forbidden_paths": ["internal/contract/**", "internal/host/isolation/oci.go", "internal/host/isolation/kata.go"], "locks_required": [], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["Provisioner verifies the image digest/signature against a configured trust policy before unpacking rootfs", "Tests"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/isolation/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "med", "notes_for_worker": "Own provisioner.go only; soft-coordinate on the isolation package with T-104/T-110."
-    },
-
-    {
-      "task_id": "T-120", "title": "Daemon wiring v2: compose the new subsystems",
-      "status": "blocked", "priority": "P1", "wave": 5, "size": "M", "category": "bug",
-      "related_gaps": ["G-019", "G-021", "G-022", "G-024", "G-026", "G-028"], "owned_paths": ["cmd/controlplane/**"],
-      "forbidden_paths": ["internal/contract/**"], "locks_required": [], "depends_on": ["T-100", "T-102", "T-103", "T-105", "T-107"], "blocks": [],
-      "acceptance_criteria": ["main.go wires the durable key source, metrics handler into the API, structured logger, respawn backoff, model-proxy caps, and registers Slack/Discord adapters", "New flags documented", "Daemon boots in --dev"],
-      "validation_commands": ["CGO_ENABLED=1 go build ./cmd/controlplane", "CGO_ENABLED=1 go test ./..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "med", "notes_for_worker": "Sole owner of cmd/controlplane/main.go. Land after the package tasks it composes."
-    },
-    {
-      "task_id": "T-110", "title": "Kata isolation backend",
-      "status": "available", "priority": "P3", "wave": 5, "size": "L", "category": "feature",
-      "related_gaps": ["G-029"], "owned_paths": ["internal/host/isolation/kata.go", "internal/host/isolation/kata_test.go"],
-      "forbidden_paths": ["internal/contract/**", "internal/host/isolation/oci.go", "internal/host/isolation/provisioner.go"], "locks_required": [], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["A Kata implementation of the Isolator interface behind the same hardened spec", "Tests (CLI mocked)"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/isolation/..."], "requires_human_decision": false,
-      "estimated_conflict_risk": "med", "notes_for_worker": "Documented future backend. Own kata.go only; soft-coordinate on the Isolator interface."
-    },
-    {
-      "task_id": "T-111", "title": "Egress broker for approved external APIs",
-      "status": "needs-human", "priority": "P3", "wave": 5, "size": "L", "category": "security",
-      "related_gaps": ["G-030"], "owned_paths": ["internal/host/egress/**"],
-      "forbidden_paths": ["internal/contract/**"], "locks_required": [], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["A gateway-approved egress broker lets agents reach explicitly-approved external APIs beyond the model host, with an allowlist + audit", "Threat-model review sign-off"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/egress/..."], "requires_human_decision": true,
-      "human_question": "Approve relaxing the network posture: which external destinations, what approval flow, what audit?",
-      "estimated_conflict_risk": "med", "notes_for_worker": "Changes the sealed/network=none posture — security-sensitive. Do not start until a human approves the design."
+      "task_id": "T-221",
+      "title": "Web UI: Approvals inbox",
+      "status": "available",
+      "priority": "P1",
+      "wave": 7,
+      "size": "L",
+      "category": "feature",
+      "related_gaps": [
+        "G-037"
+      ],
+      "owned_paths": [
+        "web/src/routes/approvals/**",
+        "internal/host/api/ui_approvals.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [
+        "T-220"
+      ],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Pending-changes list with per-change detail (kind, group, requester, payload) rendered readably",
+        "Approve/reject actions call /v1/changes/{id}/decision; the list updates live",
+        "Backed by a read-model endpoint; no new contract surface"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/api/..."
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "The killer first UI feature for IronClaw: surface the human-approval gateway in a browser. List pending changes, show a readable diff of each requested mutation, and approve/reject with attribution.",
+      "notes_for_worker": "Reuses existing gateway endpoints. Disjoint route subtree + one backend file."
     },
     {
-      "task_id": "T-112", "title": "Gateway auto-approval policy + RBAC",
-      "status": "needs-human", "priority": "P2", "wave": 5, "size": "L", "category": "security",
-      "related_gaps": ["G-031"], "owned_paths": ["internal/host/gateway/**"],
-      "forbidden_paths": ["internal/contract/**"], "locks_required": [], "depends_on": [], "blocks": [],
-      "acceptance_criteria": ["A policy engine can auto-approve enumerated low-risk change kinds and scope approvers by role", "The AlwaysRequireHuman floor stays the default; policy is opt-in", "Threat-model sign-off"],
-      "validation_commands": ["CGO_ENABLED=1 go test ./internal/host/gateway/..."], "requires_human_decision": true,
-      "human_question": "Which change kinds may auto-approve, and what RBAC roles may approve what?",
-      "estimated_conflict_risk": "med", "notes_for_worker": "Relaxes the mandatory-human floor — security-sensitive. Do not start until a human approves the policy."
+      "task_id": "T-222",
+      "title": "Web UI: Sessions browser",
+      "status": "available",
+      "priority": "P2",
+      "wave": 7,
+      "size": "M",
+      "category": "feature",
+      "related_gaps": [
+        "G-037"
+      ],
+      "owned_paths": [
+        "web/src/routes/sessions/**",
+        "internal/host/api/ui_sessions.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [
+        "T-220"
+      ],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Sessions list + detail view; terminate action wired to the host",
+        "Read-model endpoint; disjoint route subtree"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/api/..."
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "List live sessions, inspect status/group/queue depth, and terminate a session \u2014 over the existing registry session endpoints.",
+      "notes_for_worker": "Builds on /v1/registry/sessions."
+    },
+    {
+      "task_id": "T-223",
+      "title": "Web UI: Channels & wiring management",
+      "status": "available",
+      "priority": "P2",
+      "wave": 7,
+      "size": "M",
+      "category": "feature",
+      "related_gaps": [
+        "G-037"
+      ],
+      "owned_paths": [
+        "web/src/routes/channels/**",
+        "internal/host/api/ui_channels.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [
+        "T-220"
+      ],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Create/list wirings and destinations from the UI over existing registry endpoints",
+        "Channel credential setup is guided (token fields with redaction)"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/api/..."
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "A visual surface to connect agent groups to messaging groups (wirings) and manage destinations \u2014 the registry CRUD that is CLI-only today.",
+      "notes_for_worker": "Mutations still flow through the gateway where applicable."
+    },
+    {
+      "task_id": "T-224",
+      "title": "Web UI: Logs & audit viewer",
+      "status": "available",
+      "priority": "P2",
+      "wave": 7,
+      "size": "M",
+      "category": "feature",
+      "related_gaps": [
+        "G-037"
+      ],
+      "owned_paths": [
+        "web/src/routes/logs/**",
+        "internal/host/api/ui_audit.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [
+        "T-220"
+      ],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Audit log view with filter/search/export over /v1/audit",
+        "Live tail of structured logs (read-only)"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/api/..."
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "A real-time, filterable view over the append-only gateway audit log and structured logs (filter by level/module, search, export) \u2014 the observability surface every exemplar ships.",
+      "notes_for_worker": "Read-only; never expose secrets (reuse obs redaction)."
+    },
+    {
+      "task_id": "T-225",
+      "title": "Web UI: Config editor + web onboarding wizard",
+      "status": "available",
+      "priority": "P2",
+      "wave": 7,
+      "size": "L",
+      "category": "feature",
+      "related_gaps": [
+        "G-037",
+        "G-038"
+      ],
+      "owned_paths": [
+        "web/src/routes/setup/**",
+        "internal/host/api/ui_config.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [
+        "T-220"
+      ],
+      "blocks": [],
+      "acceptance_criteria": [
+        "First-run wizard mirrors `ironctl onboard` steps in the browser",
+        "Config editor with validation; every write that mutates capabilities still routes through the gateway"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/api/..."
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "Browser counterpart to T-206: a first-run wizard (model credential, sandbox runtime, first channel) plus an in-UI config editor with validation \u2014 the 'almost everything is done from the UI' expectation (Home Assistant) without weakening the gateway.",
+      "notes_for_worker": "Depends on T-206 semantics; do not bypass the approval choke point."
+    },
+    {
+      "task_id": "T-226",
+      "title": "Web UI: Chat playground",
+      "status": "available",
+      "priority": "P2",
+      "wave": 7,
+      "size": "M",
+      "category": "feature",
+      "related_gaps": [
+        "G-037"
+      ],
+      "owned_paths": [
+        "web/src/routes/chat/**",
+        "internal/host/api/ui_chat.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [
+        "T-220"
+      ],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Send/receive messages to a chosen agent group via an internal webchat destination",
+        "Shows tool calls + token usage inline"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/api/..."
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "A local test-conversation surface to message an agent group without wiring a real channel \u2014 the fastest path to 'see it work' after install.",
+      "notes_for_worker": "Implement as a first-class webchat channel adapter feeding the normal router/delivery path."
+    },
+    {
+      "task_id": "T-227",
+      "title": "[spike] Host-side skills / extension system design",
+      "status": "needs-human",
+      "priority": "P2",
+      "wave": 7,
+      "size": "spike",
+      "category": "spike",
+      "related_gaps": [
+        "G-036"
+      ],
+      "owned_paths": [
+        ".agents/spikes/skills-system.md"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Spike doc: a skill manifest format, where skills live (host-curated vs registry), how a skill maps to gateway-approved capability grants, and the supply-chain risk (cf. Koi Security's 341 malicious ClawHub skills)",
+        "Recommendation: build / defer / integrate-existing, with a follow-up task breakdown if 'build'"
+      ],
+      "validation_commands": [
+        "test -f .agents/spikes/skills-system.md"
+      ],
+      "requires_human_decision": true,
+      "human_question": "Do we add a host-side, gateway-approved skills/extension mechanism (manifest + capability grant), given the 'sealed runtime / no in-sandbox install' pillar? If yes, what is the trust model for third-party skills?",
+      "good_first_issue": false,
+      "summary": "Skills are the headline extensibility of both peers (nanoclaw /add-* branch-copy model; openclaw SKILL.md + ClawHub, 13.7k+ skills). IronClaw deliberately forbids in-sandbox self-install. A host-side, gateway-approved capability-bundle mechanism could give parity without breaking the seal \u2014 but it is an architecture + threat-model decision, not a unilateral build.",
+      "notes_for_worker": "Do not implement before the design is approved. The seal (no in-sandbox mutation) is non-negotiable; any skill capability must be a host-side, human-approved grant."
+    },
+    {
+      "task_id": "T-228",
+      "title": "Channel adapter: WhatsApp",
+      "status": "available",
+      "priority": "P2",
+      "wave": 7,
+      "size": "M",
+      "category": "feature",
+      "related_gaps": [
+        "G-039"
+      ],
+      "owned_paths": [
+        "internal/host/channels/whatsapp.go",
+        "internal/host/channels/whatsapp_test.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**",
+        "internal/host/channels/channels.go",
+        "cmd/controlplane/main.go"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Adapter implements channels.Adapter (send message + file) via a WhatsApp Business/Cloud API or bridge",
+        "Token/secret redaction in errors; unit tests with a fake transport"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/channels/..."
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": true,
+      "summary": "WhatsApp is the flagship channel for both peers and the top parity ask. Add an adapter implementing channels.Adapter, following the existing telegram.go/slack.go/discord.go pattern.",
+      "notes_for_worker": "Registration in main.go is wired by the daemon-wiring owner \u2014 do not edit main.go here. Disjoint file from other adapters."
+    },
+    {
+      "task_id": "T-229",
+      "title": "Channel adapter: Email / Gmail",
+      "status": "available",
+      "priority": "P2",
+      "wave": 7,
+      "size": "M",
+      "category": "feature",
+      "related_gaps": [
+        "G-039"
+      ],
+      "owned_paths": [
+        "internal/host/channels/email.go",
+        "internal/host/channels/email_test.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**",
+        "internal/host/channels/channels.go",
+        "cmd/controlplane/main.go"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Adapter sends via SMTP/Gmail API and (optionally) ingests via IMAP/Pub/Sub into the inbound path",
+        "Credential redaction; unit tests"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/channels/..."
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "Email/Gmail is a first-class channel on both peers (Resend outbound; Gmail Pub/Sub triggers). Add an SMTP/IMAP (or Gmail API) adapter so agents can send and receive mail.",
+      "notes_for_worker": "Inbound ingestion may need a small poller on the host side; keep it disjoint from delivery."
+    },
+    {
+      "task_id": "T-230",
+      "title": "Channel adapter: Matrix",
+      "status": "available",
+      "priority": "P3",
+      "wave": 7,
+      "size": "M",
+      "category": "feature",
+      "related_gaps": [
+        "G-039"
+      ],
+      "owned_paths": [
+        "internal/host/channels/matrix.go",
+        "internal/host/channels/matrix_test.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**",
+        "internal/host/channels/channels.go",
+        "cmd/controlplane/main.go"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Adapter implements channels.Adapter against the Matrix client-server API",
+        "Token redaction; unit tests"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/channels/..."
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": true,
+      "summary": "Matrix is a privacy-friendly, self-host-aligned channel both peers support. Add a client-server API adapter.",
+      "notes_for_worker": "Good first issue \u2014 clone the telegram.go shape."
+    },
+    {
+      "task_id": "T-231",
+      "title": "Channel adapter: Google Chat",
+      "status": "available",
+      "priority": "P3",
+      "wave": 7,
+      "size": "M",
+      "category": "feature",
+      "related_gaps": [
+        "G-039"
+      ],
+      "owned_paths": [
+        "internal/host/channels/googlechat.go",
+        "internal/host/channels/googlechat_test.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**",
+        "internal/host/channels/channels.go",
+        "cmd/controlplane/main.go"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Adapter implements channels.Adapter for Google Chat spaces",
+        "Credential redaction; unit tests"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/channels/..."
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "Google Chat is a common workplace channel on both peers. Add a webhook/bot adapter.",
+      "notes_for_worker": "Disjoint file; registration via the daemon-wiring owner."
+    },
+    {
+      "task_id": "T-232",
+      "title": "Additional channel adapters: Teams / iMessage / Signal (tracking)",
+      "status": "available",
+      "priority": "P3",
+      "wave": 7,
+      "size": "L",
+      "category": "feature",
+      "related_gaps": [
+        "G-039"
+      ],
+      "owned_paths": [
+        "internal/host/channels/teams.go",
+        "internal/host/channels/imessage.go",
+        "internal/host/channels/signal.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**",
+        "internal/host/channels/channels.go",
+        "cmd/controlplane/main.go"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Teams adapter (bot framework)",
+        "iMessage adapter (macOS host bridge)",
+        "Signal adapter (signal-cli/bridge)"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/channels/..."
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "Tracking issue to close the long-tail channel gap vs openclaw's 23+ and nanoclaw's 13: Microsoft Teams, iMessage (macOS), Signal. Each is an independent adapter; split into sub-issues when claimed.",
+      "notes_for_worker": "Umbrella \u2014 prefer one PR per adapter, disjoint files. iMessage is macOS-only."
+    },
+    {
+      "task_id": "T-233",
+      "title": "Multi-provider model support (per-agent provider)",
+      "status": "needs-human",
+      "priority": "P3",
+      "wave": 7,
+      "size": "L",
+      "category": "feature",
+      "related_gaps": [
+        "G-040"
+      ],
+      "owned_paths": [
+        "internal/host/modelproxy/**",
+        "internal/sandbox/provider/**"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "modelproxy allowlist + provider abstraction supports >=1 additional provider behind config, per agent group",
+        "Egress stays gateway-governed; audit covers all providers; threat-model sign-off"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/modelproxy/...",
+        "CGO_ENABLED=1 go test ./internal/sandbox/..."
+      ],
+      "requires_human_decision": true,
+      "human_question": "Do we relax the Anthropic-via-proxy posture to allow per-agent providers (OpenAI/Codex, Ollama/local, OpenRouter)? What is the egress + audit story for each, and does the model proxy allowlist expand?",
+      "good_first_issue": false,
+      "summary": "Peers allow per-agent provider selection via drop-in modules (/add-codex, /add-ollama-provider, OpenCode). IronClaw is Anthropic-via-host-proxy by threat model. Supporting others means new egress destinations through the model proxy \u2014 a deliberate threat-model decision.",
+      "notes_for_worker": "Do not start before the network-posture decision is approved (related to the egress-broker work)."
+    },
+    {
+      "task_id": "T-234",
+      "title": "First-class persona / identity surface",
+      "status": "available",
+      "priority": "P2",
+      "wave": 7,
+      "size": "M",
+      "category": "feature",
+      "related_gaps": [
+        "G-042"
+      ],
+      "owned_paths": [
+        "internal/host/registry/persona.go",
+        "internal/sandbox/tools/persona.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Per-group persona + agent name stored in the registry, set via a gateway-approved change",
+        "The sandbox loop loads the persona into the system context; a tool can read (not self-edit) it"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/registry/...",
+        "CGO_ENABLED=1 go test ./internal/sandbox/..."
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "Peers make the assistant feel personal via SOUL.md/CLAUDE.md persona files and a default name (@Andy). IronClaw has a persona change-kind and per-group workspace but no first-class identity surface. Add a per-group persona/identity (name + system persona) editable via the gateway and visible to the agent.",
+      "notes_for_worker": "Persona edits are gateway-approved (no in-sandbox self-edit). Confirm no frozen-contract change; if cross-seam, STOP + RFC."
+    },
+    {
+      "task_id": "T-235",
+      "title": "In-product observability: ironctl status / doctor / usage",
+      "status": "available",
+      "priority": "P2",
+      "wave": 7,
+      "size": "M",
+      "category": "feature",
+      "related_gaps": [
+        "G-043"
+      ],
+      "owned_paths": [
+        "cmd/ironctl/status.go",
+        "cmd/ironctl/doctor.go"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "`ironctl status` summarizes daemon health, live sessions, pending approvals, last delivery",
+        "`ironctl doctor` checks runtime/gVisor/token/model-proxy reachability and prints actionable fixes",
+        "Token-usage report from model-proxy audit records"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./cmd/ironctl/...",
+        "CGO_ENABLED=1 go build ./cmd/ironctl"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "Peers ship rich self-diagnostics (openclaw /status /trace /usage, `openclaw doctor`; nanoclaw chat-based debug). Add `ironctl status` (daemon/session health), `ironctl doctor` (preflight: runtime, gVisor, token, model reachability), and a token-usage report.",
+      "notes_for_worker": "Read-only over existing endpoints/metrics. Disjoint files from onboard (T-206)."
+    },
+    {
+      "task_id": "T-250",
+      "title": "Documentation site (Mintlify/Fumadocs)",
+      "status": "available",
+      "priority": "P1",
+      "wave": 8,
+      "size": "L",
+      "category": "docs",
+      "related_gaps": [
+        "G-047"
+      ],
+      "owned_paths": [
+        "docs/site/**",
+        "docs/docs.json"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Docs site builds and deploys (CI + a docs.* domain or GitHub Pages)",
+        "IA covers quickstart, concepts, self-hosting, config, CLI ref, API ref (T-251), architecture, security model (T-252)"
+      ],
+      "validation_commands": [
+        "test -d docs/site"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "7/7 exemplars and both peers run a dedicated docs site; a README alone reads as pre-1.0. Stand up a docs site (Mintlify or Fumadocs) with the consensus IA: Quickstart -> Concepts -> Guides -> Self-Hosting -> Configuration -> CLI + API Reference -> Architecture -> Security Model.",
+      "notes_for_worker": "Mintlify ships /llms.txt for free (useful for an AI project). Pull existing docs/*.md in as the starting content."
+    },
+    {
+      "task_id": "T-251",
+      "title": "Publish & check in the OpenAPI spec",
+      "status": "available",
+      "priority": "P1",
+      "wave": 8,
+      "size": "S",
+      "category": "docs",
+      "related_gaps": [
+        "G-048"
+      ],
+      "owned_paths": [
+        "api/openapi.yaml"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Versioned api/openapi.yaml covering every /v1 route with auth/token scopes",
+        "Rendered as the API reference in the docs site"
+      ],
+      "validation_commands": [
+        "test -f api/openapi.yaml"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "For a UI-less product the OpenAPI spec IS the contract \u2014 it documents the API, future-proofs the dashboard (T-22x), and lets third parties build against you. IronClaw already has formal contract discipline; expose the control-plane API as a versioned, checked-in OpenAPI document.",
+      "notes_for_worker": "Document the gateway + registry endpoints from internal/host/api. Keep in sync as the API evolves."
+    },
+    {
+      "task_id": "T-252",
+      "title": "Threat-model document expansion (STRIDE + data-flow)",
+      "status": "available",
+      "priority": "P1",
+      "wave": 8,
+      "size": "M",
+      "category": "security",
+      "related_gaps": [
+        "G-049"
+      ],
+      "owned_paths": [
+        "docs/threat-model.md"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Covers host<->sandbox, control-plane<->agent, agent<->agent, and egress-broker<->network boundaries with STRIDE",
+        "Data-flow diagram + privilege matrix; versioned with the code; linked from README and SECURITY.md"
+      ],
+      "validation_commands": [
+        "test -f docs/threat-model.md"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "Security is the battlefield for this category and IronClaw's natural high ground. Expand the threat model into a full document: assets, data-flow diagram, trust boundaries, adversaries, a STRIDE pass per boundary, mitigations, and explicit non-goals \u2014 also scoping what counts as a 'vulnerability' so disclosure stays sane.",
+      "notes_for_worker": "Do not edit docs/contract.md. Build on the existing threat-model.md."
+    },
+    {
+      "task_id": "T-253",
+      "title": "Signed releases + SBOM + provenance (GoReleaser)",
+      "status": "available",
+      "priority": "P1",
+      "wave": 8,
+      "size": "M",
+      "category": "security",
+      "related_gaps": [
+        "G-050"
+      ],
+      "owned_paths": [
+        ".goreleaser.yaml",
+        ".github/workflows/release.yml"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [
+        "lock:release"
+      ],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "GoReleaser builds binaries, generates SBOMs (syft, SPDX + CycloneDX), signs the checksum file keylessly (cosign), emits GitHub artifact attestations for binaries + image",
+        "README documents verification (cosign verify / gh attestation verify)"
+      ],
+      "validation_commands": [
+        "test -f .goreleaser.yaml"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "A security tool that ships unsigned binaries undermines its own thesis. Neither peer offers SBOM/signing \u2014 a place IronClaw can decisively win, and the release pipeline already exists. Sign checksums + image (cosign, keyless), emit build provenance attestations, and attach an SBOM to every release.",
+      "notes_for_worker": "Acquire lock:release; coordinate with T-205/T-208/T-256 on the release workflow. Mind CGO determinism."
+    },
+    {
+      "task_id": "T-254",
+      "title": "Supply-chain hygiene (Dependabot / CodeQL / secret scanning / pinned actions)",
+      "status": "available",
+      "priority": "P1",
+      "wave": 8,
+      "size": "S",
+      "category": "security",
+      "related_gaps": [
+        "G-051"
+      ],
+      "owned_paths": [
+        ".github/dependabot.yml",
+        ".github/workflows/codeql.yml"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [
+        "lock:ci"
+      ],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Dependabot alerts + version updates on; CodeQL running on push+PR for Go",
+        "Secret scanning + push protection on; every third-party Action pinned to a full commit SHA; top-level permissions: contents: read with per-job elevation"
+      ],
+      "validation_commands": [
+        "test -f .github/dependabot.yml"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "A compromised dependency or leaked CI secret turns the repo into the attack vector against every downstream user \u2014 reputationally fatal for a security vendor. All are free for public repos and map to Scorecard checks; openclaw already runs CodeQL + Dependabot.",
+      "notes_for_worker": "Coordinate on .github/workflows via lock:ci. Some toggles are repo settings (document them)."
+    },
+    {
+      "task_id": "T-255",
+      "title": "OpenSSF Scorecard + Best Practices badges",
+      "status": "available",
+      "priority": "P2",
+      "wave": 8,
+      "size": "M",
+      "category": "security",
+      "related_gaps": [
+        "G-054"
+      ],
+      "owned_paths": [
+        ".github/workflows/scorecard.yml"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [
+        "lock:ci"
+      ],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Auto-updating Scorecard badge in README with a strong score",
+        "Best Practices passing criteria met (note the <=14-day vuln-response and static-analysis-before-release MUSTs)"
+      ],
+      "validation_commands": [
+        "test -f .github/workflows/scorecard.yml"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "The two most recognized at-a-glance trust signals on a security repo, and Scorecard ratifies much of Wave 8. Few peers display either \u2014 a differentiator. Run the Scorecard Action (publish_results) and earn the Best Practices passing badge.",
+      "notes_for_worker": "Depends in spirit on T-200/T-253/T-254 being in place to score well."
+    },
+    {
+      "task_id": "T-256",
+      "title": "SLSA L3 provenance + reproducible builds",
+      "status": "available",
+      "priority": "P2",
+      "wave": 8,
+      "size": "L",
+      "category": "security",
+      "related_gaps": [
+        "G-054"
+      ],
+      "owned_paths": [
+        ".github/workflows/slsa.yml",
+        "docs/reproducible-builds.md"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [
+        "lock:release"
+      ],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "SLSA Build L3 provenance distributed + verifiable (slsa-github-generator)",
+        "Deterministic flags (-trimpath, pinned toolchain, SOURCE_DATE_EPOCH) + a documented 'how to reproduce a release' guide (CGO determinism addressed)"
+      ],
+      "validation_commands": [
+        "test -f docs/reproducible-builds.md"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "Reproducibility lets a third party rebuild from source and confirm the published binary \u2014 the strongest defense against a compromised build server, and the natural complement to signing. Neither peer claims either.",
+      "notes_for_worker": "CGO_ENABLED=1 adds C-toolchain determinism considerations. Coordinate on release workflow via lock:release."
+    },
+    {
+      "task_id": "T-257",
+      "title": "Examples gallery + templates",
+      "status": "available",
+      "priority": "P2",
+      "wave": 8,
+      "size": "M",
+      "category": "docs",
+      "related_gaps": [
+        "G-055"
+      ],
+      "owned_paths": [
+        "examples/**"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "examples/ with >=3 runnable templates (config + README each): e.g. morning briefing, channel triage, multi-agent group",
+        "Linked from README + docs"
+      ],
+      "validation_commands": [
+        "test -d examples"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": true,
+      "summary": "Every exemplar ships an extensibility system + a gallery and treats a headline count as marketing. An examples/ dir of runnable templates (a scheduled briefing, a triage bot, a multi-agent setup) costs little and seeds adoption.",
+      "notes_for_worker": "Use only in-threat-model capabilities (no browser/self-install)."
+    },
+    {
+      "task_id": "T-258",
+      "title": "Public roadmap board + demo media + comparison page",
+      "status": "available",
+      "priority": "P2",
+      "wave": 8,
+      "size": "M",
+      "category": "docs",
+      "related_gaps": [
+        "G-056"
+      ],
+      "owned_paths": [
+        "docs/roadmap.md",
+        "docs/assets/demo/**"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Public roadmap (GitHub Projects board or docs/roadmap.md) listing Waves 6-8 incl. Web UI",
+        "Demo asciinema cast or short video in README/docs; a 'vs nanoclaw/openclaw' comparison page"
+      ],
+      "validation_commands": [
+        "test -f docs/roadmap.md"
+      ],
+      "requires_human_decision": false,
+      "good_first_issue": false,
+      "summary": "Roadmaps are the weakest area across the field, so a simple public board exceeds it \u2014 and is exactly where 'Web UI' should be parked so the gap reads as planned, not missing. Add a public roadmap, demo media (asciinema/video), and a comparison page leaning on IronClaw's signing/SBOM/threat-model edge.",
+      "notes_for_worker": "Comparison page should be honest: IronClaw wins on isolation/signing/threat-model; peers win on UI/skills/channel breadth (closing via Wave 7)."
+    },
+    {
+      "task_id": "T-259",
+      "title": "Third-party security audit engagement",
+      "status": "needs-human",
+      "priority": "P2",
+      "wave": 8,
+      "size": "L",
+      "category": "security",
+      "related_gaps": [
+        "G-057"
+      ],
+      "owned_paths": [
+        "docs/audits/**"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Engage a recognized firm (consider OSTIF funding) scoped to sandbox isolation, egress broker, RBAC/policy, a2a",
+        "Publish the full report in docs/audits/; track remediation publicly; pair with a VDP"
+      ],
+      "validation_commands": [],
+      "requires_human_decision": true,
+      "human_question": "Approve engaging a third-party security firm (scope, budget, possibly via OSTIF)? Which boundaries are in scope first?",
+      "good_first_issue": false,
+      "summary": "External validation is the strongest trust signal a security vendor can offer and is often a procurement prerequisite. Neither peer has one \u2014 a strong differentiator. Do it after the hygiene items so the audit targets the product, not low-hanging gaps.",
+      "notes_for_worker": "Human/budget decision. Sequence after T-200/T-252/T-253/T-254."
+    },
+    {
+      "task_id": "T-260",
+      "title": "End-user credential vault (OneCLI-style request-time injection)",
+      "status": "needs-human",
+      "priority": "P3",
+      "wave": 8,
+      "size": "L",
+      "category": "security",
+      "related_gaps": [
+        "G-041"
+      ],
+      "owned_paths": [
+        "internal/host/egress/vault.go",
+        ".agents/spikes/credential-vault.md"
+      ],
+      "forbidden_paths": [
+        "internal/contract/**"
+      ],
+      "locks_required": [],
+      "depends_on": [],
+      "blocks": [],
+      "acceptance_criteria": [
+        "Spike: build-vs-integrate decision; if build, request-time injection over the egress broker with per-agent policy + audit, no raw keys in the sandbox",
+        "Threat-model sign-off; agents never see plaintext secrets"
+      ],
+      "validation_commands": [
+        "CGO_ENABLED=1 go test ./internal/host/egress/..."
+      ],
+      "requires_human_decision": true,
+      "human_question": "Do we add an end-user credential vault so agents can call arbitrary approved APIs without holding raw keys (nanoclaw's OneCLI pattern), building on the egress broker? Or integrate onecli rather than build?",
+      "good_first_issue": false,
+      "summary": "nanoclaw's headline secret story is OneCLI's Agent Vault: agents never hold raw keys; the gateway injects credentials at request time with per-agent policies and rate limits. IronClaw injects only the model credential and now has a gateway-approved egress broker \u2014 extending that into a general vault is the parity gap, and a threat-model decision (build vs integrate onecli).",
+      "notes_for_worker": "Builds on T-111 (egress broker, landed). Keep the no-secrets-in-sandbox invariant."
     }
   ]
 }

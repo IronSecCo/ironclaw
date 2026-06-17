@@ -56,6 +56,60 @@ Evidence at base `02748dd` (post-Wave-1).
 
 ## Out of scope by threat model (do NOT build)
 
-In-sandbox web/browser access; `install_packages`/self-modification; general credential vault for
-arbitrary APIs; multiple LLM providers. These are intentional non-goals of the sealed / `network=none`
-design — recorded so agents don't treat them as unfinished work.
+**Permanent non-goals** (intentional, by the sealed / `network=none` design — agents must not treat these as unfinished work):
+- In-sandbox web/browser access and **in-sandbox `install_packages` / self-modification**. The seal (no in-sandbox mutation) is non-negotiable.
+
+**Reconsidered as human-gated** (no longer "never" — the egress broker T-111 landed, relaxing the absolute `network=none`-only posture *under gateway control*): general egress to approved APIs (**done**, T-111), an **end-user credential vault** (now `agent:needs-human` T-260), and **multiple LLM providers** (now `agent:needs-human` T-233). These touch the network/threat posture, so they stay human-decision tasks, not free-for-all builds.
+
+---
+
+## Wave 6–8 gaps — product parity + OSS launch readiness (Road to 1.0)
+
+**Context:** Waves 0–5 (T-001…T-120) are **all landed** — the security backend is complete (host control-plane, gVisor/Kata isolation, encrypted queues, gateway, Slack/Discord/Telegram/Webhook channels, scheduling, registry, metrics, durable keys, model proxy, egress broker, a2a/create_agent, daemon wiring v2). The remaining gaps are **not backend** — they are product surface (vs nanoclaw/openclaw), an absent **web UI**, **onboarding** polish, and **open-source launch readiness**. Evidence: current codebase inventory + the nanoclaw/openclaw feature comparison + GitHub community-standards review (June 2026).
+
+### Product-parity gaps (vs `nanocoai/nanoclaw` + `openclaw/openclaw`)
+
+| Gap | Category | Risk | Path scope | Evidence |
+|---|---|---|---|---|
+| G-036 No skills/extension system | feature | med | (architecture decision) | peers' headline extensibility (SKILL.md + ClawHub 13.7k skills; nanoclaw `/add-*`); IronClaw forbids in-sandbox install — needs a host-side gateway-approved mechanism (needs-human) |
+| G-037 No web UI / dashboard / console | feature | high | `web/**` (new), `internal/host/api/**` | CLI + API only; openclaw ships a 6-tab Control UI; biggest structural gap |
+| G-038 No guided onboarding wizard | feature | med | `cmd/ironctl/**`, `internal/host/onboard/**` (new) | setup is manual env wiring vs `nanoclaw.sh` / `openclaw onboard` (minutes to first message) |
+| G-039 Limited channel breadth | feature | med | `internal/host/channels/**` | have Slack/Discord/Telegram/Webhook; missing WhatsApp/email/Matrix/Google Chat/Teams/iMessage/Signal (peers: 13–23+) |
+| G-040 Single model provider | feature | low | `internal/host/modelproxy/**` | Anthropic-via-proxy only; peers allow per-agent provider (needs-human; touches egress posture) |
+| G-041 No end-user credential vault | security | low | `internal/host/egress/**` | peers use OneCLI request-time injection; IronClaw injects only the model cred (needs-human; builds on T-111) |
+| G-042 No first-class persona/identity surface | feature | low | `internal/host/registry/**`, `internal/sandbox/tools/**` | peers' SOUL.md/CLAUDE.md + default name; IronClaw has a persona change-kind but no identity surface |
+| G-043 No in-product observability/self-diagnostics | feature | low | `cmd/ironctl/**` | peers ship `/status` `/trace` `/usage` + `doctor`; IronClaw has metrics but no operator CLI |
+
+### OSS launch-readiness gaps (GitHub community standards + category bar)
+
+| Gap | Category | Risk | Path scope | Evidence |
+|---|---|---|---|---|
+| G-044 Missing community-health files | docs | high | `SECURITY.md`,`CODE_OF_CONDUCT.md`,`.github/**` | only CONTRIBUTING.md + LICENSE exist; no SECURITY policy (critical for a security product), CoC, or issue/PR templates |
+| G-045 README not launch-grade; no repo metadata | docs | med | `README.md`, repo settings | no hero/asciinema/social-preview; no topics/description tuned for discovery |
+| G-046 No docker-compose + .env.example + image | infra | high | `docker-compose.yml`,`.env.example` | the category's standard front door (`docker compose up -d`) is absent |
+| G-047 No docs site | docs | med | `docs/site/**` (new) | README-only reads pre-1.0; both peers run docs.* sites |
+| G-048 No published OpenAPI spec | docs | med | `api/**` | for a UI-less product the spec *is* the contract; none checked in |
+| G-049 Threat-model doc thin vs category bar | security | med | `docs/threat-model.md` | needs STRIDE-per-boundary + data-flow; security is the battlefield IronClaw should win |
+| G-050 Releases unsigned; no SBOM/provenance | security | high | `.goreleaser.yaml`,`.github/**` | a security tool shipping unsigned binaries undercuts its thesis; neither peer signs — a win available |
+| G-051 Supply-chain hygiene off | security | high | `.github/**` | no Dependabot/CodeQL/secret-scanning/SHA-pinned actions |
+| G-052 No Homebrew tap; no CHANGELOG | infra | low | `packaging/**`,`CHANGELOG.md` | Go binary is a distribution edge; standard CLI install + changelog missing |
+| G-053 No support community / good-first-issues | docs | med | repo settings | no Discussions/Discord; empty tracker reads as inactive |
+| G-054 No trust badges; no SLSA/reproducible builds | security | low | `.github/**` | OpenSSF Scorecard/Best-Practices + SLSA L3 differentiate vs peers |
+| G-055 No examples gallery / templates | docs | low | `examples/**` | every exemplar ships a gallery + a headline count |
+| G-056 No public roadmap / demo media | docs | low | `docs/**` | park "Web UI" on a public roadmap so the gap reads as planned |
+| G-057 No third-party security audit | security | low | `docs/audits/**` | strongest trust signal; neither peer has one — a differentiator |
+| G-058 No public-repo branch ruleset | infra | med | repo settings | default branch unprotected; must keep push-to-main yet add integrity |
+
+### Coverage (new gaps → tasks)
+
+G-036→T-227 · G-037→T-220..T-226 · G-038→T-206/T-207/T-225 · G-039→T-228..T-232 · G-040→T-233 ·
+G-041→T-260 · G-042→T-234 · G-043→T-235 · G-044→T-200/T-201/T-202 · G-045→T-203/T-204 · G-046→T-205 ·
+G-047→T-250 · G-048→T-251 · G-049→T-252 · G-050→T-253 · G-051→T-254 · G-052→T-208 · G-053→T-210 ·
+G-054→T-255/T-256 · G-055→T-257 · G-056→T-258 · G-057→T-259 · G-058→T-209.
+
+### Human decisions required (Road to 1.0)
+
+- **G-036 / T-227** — add a host-side, gateway-approved skills/extension system despite the no-in-sandbox-install seal? (trust model for third-party skills)
+- **G-040 / T-233** — relax Anthropic-only to per-agent providers? (egress + audit posture)
+- **G-041 / T-260** — build vs integrate an end-user credential vault on top of the egress broker?
+- **G-057 / T-259** — engage a third-party security audit (scope/budget)?
