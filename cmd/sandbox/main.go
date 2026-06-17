@@ -97,7 +97,7 @@ func run() error {
 	}
 	defer inbound.Close()
 
-	registry, err := buildTools(*workspace, inbound, *egressSocket)
+	registry, err := buildTools(*workspace, inbound, *egressSocket, *persona)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func run() error {
 // broker so the agent can reach operator-approved external APIs (T-111). Empty
 // (the default) registers no egress tool, leaving the sandbox reachable only to
 // the model proxy.
-func buildTools(workspaceDir string, msgCtx tools.MessageContext, egressSocket string) (*tools.Registry, error) {
+func buildTools(workspaceDir string, msgCtx tools.MessageContext, egressSocket, persona string) (*tools.Registry, error) {
 	registry := tools.NewRegistry()
 
 	ws, err := tools.NewWorkspace(workspaceDir)
@@ -166,6 +166,9 @@ func buildTools(workspaceDir string, msgCtx tools.MessageContext, egressSocket s
 	}
 	if err := registry.Register(tools.NewAskUserQuestionTool()); err != nil {
 		return nil, fmt.Errorf("register ask_user_question: %w", err)
+	}
+	if err := registry.Register(tools.NewReadPersonaTool(persona)); err != nil {
+		return nil, fmt.Errorf("register read_persona: %w", err)
 	}
 	for _, t := range []tools.Tool{
 		tools.NewSendMessageTool(msgCtx),

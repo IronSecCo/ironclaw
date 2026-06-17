@@ -27,6 +27,7 @@ func CompiledToolNames() []string {
 		NewRequestCapabilityChangeTool(),
 		NewScheduleTaskTool(),
 		NewAskUserQuestionTool(),
+		NewReadPersonaTool(""),
 		NewHTTPFetchTool(""),
 	}
 	paramFree = append(paramFree, TaskManagementTools()...)

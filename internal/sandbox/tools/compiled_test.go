@@ -49,6 +49,7 @@ func TestCompiledToolNamesCoversBuiltRegistry(t *testing.T) {
 	reg.MustRegister(t, NewRequestCapabilityChangeTool())
 	reg.MustRegister(t, NewScheduleTaskTool())
 	reg.MustRegister(t, NewAskUserQuestionTool())
+	reg.MustRegister(t, NewReadPersonaTool(""))
 	reg.MustRegister(t, NewSendMessageTool(fakeMsgCtx{}))
 	reg.MustRegister(t, NewSendFileTool(ws, fakeMsgCtx{}))
 	reg.MustRegister(t, NewListDestinationsTool(fakeMsgCtx{}))
