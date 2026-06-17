@@ -138,15 +138,19 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/changes/{id}/decision", s.handleDecision)
 	s.mux.HandleFunc("GET /v1/audit", s.handleAudit)
 	s.registryRoutes()
+	s.uiRoutes() // embedded web console at GET /ui/ (T-220; see ui.go)
 }
 
 // auth wraps h with optional bearer-token authentication. With no token set, the
 // API relies solely on the mesh (Tailscale) network boundary. The /healthz and
 // /readyz probes are always exempt so liveness/readiness checks need no
-// credential. The token comparison is constant-time.
+// credential; the static web-console shell under /ui/ is likewise exempt
+// (uiAuthExempt) because a browser cannot header a navigation — every data read
+// and action it makes still goes through the gated /v1 API. The token comparison
+// is constant-time.
 func (s *Server) auth(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s.token == "" || probeExempt(r.URL.Path) {
+		if s.token == "" || probeExempt(r.URL.Path) || uiAuthExempt(r.URL.Path) {
 			h.ServeHTTP(w, r)
 			return
 		}

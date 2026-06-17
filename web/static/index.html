@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <title>IronClaw Console</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">▰</span>
+      <span>IronClaw <strong>Console</strong></span>
+    </div>
+    <div class="token-box">
+      <input id="token" type="password" placeholder="API bearer token (optional on loopback)"
+             autocomplete="off" spellcheck="false" />
+      <button id="connect" type="button">Connect</button>
+      <span id="status" class="status" role="status">idle</span>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Console sections">
+    <button class="tab active" data-panel="approvals" type="button">Approvals</button>
+    <button class="tab" data-panel="audit" type="button">Audit</button>
+    <button class="tab" data-panel="about" type="button">About</button>
+  </nav>
+
+  <main>
+    <section id="approvals" class="panel active" aria-label="Pending approvals">
+      <div class="panel-head">
+        <h2>Pending changes</h2>
+        <button id="refresh-approvals" class="ghost" type="button">Refresh</button>
+      </div>
+      <div id="approvals-list" class="list"><p class="muted">Not connected.</p></div>
+    </section>
+
+    <section id="audit" class="panel" aria-label="Audit log" hidden>
+      <div class="panel-head">
+        <h2>Recent audit entries</h2>
+        <button id="refresh-audit" class="ghost" type="button">Refresh</button>
+      </div>
+      <div id="audit-list" class="list"><p class="muted">Not connected.</p></div>
+    </section>
+
+    <section id="about" class="panel" aria-label="About this console" hidden>
+      <h2>About</h2>
+      <p>This is the T-220 scaffold console. The static shell is served by the
+        control-plane at <code>/ui/</code>; all data and actions flow through the
+        bearer-gated <code>/v1</code> API. The token you enter is kept only in this
+        tab's <code>sessionStorage</code> and sent as
+        <code>Authorization: Bearer</code> on each request.</p>
+      <p class="muted">Feature pages (T-221+) extend this by adding a file under
+        <code>web/static/</code> and a read-model endpoint under
+        <code>internal/host/api/</code>. No build step.</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
