@@ -334,3 +334,74 @@ that separate principal; this is bounded by deny-by-default per-group policy,
 end-to-end audit correlation, the response-redaction backstop, and a broker and
 sandbox that are otherwise exactly as specified — so it introduces no boundary
 crossing beyond the injector principal the design intentionally adds.
+
+## 12. Skills / extension system (T-227)
+
+A **skill** is a host-side, gateway-gated *capability bundle* — it declares the
+persona text, the already-compiled tools, the egress hosts, and the read-only
+assets an agent group should be granted. It is **data, not code**: a skill never
+ships a script, interpreter, or post-install hook (the sealed-runtime pillar of
+§1). This is the deliberate answer to the peers' extensibility (openclaw's
+`SKILL.md` + ClawHub auto-install, nanoclaw's branch-copy) without reintroducing
+either half of the `open + auto-install` vector those ecosystems were exploited
+through. Design: `.agents/spikes/skills-system.md`.
+
+### The skills boundary
+
+- **Install is a gateway ChangeRequest, never a sandbox action.** The trigger is
+  the host/admin CLI (`ironctl skill add`, T-227e), not a sandbox tool. The host
+  fetches + verifies + validates the manifest, then synthesizes **one**
+  ChangeRequest bundling the declared grants (T-227c). The change rides the
+  existing verifier chain and the `AlwaysRequireHuman` floor exactly like any
+  other capability change — never auto-approved. Even a future sandbox-side
+  `request_skill` tool could only *emit* such a ChangeRequest: the agent may ask,
+  only a human may grant (the `create_agent`/RFC-0004 posture, B3).
+- **Apply touches config only.** On approval the change updates registry / egress
+  allowlist / mount allowlist — it never writes the read-only rootfs or adds an
+  executable. The install payload is structurally incapable of carrying a
+  command, script, or rootfs path (enforced + tested in T-227c).
+- **Assets are read-only data.** A skill's bundled files mount at
+  `/skills/<name>` with `nosuid,nodev,noexec` (T-227d); they are read, never
+  executed.
+
+### Trust model for third-party skills
+
+Third-party skill content is **untrusted by default** — the same posture as an
+inbound chat message or an egress response (§1):
+
+- **Curated host source, not an open marketplace.** Skills resolve only from a
+  host-configured source (a pinned ref / operator-controlled registry), never an
+  agent-supplied URL (T-227b). `open + auto-install` is the vector; IronClaw keeps
+  neither half.
+- **Signature verification before display.** A skill whose signature does not
+  verify against the configured trust root is refused at fetch time — it never
+  reaches the approval step (T-227b, minisign/ed25519, fail-closed).
+- **Manifest validation fails closed.** Tools must be a subset of the compiled
+  sandbox registry; egress entries must be bare hostnames (no wildcards); assets
+  must be relative in-bundle paths. Any violation rejects the manifest before a
+  ChangeRequest exists (T-227a).
+- **Every grant is explicit and human-approved.** Because a skill cannot run code,
+  its only damage surface is the capabilities it requests — and each one is named
+  in the manifest and shown to the approver in the change diff. A trojaned skill
+  that quietly asks for `egress: evil.example.com` is visible and rejected, not
+  discovered post-breach.
+
+### Residual risk
+
+The worst a hostile third-party skill can do is **request** privileges — which a
+human sees in the diff and denies — and it can never execute code or self-install.
+An approved-but-malicious skill is bounded by exactly the runtime controls a
+hand-configured agent already has: `network=none`, read-only rootfs, dropped caps,
+broker-mediated + audited egress, and read-only assets. A skill therefore adds **no
+new boundary crossing** beyond the (already-modeled) capability grants in §6/§7;
+it only makes granting them a reviewable, signed, bundled operation.
+
+**Threat-model review sign-off:** reviewed and approved by the maintainer (sole
+CODEOWNER, `@ToPmit26`) on 2026-06-17, via the BUILD decision approving the
+host-side, gateway-gated skills system (`.agents/spikes/skills-system.md`,
+approved by the maintainer / needs-human on 2026-06-17) and explicit maintainer
+authorization to record this sign-off. Residual risk accepted: a skill can
+*request* capability grants, all of which are signed, validated, shown in the
+change diff, and held for human approval; an approved skill runs under the
+unchanged sandbox controls (§1, §7) and introduces no new boundary crossing — it
+cannot execute code or self-install.
