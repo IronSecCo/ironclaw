@@ -445,6 +445,29 @@ func registerChannelAdapters(reg *channels.Registry, logger *obs.Logger) {
 		}
 		logger.Info("channel adapter registered", "adapter", s.name)
 	}
+
+	// Teams (Incoming Webhook), Signal (signal-cli REST bridge), and iMessage
+	// (macOS Messages bridge) take richer config than a single bot token, so they
+	// register explicitly (T-232). Each is env-gated and skipped when unconfigured;
+	// none affects the daemon's boot when unset.
+	reqExtra := func(name string, ok bool, make func() channels.Adapter) {
+		if !ok {
+			return
+		}
+		if err := reg.Register(make()); err != nil {
+			logger.Error("register channel adapter", "adapter", name, "error", err)
+			return
+		}
+		logger.Info("channel adapter registered", "adapter", name)
+	}
+	teamsURL := os.Getenv("IRONCLAW_TEAMS_WEBHOOK_URL")
+	reqExtra("teams", teamsURL != "", func() channels.Adapter { return channels.NewTeamsAdapter("teams", teamsURL) })
+	signalURL := os.Getenv("IRONCLAW_SIGNAL_CLI_URL")
+	reqExtra("signal", signalURL != "", func() channels.Adapter {
+		return channels.NewSignalAdapter("signal", signalURL, os.Getenv("IRONCLAW_SIGNAL_NUMBER"))
+	})
+	reqExtra("imessage", runtime.GOOS == "darwin" && os.Getenv("IRONCLAW_IMESSAGE_ENABLE") == "1",
+		func() channels.Adapter { return channels.NewIMessageAdapter("imessage") })
 }
 
 // defaultStateDir returns a per-user state directory under the OS state/cache
