@@ -228,8 +228,11 @@ go build -o /usr/local/bin/ironclaw-controlplane ./cmd/controlplane
 go build -o /usr/local/bin/ironctl               ./cmd/ironctl
 ```
 
-For a guided host install (containerd + runsc + Tailscale + a systemd unit), run
-[`deploy/install.sh`](deploy/install.sh).
+For a full system install — build and install the binaries, provision `/etc/ironclaw`
+and `/var/lib/ironclaw`, and enable the service (systemd on Linux, launchd on macOS) —
+run [`sudo deploy/install.sh`](deploy/install.sh). It needs root to write under `/etc`
+and `/var/lib`. The external runtime dependencies it relies on (containerd + gVisor and
+Tailscale) are set up separately — see [`deploy/README.md`](deploy/README.md).
 
 ## Quickstart
 

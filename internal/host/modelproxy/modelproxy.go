@@ -22,6 +22,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -240,6 +241,14 @@ func (p *Proxy) Serve(ctx context.Context, socketPath string) error {
 		return errors.New("host/modelproxy: empty socket path")
 	}
 	_ = os.Remove(socketPath)
+	// Ensure the socket's parent dir exists before binding. In production the
+	// installer/systemd provisions it; in --dev it usually does not, so create it
+	// here (0700) rather than failing the whole control-plane with a bind error.
+	if dir := filepath.Dir(socketPath); dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return err
+		}
+	}
 	ln, err := net.Listen("unix", socketPath)
 	if err != nil {
 		return err

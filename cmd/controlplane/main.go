@@ -30,6 +30,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -56,7 +57,7 @@ import (
 func main() {
 	apiAddr := flag.String("api-addr", "127.0.0.1:8787",
 		"control-plane API listen address (also serves /metrics) — set to the Tailscale (tailnet) IP in production so there is no public port")
-	socket := flag.String("model-proxy-socket", "/run/ironclaw/modelproxy.sock",
+	socket := flag.String("model-proxy-socket", defaultModelProxySocket(),
 		"unix socket the model proxy listens on (bound into each sandbox)")
 	stateDir := flag.String("state-dir", defaultStateDir(),
 		"directory for durable control-plane state (gateway change store, audit log, per-session queues, keys)")
@@ -453,6 +454,23 @@ func defaultStateDir() string {
 		return filepath.Join(d, "ironclaw", "state")
 	}
 	return filepath.Join(os.TempDir(), "ironclaw-state")
+}
+
+// defaultModelProxySocket picks the host model-proxy unix-socket path. On Linux the
+// daemon runs under systemd with RuntimeDirectory=ironclaw, so /run/ironclaw is the
+// natural home (and matches the in-container mount target). Off-Linux (macOS
+// development — there is no creatable /run at the SIP-protected volume root) it
+// falls back to a user-writable cache dir so `--dev` runs without root. Production
+// passes --model-proxy-socket explicitly (deploy/install.sh does). Mirrors the
+// sandbox's defaultDirs (cmd/sandbox).
+func defaultModelProxySocket() string {
+	if runtime.GOOS == "linux" {
+		return "/run/ironclaw/modelproxy.sock"
+	}
+	if d, err := os.UserCacheDir(); err == nil {
+		return filepath.Join(d, "ironclaw", "run", "modelproxy.sock")
+	}
+	return filepath.Join(os.TempDir(), "ironclaw", "modelproxy.sock")
 }
 
 // seedDev inserts a minimal owner, agent group, and DM messaging-group wiring so a

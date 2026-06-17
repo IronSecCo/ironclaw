@@ -13,7 +13,7 @@
 # Tunables via environment:
 #   IRONCLAW_API_ADDR            API bind address      (default: tailnet IP:8787, else 127.0.0.1:8787)
 #   IRONCLAW_STATE_DIR           state directory       (default: /var/lib/ironclaw)
-#   IRONCLAW_MODEL_PROXY_SOCKET  model-proxy socket    (default: /run/ironclaw/modelproxy.sock)
+#   IRONCLAW_MODEL_PROXY_SOCKET  model-proxy socket    (default: /run/ironclaw on Linux, /var/run/ironclaw on macOS)
 #   IRONCLAW_BUNDLE_ROOT         OCI bundle root       (default: $STATE_DIR/bundles)
 #   IRONCLAW_SANDBOX_IMAGE       sandbox image ref     (default: ironclaw-sandbox:latest)
 #   ANTHROPIC_API_KEY            host model credential (left blank if unset)
@@ -30,12 +30,25 @@ CONFIG_DIR="/etc/ironclaw"
 ENV_FILE="${CONFIG_DIR}/ironclaw.env"
 
 STATE_DIR="${IRONCLAW_STATE_DIR:-/var/lib/ironclaw}"
-MODEL_PROXY_SOCKET="${IRONCLAW_MODEL_PROXY_SOCKET:-/run/ironclaw/modelproxy.sock}"
+# /run is Linux-only; on macOS the (SIP) volume root is read-only, so /run cannot be
+# created even as root. Default the runtime socket under /var/run there instead. On
+# Linux /run/ironclaw matches the systemd unit's RuntimeDirectory=ironclaw.
+case "${OS}" in
+  Darwin) MODEL_PROXY_SOCKET="${IRONCLAW_MODEL_PROXY_SOCKET:-/var/run/ironclaw/modelproxy.sock}" ;;
+  *)      MODEL_PROXY_SOCKET="${IRONCLAW_MODEL_PROXY_SOCKET:-/run/ironclaw/modelproxy.sock}" ;;
+esac
 BUNDLE_ROOT="${IRONCLAW_BUNDLE_ROOT:-${STATE_DIR}/bundles}"
 SANDBOX_IMAGE="${IRONCLAW_SANDBOX_IMAGE:-ironclaw-sandbox:latest}"
 
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+# Provisioning writes to /etc and /var/lib and installs a system service, so this
+# installer must run as root. Fail fast with a clear message instead of dying
+# half-way with a raw "mkdir: Permission denied" after the binaries are already in.
+if [ "$(id -u)" -ne 0 ]; then
+  die "deploy/install.sh must run as root (it provisions ${CONFIG_DIR} and ${STATE_DIR} and installs a system service). Re-run: sudo deploy/install.sh"
+fi
 
 # ---------------------------------------------------------------------------
 # Pick an API bind address: prefer the tailnet IP so the API is mesh-only.
