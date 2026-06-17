@@ -231,15 +231,18 @@ A finding **is not** a vulnerability (so please don't file it as one) if it is:
 
 Intentional non-goals of the sealed / `network=none` design (do not file these as
 gaps): in-sandbox web/browser access, package installation / self-modification, and
-a general credential vault for arbitrary APIs. (Multiple model-provider backends
-were previously listed here; they are now supported under host governance — see
-§10.)
+a credential vault **built into the egress broker / trusted core** (the broker is
+never a secret sink — B4-E). Request-time credential injection via a *separate*
+host-side principal behind the broker — the vault-behind-broker integration — is now
+supported under host governance (see §11); building injection *into* the broker
+stays the non-goal. (Multiple model-provider backends were previously listed here
+too; they are now supported under host governance — see §10.)
 
-Documented future hardening: per-host egress rate caps and response secret
-redaction for the egress broker (the model-proxy hardening pattern, T-107, applied
-to egress); a Kata isolation backend behind the same `Isolator` interface;
-automated (non-human) gateway approval for low-risk change kinds, with the
-mandatory-human floor staying the default.
+Documented future hardening: per-host egress rate caps; a Kata isolation backend
+behind the same `Isolator` interface; automated (non-human) gateway approval for
+low-risk change kinds, with the mandatory-human floor staying the default.
+(Response-secret redaction for the egress broker — the T-107 model-proxy pattern
+applied to egress — is now implemented for the vault path; see §11.)
 
 ## 10. Multi-provider model egress (T-233)
 
@@ -278,3 +281,56 @@ and one host-held credential. This is bounded exactly as the egress broker's ris
 (§7) is — deny-by-default enablement, full per-request audit, host-only credentials,
 and a sandbox that remains network-less — so it introduces no boundary crossing that
 the single-provider proxy did not already define.
+
+## 11. Credential vault behind the broker (T-260)
+
+Long-running agents that call real third-party APIs need credentials for them.
+IronClaw supports **request-time credential injection** — an agent references a
+credential by LOGICAL NAME (`vault://<cred>/<path>`) and never holds a key — without
+weakening either of its two most sensitive components. The design is *integrate, not
+build-into-the-broker*: the secret-holding **injector is a separate host-side
+principal the broker forwards TO**, never the broker itself (see the
+[credential-vault spike](../.agents/spikes/credential-vault.md) §4/§6.1).
+
+- **The secret never enters the sandbox.** The agent addresses a credential by name
+  and receives only the upstream response; no plaintext credential is ever in the
+  sandbox's address space — the §1 "host secret" guarantee holds for vaulted
+  credentials exactly as for the model key.
+- **The secret never enters the egress broker — B4-E is unchanged.** The broker
+  forwards a `vault://` request's own bytes, by name, to the configured host-local
+  injector endpoint, injecting nothing (`internal/host/egress/vault.go` strips any
+  client `Authorization` and adds only the logical credential *name*). The injector
+  — a distinct OS principal — is the sole holder of the credential and the only
+  component that attaches it, host-side. The broker's specification and blast radius
+  (§7) are untouched: it is still "not a credential vault".
+- **Deny by default, gateway-gated policy.** "Which agent group may use which
+  credential against which host" is host-side config (`internal/host/registry`
+  `VaultPolicyStore`), read-only to the sandbox and mutated only through the
+  gateway's human-approval path — a policy change is a capability change like any
+  other. An unlisted group/credential/host is refused, and the injector endpoint is
+  itself deny-by-default on the broker allowlist.
+- **Audited end-to-end.** A host-generated correlation id
+  (`internal/host/egress/correlate.go`) joins the broker's per-request audit to the
+  injector's injection/policy audit, so a single credential use is traceable across
+  both principals (the §5 Repudiation control, extended). The id is host-authored: a
+  sandbox-supplied value is overwritten, so audit correlation cannot be forged.
+- **Redaction backstop.** Even though the broker holds no credential, configured
+  secrets are scrubbed from responses on the broker→sandbox hop
+  (`internal/host/egress/redact.go`, the T-107 model-proxy pattern) so an injected
+  credential can never echo back if an upstream reflects it.
+
+Building a credential vault *into* the egress broker or the trusted core — making
+the broker a secret sink — remains a non-goal (§9). The value here comes precisely
+from keeping injection in a separate, swappable principal: IronClaw's minimal
+in-tree injector by default, or an operator-vetted external vault (e.g. OneCLI)
+behind the same broker→injector contract.
+
+**Threat-model review sign-off:** reviewed and approved by the maintainer (sole
+CODEOWNER) on 2026-06-17, via the needs-human decision to BUILD the vault-behind-
+broker integration (credential-vault spike, approved 2026-06-17) and the spike-2
+resolution closing its open questions (T-260a). Residual risk accepted: a vaulted
+call adds one host-local destination (the injector) and concentrates credentials in
+that separate principal; this is bounded by deny-by-default per-group policy,
+end-to-end audit correlation, the response-redaction backstop, and a broker and
+sandbox that are otherwise exactly as specified — so it introduces no boundary
+crossing beyond the injector principal the design intentionally adds.
