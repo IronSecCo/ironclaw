@@ -23,14 +23,14 @@ jobs:
       contents: read
       security-events: write # required to upload CodeQL results
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: "1.23"
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: go
 
@@ -40,6 +40,6 @@ jobs:
         run: CGO_ENABLED=1 go build ./...
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:go"

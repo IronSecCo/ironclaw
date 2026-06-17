@@ -40,7 +40,7 @@ jobs:
       version: ${{ steps.v.outputs.version }}
       exists: ${{ steps.v.outputs.exists }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -93,8 +93,8 @@ jobs:
           - { goos: windows, goarch: amd64, runner: windows-latest, name: windows_amd64 }
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
           go-version: "1.23"
 
@@ -153,7 +153,7 @@ jobs:
           fi
           ls -l dist/out
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.name }}
           path: dist/out/*
@@ -174,9 +174,9 @@ jobs:
       id-token: write # keyless cosign + provenance signing (Sigstore OIDC)
       attestations: write # actions/attest-build-provenance
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -259,6 +259,6 @@ jobs:
           echo "Signed SHA256SUMS keylessly (cert + signature attached to the release)."
 
       - name: Attest build provenance for the release binaries
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: "dist/*.tar.gz, dist/*.zip"

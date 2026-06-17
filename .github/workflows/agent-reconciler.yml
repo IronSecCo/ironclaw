@@ -40,7 +40,7 @@ jobs:
     if: github.event_name != 'issues'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Close any open agent:done issues
         env:
           GH_TOKEN: ${{ github.token }}
