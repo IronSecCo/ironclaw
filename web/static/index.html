@@ -26,6 +26,7 @@
     <button class="tab" data-panel="sessions" type="button">Sessions</button>
     <button class="tab" data-panel="channels" type="button">Channels</button>
     <button class="tab" data-panel="setup" type="button">Setup</button>
+    <button class="tab" data-panel="chat" type="button">Chat</button>
     <button class="tab" data-panel="audit" type="button">Audit</button>
     <button class="tab" data-panel="about" type="button">About</button>
   </nav>
@@ -116,6 +117,22 @@
       </details>
     </section>
 
+    <section id="chat" class="panel" aria-label="Chat playground" hidden>
+      <div class="panel-head">
+        <h2>Chat playground</h2>
+        <span class="muted">Messages route through the normal engage / delivery path to a chosen agent group.</span>
+      </div>
+      <div class="form-row">
+        <input id="chat-ag" placeholder="agent group id (e.g. dev-agent)" />
+        <span id="chat-status" class="status">pick an agent group</span>
+      </div>
+      <div id="chat-transcript" class="list"></div>
+      <div class="form-row">
+        <input id="chat-input" placeholder="message…" />
+        <button id="chat-send" type="button">Send</button>
+      </div>
+    </section>
+
     <section id="setup" class="panel" aria-label="Setup and config" hidden>
       <h2>Setup &amp; config</h2>
 
@@ -166,5 +183,6 @@
   <script src="audit.js"></script>
   <script src="channels.js"></script>
   <script src="setup.js"></script>
+  <script src="chat.js"></script>
 </body>
 </html>

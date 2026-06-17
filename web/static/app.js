@@ -89,6 +89,7 @@ function showPanel(name) {
   if (name === "sessions") Sessions.load();
   if (name === "channels") Channels.show();
   if (name === "setup") Setup.show();
+  if (name === "chat") Chat.show();
 }
 
 function init() {

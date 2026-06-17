@@ -126,6 +126,25 @@ h2 { font-size: 16px; margin: 0 0 4px; }
 details { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; margin: 10px 0; }
 details > summary { cursor: pointer; font-weight: 600; }
 
+.chat-msg { margin: 8px 0; max-width: 90%; }
+.chat-you { margin-left: auto; text-align: right; }
+.chat-meta { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.chat-body {
+  display: inline-block;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+}
+.chat-you .chat-body { background: var(--surface-2); border-color: var(--accent); }
+.chat-error .chat-body { border-color: var(--danger); color: var(--danger); }
+#chat-transcript { max-height: 52vh; overflow-y: auto; }
+
 .meta {
   display: grid;
   grid-template-columns: max-content 1fr;

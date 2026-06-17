@@ -48,6 +48,7 @@ import (
 	"github.com/nivardsec/ironclaw/internal/host/questions"
 	"github.com/nivardsec/ironclaw/internal/host/queue"
 	"github.com/nivardsec/ironclaw/internal/host/registry"
+	"github.com/nivardsec/ironclaw/internal/host/router"
 	"github.com/nivardsec/ironclaw/internal/host/session"
 	"github.com/nivardsec/ironclaw/internal/host/sweep"
 	"github.com/nivardsec/ironclaw/internal/obs"
@@ -266,6 +267,20 @@ func main() {
 	// platform adapters register when their bot token is configured.
 	channelReg := channels.NewRegistry()
 	registerChannelAdapters(channelReg, logger)
+
+	// Chat playground (T-226): register an in-process webchat adapter so the
+	// delivery loop routes an agent's "webchat" replies back to it for the browser
+	// to poll, and instantiate the inbound Router (registry + the SessionManager's
+	// inbound-writer factory + waker) so the API can feed a browser message into
+	// the normal engage/route/deliver path. Additive — no existing adapter calls
+	// the router, so the inbound posture is unchanged for them.
+	webchat := channels.NewWebchatAdapter("webchat")
+	if err := channelReg.Register(webchat); err != nil {
+		logger.Error("register webchat adapter", "error", err)
+	}
+	chatRouter := router.New(reg, manager.InboundWriter, manager)
+	server = server.WithChat(chatRouter, webchat)
+
 	pendingQuestions := questions.NewStore()
 	deliverer := delivery.New(channelReg, gw, reg, manager.OutboundReader).
 		WithInboundWriter(manager.InboundWriter).

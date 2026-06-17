@@ -18,8 +18,10 @@ import (
 	"time"
 
 	"github.com/nivardsec/ironclaw/internal/contract"
+	"github.com/nivardsec/ironclaw/internal/host/channels"
 	"github.com/nivardsec/ironclaw/internal/host/gateway"
 	"github.com/nivardsec/ironclaw/internal/host/registry"
+	"github.com/nivardsec/ironclaw/internal/host/router"
 )
 
 // HistoryProvider returns the applied/rejected change history. A FileStore
@@ -31,13 +33,15 @@ type HistoryProvider interface {
 // Server is the control-plane HTTP server. It drives the gateway and, when a
 // registry is attached (WithRegistry), the registry admin endpoints.
 type Server struct {
-	gw        *gateway.Gateway
-	history   HistoryProvider
-	auditPath string
-	token     string
-	reg       registry.Registry
-	terminate SessionTerminator // host action behind POST /v1/ui/sessions/{id}/terminate (T-222)
-	mux       *http.ServeMux
+	gw         *gateway.Gateway
+	history    HistoryProvider
+	auditPath  string
+	token      string
+	reg        registry.Registry
+	terminate  SessionTerminator        // host action behind POST /v1/ui/sessions/{id}/terminate (T-222)
+	chatRouter *router.Router           // inbound router for the chat playground (T-226)
+	webchat    *channels.WebchatAdapter // outbound buffer for the chat playground (T-226)
+	mux        *http.ServeMux
 
 	// Hardening (all opt-in; see hardening.go). Zero values disable the feature.
 	limiter        *rateLimiter
@@ -145,6 +149,7 @@ func (s *Server) routes() {
 	s.uiAuditRoutes()     // audit read-model at GET /v1/ui/audit (T-224; see ui_audit.go)
 	s.uiChannelsRoutes()  // channels/wiring read-models at /v1/ui/channels|destinations (T-223; see ui_channels.go)
 	s.uiConfigRoutes()    // setup wizard + config editor at /v1/ui/onboard|config (T-225; see ui_config.go)
+	s.uiChatRoutes()      // chat playground at /v1/ui/chat (T-226; see ui_chat.go)
 }
 
 // auth wraps h with optional bearer-token authentication. With no token set, the
