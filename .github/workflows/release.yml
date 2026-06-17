@@ -78,9 +78,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macOS Intel — native clang on the last Intel-hosted runner. If GitHub
-          # retires macos-13, build this on macos-14 with `CC="clang -arch x86_64"`.
-          - { goos: darwin, goarch: amd64, runner: macos-13, name: darwin_amd64 }
+          # macOS Intel — cross-compiled on Apple Silicon. GitHub's Intel-hosted
+          # runners (macos-13) are scarce and deprecated; the macOS SDK is universal,
+          # so the vendored SQLCipher C amalgamation builds for x86_64 right here via
+          # CGO_*FLAGS=-arch x86_64 (verified to produce a valid x86_64 Mach-O).
+          - { goos: darwin, goarch: amd64, runner: macos-14, name: darwin_amd64, cgoarch: x86_64 }
           # macOS Apple Silicon — native clang.
           - { goos: darwin, goarch: arm64, runner: macos-14, name: darwin_arm64 }
           # Linux x86_64 — native gcc.
@@ -111,10 +113,14 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CC_OVERRIDE: ${{ matrix.cc }}
+          CGO_ARCH: ${{ matrix.cgoarch }}
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           set -euo pipefail
+          # Linux arm64 uses a GNU cross-gcc (matrix.cc); macOS Intel cross-compiles
+          # with clang via -arch on the universal SDK (matrix.cgoarch).
           [ -n "${CC_OVERRIDE}" ] && export CC="${CC_OVERRIDE}"
+          [ -n "${CGO_ARCH}" ] && { export CGO_CFLAGS="-arch ${CGO_ARCH}"; export CGO_LDFLAGS="-arch ${CGO_ARCH}"; }
           ext=""
           [ "${GOOS}" = "windows" ] && ext=".exe"
           ldflags="-s -w -X github.com/nivardsec/ironclaw/internal/version.Version=${TAG}"
