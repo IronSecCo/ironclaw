@@ -25,6 +25,7 @@
     <button class="tab active" data-panel="approvals" type="button">Approvals</button>
     <button class="tab" data-panel="sessions" type="button">Sessions</button>
     <button class="tab" data-panel="channels" type="button">Channels</button>
+    <button class="tab" data-panel="setup" type="button">Setup</button>
     <button class="tab" data-panel="audit" type="button">Audit</button>
     <button class="tab" data-panel="about" type="button">About</button>
   </nav>
@@ -115,6 +116,29 @@
       </details>
     </section>
 
+    <section id="setup" class="panel" aria-label="Setup and config" hidden>
+      <h2>Setup &amp; config</h2>
+
+      <details open>
+        <summary>First-run wizard (mirrors <code>ironctl onboard</code>)</summary>
+        <div class="panel-head">
+          <span class="muted">Read-only checklist of the host onboarding steps (dry-run; no token is minted or shown).</span>
+          <button id="setup-onboard-refresh" class="ghost" type="button">Refresh</button>
+        </div>
+        <div id="setup-onboard" class="list"><p class="muted">Not connected.</p></div>
+      </details>
+
+      <details>
+        <summary>Config editor</summary>
+        <div class="form-row">
+          <input id="setup-ag" placeholder="agent group id" />
+          <button id="setup-ag-load" class="ghost" type="button">Load</button>
+        </div>
+        <div id="setup-config-view" class="list"></div>
+        <div id="setup-change-form"></div>
+      </details>
+    </section>
+
     <section id="audit" class="panel" aria-label="Audit log" hidden>
       <div class="panel-head">
         <h2>Recent audit entries</h2>
@@ -141,5 +165,6 @@
   <script src="sessions.js"></script>
   <script src="audit.js"></script>
   <script src="channels.js"></script>
+  <script src="setup.js"></script>
 </body>
 </html>

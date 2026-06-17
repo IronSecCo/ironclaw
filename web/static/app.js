@@ -88,6 +88,7 @@ function showPanel(name) {
   if (name === "approvals") loadApprovals();
   if (name === "sessions") Sessions.load();
   if (name === "channels") Channels.show();
+  if (name === "setup") Setup.show();
 }
 
 function init() {
