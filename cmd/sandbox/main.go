@@ -64,6 +64,7 @@ func run() error {
 		workspace    = flag.String("workspace", ws, "writable workspace directory exposed to file tools")
 		heartbeat    = flag.String("heartbeat", filepath.Join(ws, ".heartbeat"), "heartbeat file touched every poll")
 		modelSocket  = flag.String("model-socket", filepath.Join(qd, "modelproxy.sock"), "host model-proxy unix socket")
+		egressSocket = flag.String("egress-socket", "", "host egress-broker unix socket; when set, enables the http_fetch tool for operator-approved external APIs (empty = no egress, sandbox reaches only the model proxy)")
 		modelHost    = flag.String("model-host", "", "upstream model host the proxy allowlists (defaults to api.anthropic.com)")
 		model        = flag.String("model", "", "model id override (defaults to the provider's default)")
 		showVersion  = flag.Bool("version", false, "print version and exit")
@@ -94,7 +95,7 @@ func run() error {
 	}
 	defer inbound.Close()
 
-	registry, err := buildTools(*workspace, inbound)
+	registry, err := buildTools(*workspace, inbound, *egressSocket)
 	if err != nil {
 		return err
 	}
@@ -134,7 +135,12 @@ func run() error {
 // host delivery enforces. msgCtx (the read-only inbound view) lets the messaging
 // tools resolve allowed destinations and the current-thread routing. There are
 // deliberately no package-install, MCP, or self-edit tools.
-func buildTools(workspaceDir string, msgCtx tools.MessageContext) (*tools.Registry, error) {
+//
+// egressSocket, when non-empty, enables the http_fetch tool over the host egress
+// broker so the agent can reach operator-approved external APIs (T-111). Empty
+// (the default) registers no egress tool, leaving the sandbox reachable only to
+// the model proxy.
+func buildTools(workspaceDir string, msgCtx tools.MessageContext, egressSocket string) (*tools.Registry, error) {
 	registry := tools.NewRegistry()
 
 	ws, err := tools.NewWorkspace(workspaceDir)
@@ -170,6 +176,14 @@ func buildTools(workspaceDir string, msgCtx tools.MessageContext) (*tools.Regist
 	for _, t := range tools.TaskManagementTools() {
 		if err := registry.Register(t); err != nil {
 			return nil, fmt.Errorf("register %s: %w", t.Name(), err)
+		}
+	}
+	// Egress is opt-in: only when the host bound an egress-broker socket do we give
+	// the agent the http_fetch tool to reach operator-approved external APIs. With
+	// no socket the sandbox stays reachable only by the model proxy (T-111).
+	if egressSocket != "" {
+		if err := registry.Register(tools.NewHTTPFetchTool(egressSocket)); err != nil {
+			return nil, fmt.Errorf("register %s: %w", tools.HTTPFetchToolName, err)
 		}
 	}
 	return registry, nil

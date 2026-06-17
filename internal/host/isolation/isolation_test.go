@@ -114,6 +114,52 @@ func TestBuildOCISpecMounts(t *testing.T) {
 	}
 }
 
+// TestBuildOCISpecEgressSocket asserts the optional egress-broker socket (T-111)
+// is bound only when EgressSocket is set, that the default (HardenedSpec) stays
+// sealed to the model proxy alone, and that network=none holds either way.
+func TestBuildOCISpecEgressSocket(t *testing.T) {
+	// Default (HardenedSpec): no egress socket mount.
+	sealed, err := BuildOCISpec(hardenedTestSpec())
+	if err != nil {
+		t.Fatalf("BuildOCISpec: %v", err)
+	}
+	for _, m := range sealed.Mounts {
+		if m.Destination == containerEgressSock {
+			t.Fatal("egress socket must NOT be bound when EgressSocket is empty (sealed default)")
+		}
+	}
+
+	// Opted in: the egress socket is bound rw at the fixed container path.
+	spec := hardenedTestSpec()
+	spec.EgressSocket = "/run/ironclaw/host/egress.sock"
+	withEgress, err := BuildOCISpec(spec)
+	if err != nil {
+		t.Fatalf("BuildOCISpec (egress): %v", err)
+	}
+	var egress *OCIMount
+	for i := range withEgress.Mounts {
+		if withEgress.Mounts[i].Destination == containerEgressSock {
+			egress = &withEgress.Mounts[i]
+		}
+	}
+	if egress == nil {
+		t.Fatal("egress socket mount missing when EgressSocket is set")
+	}
+	if egress.Source != "/run/ironclaw/host/egress.sock" {
+		t.Fatalf("egress source = %q", egress.Source)
+	}
+	if !hasOption(egress.Options, "rw") {
+		t.Fatalf("egress socket must be rw, options=%v", egress.Options)
+	}
+	// network=none must still hold with egress enabled — egress is a host-mediated
+	// socket, not a NIC.
+	for _, ns := range withEgress.Linux.Namespaces {
+		if ns.Type == "network" {
+			t.Fatal("network namespace must remain omitted even with egress enabled")
+		}
+	}
+}
+
 func TestBuildOCISpecRejectsWeakKnobs(t *testing.T) {
 	tests := []struct {
 		name   string

@@ -120,7 +120,12 @@ const (
 	containerInboundPath    = "/queue/inbound.db"
 	containerOutboundPath   = "/queue/outbound.db"
 	containerModelProxySock = "/run/ironclaw/modelproxy.sock"
-	containerWorkspace      = "/workspace"
+	// containerEgressSock is the OPTIONAL second egress unix socket (the egress
+	// broker, T-111). It is bound only when SandboxSpec.EgressSocket is set; when
+	// empty the sandbox reaches nothing but the model proxy, preserving the fully
+	// sealed default. The sandbox stays network=none either way.
+	containerEgressSock = "/run/ironclaw/egress.sock"
+	containerWorkspace  = "/workspace"
 	// containerMemory is the per-group DURABLE memory mount (rw). Persists across
 	// sessions of the same agent group; omitted when SandboxSpec.MemoryPath is empty.
 	containerMemory = "/memory"
@@ -250,13 +255,26 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 			Options:     []string{"bind", "rw"},
 		},
 		// Model-proxy unix socket: bound in read-write (a socket needs write to
-		// connect/send). This is the sandbox's ONLY egress, paired with network=none.
+		// connect/send). This is the sandbox's primary egress, paired with network=none.
 		{
 			Destination: containerModelProxySock,
 			Type:        "bind",
 			Source:      spec.ModelProxySocket,
 			Options:     []string{"bind", "rw"},
 		},
+	}
+
+	// Optional egress-broker unix socket (T-111). Bound only when an EgressSocket is
+	// configured; otherwise the sandbox reaches nothing but the model proxy. Like the
+	// model-proxy socket it is rw (a socket needs write to connect) and, being a
+	// host-mediated unix socket rather than a NIC, it keeps the sandbox network=none.
+	if spec.EgressSocket != "" {
+		mounts = append(mounts, OCIMount{
+			Destination: containerEgressSock,
+			Type:        "bind",
+			Source:      spec.EgressSocket,
+			Options:     []string{"bind", "rw"},
+		})
 	}
 
 	// Optional per-group DURABLE memory (rw) — persists across the agent group's

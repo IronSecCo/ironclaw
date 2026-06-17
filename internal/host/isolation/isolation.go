@@ -46,8 +46,16 @@ type SandboxSpec struct {
 	ReadWriteOutboundPath string
 
 	// ModelProxySocket is the host unix socket bound into the sandbox; it is the
-	// sandbox's ONLY egress path (combined with NetworkNone).
+	// sandbox's primary egress path (combined with NetworkNone).
 	ModelProxySocket string
+
+	// EgressSocket is an OPTIONAL second host unix socket — the egress broker
+	// (T-111) — bound into the sandbox at a fixed path so an agent can reach
+	// explicitly-approved EXTERNAL APIs. Empty (the default, incl. HardenedSpec)
+	// binds no egress socket, leaving the sandbox able to reach only the model
+	// proxy. Set it to opt a session into brokered egress; the sandbox stays
+	// network=none either way (egress is a host-mediated socket, not a NIC).
+	EgressSocket string
 
 	// Security knobs — all should be the hardened value in production.
 	NetworkNone    bool // network=none: no NIC inside the sandbox at all.
