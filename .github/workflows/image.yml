@@ -42,7 +42,7 @@ jobs:
       # Build the exact commit the release was cut from (workflow_run), else the ref
       # the dispatch was started on. Full history + tags so we can read the release
       # tag this commit carries.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
           fetch-depth: 0
