@@ -1,0 +1,11 @@
+{
+  "name": "ironclaw-ui-tests",
+  "private": true,
+  "description": "Playwright browser tests for the IronClaw web console. OPTIONAL dev harness — NOT part of the Go module, the published binaries, or the embedded console (which stays toolchain-free). Run against a control-plane serving /ui/.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  }
+}

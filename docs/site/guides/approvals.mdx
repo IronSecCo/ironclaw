@@ -1,0 +1,61 @@
+---
+title: "Approving changes"
+description: "The full submit → review → approve/reject → audit loop at the gateway."
+---
+
+Every capability change is _held_ at the [gateway](/site/concepts/gateway) until a human decides. This
+guide covers the operator side of that loop.
+
+## Submit a change
+
+Anyone with access (or an agent, via its `request_capability_change` tool) submits a change. It is parked
+immediately — never applied on submit:
+
+```sh
+ironctl change submit --kind enabled_tools --group support --by slack:alice
+```
+
+The CLI returns a **change id**.
+
+## Review what's pending
+
+```sh
+ironctl change pending
+```
+
+Each pending entry shows the **exact** change — the kind, the agent group, who requested it, and the full
+before/after — so you review the real action, not a summary.
+
+## Approve or reject
+
+```sh
+ironctl change approve <change-id> --by slack:admin
+# or
+ironctl change reject  <change-id> --by slack:admin
+```
+
+<Warning>
+Approve only what you can read in full. The gateway deliberately surfaces the complete change; a friendly
+description is never a substitute for the actual before/after.
+</Warning>
+
+On approval the applier materializes the change (and, for `create_agent`, writes the new group into the
+registry). The transaction can't half-happen.
+
+## Audit everything
+
+The append-only audit log records every submit, verdict, decision, and apply:
+
+```sh
+ironctl change history          # applied + rejected changes
+ironctl audit --limit 50        # the raw append-only trail
+```
+
+Because the audit log is append-only and the gateway transaction — not any config file — is the source of
+truth, you always have a complete record of who changed what and when.
+
+## Who can decide
+
+Decisions are attributed to the deciding user (`--by channel:handle`) and gated by registry roles. Grant
+roles with [`ironctl registry role`](/site/reference/cli); see
+[Your first agent group](/site/guides/first-agent#access-and-roles).

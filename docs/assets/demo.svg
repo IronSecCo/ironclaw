@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 430" width="800" height="430" role="img"
+     aria-label="IronClaw quickstart terminal session: install the binaries, start the control-plane in dev mode on http://127.0.0.1:8787, submit a capability change that is HELD at the gateway pending human approval, then approve it.">
+  <title>IronClaw quickstart — install, run, and approve a gateway-held change</title>
+  <defs>
+    <style>
+      .mono { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 15px; }
+      .p  { fill: #56d364; }   /* prompt $        */
+      .c  { fill: #e6edf3; }   /* command text    */
+      .o  { fill: #8b949e; }   /* dim output      */
+      .b  { fill: #79c0ff; }   /* info / address  */
+      .a  { fill: #e3b341; }   /* held / awaiting */
+      .g  { fill: #56d364; }   /* success         */
+      .m  { fill: #6e7681; }   /* comment         */
+    </style>
+  </defs>
+
+  <!-- window -->
+  <rect x="4" y="4" width="792" height="422" rx="12" fill="#0d1117" stroke="#30363d" stroke-width="1.5"/>
+  <rect x="4" y="4" width="792" height="38" rx="12" fill="#161b22"/>
+  <rect x="4" y="30" width="792" height="12" fill="#161b22"/>
+  <circle cx="26" cy="23" r="6" fill="#ff5f56"/>
+  <circle cx="46" cy="23" r="6" fill="#ffbd2e"/>
+  <circle cx="66" cy="23" r="6" fill="#27c93f"/>
+  <text x="400" y="27" text-anchor="middle" class="mono o" font-size="12.5">ironclaw — quickstart</text>
+
+  <g class="mono">
+    <!-- install -->
+    <text x="24" y="78"><tspan class="p">$ </tspan><tspan class="c">curl -fsSL https://raw.githubusercontent.com/.../install.sh | sh</tspan></text>
+    <text x="24" y="102"><tspan class="g">✓ </tspan><tspan class="o">installed ironctl + ironclaw-controlplane → ~/.local/bin</tspan></text>
+
+    <!-- run the control-plane -->
+    <text x="24" y="140"><tspan class="p">$ </tspan><tspan class="c">export IRONCLAW_API_TOKEN=$(openssl rand -hex 32)</tspan></text>
+    <text x="24" y="164"><tspan class="p">$ </tspan><tspan class="c">ironclaw-controlplane --dev --api-addr 127.0.0.1:8787 &amp;</tspan></text>
+    <text x="24" y="188"><tspan class="b">▸ </tspan><tspan class="o">control-plane on </tspan><tspan class="b">http://127.0.0.1:8787</tspan><tspan class="o">  ·  dev: loopback, no gVisor</tspan></text>
+
+    <!-- submit a change -->
+    <text x="24" y="226"><tspan class="m"># submit a change — it is HELD at the gateway until a human decides</tspan></text>
+    <text x="24" y="250"><tspan class="p">$ </tspan><tspan class="c">ironctl change submit --kind persona --group default --by you</tspan></text>
+    <text x="24" y="274"><tspan class="a">⏳ </tspan><tspan class="o">change </tspan><tspan class="c">7f3a9c</tspan><tspan class="o"> submitted — </tspan><tspan class="a">HELD pending human approval</tspan></text>
+
+    <!-- approve -->
+    <text x="24" y="312"><tspan class="p">$ </tspan><tspan class="c">ironctl change approve 7f3a9c --by you</tspan></text>
+    <text x="24" y="336"><tspan class="g">✓ </tspan><tspan class="o">change </tspan><tspan class="c">7f3a9c</tspan><tspan class="g"> APPROVED</tspan><tspan class="o"> → applied (audit logged)</tspan></text>
+
+    <!-- closing line -->
+    <text x="24" y="378"><tspan class="m"># cold machine → an approval held at the gateway, in under two minutes</tspan></text>
+    <text x="24" y="402"><tspan class="p">$ </tspan><tspan class="c">_</tspan></text>
+  </g>
+</svg>

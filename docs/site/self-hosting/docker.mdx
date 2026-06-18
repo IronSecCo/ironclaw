@@ -1,0 +1,65 @@
+---
+title: "Docker Compose"
+description: "Self-host the control-plane in one command with docker compose."
+---
+
+The fastest way to self-host the control-plane. From a clone:
+
+```sh
+cp .env.example .env          # fill in ANTHROPIC_API_KEY (optional to boot)
+docker compose up -d          # builds locally on first run, or pulls the GHCR image
+docker compose logs -f controlplane   # CLAIM the admin token printed once on first run
+```
+
+This brings up the control-plane host daemon and its [gateway](/site/concepts/gateway), the admin API on
+`http://127.0.0.1:8787`, and Prometheus metrics at `/metrics`.
+
+## The admin token (claim it on first run)
+
+The admin/API token is **minted on first run and printed once** in the logs — there is **no recovery**:
+
+```
+============================================================================
+  IronClaw admin/API token MINTED (first run)
+  IRONCLAW_API_TOKEN=<64 hex chars>
+  CLAIM IT NOW. ... store it in your secrets manager and pass it back ...
+============================================================================
+```
+
+Store it in your secrets manager and pass it back to `ironctl` as `IRONCLAW_API_TOKEN`. Set
+`IRONCLAW_API_TOKEN` yourself in `.env` to manage the secret in your own vault and skip minting. Lost it?
+Stop the stack, delete `admin-api-token` from the state volume, and restart to mint a new one.
+
+## The published image
+
+The control-plane image is pushed to GitHub Container Registry on every release:
+
+```sh
+docker pull ghcr.io/nivardsec/ironclaw-controlplane:latest
+# or pin a release:
+docker pull ghcr.io/nivardsec/ironclaw-controlplane:v0.1.0
+```
+
+Set `IRONCLAW_IMAGE` in `.env` to pin a tag for compose. On a fresh clone with no released image yet,
+`docker compose up` builds the image locally from `container/controlplane.Dockerfile`.
+
+## What the compose file does
+
+- Binds the API to **host loopback only** (`127.0.0.1:8787`) — no public port. Front it with
+  [Tailscale](/site/self-hosting/production) for remote access.
+- Persists durable state (gateway change store, audit log, sealed keys, the minted token) in a named
+  volume.
+- Adds a `/healthz` healthcheck so `docker compose ps` reflects real readiness.
+
+<Warning>
+**The agent sandboxes are not compose services.** The control-plane launches them as gVisor (`runsc`)
+children with `network=none`. The compose topology deliberately does not flatten that — it never puts
+sandboxes on a network. Launching real sandboxes needs a runsc-capable host (see
+[Production](/site/self-hosting/production)); the API + gateway above do not.
+</Warning>
+
+## Configure it
+
+Every variable the control-plane reads is documented in `.env.example` and on the
+[Configuration](/site/configuration) page — model credentials, the API token, channel tokens, and
+daemon tuning.

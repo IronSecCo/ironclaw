@@ -1,0 +1,83 @@
+---
+title: "Configuration"
+description: "Every environment variable and control-plane flag, plus how state and secrets are handled."
+---
+
+The control-plane reads secrets and channel credentials from the **environment**, and takes operational
+settings as **command-line flags**. With Docker, set the variables in `.env` (copied from `.env.example`).
+
+## Environment variables
+
+### Model credentials
+
+Held host-side and injected into outbound model calls by the proxy — they never enter a sandbox. Set at
+least one.
+
+| Variable | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` | Default/primary provider (`api.anthropic.com`). |
+| `OPENAI_API_KEY` | Allowlists `api.openai.com` when present. |
+| `OPENROUTER_API_KEY` | Allowlists `openrouter.ai` when present. |
+
+### Admin API token
+
+| Variable | Purpose |
+|---|---|
+| `IRONCLAW_API_TOKEN` | Bearer token for the admin API. Required for every request except `GET /healthz` when set. With Docker it is **minted on first run** and printed once if you leave it blank. |
+
+### Channel adapters
+
+Each adapter registers only when its variable is set.
+
+| Variable | Channel |
+|---|---|
+| `SLACK_BOT_TOKEN` | Slack |
+| `DISCORD_BOT_TOKEN` | Discord |
+| `TELEGRAM_BOT_TOKEN` | Telegram |
+| `IRONCLAW_TEAMS_WEBHOOK_URL` | Microsoft Teams (Incoming Webhook) |
+| `IRONCLAW_SIGNAL_CLI_URL` | Signal (signal-cli REST bridge URL) |
+| `IRONCLAW_SIGNAL_NUMBER` | Signal sender number |
+| `IRONCLAW_IMESSAGE_ENABLE` | Set to `1` to enable iMessage on a macOS host |
+
+### Container / tooling
+
+| Variable | Purpose |
+|---|---|
+| `IRONCLAW_IMAGE` | Compose image ref to run (pin a release tag for production). |
+| `IRONCLAW_API_ADDR` | Listen address inside the container (default `0.0.0.0:8787`, mapped to host loopback). |
+| `IRONCLAW_LOG_FORMAT` | `json` (default in container) or `text`. |
+| `IRONCLAW_STATE_DIR` | Durable state directory inside the container. |
+| `IRONCLAW_DEV` | Set to `1` to seed a dev owner/agent-group (not for production). |
+| `IRONCLAW_CONFIG` | Path to the `ironctl onboard` env file (0600). |
+
+## Control-plane flags
+
+```sh
+ironclaw-controlplane [flags]
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `--api-addr` | `127.0.0.1:8787` | API + `/metrics` listen address. Bind to the tailnet IP in production. |
+| `--model-proxy-socket` | `/run/ironclaw/modelproxy.sock` (Linux) | Unix socket the model proxy listens on (bound into each sandbox). |
+| `--state-dir` | OS state/cache dir | Durable state: change store, audit log, per-session queues, keys. |
+| `--runtime` | `runsc` | OCI runtime used to launch sandboxes. |
+| `--bundle-root` | `<state-dir>/bundles` | Where per-session OCI bundles are written. |
+| `--sandbox-image` | `ironclaw-sandbox:latest` | Image reference recorded in each sandbox's OCI spec. |
+| `--sweep-interval` | `60s` | Stale-sandbox detection + due-message wake cadence. |
+| `--delivery-interval` | `2s` | Outbound delivery poll cadence. |
+| `--log-format` | `text` | `text` or `json` structured logging. |
+| `--model-proxy-rps` | `50` | Egress rate cap (req/s; `0` disables). |
+| `--model-proxy-burst` | `100` | Rate-cap burst size. |
+| `--dev` | off | Seed a dev owner/agent-group; in-memory backends, loopback, no gVisor. |
+| `--version` | — | Print version and exit. |
+
+## State & secrets
+
+- **State** lives under `--state-dir`: the durable gateway change store (survives restart), the
+  append-only JSONL audit log, and the host keystore. Back it up.
+- **Secrets are host-only.** The model key is injected into outbound calls by the host `modelproxy`; the
+  sandbox never sees it and has `network=none`. Per-session 256-bit keys are generated and held by the
+  host and handed to the sandbox via tmpfs at launch — never via an env var, never baked into the image.
+- **Mesh.** Bind `--api-addr` to the Tailscale interface and firewall the API port elsewhere. See
+  [Production](/site/self-hosting/production).

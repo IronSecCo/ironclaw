@@ -1,0 +1,77 @@
+---
+title: "ironctl CLI"
+description: "The admin CLI — a thin client of the control-plane API."
+---
+
+`ironctl` drives the control-plane API. Global `--addr` and `--token` may appear (in any order) **before**
+the subcommand.
+
+```sh
+ironctl [--addr URL] [--token T] <command> ...
+```
+
+| Global flag | Default |
+|---|---|
+| `--addr` | `http://127.0.0.1:8787` |
+| `--token` | `$IRONCLAW_API_TOKEN` |
+
+## Changes (the gateway)
+
+```sh
+ironctl change submit --kind <k> --group <g> --by <user>   # k: persona|enabled_tools|packages|wiring|permissions|mounts
+ironctl change pending
+ironctl change history
+ironctl change approve <id> --by <user>
+ironctl change reject  <id> --by <user>
+```
+
+## Audit
+
+```sh
+ironctl audit [--limit N]      # recent append-only gateway audit entries (default 100)
+```
+
+## Registry
+
+Thin clients of the `/v1/registry/*` endpoints:
+
+```sh
+ironctl registry agent-group     put --id <id> [--name N] [--folder F] | get --id <id>
+ironctl registry messaging-group create --channel C --platform P [--instance I] [--group] [--policy strict|public]
+ironctl registry messaging-group get --id <id> | wirings --id <id>
+ironctl registry wiring          create --mg <id> --agent <id> --engage <mode> [--pattern P] [--scope all|known]
+                                         [--ignored drop|accumulate] [--session shared|per-thread|agent-shared] [--priority N]
+ironctl registry user            put --id <id> [--kind K] [--name N] | get --id <id>
+ironctl registry role            grant|revoke --user <id> --role owner|admin [--agent <id>]
+ironctl registry member          add|remove --user <id> --agent <id>
+ironctl registry destination     add|check --agent <id> --channel C --platform P
+ironctl registry session         list | get --id <id>
+ironctl registry access          --user <id> --agent <id>
+```
+
+## Onboarding
+
+```sh
+ironctl [--addr URL] onboard [--yes] [--dry-run] [--force] [--config PATH]
+```
+
+The guided, idempotent first-run wizard: detect a container runtime, ensure an API token, confirm the
+model credential, point at the sandbox image build, and verify the API is reachable.
+
+## Observability
+
+```sh
+ironctl status [--json]       # control-plane status summary
+ironctl doctor [--runtime BIN] [--model-proxy-socket PATH]   # environment + readiness checks
+ironctl usage  [--json]       # model-call usage / metrics
+```
+
+## Skills
+
+Host-curated capability bundles (gateway-approved):
+
+```sh
+ironctl skill add <name>@<version> --group <id> [--by <user>]
+ironctl skill list
+ironctl skill remove <name>[@<version>]
+```

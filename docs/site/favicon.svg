@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="IronClaw">
+  <rect width="64" height="64" rx="14" fill="#11161f"/>
+  <!-- A stylized claw / shield mark in the IronClaw orange. -->
+  <path d="M32 9c-9 6-18 8-18 8v17c0 11 8 18 18 21 10-3 18-10 18-21V17s-9-2-18-8z"
+        fill="none" stroke="#ff7a2e" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M24 26c2 7 5 12 8 15 3-3 6-8 8-15"
+        fill="none" stroke="#ff7a2e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
