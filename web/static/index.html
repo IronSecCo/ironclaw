@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <title>IronClaw Console</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- ============ Sidebar ============ -->
+    <aside class="sidebar">
+      <div class="side-brand">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+        </span>
+        <span class="name"><strong>IronClaw</strong><span>Console</span></span>
+      </div>
+
+      <nav class="side-nav" aria-label="Console sections">
+        <button class="nav-item active" data-panel="dashboard" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-panel="agents" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 7V4h6v3M9 13h.01M15 13h.01M12 3v1"/></svg>
+          <span>Agents</span>
+        </button>
+        <button class="nav-item" data-panel="chat" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12Z"/></svg>
+          <span>Chat</span>
+        </button>
+        <button class="nav-item" data-panel="approvals" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span>Approvals</span><span class="nav-badge" id="nav-approvals-count"></span>
+        </button>
+        <button class="nav-item" data-panel="sessions" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 5 4-12 2 7h6"/></svg>
+          <span>Sessions</span>
+        </button>
+        <button class="nav-item" data-panel="channels" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.2"/><path d="M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+          <span>Channels</span>
+        </button>
+        <button class="nav-item" data-panel="skills" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V6l-8-4Z"/><path d="m12 8-1.2 2.6L8 11l2 1.8L9.4 16 12 14.5 14.6 16 14 12.8 16 11l-2.8-.4Z"/></svg>
+          <span>Skills</span>
+        </button>
+        <button class="nav-item" data-panel="mcp" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4M7 8h2M7 12h6"/></svg>
+          <span>MCP</span>
+        </button>
+        <button class="nav-item" data-panel="setup" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h7M15 18h5"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg>
+          <span>Setup</span>
+        </button>
+        <button class="nav-item" data-panel="audit" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4M8 13h8M8 17h5"/></svg>
+          <span>Audit</span>
+        </button>
+        <button class="nav-item" data-panel="about" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+          <span>About</span>
+        </button>
+      </nav>
+
+      <div class="side-foot">
+        <div class="conn" id="conn">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="status" class="conn-label" role="status">idle</span>
+        </div>
+        <details class="conn-token">
+          <summary>API token</summary>
+          <div class="token-row">
+            <input id="token" type="password" placeholder="bearer token (optional on loopback)"
+                   autocomplete="off" spellcheck="false" />
+            <button id="connect" class="btn-primary btn-sm" type="button">Connect</button>
+          </div>
+        </details>
+      </div>
+    </aside>
+
+    <!-- ============ Content ============ -->
+    <div class="content">
+      <main>
+        <!-- ---- Dashboard ---- -->
+        <section id="dashboard" class="panel active" aria-label="Dashboard">
+          <div class="page-head">
+            <h1>Dashboard</h1>
+            <p class="sub">Your self-hosted, security-isolated agents — at a glance.</p>
+          </div>
+          <div class="stat-grid">
+            <div class="stat accent">
+              <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 7V4h6v3M9 13h.01M15 13h.01"/></svg></div>
+              <div class="num" id="stat-agents">—</div><div class="lbl">Agents</div>
+            </div>
+            <div class="stat warn">
+              <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5l-8-3Z"/><path d="M12 8v4M12 16h.01"/></svg></div>
+              <div class="num" id="stat-approvals">—</div><div class="lbl">Pending approvals</div>
+            </div>
+            <div class="stat ok">
+              <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 5 4-12 2 7h6"/></svg></div>
+              <div class="num" id="stat-sessions">—</div><div class="lbl">Active sessions</div>
+            </div>
+            <div class="stat">
+              <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.2"/><path d="M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></div>
+              <div class="num" id="stat-channels">—</div><div class="lbl">Wired channels</div>
+            </div>
+          </div>
+
+          <div class="section-title"><h2>Get started</h2></div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn-primary" type="button" data-go="agents">＋ New agent</button>
+            <button class="ghost" type="button" data-go="chat">Open chat</button>
+            <button class="ghost" type="button" data-go="channels">Wire a channel</button>
+          </div>
+
+          <div class="section-title" style="margin-top:28px"><h2>Pending approvals</h2><button class="ghost btn-sm" type="button" data-go="approvals">View all</button></div>
+          <div id="dash-approvals" class="list"><p class="muted">Not connected.</p></div>
+        </section>
+
+        <!-- ---- Agents ---- -->
+        <section id="agents" class="panel" aria-label="Agents" hidden>
+          <div class="page-head">
+            <div class="panel-head">
+              <div><h1>Agents</h1><p class="sub">Create, configure, and chat with your agent groups.</p></div>
+              <div class="row">
+                <button id="agents-refresh" class="ghost" type="button">Refresh</button>
+                <button id="agents-new" class="btn-primary" type="button">＋ New agent</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="agents-grid" class="agent-grid"></div>
+        </section>
+
+        <!-- ---- Chat ---- -->
+        <section id="chat" class="panel" aria-label="Chat playground" hidden>
+          <div class="page-head"><h1>Chat playground</h1><p class="sub">Talk to an agent group through the real engage / delivery path.</p></div>
+          <div class="chat-wrap">
+            <div class="chat-bar">
+              <select id="chat-ag" title="agent group"><option value="">Select an agent…</option></select>
+              <button id="chat-refresh-agents" class="ghost btn-sm" type="button">↻</button>
+              <span class="spacer"></span>
+              <span id="chat-status" class="muted">pick an agent group</span>
+            </div>
+            <div id="chat-transcript"></div>
+            <div class="chat-compose">
+              <input id="chat-input" placeholder="Message the agent…" autocomplete="off" />
+              <button id="chat-send" class="btn-primary" type="button">Send</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---- Approvals ---- -->
+        <section id="approvals" class="panel" aria-label="Pending approvals" hidden>
+          <div class="page-head">
+            <div class="panel-head">
+              <div><h1>Approvals</h1><p class="sub">Every capability change is held here until a human decides.</p></div>
+              <button id="refresh-approvals" class="ghost" type="button">Refresh</button>
+            </div>
+          </div>
+          <div id="approvals-list" class="list"><p class="muted">Not connected.</p></div>
+        </section>
+
+        <!-- ---- Sessions ---- -->
+        <section id="sessions" class="panel" aria-label="Active sessions" hidden>
+          <div class="page-head">
+            <div class="panel-head">
+              <div><h1>Sessions</h1><p class="sub">Live sandboxes, one per conversation.</p></div>
+              <button id="refresh-sessions" class="ghost" type="button">Refresh</button>
+            </div>
+          </div>
+          <div id="sessions-list" class="list"><p class="muted">Not connected.</p></div>
+        </section>
+
+        <!-- ---- Channels ---- -->
+        <section id="channels" class="panel" aria-label="Channels and wiring" hidden>
+          <div class="page-head"><h1>Channels &amp; wiring</h1><p class="sub">Connect chat platforms to agent groups.</p></div>
+
+          <details open>
+            <summary>1 · Connect a chat surface</summary>
+            <p class="hint">Tell IronClaw about a place messages come from — a Slack channel, a Telegram
+              chat, etc. You'll wire it to an agent in step 2.</p>
+            <div class="form-row">
+              <div class="field">
+                <label>Platform</label>
+                <select id="ch-mg-channel">
+                  <option value="">Choose a platform…</option>
+                  <option value="slack">Slack</option>
+                  <option value="discord">Discord</option>
+                  <option value="telegram">Telegram</option>
+                  <option value="teams">Microsoft Teams</option>
+                  <option value="signal">Signal</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="email">Email</option>
+                  <option value="matrix">Matrix</option>
+                  <option value="googlechat">Google Chat</option>
+                  <option value="webhook">Webhook</option>
+                </select>
+              </div>
+              <div class="field" style="flex:2 1 220px">
+                <label>Where on that platform</label>
+                <input id="ch-mg-platform" placeholder="channel / chat id (e.g. Slack C0123…, Telegram 12345)" />
+                <p class="hint">The platform's own id for the channel or chat.</p>
+              </div>
+              <div class="field">
+                <label>Who can trigger it</label>
+                <select id="ch-mg-policy">
+                  <option value="strict">Only people you've added</option>
+                  <option value="request_approval">Anyone, with approval</option>
+                  <option value="public">Anyone</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Type</label>
+                <label class="chk"><input type="checkbox" id="ch-mg-isgroup" /> Group chat (not a 1:1)</label>
+              </div>
+              <button id="ch-mg-create" class="btn-primary" type="button" style="align-self:end">Connect</button>
+            </div>
+            <input id="ch-mg-instance" type="hidden" />
+            <div class="form-row" style="margin-top:6px">
+              <div class="field" style="flex:2"><label>Inspect an existing surface</label><select id="ch-mg-id" data-mgs><option value="">Pick a connected surface…</option></select></div>
+              <button id="ch-mg-load" class="ghost" type="button" style="align-self:end">View wirings</button>
+            </div>
+            <div id="ch-channel-view" class="list"></div>
+          </details>
+
+          <details>
+            <summary>2 · Wire it to an agent</summary>
+            <p class="hint">Connect a chat surface (from step 1) to one of your agents, and choose when the
+              agent should jump in.</p>
+            <div class="form-row">
+              <div class="field">
+                <label>Agent</label>
+                <select id="ch-w-ag" data-agents><option value="">Select an agent…</option></select>
+              </div>
+              <div class="field"><label>Chat surface</label><select id="ch-w-mg" data-mgs><option value="">Connect a surface in step 1…</option></select></div>
+              <div class="field">
+                <label>When to engage</label>
+                <select id="ch-w-engage">
+                  <option value="mention">On @mention</option>
+                  <option value="mention-sticky">On @mention, then stay in the thread</option>
+                  <option value="pattern">When a message matches a pattern</option>
+                </select>
+              </div>
+              <div class="field"><label>Pattern (for pattern mode)</label><input id="ch-w-pattern" placeholder="e.g. deploy|incident   ·   .* for everything" /></div>
+              <div class="field">
+                <label>Conversation memory</label>
+                <select id="ch-w-session">
+                  <option value="per-thread">One per thread</option>
+                  <option value="shared">One shared</option>
+                  <option value="agent-shared">Shared across the agent</option>
+                </select>
+              </div>
+              <div class="field" style="flex:0 0 90px"><label>Priority</label><input id="ch-w-priority" type="number" value="1" /></div>
+              <button id="ch-w-create" class="btn-primary" type="button" style="align-self:end">Wire it up</button>
+            </div>
+          </details>
+
+          <details>
+            <summary>3 · Allow the agent to reply somewhere</summary>
+            <p class="hint">An agent can only send to places you approve. Add the destinations it's allowed to post back to.</p>
+            <div class="form-row">
+              <div class="field"><label>Agent</label><select id="ch-d-ag" data-agents><option value="">Select an agent…</option></select></div>
+              <button id="ch-d-load" class="ghost" type="button" style="align-self:end">List allowed</button>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label>Platform</label>
+                <select id="ch-d-channel">
+                  <option value="">Choose a platform…</option>
+                  <option value="slack">Slack</option>
+                  <option value="discord">Discord</option>
+                  <option value="telegram">Telegram</option>
+                  <option value="teams">Microsoft Teams</option>
+                  <option value="signal">Signal</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="email">Email</option>
+                  <option value="matrix">Matrix</option>
+                  <option value="googlechat">Google Chat</option>
+                  <option value="webhook">Webhook</option>
+                </select>
+              </div>
+              <div class="field" style="flex:2"><label>Where</label><input id="ch-d-platform" placeholder="channel / chat id" /></div>
+              <button id="ch-d-add" class="btn-primary" type="button" style="align-self:end">Allow</button>
+            </div>
+            <div id="ch-dest-view" class="list"></div>
+          </details>
+
+          <details>
+            <summary>Channel credentials (guided)</summary>
+            <p class="muted">Bot tokens are set as environment variables on the
+              control-plane host and are <strong>never stored by this console</strong>
+              (sealed design — there is no credential vault). Set the variable on the
+              host, then restart the daemon.</p>
+            <div id="ch-cred-guide" class="list"></div>
+          </details>
+        </section>
+
+        <!-- ---- Skills ---- -->
+        <section id="skills" class="panel" aria-label="Skills" hidden>
+          <div class="page-head">
+            <div class="panel-head">
+              <div><h1>Skills</h1><p class="sub">Install a curated, signed skill into an agent group.</p></div>
+              <button id="refresh-skills" class="ghost" type="button">Refresh</button>
+            </div>
+          </div>
+          <div class="card">
+            <p class="muted" style="margin-top:0">Install submits a gateway change for
+              <strong>human approval</strong> — it is never applied from here. Approved installs take
+              effect on the next launch (enabled tools, approved egress hosts, and assets mounted at
+              <code>/skills/&lt;name&gt;</code>).</p>
+            <div class="form-row">
+              <div class="field" style="flex:2"><label>Skill</label><input id="skill-ref" placeholder="name@version (e.g. incident-triage@1.4.0)" /></div>
+              <div class="field"><label>For which agent</label><select id="skill-group" data-agents><option value="">Select an agent…</option></select></div>
+              <div class="field"><label>Requested by</label><input id="skill-by" placeholder="you (e.g. slack:alice)" /></div>
+              <button id="skill-install" class="btn-primary" type="button" style="align-self:end">Install (needs approval)</button>
+            </div>
+          </div>
+          <div class="section-title"><h2>Curated catalog</h2></div>
+          <div id="skills-list" class="list"><p class="muted">Not connected.</p></div>
+        </section>
+
+        <!-- ---- MCP servers ---- -->
+        <section id="mcp" class="panel" aria-label="MCP servers" hidden>
+          <div class="page-head">
+            <div class="panel-head">
+              <div><h1>MCP servers</h1><p class="sub">Connect Model Context Protocol servers and grant agents their tools.</p></div>
+              <button id="refresh-mcp" class="ghost" type="button">Refresh</button>
+            </div>
+          </div>
+          <div class="card">
+            <p class="muted" style="margin-top:0">MCP servers run <strong>host-side</strong> — a local server in a
+              hardened, network-isolated container, a remote server over TLS. The sandbox never speaks MCP: it
+              reaches a per-session broker socket, every call is gated against the approved grant and audited.
+              <strong>Granting an agent access needs human approval</strong> (it lands in Approvals).</p>
+            <div class="form-row">
+              <div class="field"><label>Name</label><input id="mcp-name" placeholder="github" /></div>
+              <div class="field"><label>Type</label>
+                <select id="mcp-transport">
+                  <option value="stdio">Local (stdio subprocess)</option>
+                  <option value="http">Remote (HTTP/SSE)</option>
+                </select>
+              </div>
+            </div>
+            <div id="mcp-stdio-fields" class="form-row">
+              <div class="field"><label>Command</label><input id="mcp-command" placeholder="npx" /></div>
+              <div class="field" style="flex:2"><label>Arguments</label><input id="mcp-args" placeholder="-y @modelcontextprotocol/server-github" /></div>
+            </div>
+            <div id="mcp-stdio-fields2" class="form-row">
+              <div class="field" style="flex:2"><label>Image <span class="muted">(isolation)</span></label><input id="mcp-image" placeholder="optional — default --mcp-image" /></div>
+              <div class="field" style="flex:2"><label>Environment <span class="muted">(optional)</span></label><input id="mcp-env" placeholder="GITHUB_TOKEN=${GITHUB_TOKEN}, REGION=eu" /></div>
+            </div>
+            <div id="mcp-http-fields" class="form-row" hidden>
+              <div class="field" style="flex:2"><label>URL</label><input id="mcp-url" placeholder="https://mcp.example.com/rpc" /></div>
+              <div class="field" style="flex:2"><label>Auth header <span class="muted">(optional)</span></label><input id="mcp-auth" placeholder="Bearer ${GITHUB_TOKEN}" /></div>
+            </div>
+            <p class="muted" style="margin-bottom:0">Secrets: write <code>${ENV_VAR}</code> to reference a host
+              environment variable — the value is resolved host-side at connect time and is never stored, shown, or
+              sent to the agent.</p>
+            <div class="form-row" style="margin-top:.6rem">
+              <button id="mcp-save" class="btn-primary" type="button" style="align-self:end">Save server</button>
+            </div>
+          </div>
+          <div class="section-title"><h2>Configured servers</h2></div>
+          <div id="mcp-list" class="list"><p class="muted">Not connected.</p></div>
+        </section>
+
+        <!-- ---- Setup ---- -->
+        <section id="setup" class="panel" aria-label="Setup and config" hidden>
+          <div class="page-head"><h1>Setup &amp; config</h1><p class="sub">First-run checklist and the per-agent config editor.</p></div>
+
+          <details open>
+            <summary>First-run wizard (mirrors <code>ironctl onboard</code>)</summary>
+            <div class="panel-head">
+              <span class="muted">Read-only checklist of the host onboarding steps (dry-run; no token is minted or shown).</span>
+              <button id="setup-onboard-refresh" class="ghost btn-sm" type="button">Refresh</button>
+            </div>
+            <div id="setup-onboard" class="list"><p class="muted">Not connected.</p></div>
+          </details>
+
+          <details>
+            <summary>Config editor</summary>
+            <div class="form-row">
+              <div class="field" style="flex:2"><label>Agent</label><select id="setup-ag" data-agents><option value="">Select an agent…</option></select></div>
+              <button id="setup-ag-load" class="ghost" type="button" style="align-self:end">Load</button>
+            </div>
+            <div id="setup-config-view" class="list"></div>
+            <div id="setup-change-form"></div>
+          </details>
+        </section>
+
+        <!-- ---- Audit ---- -->
+        <section id="audit" class="panel" aria-label="Audit log" hidden>
+          <div class="page-head">
+            <div class="panel-head">
+              <div><h1>Audit</h1><p class="sub">The append-only record of every gateway decision.</p></div>
+              <button id="refresh-audit" class="ghost" type="button">Refresh</button>
+            </div>
+          </div>
+          <div id="audit-list" class="list"><p class="muted">Not connected.</p></div>
+        </section>
+
+        <!-- ---- About ---- -->
+        <section id="about" class="panel" aria-label="About this console" hidden>
+          <div class="page-head"><h1>About</h1><p class="sub">How this console talks to the control-plane.</p></div>
+          <div class="card">
+            <p>The static shell is served by the control-plane at <code>/ui/</code>; all data and
+              actions flow through the bearer-gated <code>/v1</code> API. The token you enter is kept
+              only in this tab's <code>sessionStorage</code> and sent as
+              <code>Authorization: Bearer</code> on each request — the API itself stays fully gated.</p>
+            <p class="muted">Dependency-free and embedded into the binary via <code>go:embed</code> — no
+              build step, no Node, no extra port. Agents run in sealed gVisor sandboxes with
+              <code>network=none</code>; this console only configures the host.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ---- Agent builder (modal; opened by "New agent" / a card's "Edit") ---- -->
+  <dialog id="agent-modal" class="modal" aria-labelledby="ab-summary">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="ab-summary">Create an agent</h2>
+        <button id="ab-close" class="icon-btn" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body builder-form">
+        <div class="field">
+          <label>What's your agent called?</label>
+          <input id="ab-name" placeholder="e.g. Research Bot" autocomplete="off" />
+          <p class="hint" id="ab-id-preview">Pick a name to get started.</p>
+        </div>
+
+        <div class="field">
+          <label>Start from a template</label>
+          <div id="ab-templates" class="chips"><span class="muted">Loading…</span></div>
+        </div>
+
+        <div class="field">
+          <label>Persona <span class="muted">— who it is, how it sounds, how it works (all optional)</span></label>
+          <div id="ab-persona-docs" class="persona-docs"><span class="muted">Loading…</span></div>
+        </div>
+
+        <div class="form-row" style="margin:0">
+          <div class="field"><label>Model <span class="muted">— optional</span></label><input id="ab-model" placeholder="control-plane default" autocomplete="off" /></div>
+          <div class="field"><label>Provider <span class="muted">— optional, advanced</span></label><input id="ab-provider" placeholder="default backend" autocomplete="off" /></div>
+        </div>
+
+        <div class="field">
+          <div class="tools-head">
+            <label style="margin:0">What can it do? <span class="muted">— pick its tools</span></label>
+            <label class="chk"><input type="checkbox" id="ab-alltools" /> Enable <strong>all</strong> tools</label>
+          </div>
+          <div id="ab-tools" class="tool-picker"><span class="muted">Loading tools…</span></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <p class="hint" style="margin:0;flex:1">Saved instantly. Web/API tools still need an approved host. Approval-gated edits live in <a href="#" data-go="setup">Setup</a>.</p>
+        <button id="ab-cancel" class="ghost" type="button">Cancel</button>
+        <button id="ab-create" class="btn-primary" type="button">Create agent</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="app.js"></script>
+  <script src="approvals.js"></script>
+  <script src="sessions.js"></script>
+  <script src="audit.js"></script>
+  <script src="channels.js"></script>
+  <script src="setup.js"></script>
+  <script src="chat.js"></script>
+  <script src="skills.js"></script>
+  <script src="mcp.js"></script>
+  <script src="agents.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>
