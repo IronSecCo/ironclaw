@@ -1,0 +1,76 @@
+---
+title: "From source"
+description: "Build the binaries and run the control-plane natively, with or without a full system install."
+---
+
+IronClaw builds, vets, and tests with **`CGO_ENABLED=1`** and a C toolchain — the encrypted-SQLite
+binding is built via cgo (the SQLCipher C amalgamation is vendored by the driver, so no system
+`libsqlcipher` is required).
+
+## Build
+
+```sh
+git clone https://github.com/IronSecCo/ironclaw.git
+cd ironclaw
+
+make build   # go build ./...
+make vet     # go vet ./...
+make test    # go test ./...
+```
+
+Or build just the two host binaries onto your PATH:
+
+```sh
+go build -o /usr/local/bin/ironclaw-controlplane ./cmd/controlplane
+go build -o /usr/local/bin/ironctl               ./cmd/ironctl
+```
+
+## Run the control-plane
+
+Start the daemon. In production, bind `--api-addr` to the Tailscale (tailnet) IP so the control-plane has
+no public port; `--model-proxy-socket` is the unix socket the model proxy listens on (bound into each
+sandbox):
+
+```sh
+export ANTHROPIC_API_KEY=sk-ant-...                 # held host-side; never enters a sandbox
+export IRONCLAW_API_TOKEN=$(openssl rand -hex 32)   # bearer token for the admin API
+
+ironclaw-controlplane \
+  --api-addr 127.0.0.1:8787 \
+  --model-proxy-socket /run/ironclaw/modelproxy.sock
+```
+
+The gateway ships with the `always-require-human` floor, so every submitted change is held pending a
+decision. Drive it with [`ironctl`](/site/reference/cli):
+
+```sh
+ironctl change submit --kind persona --group default --by alice
+ironctl change pending
+ironctl change approve <id> --by alice
+```
+
+<Tip>
+For a guided first run, `ironctl onboard` detects a container runtime, ensures an API token, confirms the
+model credential, points at the sandbox image build, and verifies the API is reachable. It is
+non-interactive and idempotent — safe to re-run.
+</Tip>
+
+## Full system install
+
+For binaries plus `/etc/ironclaw` + `/var/lib/ironclaw` and a managed service (systemd on Linux, launchd
+on macOS):
+
+```sh
+sudo deploy/install.sh
+```
+
+It needs root to write under `/etc` and `/var/lib`. The external runtime dependencies (containerd +
+gVisor, Tailscale) are set up separately — see [Production](/site/self-hosting/production).
+
+## Source trees
+
+| Tree | Contents |
+|---|---|
+| `cmd/controlplane`, `cmd/ironctl`, `internal/host/**` | Host (control-plane) code |
+| `cmd/sandbox`, `internal/sandbox/**` | Sandbox code |
+| `internal/contract/**` | The frozen shared seam — see [the contract](/site/architecture/contract) |

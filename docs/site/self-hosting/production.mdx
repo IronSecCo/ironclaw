@@ -1,0 +1,59 @@
+---
+title: "Production"
+description: "gVisor sandboxing, a Tailscale-fronted API, and durable state for a real deployment."
+---
+
+A production deployment adds the runtime pieces a dev run skips: real gVisor sandboxing, a private network
+boundary in front of the API, and durable on-disk state.
+
+## Sandbox runtime: containerd + gVisor
+
+Production sessions run under **gVisor (`runsc`)** via an OCI runtime. A live launch needs:
+
+- `runsc` installed and registered as an OCI runtime (`io.containerd.runsc.v1`).
+- A **provisioned, signed sandbox image**. The provisioner verifies the image digest/signature against a
+  trust policy before unpacking the rootfs; an unverified or missing image is refused. Build the sandbox
+  image with `container/build.sh` and pin its digest in the provisioner trust policy.
+
+Point the daemon at the runtime and image:
+
+```sh
+ironclaw-controlplane \
+  --api-addr <tailnet-ip>:8787 \
+  --runtime runsc \
+  --sandbox-image ironclaw-sandbox:latest \
+  --state-dir /var/lib/ironclaw/state
+```
+
+<Note>
+`--dev` exists precisely so you can exercise the gateway and routing **without** gVisor. Production drops
+`--dev` and requires a runsc-capable host.
+</Note>
+
+## Private network boundary: Tailscale
+
+The control-plane API must not have a public port. Bind `--api-addr` to the **Tailscale (tailnet)
+interface** and firewall the API port on every other interface. Only devices on your tailnet can reach the
+controls; to anyone else the API simply doesn't exist on the public internet.
+
+Defense-in-depth: set `IRONCLAW_API_TOKEN` so every request (except `GET /healthz`) also needs a bearer
+token, compared in constant time.
+
+## Durable state
+
+State lives under `--state-dir`:
+
+- the durable gateway **change store** (pending changes survive a restart),
+- the append-only **audit log** (JSONL),
+- the host **keystore** — a file-backed master key that seals per-session keys so they survive a restart.
+
+Back up `--state-dir`. Secrets are host-only: the Anthropic key is injected into outbound model calls by
+the host model proxy; the sandbox never sees it and has `network=none`. Per-session 256-bit keys are held
+by the host and handed to the sandbox via tmpfs at launch — never via an env var, never baked into the
+image.
+
+## Managed service
+
+`deploy/install.sh` installs a systemd unit (Linux) or launchd plist (macOS) so the control-plane runs as
+a managed service. See `deploy/README.md` in the repository for host setup notes (gVisor, containerd,
+Tailscale).

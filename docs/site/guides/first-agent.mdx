@@ -1,0 +1,71 @@
+---
+title: "Your first agent group"
+description: "Create an agent group, give it a persona through the gateway, and confirm it in the registry."
+---
+
+An **agent group** is a configured agent — a workspace folder, persona, model backend, and container
+config. This guide creates one and gives it an identity. It assumes a running control-plane and an
+`ironctl` pointed at it (see the [Quickstart](/site/quickstart)).
+
+<Steps>
+<Step title="Create the agent group">
+
+Agent groups live in the registry. Create one with an id and a display name:
+
+```sh
+ironctl registry agent-group put --id support --name "Support Assistant" --folder support
+```
+
+Confirm it:
+
+```sh
+ironctl registry agent-group get --id support
+```
+
+</Step>
+<Step title="Give it a persona (through the gateway)">
+
+Persona is a **capability change** — it does not take effect until a human approves it. Submit one:
+
+```sh
+ironctl change submit --kind persona --group support --by alice
+```
+
+This prints a change id and parks it at the gateway.
+
+</Step>
+<Step title="Approve it">
+
+```sh
+ironctl change pending
+ironctl change approve <change-id> --by alice
+```
+
+Only now is the persona applied. The agent loads it into its system context at launch and can read (but
+never self-edit) it.
+
+</Step>
+<Step title="Wire it to a channel">
+
+An agent group only engages once it is wired to a messaging group. Continue with
+[Wiring a channel](/site/guides/wiring-channels).
+
+</Step>
+</Steps>
+
+<Note>
+Agents request capabilities they don't have by calling the in-sandbox `request_capability_change` tool —
+which submits to this same gateway. They never apply a change themselves, and never claim to have.
+</Note>
+
+## Access and roles
+
+Grant a user access to an agent group with roles (`owner` / `admin` / `member`):
+
+```sh
+ironctl registry user put --id slack:alice --name Alice
+ironctl registry role grant --user slack:alice --role owner --agent support
+ironctl registry access --user slack:alice --agent support   # check effective access
+```
+
+Access precedence is owner &gt; global-admin &gt; scoped-admin &gt; member.
