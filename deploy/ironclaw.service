@@ -1,0 +1,34 @@
+# IronClaw control-plane — systemd unit (Linux).
+#
+# Installed to /etc/systemd/system/ironclaw.service by deploy/install.sh. All
+# tunables come from the 0600 EnvironmentFile so this unit stays static and holds
+# no secrets. The control-plane is the TRUSTED host orchestrator: it launches
+# gVisor sandboxes via runsc/ctr, so it is deliberately NOT confined with
+# NoNewPrivileges/ProtectSystem (those would block container launch). Isolation is
+# applied to the SANDBOXES, not to this process.
+[Unit]
+Description=IronClaw control-plane
+Documentation=https://github.com/IronSecCo/ironclaw
+After=network-online.target containerd.service tailscaled.service
+Wants=network-online.target
+After=containerd.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/ironclaw/ironclaw.env
+ExecStart=/usr/local/bin/ironclaw-controlplane \
+  --api-addr ${IRONCLAW_API_ADDR} \
+  --model-proxy-socket ${IRONCLAW_MODEL_PROXY_SOCKET} \
+  --state-dir ${IRONCLAW_STATE_DIR} \
+  --bundle-root ${IRONCLAW_BUNDLE_ROOT} \
+  --sandbox-image ${IRONCLAW_SANDBOX_IMAGE}
+Restart=on-failure
+RestartSec=2
+# /run/ironclaw (0700) holds the model-proxy socket; /var/lib/ironclaw the state.
+RuntimeDirectory=ironclaw
+RuntimeDirectoryMode=0700
+StateDirectory=ironclaw
+StateDirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target
