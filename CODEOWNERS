@@ -1,0 +1,17 @@
+# IronClaw CODEOWNERS
+#
+# internal/contract is the FROZEN shared seam. Any change requires a joint RFC
+# (see docs/contract.md) AND code-owner approval. Keep this the most-restrictive
+# rule for the contract path.
+
+# Default owner for everything in the repo.
+*                     @omerzamir
+
+# Frozen contract seam.
+/internal/contract/   @omerzamir
+
+# Control-plane (host).
+/internal/host/       @omerzamir
+
+# Sandbox.
+/internal/sandbox/    @omerzamir

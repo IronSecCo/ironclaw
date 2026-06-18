@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  IronClaw control-plane — macOS launchd daemon.
+
+  Installed to /Library/LaunchDaemons/io.ironclaw.controlplane.plist by
+  deploy/install.sh. macOS has no gVisor/containerd, so this is for running the
+  control-plane API + model proxy (development / API host); sandbox launch is
+  Linux-only. Secrets stay in the 0600 /etc/ironclaw/ironclaw.env file, which the
+  wrapper sources at launch — they are never embedded in this plist.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>io.ironclaw.controlplane</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string>
+        <string>-c</string>
+        <string>set -a; . /etc/ironclaw/ironclaw.env; exec /usr/local/bin/ironclaw-controlplane --api-addr "$IRONCLAW_API_ADDR" --model-proxy-socket "$IRONCLAW_MODEL_PROXY_SOCKET" --state-dir "$IRONCLAW_STATE_DIR" --bundle-root "$IRONCLAW_BUNDLE_ROOT" --sandbox-image "$IRONCLAW_SANDBOX_IMAGE"</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/var/log/ironclaw/controlplane.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/ironclaw/controlplane.err.log</string>
+</dict>
+</plist>

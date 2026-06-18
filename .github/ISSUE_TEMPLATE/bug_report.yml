@@ -1,0 +1,79 @@
+name: "🐛 Bug report"
+description: Report a reproducible problem in IronClaw (NOT a security vulnerability)
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please search existing issues first.
+
+        > [!CAUTION]
+        > **Do NOT report security vulnerabilities here.** A public issue exposes the flaw to everyone.
+        > Use the [Security policy](https://github.com/IronSecCo/ironclaw/security/policy) / the
+        > **"Report a vulnerability"** button on the Security tab instead. See [`SECURITY.md`](https://github.com/IronSecCo/ironclaw/blob/main/SECURITY.md).
+  - type: checkboxes
+    id: not-security
+    attributes:
+      label: Confirmation
+      options:
+        - label: This is **not** a security vulnerability (those go through the Security policy, not here).
+          required: true
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+      placeholder: When I run `ironctl change approve ...`, the daemon ...
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal, deterministic steps. Include the exact commands.
+      placeholder: |
+        1. `go run ./cmd/controlplane --dev --api-addr 127.0.0.1:8787`
+        2. `ironctl change submit --kind persona --group default --by alice`
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `ironctl --version` (or the commit SHA / release tag).
+      placeholder: v0.1.x / 4bc53a7
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Isolation backend
+      description: How are you running the sandbox?
+      options:
+        - "--dev (in-memory, no gVisor)"
+        - gVisor (runsc)
+        - Kata
+        - Not applicable / control-plane only
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS / architecture
+      placeholder: macOS 15 arm64 / Ubuntu 24.04 amd64
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: |
+        Paste logs or stack traces. **Redact secrets** — API tokens, session keys, and credentials
+        must not appear here (the daemon's structured logger redacts most, but double-check).
+      render: shell
+    validations:
+      required: false
