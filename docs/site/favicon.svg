@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="IronClaw">
+  <defs><linearGradient id="steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#63a0ff"/><stop offset="0.5" stop-color="#3b82f6"/><stop offset="1" stop-color="#1a44bd"/></linearGradient><linearGradient id="edge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9d4ff"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient><clipPath id="fs"><path d="M32 8 L54 16 L54 33 Q54 46 32 56 Q10 46 10 33 L10 16 Z"/></clipPath></defs>
+  <rect width="64" height="64" rx="14" fill="#0a1428"/>
+  <path d="M32 8 L54 16 L54 33 Q54 46 32 56 Q10 46 10 33 L10 16 Z" fill="url(#steel)"/>
+  <path d="M32 8 L54 16 L54 33 Q54 46 32 56 Q10 46 10 33 L10 16 Z" fill="none" stroke="url(#edge)" stroke-width="3.84"/>
+  <g clip-path="url(#fs)" fill="#eaf2ff" ><path d="M18.0 44.0 Q35.4 35.6 41.0 17.0 Q30.3 31.1 18.0 44.0 Z"/><path d="M23.0 48.0 Q40.4 39.6 46.0 21.0 Q35.3 35.1 23.0 48.0 Z"/><path d="M28.0 51.0 Q45.0 43.0 50.0 25.0 Q39.8 38.6 28.0 51.0 Z"/></g>
+</svg>

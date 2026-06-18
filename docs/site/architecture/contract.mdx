@@ -1,0 +1,52 @@
+---
+title: "The frozen contract"
+description: "Why internal/contract is frozen, and the RFC process required to change it."
+---
+
+`internal/contract` is the single seam shared by the control-plane and the sandbox. It is the **only**
+package both sides import, and it is **frozen**.
+
+## What lives there
+
+Typed IDs, enums, row structs, the embedded SQL schema, the crypto open helpers, interface-segregated
+queue access, and the gateway protocol. Pinned crypto parameters (`CipherScheme`, `CipherPageSize`,
+`KDFRawKey`) and seq parity (host = even, sandbox = odd) are part of the contract too.
+
+## The freeze rule
+
+Neither side may edit `internal/contract/**` unilaterally. Every file there carries the banner:
+
+```go
+// FROZEN CONTRACT — do not edit without a joint RFC (see docs/contract.md).
+```
+
+<Warning>
+A drift in this package is **not a build error** — it surfaces at runtime as a silent decrypt failure
+(mismatched cipher params) or a routing mismatch (mismatched row shapes). That is why the freeze is
+strict.
+</Warning>
+
+## The RFC process
+
+To change the contract:
+
+<Steps>
+<Step title="Write an RFC">
+Append a new dated section to the RFC log in `docs/contract.md` describing the change, the motivation, and
+the migration impact on both trees.
+</Step>
+<Step title="Get both CODEOWNERS to approve">
+The control-plane owner and the sandbox owner must both sign off — enforced by `CODEOWNERS`, which lists
+`/internal/contract/` with both required reviewers.
+</Step>
+<Step title="Land the contract change and both implementations together">
+So the host and sandbox never compile against divergent types or crypto params.
+</Step>
+</Steps>
+
+## Why it matters for contributors
+
+Because the contract is the host↔sandbox seam, getting it wrong is a security and correctness hazard, not
+a compile-time nuisance. Treat it as human-gated: contract changes are never auto-applied. The RFC log in
+`docs/contract.md` records the applied changes (e.g. RFC-0001 wiring the encrypted-SQLite binding,
+RFC-0004 approval-gated `create_agent`).

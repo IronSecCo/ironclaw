@@ -1,0 +1,69 @@
+---
+title: "Wiring a channel"
+description: "Connect a chat platform to an agent group with explicit engage and session rules."
+---
+
+A channel adapter brings messages in; a **wiring** decides which agent group engages and how. This guide
+wires a Slack channel to an agent group. The same shape applies to Discord, Telegram, and the others.
+
+<Steps>
+<Step title="Give the control-plane the bot token">
+
+Each adapter registers at startup when its credential is present in the environment. For Slack:
+
+```sh
+export SLACK_BOT_TOKEN=xoxb-...
+# then (re)start the control-plane; it logs: channel adapter registered  adapter=slack
+```
+
+See [Configuration](/site/configuration) for every channel's variable. With Docker, set it in `.env`.
+
+</Step>
+<Step title="Register a messaging group">
+
+A messaging group is the conversation surface the control plane routes (a channel/DM/instance):
+
+```sh
+ironctl registry messaging-group create --channel slack --platform C0123456 --policy strict
+```
+
+`--policy strict` only engages known users; `public` is more permissive. The command returns a messaging
+group id.
+
+</Step>
+<Step title="Create the wiring">
+
+Link the messaging group to an agent group and set the engage policy:
+
+```sh
+ironctl registry wiring create \
+  --mg <messaging-group-id> \
+  --agent support \
+  --engage mention \
+  --scope known \
+  --session per-thread
+```
+
+- `--engage` — when the agent engages (e.g. on mention/pattern, or accumulate-until-triggered).
+- `--scope` — `all` senders or only `known` ones.
+- `--session` — `shared`, `per-thread`, or `agent-shared` conversation partitioning.
+
+</Step>
+<Step title="Confirm and add a destination">
+
+```sh
+ironctl registry messaging-group wirings --id <messaging-group-id>   # list wirings
+ironctl registry destination add --agent support --channel slack --platform C0123456
+ironctl registry destination check --agent support --channel slack --platform C0123456
+```
+
+Destinations are enforced host-side on delivery — an agent can only send where it's been approved to.
+
+</Step>
+</Steps>
+
+<Tip>
+Wiring changes that touch capabilities flow through the [gateway](/site/concepts/gateway) like any other
+change. Routing fan-out, engage modes, and session resolution are all exercised by the behavioral parity
+suite, so their semantics are pinned.
+</Tip>
