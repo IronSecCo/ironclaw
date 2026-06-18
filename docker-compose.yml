@@ -1,0 +1,55 @@
+# IronClaw — one-command self-host.
+#
+#   cp .env.example .env      # then fill in ANTHROPIC_API_KEY (optional to boot)
+#   docker compose up -d      # builds locally on first run, or pulls the GHCR image
+#   docker compose logs -f controlplane   # CLAIM the admin token printed on first run
+#
+# What this brings up: the control-plane host daemon and its gateway (the human
+# approval choke point), the admin API on http://127.0.0.1:8787, and Prometheus
+# metrics at /metrics. The admin/API token is minted on first run and printed once
+# in the logs (no recovery) unless you set IRONCLAW_API_TOKEN yourself.
+#
+# Isolation posture — read before changing the network:
+#   The sandboxes that run agent code are NOT services in this file. They are gVisor
+#   (runsc) children the control-plane launches with network=none, all caps dropped,
+#   and a read-only rootfs. The control-plane itself DOES have egress (host-proxied
+#   model calls). Do not "flatten" this by putting sandboxes on a compose network or
+#   granting them connectivity — that would defeat the seal. Launching real sandboxes
+#   needs a runsc-capable host (see deploy/README.md); the API + gateway above do not.
+
+name: ironclaw
+
+services:
+  controlplane:
+    # Pull the published image, or build it locally from a clone (compose builds the
+    # build: target when the image isn't present, so `up` works before any release).
+    image: ${IRONCLAW_IMAGE:-ghcr.io/nivardsec/ironclaw-controlplane:latest}
+    build:
+      context: .
+      dockerfile: container/controlplane.Dockerfile
+    # Optional: present after `cp .env.example .env`. Marked not-required so a bare
+    # clone still validates (`docker compose config -q`) and boots with defaults.
+    env_file:
+      - path: .env
+        required: false
+    # Loopback only — no public port. Front the control-plane with Tailscale (or your
+    # own reverse proxy) for remote access; never expose 8787 to the internet raw.
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      # Durable host state: gateway change store, append-only audit log, sealed
+      # per-session keys, and the minted admin token. Losing it loses the token.
+      - ironclaw-state:/var/lib/ironclaw/state
+    restart: unless-stopped
+    # /healthz is unauthenticated by design; curl ships in the image for this check.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8787/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    # The daemon stops its sandboxes (up to 10s) before exiting — give it headroom.
+    stop_grace_period: 20s
+
+volumes:
+  ironclaw-state:

@@ -1,0 +1,12 @@
+# IronClaw CODEOWNERS
+#
+# internal/contract is the FROZEN shared seam. Any change requires a joint RFC
+# (see docs/contract.md) AND approval from both code owners below. Keep this the
+# most-restrictive rule for the contract path.
+/internal/contract/   @ToPmit26
+
+# Control-plane (host).
+/internal/host/       @ToPmit26
+
+# Sandbox.
+/internal/sandbox/    @ToPmit26
