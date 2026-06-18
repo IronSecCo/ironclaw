@@ -1,0 +1,1251 @@
+# IronClaw Control-Plane API — OpenAPI specification.
+#
+# This document is the machine-readable contract for the control-plane HTTP API
+# served by `ironclaw-controlplane` (and consumed by `ironctl`). It is hand-kept
+# in lockstep with internal/host/api and the frozen wire types in
+# internal/contract. The API binds ONLY to the private mesh (Tailscale) interface
+# — it has no public port — so network reachability is the primary control and
+# the optional bearer token is defense-in-depth on top of it.
+#
+# Versioning: the route family is `/v1`; `info.version` tracks the product
+# (pre-alpha 0.1.x). Breaking changes to `/v1` shapes follow the same contract
+# discipline as internal/contract (see docs/contract.md).
+openapi: 3.1.0
+
+info:
+  title: IronClaw Control-Plane API
+  version: 0.1.0
+  summary: Gateway change-approval, audit, and registry administration for a self-hosted IronClaw control-plane.
+  description: |
+    The control-plane exposes three surfaces:
+
+    - **Gateway** (`/v1/changes`, `/v1/audit`) — submit capability changes, list
+      what is pending, record human approve/reject decisions, and read the
+      append-only audit log. Every control-plane mutation (persona, enabled
+      tools, packages, wiring, permissions, mounts, create_agent) flows through
+      here; there is no bypass path.
+    - **Registry** (`/v1/registry/...`) — administer agent groups, messaging
+      groups, wirings, users, roles, members, destinations, and read sessions.
+      These endpoints return `503` until a registry backend is attached.
+    - **Operational probes** (`/healthz`, `/readyz`, `/metrics`).
+
+    All `POST`/`PUT` bodies are JSON. The Go JSON decoder is case-insensitive on
+    keys; the property names below are the canonical forms the server **emits**.
+  license:
+    name: AGPL-3.0-or-later
+    url: https://github.com/IronSecCo/ironclaw/blob/main/LICENSE
+  contact:
+    name: IronClaw
+    url: https://github.com/IronSecCo/ironclaw
+
+externalDocs:
+  description: Architecture, threat model, and the control-plane API reference.
+  url: https://github.com/IronSecCo/ironclaw/blob/main/api/control-plane.md
+
+servers:
+  - url: http://127.0.0.1:8787
+    description: Local development (`--dev`, loopback bind).
+  - url: http://{tailnetHost}:{port}
+    description: Production — bound to the control-plane's Tailscale interface address (no public port).
+    variables:
+      tailnetHost:
+        default: 100.64.0.1
+        description: The host's tailnet IP (e.g. `tailscale ip -4`).
+      port:
+        default: "8787"
+
+# Applied to every operation by default; probe endpoints override with `security: []`.
+# When the server is started without a token, authentication is disabled entirely
+# and the requirement below is not enforced.
+security:
+  - bearerAuth: []
+
+tags:
+  - name: gateway
+    description: Mandatory change-approval gateway and audit log.
+  - name: registry
+    description: Control-plane data model (agent groups, messaging groups, wirings, users, roles, members, sessions).
+  - name: mcp
+    description: MCP (Model Context Protocol) servers — host-side catalog, tool discovery, and per-agent access (gated via the gateway). Enabled with --mcp-catalog.
+  - name: ops
+    description: Liveness, readiness, and metrics probes.
+
+paths:
+  /healthz:
+    get:
+      tags: [ops]
+      summary: Liveness probe (unauthenticated).
+      operationId: getHealthz
+      security: []
+      responses:
+        "200":
+          description: The process is alive.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    const: ok
+                required: [status]
+
+  /readyz:
+    get:
+      tags: [ops]
+      summary: Readiness probe (unauthenticated).
+      operationId: getReadyz
+      security: []
+      responses:
+        "200":
+          description: Ready to serve.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    const: ready
+                required: [status]
+        "503":
+          description: Not ready; `reason` carries the failing readiness check.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    const: not ready
+                  reason:
+                    type: string
+                required: [status, reason]
+
+  /metrics:
+    get:
+      tags: [ops]
+      summary: Prometheus metrics exposition.
+      description: Requires authentication (not probe-exempt). Returns `404` when no metrics handler is configured.
+      operationId: getMetrics
+      responses:
+        "200":
+          description: Prometheus text exposition format.
+          content:
+            text/plain:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotConfigured"
+
+  /v1/changes:
+    post:
+      tags: [gateway]
+      summary: Submit a capability change.
+      description: |
+        Submits a `ChangeRequest` to the gateway. The gateway runs its
+        deterministic verifier chain and then holds the change for a human
+        decision, so submission returns immediately with the assigned id; the
+        change is not applied until approved via the decision endpoint. A `null`
+        or omitted `ID`/`CreatedAt` is assigned server-side.
+      operationId: submitChange
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeRequest"
+      responses:
+        "202":
+          description: Accepted and held pending a decision.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    $ref: "#/components/schemas/ChangeID"
+                required: [id]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/changes/pending:
+    get:
+      tags: [gateway]
+      summary: List changes awaiting a decision.
+      operationId: listPendingChanges
+      responses:
+        "200":
+          description: The pending change requests (possibly empty).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChangeRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/changes/history:
+    get:
+      tags: [gateway]
+      summary: List applied and rejected changes.
+      description: Returns an empty list when no durable history provider is attached (in-memory dev mode).
+      operationId: listChangeHistory
+      responses:
+        "200":
+          description: The change history (possibly empty).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HistoryEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/changes/{id}/decision:
+    post:
+      tags: [gateway]
+      summary: Record an approve/reject decision for a pending change.
+      operationId: decideChange
+      parameters:
+        - $ref: "#/components/parameters/ChangeIDPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecisionRequest"
+      responses:
+        "200":
+          description: Decision recorded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    const: recorded
+                required: [status]
+        "400":
+          description: Missing id, invalid JSON, or `outcome` not `approve`/`reject`.
+          content:
+            text/plain:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: The change is not pending (already decided, unknown, or held by a conflicting state).
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /v1/audit:
+    get:
+      tags: [gateway]
+      summary: Read recent audit entries.
+      description: Returns an empty list when no audit path is attached. Entries are append-only JSONL records.
+      operationId: readAudit
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum entries to return (most recent first). Defaults to 100; non-positive values are ignored.
+          schema:
+            type: integer
+            minimum: 1
+            default: 100
+      responses:
+        "200":
+          description: Recent audit entries (possibly empty).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/registry/agent-groups/{id}:
+    put:
+      tags: [registry]
+      summary: Create or update an agent group.
+      description: The path `id` is authoritative and overrides any `ID` in the body.
+      operationId: putAgentGroup
+      parameters:
+        - $ref: "#/components/parameters/IDPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentGroup"
+      responses:
+        "200":
+          description: The stored agent group.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentGroup"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+    get:
+      tags: [registry]
+      summary: Fetch an agent group by id.
+      operationId: getAgentGroup
+      parameters:
+        - $ref: "#/components/parameters/IDPath"
+      responses:
+        "200":
+          description: The agent group.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentGroup"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/messaging-groups:
+    post:
+      tags: [registry]
+      summary: Get or create a messaging group.
+      description: Idempotent on the `(channelType, platformID, instance)` triple. An empty `unknownSenderPolicy` defaults to `strict`.
+      operationId: createMessagingGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessagingGroupRequest"
+      responses:
+        "200":
+          description: The resolved messaging group.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessagingGroup"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/messaging-groups/{id}:
+    get:
+      tags: [registry]
+      summary: Fetch a messaging group by id.
+      operationId: getMessagingGroup
+      parameters:
+        - $ref: "#/components/parameters/IDPath"
+      responses:
+        "200":
+          description: The messaging group.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessagingGroup"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/messaging-groups/{id}/wirings:
+    get:
+      tags: [registry]
+      summary: List the wirings for a messaging group.
+      operationId: listWirings
+      parameters:
+        - $ref: "#/components/parameters/IDPath"
+      responses:
+        "200":
+          description: The wirings (possibly empty).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Wiring"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/wirings:
+    post:
+      tags: [registry]
+      summary: Create or update a wiring.
+      description: A server-assigned `ID` (prefixed `wr_`) is generated when omitted.
+      operationId: createWiring
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Wiring"
+      responses:
+        "201":
+          description: The stored wiring.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wiring"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/users/{id}:
+    put:
+      tags: [registry]
+      summary: Create or update a user.
+      description: The path `id` is authoritative and overrides any `ID` in the body.
+      operationId: putUser
+      parameters:
+        - $ref: "#/components/parameters/IDPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      responses:
+        "200":
+          description: The stored user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+    get:
+      tags: [registry]
+      summary: Fetch a user by id.
+      operationId: getUser
+      parameters:
+        - $ref: "#/components/parameters/IDPath"
+      responses:
+        "200":
+          description: The user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/roles:
+    post:
+      tags: [registry]
+      summary: Grant a role to a user.
+      operationId: grantRole
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Role"
+      responses:
+        "201":
+          description: The granted role.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/roles/revoke:
+    post:
+      tags: [registry]
+      summary: Revoke a role from a user.
+      operationId: revokeRole
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Role"
+      responses:
+        "200":
+          description: Role revoked.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    const: revoked
+                required: [status]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/members:
+    post:
+      tags: [registry]
+      summary: Add a user as a member of an agent group.
+      operationId: addMember
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Member"
+      responses:
+        "201":
+          description: The added member.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/members/remove:
+    post:
+      tags: [registry]
+      summary: Remove a member from an agent group.
+      operationId: removeMember
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Member"
+      responses:
+        "200":
+          description: Member removed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    const: removed
+                required: [status]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/destinations:
+    post:
+      tags: [registry]
+      summary: Allow an agent group to deliver to a destination.
+      operationId: addDestination
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DestinationRequest"
+      responses:
+        "201":
+          description: The added destination (echoes the request).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DestinationRequest"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/destinations/check:
+    get:
+      tags: [registry]
+      summary: Check whether a destination is allowed for an agent group.
+      operationId: checkDestination
+      parameters:
+        - name: agentGroupID
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/AgentGroupID"
+        - name: channelType
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: platformID
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Whether the destination is permitted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allowed:
+                    type: boolean
+                required: [allowed]
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/sessions:
+    get:
+      tags: [registry]
+      summary: List all sessions.
+      operationId: listSessions
+      responses:
+        "200":
+          description: The sessions (possibly empty).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Session"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/sessions/{id}:
+    get:
+      tags: [registry]
+      summary: Fetch a session by id.
+      operationId: getSession
+      parameters:
+        - $ref: "#/components/parameters/IDPath"
+      responses:
+        "200":
+          description: The session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/access:
+    get:
+      tags: [registry]
+      summary: Check whether a user may access an agent group.
+      operationId: checkAccess
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserID"
+        - name: agentGroupID
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/AgentGroupID"
+      responses:
+        "200":
+          description: The access decision and a human-readable reason.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allowed:
+                    type: boolean
+                  reason:
+                    type: string
+                required: [allowed, reason]
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/RegistryUnavailable"
+
+  /v1/registry/mcp-servers:
+    get:
+      tags: [mcp]
+      summary: List configured MCP servers (secrets masked).
+      description: Returns every server in the catalog with secret-bearing env/header values masked. Requires MCP enabled (--mcp-catalog), else 503.
+      operationId: listMCPServers
+      responses:
+        "200":
+          description: The configured servers.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MCPServer"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/MCPUnavailable"
+
+  /v1/registry/mcp-servers/{name}:
+    put:
+      tags: [mcp]
+      summary: Create or update an MCP server.
+      description: The path `name` is authoritative. A secret value submitted as the mask placeholder (`••••`) is treated as unchanged and the stored value is preserved. Configuring a server grants no agent anything — a gateway-approved `mcp_access` change does that.
+      operationId: putMCPServer
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MCPServer"
+      responses:
+        "200":
+          description: The stored server (secrets masked).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MCPServer"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/MCPUnavailable"
+    get:
+      tags: [mcp]
+      summary: Fetch one MCP server (secrets masked).
+      operationId: getMCPServer
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The server.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MCPServer"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/MCPUnavailable"
+    delete:
+      tags: [mcp]
+      summary: Remove an MCP server from the catalog.
+      description: Does not revoke already-approved grants (a separate gateway change); the broker simply can no longer reach a removed server.
+      operationId: deleteMCPServer
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Removed.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/MCPUnavailable"
+
+  /v1/registry/mcp-servers/{name}/probe:
+    post:
+      tags: [mcp]
+      summary: Connect to a server and discover its tools.
+      description: An operator action on infrastructure (it does not consult grants). Spawns/dials the server, performs the MCP handshake, and returns its declared tools.
+      operationId: probeMCPServer
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The server's declared tools.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tools:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MCPTool"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "502":
+          description: The server could not be reached or did not complete the handshake.
+        "503":
+          $ref: "#/components/responses/MCPUnavailable"
+
+  /v1/ui/mcp-servers:
+    get:
+      tags: [mcp]
+      summary: Console read-model — servers plus the agent groups granted each.
+      operationId: uiMCPServers
+      responses:
+        "200":
+          description: Servers (secrets masked) with their grants.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    server:
+                      $ref: "#/components/schemas/MCPServer"
+                    grants:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          agentGroupId: { type: string }
+                          agentGroupName: { type: string }
+                          tools:
+                            type: array
+                            items: { type: string }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/MCPUnavailable"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Static bearer token, supplied to the server via `IRONCLAW_API_TOKEN`
+        (or `--token` for `ironctl`). It is **all-or-nothing** — there are no
+        per-endpoint scopes; a valid token authorizes every non-probe endpoint.
+        The token is compared in constant time. `/healthz` and `/readyz` are
+        always exempt. When the server is started without a token the check is
+        disabled and the mesh (Tailscale) boundary is the sole control.
+
+  parameters:
+    IDPath:
+      name: id
+      in: path
+      required: true
+      description: The resource id (authoritative for create/update).
+      schema:
+        type: string
+    ChangeIDPath:
+      name: id
+      in: path
+      required: true
+      description: The change id.
+      schema:
+        $ref: "#/components/schemas/ChangeID"
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token (only when the server is started with a token).
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: unauthorized
+    BadRequest:
+      description: Malformed JSON body or invalid field values.
+      content:
+        text/plain:
+          schema:
+            type: string
+    NotFound:
+      description: Resource not found.
+      content:
+        text/plain:
+          schema:
+            type: string
+    InternalError:
+      description: Internal error reading from the backing store.
+      content:
+        text/plain:
+          schema:
+            type: string
+    NotConfigured:
+      description: The feature is not configured on this server.
+      content:
+        text/plain:
+          schema:
+            type: string
+    RegistryUnavailable:
+      description: No registry backend is attached to this control-plane.
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: registry not configured
+    MCPUnavailable:
+      description: MCP is not enabled on this control-plane (start the daemon with --mcp-catalog).
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: MCP is not enabled on this control-plane (set --mcp-catalog)
+
+  schemas:
+    # --- scalar id types (all strings; see internal/contract/ids.go) ---
+    ChangeID:
+      type: string
+      description: Gateway change id (server-assigned `chg_<timestamp>` when omitted).
+      examples: ["chg_20260617120000.000000000"]
+    UserID:
+      type: string
+      description: Platform identity, formatted `<channel>:<handle>`.
+      examples: ["slack:U123", "telegram:42"]
+    AgentGroupID:
+      type: string
+    MessagingGroupID:
+      type: string
+    SessionID:
+      type: string
+
+    # --- enums (see internal/contract/enums.go) ---
+    ChangeKind:
+      type: string
+      description: The control-plane mutation kind.
+      enum:
+        - persona
+        - enabled_tools
+        - packages
+        - wiring
+        - permissions
+        - mounts
+        - create_agent
+    UnknownSenderPolicy:
+      type: string
+      enum: [strict, request_approval, public]
+      default: strict
+    EngageMode:
+      type: string
+      enum: [pattern, mention, mention-sticky]
+    SenderScope:
+      type: string
+      enum: [all, known]
+    IgnoredMessagePolicy:
+      type: string
+      enum: [drop, accumulate]
+    SessionMode:
+      type: string
+      enum: [shared, per-thread, agent-shared]
+    DecisionOutcome:
+      type: string
+      enum: [approve, reject]
+    AuditStage:
+      type: string
+      enum: [submit, verdict, decision, apply]
+
+    # --- gateway types (internal/contract/gateway.go, internal/host/gateway) ---
+    ChangeRequest:
+      type: object
+      description: |
+        The mandatory-mutation protocol payload. `Before`/`After` are
+        canonicalized JSON (sorted keys) describing the prior and proposed state
+        for the change kind. `ID` and `CreatedAt` are assigned server-side when
+        omitted. Field names are the canonical (Go) capitalized forms; the
+        decoder also accepts lower-case keys.
+      properties:
+        ID:
+          $ref: "#/components/schemas/ChangeID"
+        Kind:
+          $ref: "#/components/schemas/ChangeKind"
+        AgentGroupID:
+          $ref: "#/components/schemas/AgentGroupID"
+        RequestedBy:
+          $ref: "#/components/schemas/UserID"
+        Before:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: Canonicalized prior state (may be null/empty for a create).
+        After:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: Canonicalized proposed state.
+        CreatedAt:
+          type: string
+          format: date-time
+      required: [Kind]
+    Decision:
+      type: object
+      description: The recorded outcome of the approval step (as embedded in history).
+      properties:
+        Outcome:
+          $ref: "#/components/schemas/DecisionOutcome"
+        DecidedBy:
+          $ref: "#/components/schemas/UserID"
+        DecidedAt:
+          type: string
+          format: date-time
+      required: [Outcome, DecidedBy, DecidedAt]
+    DecisionRequest:
+      type: object
+      description: Body of the decision endpoint (note the lower-case JSON keys).
+      properties:
+        outcome:
+          $ref: "#/components/schemas/DecisionOutcome"
+        decidedBy:
+          $ref: "#/components/schemas/UserID"
+      required: [outcome, decidedBy]
+    HistoryEntry:
+      type: object
+      description: One applied/rejected change with its recorded decision.
+      properties:
+        request:
+          $ref: "#/components/schemas/ChangeRequest"
+        status:
+          type: string
+          description: Terminal status of the change (e.g. `applied`, `rejected`).
+        decision:
+          $ref: "#/components/schemas/Decision"
+      required: [request, status]
+    AuditEntry:
+      type: object
+      description: One append-only audit record (emitted as JSONL on disk).
+      properties:
+        time:
+          type: string
+          format: date-time
+        stage:
+          $ref: "#/components/schemas/AuditStage"
+        changeId:
+          $ref: "#/components/schemas/ChangeID"
+        kind:
+          $ref: "#/components/schemas/ChangeKind"
+        detail:
+          type: string
+      required: [time, stage, changeId]
+
+    # --- registry types (internal/host/registry/registry.go; no JSON tags → capitalized keys) ---
+    AgentGroup:
+      type: object
+      description: A configured agent (workspace, persona, container config). Only host-facing identity fields are exposed here.
+      properties:
+        ID:
+          $ref: "#/components/schemas/AgentGroupID"
+        Name:
+          type: string
+        Folder:
+          type: string
+    MCPServer:
+      type: object
+      description: An operator-configured MCP server. Local (stdio subprocess) or remote (streamable HTTP). Secret values in env/headers should be ${ENV} references (resolved host-side); raw values are masked on read.
+      required: [name, transport]
+      properties:
+        name:
+          type: string
+          description: Unique lowercase label.
+        displayName: { type: string }
+        description: { type: string }
+        transport:
+          type: string
+          enum: [stdio, http]
+          description: stdio = a local subprocess the host runs (isolated); http = a remote endpoint the host dials over TLS.
+        command:
+          type: string
+          description: (stdio) the server executable.
+        args:
+          type: array
+          items: { type: string }
+          description: (stdio) arguments.
+        env:
+          type: object
+          additionalProperties: { type: string }
+          description: (stdio) extra environment; values may be ${ENV} references.
+        image:
+          type: string
+          description: (stdio) container image for isolation; empty uses the daemon's --mcp-image.
+        url:
+          type: string
+          description: (http) endpoint URL; https required for a non-loopback host.
+        headers:
+          type: object
+          additionalProperties: { type: string }
+          description: (http) request headers; values may be ${ENV} references.
+    MCPTool:
+      type: object
+      description: One tool a server declares (the tools/list element).
+      properties:
+        name: { type: string }
+        description: { type: string }
+        inputSchema:
+          type: object
+          description: JSON Schema for the tool's arguments, passed through from the server.
+    MessagingGroup:
+      type: object
+      description: A single chat/channel on one platform, identified by the (ChannelType, PlatformID, Instance) triple.
+      properties:
+        ID:
+          $ref: "#/components/schemas/MessagingGroupID"
+        ChannelType:
+          type: string
+        PlatformID:
+          type: string
+        Instance:
+          type: string
+        IsGroup:
+          type: boolean
+        UnknownSenderPolicy:
+          $ref: "#/components/schemas/UnknownSenderPolicy"
+    MessagingGroupRequest:
+      type: object
+      description: Body for get-or-create of a messaging group (lower-case JSON keys).
+      properties:
+        channelType:
+          type: string
+        platformID:
+          type: string
+        instance:
+          type: string
+        isGroup:
+          type: boolean
+        unknownSenderPolicy:
+          $ref: "#/components/schemas/UnknownSenderPolicy"
+      required: [channelType, platformID]
+    Wiring:
+      type: object
+      description: Links a messaging group to an agent group with engage/session policy.
+      properties:
+        ID:
+          type: string
+        MessagingGroupID:
+          $ref: "#/components/schemas/MessagingGroupID"
+        AgentGroupID:
+          $ref: "#/components/schemas/AgentGroupID"
+        EngageMode:
+          $ref: "#/components/schemas/EngageMode"
+        EngagePattern:
+          type: string
+        SenderScope:
+          $ref: "#/components/schemas/SenderScope"
+        IgnoredMessagePolicy:
+          $ref: "#/components/schemas/IgnoredMessagePolicy"
+        SessionMode:
+          $ref: "#/components/schemas/SessionMode"
+        Priority:
+          type: integer
+    User:
+      type: object
+      description: A platform identity (id is `<channel>:<handle>`).
+      properties:
+        ID:
+          $ref: "#/components/schemas/UserID"
+        Kind:
+          type: string
+        DisplayName:
+          type: string
+    Role:
+      type: object
+      description: Grants a user owner or admin privilege. A null `AgentGroupID` is a global role; otherwise it is scoped to that agent group.
+      properties:
+        UserID:
+          $ref: "#/components/schemas/UserID"
+        Role:
+          type: string
+          enum: [owner, admin]
+        AgentGroupID:
+          oneOf:
+            - $ref: "#/components/schemas/AgentGroupID"
+            - type: "null"
+      required: [UserID, Role]
+    Member:
+      type: object
+      description: Records unprivileged access of a user to an agent group.
+      properties:
+        UserID:
+          $ref: "#/components/schemas/UserID"
+        AgentGroupID:
+          $ref: "#/components/schemas/AgentGroupID"
+      required: [UserID, AgentGroupID]
+    Session:
+      type: object
+      description: A per-(agent group, messaging group, thread) conversation with its own sandbox and queue pair.
+      properties:
+        ID:
+          $ref: "#/components/schemas/SessionID"
+        AgentGroupID:
+          $ref: "#/components/schemas/AgentGroupID"
+        MessagingGroupID:
+          $ref: "#/components/schemas/MessagingGroupID"
+        ThreadID:
+          type: string
+          nullable: true
+        ContainerStatus:
+          type: string
+        LastActive:
+          type: string
+          format: date-time
+    DestinationRequest:
+      type: object
+      description: Body to allow an agent group to deliver to a (channelType, platformID) destination.
+      properties:
+        agentGroupID:
+          $ref: "#/components/schemas/AgentGroupID"
+        channelType:
+          type: string
+        platformID:
+          type: string
+      required: [agentGroupID, channelType, platformID]
