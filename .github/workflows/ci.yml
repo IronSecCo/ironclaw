@@ -23,3 +23,12 @@ jobs:
         run: go vet ./...
       - name: test
         run: go test ./...
+
+  no-binaries:
+    # Reject accidentally-committed build artifacts (see IRO-8: a 17MB
+    # controlplane binary was once committed). Guards the repo against bloat.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: reject committed binaries
+        run: ./scripts/check-no-binaries.sh

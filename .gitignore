@@ -6,11 +6,13 @@ dist/
 *.so
 *.dylib
 
-# Root-level `go build ./cmd/...` outputs (anchored so packages keep their dirs)
+# Root-level `go build ./cmd/...` and `./tools/...` outputs
+# (anchored so the source package dirs keep their tracked files)
 /controlplane
 /ironctl
 /mcp-sample
 /sandbox
+/icdemo
 
 # Go
 *.test
