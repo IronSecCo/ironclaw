@@ -6,6 +6,12 @@ dist/
 *.so
 *.dylib
 
+# Root-level `go build ./cmd/...` outputs (anchored so packages keep their dirs)
+/controlplane
+/ironctl
+/mcp-sample
+/sandbox
+
 # Go
 *.test
 *.out
