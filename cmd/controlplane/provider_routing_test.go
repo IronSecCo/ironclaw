@@ -38,16 +38,16 @@ func TestSelectModel_PerGroupMultiProvider(t *testing.T) {
 	reg := registry.NewMemRegistry()
 	type want struct{ provider, model string }
 	groups := []struct {
-		id            contract.AgentGroupID
-		mg            string
-		provider      string
-		model         string
-		want          want
+		id       contract.AgentGroupID
+		mg       string
+		provider string
+		model    string
+		want     want
 	}{
-		{"g-anthropic", "mg-a", "", "", want{"", ""}},                          // sealed Anthropic default
-		{"g-openai", "mg-o", "openai", "gpt-4o", want{"openai", "gpt-4o"}},     // pinned OpenAI
+		{"g-anthropic", "mg-a", "", "", want{"", ""}},                                                // sealed Anthropic default
+		{"g-openai", "mg-o", "openai", "gpt-4o", want{"openai", "gpt-4o"}},                           // pinned OpenAI
 		{"g-openrouter", "mg-r", "openrouter", "openai/gpt-4o", want{"openrouter", "openai/gpt-4o"}}, // pinned OpenRouter
-		{"g-codex", "mg-c", "codex", "gpt-5.5", want{"codex", "gpt-5.5"}},      // pinned Codex
+		{"g-codex", "mg-c", "codex", "gpt-5.5", want{"codex", "gpt-5.5"}},                            // pinned Codex
 	}
 
 	sel := selectModelFromRegistry(reg)

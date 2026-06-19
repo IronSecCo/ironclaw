@@ -110,4 +110,4 @@ type stageError struct {
 }
 
 func (e *stageError) Error() string { return "cp rootfs: " + e.err.Error() + ": " + e.msg }
-func (e *stageError) Unwrap() error  { return e.err }
+func (e *stageError) Unwrap() error { return e.err }
