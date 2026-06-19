@@ -29,6 +29,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -70,6 +71,10 @@ func main() {
 		"directory under which per-session OCI bundles (config.json + rootfs) are written")
 	sandboxImage := flag.String("sandbox-image", "ironclaw-sandbox:latest",
 		"container image reference recorded in each sandbox's OCI spec")
+	sandboxProvisioner := flag.String("sandbox-provisioner", "none",
+		"how each sandbox rootfs is populated for the runsc/gVisor runtime: \"containerd\" (pull + unpack --sandbox-image via ctr, trust-verified against --sandbox-image-digest) or \"none\" (operator pre-stages the rootfs under --bundle-root/<session>/rootfs)")
+	sandboxImageDigest := flag.String("sandbox-image-digest", "",
+		"pinned sha256:<hex> digest the --sandbox-image must resolve to; the rootfs provisioner refuses any other content (REQUIRED when --sandbox-provisioner=containerd — fail closed)")
 	sweepInterval := flag.Duration("sweep-interval", 60*time.Second,
 		"how often the maintenance sweep runs (stale-sandbox detection + due-message wake)")
 	deliveryInterval := flag.Duration("delivery-interval", 2*time.Second,
@@ -100,6 +105,23 @@ func main() {
 		"OCI runtime for container MCP isolation, passed as docker --runtime (e.g. \"runsc\" for gVisor); empty uses the container CLI default")
 	mcpImage := flag.String("mcp-image", "",
 		"default container image for isolated local MCP servers when a server config sets no image")
+	// API-server hardening (R2). Secure defaults are active on the normal install/
+	// run path: a global rate cap, request body/header size caps, and a /readyz
+	// readiness gate. TLS is opt-in (empty paths keep plain HTTP — the mesh/tailnet
+	// boundary stays the primary control). Each knob also reads an IRONCLAW_API_*
+	// env var so the 0600 env file can tune it without editing the service unit.
+	apiTLSCert := flag.String("api-tls-cert", os.Getenv("IRONCLAW_API_TLS_CERT"),
+		"OPT-IN: PEM certificate file; with --api-tls-key makes the API serve HTTPS instead of HTTP (the mesh boundary remains the primary control)")
+	apiTLSKey := flag.String("api-tls-key", os.Getenv("IRONCLAW_API_TLS_KEY"),
+		"OPT-IN: PEM private-key file paired with --api-tls-cert")
+	apiRateLimitRPS := flag.Float64("api-rate-limit-rps", envOrFloat("IRONCLAW_API_RATE_LIMIT_RPS", 50),
+		"control-plane API global rate cap in requests/second (probes are exempt); 0 disables it")
+	apiRateLimitBurst := flag.Int("api-rate-limit-burst", envOrInt("IRONCLAW_API_RATE_LIMIT_BURST", 100),
+		"control-plane API rate-cap burst size")
+	apiMaxBodyBytes := flag.Int64("api-max-body-bytes", envOrInt64("IRONCLAW_API_MAX_BODY_BYTES", 1<<20),
+		"control-plane API max request body size in bytes (0 disables the cap)")
+	apiMaxHeaderBytes := flag.Int("api-max-header-bytes", envOrInt("IRONCLAW_API_MAX_HEADER_BYTES", 1<<20),
+		"control-plane API max request header size in bytes (0 leaves Go's default)")
 	dev := flag.Bool("dev", false,
 		"seed the registry with a tiny dev owner/agent-group for local testing")
 	showVersion := flag.Bool("version", false, "print version and exit")
@@ -407,10 +429,30 @@ func main() {
 		store,
 	).SetAudit(audit)
 
+	// Readiness gate: /readyz reports 503 until the core serving loops (model
+	// proxy, delivery, sweep) are up. /healthz (liveness) flips the moment the API
+	// binds; /readyz additionally asserts the daemon can actually do work, so an
+	// orchestrator does not route real traffic to a half-started control-plane.
+	readyGate := newReadinessGate("model-proxy", "delivery", "sweep")
+
+	// TLS is all-or-nothing: a lone cert or key is an operator mistake that would
+	// otherwise silently fall back to plain HTTP. Fail loud at startup.
+	if (*apiTLSCert == "") != (*apiTLSKey == "") {
+		logger.Error("api tls", "error", "both --api-tls-cert and --api-tls-key must be set together")
+		os.Exit(1)
+	}
+
 	// WithRegistry attaches the control-plane registry so the /v1/registry admin
 	// endpoints are live and the approvals read-model (/v1/ui/approvals) can
-	// resolve agent-group/requester names instead of showing raw ids.
-	server := api.New(gw).WithHistory(store).WithAuditPath(auditPath).WithMetrics(m.Handler()).WithRegistry(reg)
+	// resolve agent-group/requester names instead of showing raw ids. The R2
+	// hardening options (global rate cap, request body/header size caps, the
+	// /readyz readiness gate, and opt-in TLS) are wired here with secure defaults
+	// active on the normal run path.
+	server := api.New(gw).WithHistory(store).WithAuditPath(auditPath).WithMetrics(m.Handler()).WithRegistry(reg).
+		WithRateLimit(*apiRateLimitRPS, *apiRateLimitBurst).
+		WithLimits(*apiMaxBodyBytes, *apiMaxHeaderBytes).
+		WithReadiness(readyGate.check).
+		WithTLS(*apiTLSCert, *apiTLSKey)
 	// Optional bearer-token auth (defense-in-depth behind the tailnet). Read from
 	// the host environment; never logged.
 	apiToken := os.Getenv("IRONCLAW_API_TOKEN")
@@ -433,20 +475,46 @@ func main() {
 				binds = append(binds, b)
 			}
 		}
-		network := os.Getenv("IRONCLAW_DOCKER_NETWORK")
 		isolator = isolation.NewDocker(
 			envOr("IRONCLAW_DOCKER_SOCKET", "/var/run/docker.sock"),
-			network,
 			binds,
 			envOr("IRONCLAW_DOCKER_USER", "0:0"),
 		)
-		logger.Warn("isolation runtime is Docker (runc, NOT gVisor) — development only",
-			"network", network, "binds", strings.Join(binds, " "))
+		// network=none is auto-enforced by the isolator (no IRONCLAW_DOCKER_NETWORK knob),
+		// alongside a seccomp allowlist, CapDrop ALL, no_new_privs, and a read-only rootfs.
+		// The residual gap is the shared host kernel (no per-sandbox syscall interception).
+		logger.Warn("isolation runtime is Docker (runc, NOT gVisor) — development only; network=none + seccomp + caps-dropped enforced, but the host kernel is shared",
+			"binds", strings.Join(binds, " "))
 	} else {
-		isolator = isolation.NewRunsc(
+		// gVisor/runsc production path. Build the rootfs provisioner so the normal
+		// install-and-run flow can actually populate a per-session rootfs; without a
+		// provisioner Launch fails closed (ErrRootfsMissing) unless the operator
+		// pre-stages it. When the containerd provisioner is selected, a pinned-digest
+		// trust policy is MANDATORY — a provisioner that pulls content unverified
+		// would let a repointed tag or substituted image reach a sandbox.
+		runscOpts := []isolation.Option{
 			isolation.WithRuntimeBinary(*runtimeBin),
 			isolation.WithBundleRoot(*bundleRoot),
-		)
+		}
+		switch strings.TrimSpace(*sandboxProvisioner) {
+		case "", "none":
+			logger.Info("sandbox rootfs provisioner is none — operator must pre-stage rootfs (Launch fails closed if absent)",
+				"bundle_root", *bundleRoot)
+		case "containerd":
+			if strings.TrimSpace(*sandboxImageDigest) == "" {
+				logger.Error("--sandbox-provisioner=containerd requires --sandbox-image-digest (a pinned sha256 the image must match); refusing to provision unverified images")
+				os.Exit(1)
+			}
+			policy := isolation.NewPinnedDigestPolicy(map[string]string{*sandboxImage: *sandboxImageDigest})
+			provisioner := isolation.NewContainerdProvisioner(isolation.WithTrustPolicy(policy))
+			runscOpts = append(runscOpts, isolation.WithProvisioner(provisioner))
+			logger.Info("sandbox rootfs provisioner is containerd (trust-policy-verified)",
+				"image", *sandboxImage, "pinned_digest", *sandboxImageDigest)
+		default:
+			logger.Error("unknown --sandbox-provisioner", "value", *sandboxProvisioner, "want", "none|containerd")
+			os.Exit(1)
+		}
+		isolator = isolation.NewRunsc(runscOpts...)
 	}
 
 	// Per-session lifecycle: the SessionManager composes the encrypted queue
@@ -575,6 +643,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		logger.Info("model proxy listening", "socket", *socket, "allowlist", strings.Join(allowHosts, ","))
+		readyGate.markReady("model-proxy")
 		if err := proxy.Serve(ctx, *socket); err != nil && err != context.Canceled {
 			logger.Error("model proxy stopped", "error", err)
 			stop()
@@ -600,6 +669,7 @@ func main() {
 		ticker := time.NewTicker(*sweepInterval)
 		defer ticker.Stop()
 		logger.Info("sweep running", "interval", sweepInterval.String())
+		readyGate.markReady("sweep")
 		for {
 			select {
 			case <-ctx.Done():
@@ -618,6 +688,7 @@ func main() {
 		ticker := time.NewTicker(*deliveryInterval)
 		defer ticker.Stop()
 		logger.Info("delivery polling", "interval", deliveryInterval.String())
+		readyGate.markReady("delivery")
 		for {
 			select {
 			case <-ctx.Done():
@@ -640,6 +711,9 @@ func main() {
 		"registry", "in-memory", "dev", *dev,
 		"custody", "durable (file master + sealed store)",
 		"api_gated", apiToken != "",
+		"api_tls", *apiTLSCert != "",
+		"api_rate_limit_rps", *apiRateLimitRPS, "api_rate_limit_burst", *apiRateLimitBurst,
+		"api_max_body_bytes", *apiMaxBodyBytes, "api_max_header_bytes", *apiMaxHeaderBytes,
 		"model_proxy_socket", *socket, "cred_injection", credInjected,
 		"model_proxy_rate_cap_rps", *proxyRPS, "model_proxy_burst", *proxyBurst,
 		"channel_adapters", channelReg.List(),
@@ -886,6 +960,38 @@ func buildSkillsResolver(sourceDir, trustKeyPath string) (*skills.Resolver, erro
 func envOr(key, def string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return def
+}
+
+// envOrFloat returns the float-parsed environment value for key, or def when it
+// is unset or unparseable. Used to seed flag defaults from the env file so the
+// install flow can tune a knob without editing the service unit.
+func envOrFloat(key string, def float64) float64 {
+	if v := os.Getenv(key); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return f
+		}
+	}
+	return def
+}
+
+// envOrInt is the int counterpart of envOrFloat.
+func envOrInt(key string, def int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return def
+}
+
+// envOrInt64 is the int64 counterpart of envOrFloat (byte-size knobs).
+func envOrInt64(key string, def int64) int64 {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			return n
+		}
 	}
 	return def
 }

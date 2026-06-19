@@ -86,7 +86,7 @@ func TestDockerLaunchAndStop(t *testing.T) {
 	go srv.Serve(ln)
 	t.Cleanup(func() { srv.Close() })
 
-	d := NewDocker(sock, "none", []string{"vol:/p"}, "0:0")
+	d := NewDocker(sock, []string{"vol:/p"}, "0:0")
 	h, err := d.Launch(context.Background(), SandboxSpec{
 		SessionID: "ses_x", Image: "img",
 		ReadOnlyInboundPath: "/i", ReadWriteOutboundPath: "/o", ModelProxySocket: "/m",
@@ -112,6 +112,42 @@ func TestDockerLaunchAndStop(t *testing.T) {
 	}
 	if len(cb.HostConfig.Binds) != 1 || cb.HostConfig.Binds[0] != "vol:/p" {
 		t.Errorf("Binds = %v, want [vol:/p]", cb.HostConfig.Binds)
+	}
+	// Hardening parity with the OCI path, enforced on the runc boundary.
+	if len(cb.HostConfig.CapDrop) != 1 || cb.HostConfig.CapDrop[0] != "ALL" {
+		t.Errorf("CapDrop = %v, want [ALL]", cb.HostConfig.CapDrop)
+	}
+	if !cb.HostConfig.ReadonlyRootfs {
+		t.Error("ReadonlyRootfs = false, want true")
+	}
+	if _, ok := cb.HostConfig.Tmpfs["/tmp"]; !ok {
+		t.Errorf("Tmpfs missing /tmp entry, got %v", cb.HostConfig.Tmpfs)
+	}
+	if cb.HostConfig.Memory <= 0 {
+		t.Errorf("Memory = %d, want a positive cgroup cap", cb.HostConfig.Memory)
+	}
+	if cb.HostConfig.PidsLimit == nil || *cb.HostConfig.PidsLimit <= 0 {
+		t.Errorf("PidsLimit = %v, want a positive cap", cb.HostConfig.PidsLimit)
+	}
+	var sawNoNewPrivs, sawSeccomp bool
+	for _, opt := range cb.HostConfig.SecurityOpt {
+		if opt == "no-new-privileges:true" {
+			sawNoNewPrivs = true
+		}
+		if strings.HasPrefix(opt, "seccomp=") {
+			sawSeccomp = true
+			// The seccomp value must be the restrictive deny-by-default allowlist,
+			// not Docker's permissive default ("unconfined" or a missing default action).
+			if !strings.Contains(opt, "SCMP_ACT_ERRNO") {
+				t.Errorf("seccomp opt is not deny-by-default: %q", opt)
+			}
+		}
+	}
+	if !sawNoNewPrivs {
+		t.Errorf("SecurityOpt missing no-new-privileges:true, got %v", cb.HostConfig.SecurityOpt)
+	}
+	if !sawSeccomp {
+		t.Errorf("SecurityOpt missing seccomp allowlist, got %v", cb.HostConfig.SecurityOpt)
 	}
 	if err := h.Stop(context.Background()); err != nil {
 		t.Fatalf("Stop: %v", err)
@@ -144,7 +180,7 @@ func TestDockerHandleAlive(t *testing.T) {
 	go srv.Serve(ln)
 	t.Cleanup(func() { srv.Close() })
 
-	d := NewDocker(sock, "none", nil, "0:0")
+	d := NewDocker(sock, nil, "0:0")
 	cases := []struct {
 		id   string
 		want bool

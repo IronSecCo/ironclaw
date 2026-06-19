@@ -16,6 +16,15 @@
 #   IRONCLAW_BUNDLE_ROOT         OCI bundle root       (default: $STATE_DIR/bundles)
 #   IRONCLAW_SANDBOX_IMAGE       sandbox image ref     (default: ironclaw-sandbox:latest)
 #   ANTHROPIC_API_KEY            host model credential (left blank if unset)
+#
+# API-server hardening (secure defaults active out of the box; override in the env
+# file only to tune them — the control-plane reads each at startup):
+#   IRONCLAW_API_RATE_LIMIT_RPS   API global rate cap, req/s   (default: 50; 0 disables)
+#   IRONCLAW_API_RATE_LIMIT_BURST API rate-cap burst           (default: 100)
+#   IRONCLAW_API_MAX_BODY_BYTES   API max request body bytes   (default: 1048576; 0 disables)
+#   IRONCLAW_API_MAX_HEADER_BYTES API max request header bytes (default: 1048576)
+#   IRONCLAW_API_TLS_CERT/KEY     OPT-IN PEM cert+key for HTTPS (default: plain HTTP — the
+#                                 tailnet/mesh boundary stays the primary control)
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
@@ -114,6 +123,15 @@ IRONCLAW_STATE_DIR=${STATE_DIR}
 IRONCLAW_MODEL_PROXY_SOCKET=${MODEL_PROXY_SOCKET}
 IRONCLAW_BUNDLE_ROOT=${BUNDLE_ROOT}
 IRONCLAW_SANDBOX_IMAGE=${SANDBOX_IMAGE}
+
+# API-server hardening — secure defaults are already active; uncomment to tune.
+#IRONCLAW_API_RATE_LIMIT_RPS=50
+#IRONCLAW_API_RATE_LIMIT_BURST=100
+#IRONCLAW_API_MAX_BODY_BYTES=1048576
+#IRONCLAW_API_MAX_HEADER_BYTES=1048576
+# Opt-in HTTPS (defaults to plain HTTP behind the tailnet/mesh boundary):
+#IRONCLAW_API_TLS_CERT=/etc/ironclaw/tls/cert.pem
+#IRONCLAW_API_TLS_KEY=/etc/ironclaw/tls/key.pem
 ENV
 chmod 0600 "${ENV_FILE}"
 [ -n "${ANTHROPIC_API_KEY}" ] || log "NOTE: ANTHROPIC_API_KEY is blank in ${ENV_FILE} — set it before serving model traffic."

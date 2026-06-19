@@ -56,6 +56,12 @@ Set `IRONCLAW_IMAGE` in `.env` to pin a tag for compose. On a fresh clone with n
 children with `network=none`. The compose topology deliberately does not flatten that — it never puts
 sandboxes on a network. Launching real sandboxes needs a runsc-capable host (see
 [Production](/site/self-hosting/production)); the API + gateway above do not.
+
+On macOS/Windows (no `runsc`) the control-plane falls back to the Docker **`runc`** runtime. That path
+still auto-enforces `network=none`, a deny-by-default seccomp allowlist, `CapDrop: ALL`, `no_new_privs`,
+and a read-only rootfs — but runc **shares the host kernel** (no per-sandbox syscall interception), so it
+is a **development** boundary only. See [Sandbox isolation](/site/concepts/sandbox-isolation) for the
+residual-weakness detail.
 </Warning>
 
 ## Configure it

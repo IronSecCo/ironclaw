@@ -49,6 +49,30 @@ The most common way to steal data from an AI agent is to trick it into _sending_
 `network=none` and a single allowlisted egress path, there is nowhere to send it.
 </Warning>
 
+## Non-Linux hosts: the Docker (runc) fallback
+
+gVisor (`runsc`) is Linux-only. On macOS/Windows (e.g. Docker Desktop) the control-plane falls back to
+launching each sandbox as a plain Docker container on the default **`runc`** runtime — a **weaker
+boundary** because runc shares the host kernel. IronClaw narrows that gap by applying every host-side
+hardening knob runc can enforce, not the relaxed Docker defaults:
+
+- **`network=none` is auto-enforced**, with no operator knob. (There is no `IRONCLAW_DOCKER_NETWORK`
+  variable — it was removed so a sandbox can never be attached to a network.) Egress stays the bound
+  model-proxy / egress / MCP unix sockets only.
+- **The same restrictive seccomp allowlist** the OCI path emits is passed to Docker
+  (`SecurityOpt seccomp=…`): deny-by-default (EPERM) with only the curated syscalls the Go agent needs.
+- **All capabilities dropped** (`CapDrop: ALL`) and **`no_new_privs`** set.
+- **Read-only rootfs** with a small `noexec`/`nosuid`/`nodev` `/tmp` tmpfs; everything writable arrives
+  through explicit binds.
+- **Memory and pid cgroup caps** mirror the gVisor-path defaults.
+
+<Warning>
+**Residual weakness — be honest about it.** runc **shares the host kernel**: there is **no per-sandbox
+syscall interception** like gVisor's user-space kernel. Seccomp *narrows* the kernel attack surface but
+does not *contain* a kernel-level escape the way `runsc` does. The Docker fallback is a **development**
+posture; run **Linux + gVisor** for the real security boundary.
+</Warning>
+
 ## Image verification
 
 Before a sandbox launches, its rootfs is provisioned through a pluggable provisioner that **verifies the

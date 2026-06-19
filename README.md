@@ -148,17 +148,19 @@ that one fact drives the whole platform story:
 |---|---|---|
 | Host side — control-plane, gateway, API, `ironctl`, web console | ✅ native | ✅ native |
 | Real agent sandbox | ✅ gVisor (`runsc`) | ⚠️ `--runtime docker` only — runc in Docker Desktop's Linux VM |
-| Per-sandbox syscall interception | ✅ | ❌ not available |
-| Seccomp syscall allowlist | ✅ enforced | ❌ not applied on the Docker path |
-| `network=none` | ✅ enforced by the OCI spec | ⚠️ **not auto-enforced** — you must point `IRONCLAW_DOCKER_NETWORK` at a no-egress network |
-| Dropped capabilities · read-only rootfs | ✅ enforced by the runtime | ⚠️ only as strong as the Docker Desktop VM kernel |
+| Per-sandbox syscall interception | ✅ | ❌ **not available** (shared host kernel) |
+| Seccomp syscall allowlist | ✅ enforced | ✅ same allowlist applied (`SecurityOpt seccomp=…`) |
+| `network=none` | ✅ enforced by the OCI spec | ✅ **auto-enforced** (no operator knob) |
+| Dropped capabilities · read-only rootfs · `no_new_privs` | ✅ enforced by the runtime | ✅ enforced on the Docker path (runc) |
 
 **On macOS** you can build, script, demo, and develop against the entire system natively, and you
 can even run agents through Docker Desktop — but understand that the sandbox boundary then comes from
-**runc inside the Docker Desktop Linux VM, not gVisor.** There is no per-sandbox syscall
-interception, the curated seccomp profile is not applied, and `network=none` is not enforced for you
-(the Docker isolator passes whatever network you configure straight through — set
-`IRONCLAW_DOCKER_NETWORK` to a no-egress bridge yourself). That is **weaker than the posture the
+**runc inside the Docker Desktop Linux VM, not gVisor.** The Docker path is hardened to narrow the gap:
+it auto-enforces `network=none` (no `IRONCLAW_DOCKER_NETWORK` knob — it was removed), applies the same
+deny-by-default seccomp allowlist, drops all capabilities, sets `no_new_privs`, and runs a read-only
+rootfs. **The irreducible residual weakness:** runc **shares the host kernel**, so there is no
+per-sandbox syscall interception — seccomp narrows the surface but a kernel-level escape is not
+contained the way gVisor contains it. That is **weaker than the posture the
 [threat model](docs/threat-model.md) assumes.** Windows is in the same position — gVisor can't run
 there either.
 
