@@ -70,6 +70,10 @@ func main() {
 		"directory under which per-session OCI bundles (config.json + rootfs) are written")
 	sandboxImage := flag.String("sandbox-image", "ironclaw-sandbox:latest",
 		"container image reference recorded in each sandbox's OCI spec")
+	sandboxProvisioner := flag.String("sandbox-provisioner", "none",
+		"how each sandbox rootfs is populated for the runsc/gVisor runtime: \"containerd\" (pull + unpack --sandbox-image via ctr, trust-verified against --sandbox-image-digest) or \"none\" (operator pre-stages the rootfs under --bundle-root/<session>/rootfs)")
+	sandboxImageDigest := flag.String("sandbox-image-digest", "",
+		"pinned sha256:<hex> digest the --sandbox-image must resolve to; the rootfs provisioner refuses any other content (REQUIRED when --sandbox-provisioner=containerd — fail closed)")
 	sweepInterval := flag.Duration("sweep-interval", 60*time.Second,
 		"how often the maintenance sweep runs (stale-sandbox detection + due-message wake)")
 	deliveryInterval := flag.Duration("delivery-interval", 2*time.Second,
@@ -443,10 +447,35 @@ func main() {
 		logger.Warn("isolation runtime is Docker (runc, NOT gVisor) — development only",
 			"network", network, "binds", strings.Join(binds, " "))
 	} else {
-		isolator = isolation.NewRunsc(
+		// gVisor/runsc production path. Build the rootfs provisioner so the normal
+		// install-and-run flow can actually populate a per-session rootfs; without a
+		// provisioner Launch fails closed (ErrRootfsMissing) unless the operator
+		// pre-stages it. When the containerd provisioner is selected, a pinned-digest
+		// trust policy is MANDATORY — a provisioner that pulls content unverified
+		// would let a repointed tag or substituted image reach a sandbox.
+		runscOpts := []isolation.Option{
 			isolation.WithRuntimeBinary(*runtimeBin),
 			isolation.WithBundleRoot(*bundleRoot),
-		)
+		}
+		switch strings.TrimSpace(*sandboxProvisioner) {
+		case "", "none":
+			logger.Info("sandbox rootfs provisioner is none — operator must pre-stage rootfs (Launch fails closed if absent)",
+				"bundle_root", *bundleRoot)
+		case "containerd":
+			if strings.TrimSpace(*sandboxImageDigest) == "" {
+				logger.Error("--sandbox-provisioner=containerd requires --sandbox-image-digest (a pinned sha256 the image must match); refusing to provision unverified images")
+				os.Exit(1)
+			}
+			policy := isolation.NewPinnedDigestPolicy(map[string]string{*sandboxImage: *sandboxImageDigest})
+			provisioner := isolation.NewContainerdProvisioner(isolation.WithTrustPolicy(policy))
+			runscOpts = append(runscOpts, isolation.WithProvisioner(provisioner))
+			logger.Info("sandbox rootfs provisioner is containerd (trust-policy-verified)",
+				"image", *sandboxImage, "pinned_digest", *sandboxImageDigest)
+		default:
+			logger.Error("unknown --sandbox-provisioner", "value", *sandboxProvisioner, "want", "none|containerd")
+			os.Exit(1)
+		}
+		isolator = isolation.NewRunsc(runscOpts...)
 	}
 
 	// Per-session lifecycle: the SessionManager composes the encrypted queue
