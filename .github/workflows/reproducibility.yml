@@ -1,0 +1,67 @@
+# Reproducible-build verification (IRO-32 A4).
+#
+# Proves IronClaw's binaries are bit-for-bit deterministic: build every command twice
+# from a clean checkout with the SAME pinned toolchain and flags the release uses
+# (-trimpath, pinned ldflags, fixed module versions via go.sum), then assert the two
+# SHA256 sets are identical. A drift here means something non-deterministic crept into
+# the build (an unpinned tool, a timestamp, a map-iteration order in codegen) and the
+# "reproducible builds" guarantee is broken — fail loud.
+#
+# Runs on PRs to main + weekly so a regression is caught before it ships, without
+# adding cost to the per-push release.
+name: Reproducibility
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "53 4 * * 1" # Mondays 04:53 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify deterministic build
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: "1"
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          # Must match the exact toolchain pin in ci.yml / release.yml — a different
+          # patch can change the emitted binary and is itself a reproducibility break.
+          go-version: "1.23.12"
+
+      - name: Build twice and compare checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Mirror the release build flags. The version string is fixed (not derived
+          # from git state) so it can't be the source of a difference here.
+          ldflags="-s -w -X github.com/IronSecCo/ironclaw/internal/version.Version=repro-check"
+          build() {
+            local dest="$1"
+            mkdir -p "${dest}"
+            for cmd in controlplane ironctl sandbox; do
+              go build -trimpath -ldflags "${ldflags}" -o "${dest}/${cmd}" "./cmd/${cmd}"
+            done
+          }
+          build out/a
+          # Clean the build cache between runs so a deterministic result can't be an
+          # artifact of cache reuse — it must reproduce from a cold compile.
+          go clean -cache
+          build out/b
+
+          ( cd out/a && sha256sum controlplane ironctl sandbox ) | sed 's| .*/| |' > a.sums
+          ( cd out/b && sha256sum controlplane ironctl sandbox ) | sed 's| .*/| |' > b.sums
+          echo "== build A =="; cat a.sums
+          echo "== build B =="; cat b.sums
+          if ! diff -u a.sums b.sums; then
+            echo "::error title=Reproducibility::two clean builds of the same commit produced different binaries — the build is not deterministic. Investigate the non-pinned input before relying on the reproducible-build guarantee." >&2
+            exit 1
+          fi
+          echo "Reproducible: both builds of controlplane/ironctl/sandbox are byte-identical."
