@@ -88,6 +88,7 @@ Tailscale-bound API, so it adds no public port.)
 - [Repository layout](#repository-layout)
 - [Security](#security)
 - [Roadmap](#roadmap)
+- [Community](#community)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -669,6 +670,20 @@ To report a vulnerability, please open a private security advisory rather than a
 **Design-gated (built, off by default):**
 
 - [x] Gateway auto-approval policy + RBAC — implemented as a verifier/approver, but **inert by default**: the mandatory-human floor is the only active path until an operator opts in
+
+## Community
+
+Come build the seal with us — questions, ideas, and security-design debate are all welcome.
+
+- 💬 **[GitHub Discussions](https://github.com/IronSecCo/ironclaw/discussions)** — the home base for
+  Q&A, feature ideas, and show-and-tell. Start here; it needs no account beyond GitHub.
+- 🌱 **[Good first issues](https://github.com/IronSecCo/ironclaw/contribute)** — curated, well-scoped
+  starting points if you want to land your first change.
+- 🛡️ **Found a vulnerability?** Don't open a public issue — file a private
+  [security advisory](https://github.com/IronSecCo/ironclaw/security/advisories/new) (see
+  [`SECURITY.md`](SECURITY.md)).
+
+A real-time chat channel (Discord / Matrix) is on the way — once it's live it'll be linked right here.
 
 ## Contributing
 
