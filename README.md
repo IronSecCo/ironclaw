@@ -9,6 +9,11 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/IronSecCo/ironclaw.svg)](https://pkg.go.dev/github.com/IronSecCo/ironclaw)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](LICENSE)
 [![Commercial license](https://img.shields.io/badge/License-Commercial%20available-555.svg)](LICENSING.md)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/IronSecCo/ironclaw/badge)](https://scorecard.dev/viewer/?uri=github.com/IronSecCo/ironclaw)
+[![CodeQL](https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml/badge.svg)](https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml)
+[![Signed releases (cosign)](https://img.shields.io/badge/releases-cosign%20signed-0a7bbb.svg)](#verifying-a-release)
+[![SBOM: SPDX + CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-44883e.svg)](#verifying-a-release)
+[![SLSA provenance](https://img.shields.io/badge/SLSA-build%20provenance-44883e.svg)](#verifying-a-release)
 [![GitHub Discussions](https://img.shields.io/github/discussions/IronSecCo/ironclaw?logo=github&label=discussions)](https://github.com/IronSecCo/ironclaw/discussions)
 [![Good first issues](https://img.shields.io/github/issues/IronSecCo/ironclaw/good%20first%20issue?label=good%20first%20issues)](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 [![GitHub stars](https://img.shields.io/github/stars/IronSecCo/ironclaw?style=social)](https://github.com/IronSecCo/ironclaw/stargazers)
@@ -285,6 +290,22 @@ Verify build provenance for a binary archive or the image:
 gh attestation verify ironclaw_<version>_<platform>.tar.gz --repo IronSecCo/ironclaw
 gh attestation verify oci://ghcr.io/ironsecco/ironclaw-controlplane:latest --repo IronSecCo/ironclaw
 ```
+
+The container image also carries a signed **SBOM attestation** (CycloneDX) you can verify
+and read anonymously:
+
+```sh
+gh attestation verify oci://ghcr.io/ironsecco/ironclaw-controlplane:latest \
+  --repo IronSecCo/ironclaw \
+  --predicate-type https://cyclonedx.org/bom
+```
+
+Every third-party GitHub Action is **pinned to a commit SHA**, builds use a **pinned
+toolchain + `-trimpath`** and are checked for **bit-for-bit reproducibility** by a
+double-build CI job (`ironctl` and `sandbox` are verified byte-identical; the larger
+control-plane binary is reproducible under newer Go and tracked for the pinned toolchain),
+and the project's supply-chain posture is scored continuously by
+[OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/IronSecCo/ironclaw) (see the badge above).
 
 </details>
 
