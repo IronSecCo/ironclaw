@@ -9,6 +9,9 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/IronSecCo/ironclaw.svg)](https://pkg.go.dev/github.com/IronSecCo/ironclaw)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](LICENSE)
 [![Commercial license](https://img.shields.io/badge/License-Commercial%20available-555.svg)](LICENSING.md)
+[![GitHub Discussions](https://img.shields.io/github/discussions/IronSecCo/ironclaw?logo=github&label=discussions)](https://github.com/IronSecCo/ironclaw/discussions)
+[![Good first issues](https://img.shields.io/github/issues/IronSecCo/ironclaw/good%20first%20issue?label=good%20first%20issues)](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+[![GitHub stars](https://img.shields.io/github/stars/IronSecCo/ironclaw?style=social)](https://github.com/IronSecCo/ironclaw/stargazers)
 
 </div>
 
@@ -88,6 +91,7 @@ Tailscale-bound API, so it adds no public port.)
 - [Repository layout](#repository-layout)
 - [Security](#security)
 - [Roadmap](#roadmap)
+- [Community](#community)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -670,10 +674,23 @@ To report a vulnerability, please open a private security advisory rather than a
 
 - [x] Gateway auto-approval policy + RBAC — implemented as a verifier/approver, but **inert by default**: the mandatory-human floor is the only active path until an operator opts in
 
+## Community
+
+Questions, ideas, "is this a bug or am I holding it wrong?" — bring them to
+**[GitHub Discussions](https://github.com/IronSecCo/ironclaw/discussions)**. It's the project's
+home for Q&A, design discussion, and show-and-tell, and it's where maintainers answer first.
+
+- **Found a bug or have a feature request?** Open an [issue](https://github.com/IronSecCo/ironclaw/issues/new/choose).
+- **Security report?** Do **not** open a public issue — follow [`SECURITY.md`](SECURITY.md).
+- **Want to contribute code?** Start with a
+  [**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+  — these are small, self-contained, and mentored. See [Contributing](#contributing) for the workflow.
+
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contract-freeze rule, the code layout
 (the control-plane and sandbox trees build against the frozen seam), and how to open a pull request.
+New here? Pick up a [**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 
 ## License
 
