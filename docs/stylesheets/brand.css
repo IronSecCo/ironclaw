@@ -1,0 +1,19 @@
+/* IronClaw brand palette for MkDocs Material.
+   Primary orange #ff7a2e (matches the logo and the former Mintlify config). */
+:root {
+  --md-primary-fg-color:        #ff7a2e;
+  --md-primary-fg-color--light: #ff9a5c;
+  --md-primary-fg-color--dark:  #e85f12;
+  --md-accent-fg-color:         #ff7a2e;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:        #ff7a2e;
+  --md-primary-fg-color--light: #ff9a5c;
+  --md-primary-fg-color--dark:  #e85f12;
+  --md-accent-fg-color:         #ff9a5c;
+  --md-typeset-a-color:         #ff9a5c;
+}
+
+/* Keep the header readable on the orange primary. */
+.md-header { color: #11161f; }

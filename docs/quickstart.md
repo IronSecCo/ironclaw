@@ -110,7 +110,7 @@ sandboxes.
 ## Next steps
 
 - **Run it for real:** install the prebuilt binaries and a systemd/launchd service — see the
-  [Deployment](../README.md#deployment) section of the README and [`deploy/install.sh`](../deploy/install.sh).
+  [Deployment](https://github.com/IronSecCo/ironclaw/blob/main/README.md#deployment) section of the README and [`deploy/install.sh`](https://github.com/IronSecCo/ironclaw/blob/main/deploy/install.sh).
   Production sandboxing needs **containerd + gVisor (`runsc`)**.
 - **Wire a channel:** connect an agent group to Slack / Discord / Telegram via the registry
   (`ironctl registry ...`).
