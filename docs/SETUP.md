@@ -58,10 +58,29 @@ parallelism there.)
 
 Full sandbox isolation uses gVisor (`runsc`) / Kata and is **Linux-only**.
 
-- macOS has no `runsc`. The real-isolator end-to-end variant
-  `TestFullLifecycleRunscGated` (`test/e2e/lifecycle_test.go`) detects this via
-  `exec.LookPath("runsc")` and **`t.Skip`s** — it is environment-gated, not
-  stubbed out, and no trust boundary is weakened to make it pass.
+- macOS has no `runsc`. Two environment-gated tests cover the real path and
+  `t.Skip` cleanly where gVisor is absent — neither weakens a trust boundary to
+  pass:
+  - `TestRunscRealLaunch` (`internal/host/isolation`) does an **actual `runsc
+    run`** of a hardened bundle: it stages a tiny static probe as `/sandbox` in a
+    from-scratch rootfs, launches it through the production `RunscIsolator.Launch`
+    path, and asserts from inside the live sandbox that the inbound queue is
+    read-only, the outbound queue is writable, and `network=none` holds (no
+    non-loopback interfaces). Opt in on a gVisor host with
+    `IRONCLAW_RUNSC_INTEGRATION=1 go test -run TestRunscRealLaunch ./internal/host/isolation`
+    (point at an alternate runtime with `IRONCLAW_RUNSC_BIN`).
+  - `TestFullLifecycleRunscGated` (`test/e2e/lifecycle_test.go`) detects `runsc`
+    via `exec.LookPath` and checks the real isolator constructs and the hardened
+    spec builds for the runsc path.
+
+  On the normal install-and-run flow, pass `--sandbox-provisioner=containerd`
+  with a pinned `--sandbox-image-digest sha256:<hex>` so the control plane pulls
+  and unpacks `--sandbox-image` host-side (via `ctr`) and refuses any image whose
+  resolved digest does not match the pin. `containerd` without a digest pin is a
+  fatal misconfiguration (fail closed). `--sandbox-provisioner=none` (the
+  default) requires the operator to pre-stage each session's rootfs under
+  `--bundle-root/<session>/rootfs`; `Launch` fails closed (`ErrRootfsMissing`)
+  rather than launch an empty rootfs.
 - The isolation unit tests (`internal/host/isolation`, `internal/host/mcp`)
   verify OCI-spec construction and the hardened spec (`network=none`, RO mounts,
   seccomp, model-proxy socket) without needing a live `runsc`, so they run and

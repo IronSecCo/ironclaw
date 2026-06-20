@@ -208,9 +208,11 @@ func TestFullLifecycle(t *testing.T) {
 }
 
 // TestFullLifecycleRunscGated exercises the real isolation spec path when runsc
-// is installed; it is skipped in environments without runsc (e.g. CI). A full
-// real launch additionally needs a provisioned rootfs image, which a hermetic
-// test does not build — the end-to-end message flow is covered by the
+// is installed; it is skipped in environments without runsc (e.g. CI). It checks
+// that the real isolator constructs and the hardened spec builds for the runsc
+// path. An ACTUAL `runsc run` of a hardened bundle (which additionally needs a
+// rootfs) is covered by TestRunscRealLaunch in internal/host/isolation, gated by
+// IRONCLAW_RUNSC_INTEGRATION=1; the end-to-end message flow is covered by the
 // fake-Isolator test above.
 func TestFullLifecycleRunscGated(t *testing.T) {
 	if _, err := exec.LookPath("runsc"); err != nil {
