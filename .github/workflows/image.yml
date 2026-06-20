@@ -177,6 +177,8 @@ jobs:
     needs: [prepare, build]
     if: ${{ needs.prepare.outputs.present == 'true' }}
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.manifest.outputs.digest }}
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
@@ -216,3 +218,107 @@ jobs:
           subject-name: ${{ needs.prepare.outputs.image }}
           subject-digest: ${{ steps.manifest.outputs.digest }}
           push-to-registry: true
+
+  # Consumer-side guard. The jobs above PRODUCE the image + attestation; this proves they
+  # are CONSUMABLE the way a real user consumes them — anonymously, with no registry
+  # credentials. If the GHCR package is (or silently reverts to) private, or its tag no
+  # longer resolves to the attested index, or the attestation can't be verified from the
+  # outside, this FAILS the release instead of shipping a green-but-unpullable set.
+  # (fail-loud, fail-closed + verify-before-trust.)
+  #
+  # Deliberately runs NO docker/login-action and holds only `contents: read` — it must
+  # succeed on exactly the unauthenticated path users hit, never on cached runner creds.
+  verify-consumer:
+    needs: [prepare, merge]
+    if: ${{ needs.prepare.outputs.present == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # gh attestation verify reads the public attestation; no push/sign here
+    env:
+      IMAGE: ${{ needs.prepare.outputs.image }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      EXPECTED_DIGEST: ${{ needs.merge.outputs.digest }}
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Anonymous manifest pull (no registry auth)
+        run: |
+          set -euo pipefail
+          # IMAGE is already lowercased by prepare; strip the registry host to get the
+          # GHCR repository path used by the registry v2 API.
+          repo="${IMAGE#ghcr.io/}"
+
+          # Always check :latest; add the immutable :<version> when this commit carried a
+          # release tag (VERSION is "dev" when it didn't).
+          tags="latest"
+          if [ -n "${VERSION}" ] && [ "${VERSION}" != "dev" ]; then
+            tags="latest ${VERSION}"
+          fi
+
+          # GHCR anonymous pull flow: request a bearer token with NO credentials. For a
+          # PUBLIC package this token carries pull scope; for a PRIVATE one it does not and
+          # the manifest fetch below returns 401/403 — exactly the regression we guard.
+          token="$(curl -fsSL "https://ghcr.io/token?scope=repository:${repo}:pull" | jq -r '.token')"
+          if [ -z "${token}" ] || [ "${token}" = "null" ]; then
+            echo "::error::Could not obtain an anonymous GHCR pull token for ${repo}." >&2
+            exit 1
+          fi
+
+          accept='application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.oci.image.manifest.v1+json,application/vnd.docker.distribution.manifest.v2+json'
+          for tag in ${tags}; do
+            echo "Anonymous manifest pull: ghcr.io/${repo}:${tag}"
+            # GHCR is eventually consistent right after a push; retry a few times before
+            # failing so a propagation lag is not mistaken for a private package.
+            code=""
+            hdr="$(mktemp)"
+            for attempt in 1 2 3 4 5; do
+              code="$(curl -s -D "${hdr}" -o /dev/null -w '%{http_code}' \
+                -H "Authorization: Bearer ${token}" \
+                -H "Accept: ${accept}" \
+                "https://ghcr.io/v2/${repo}/manifests/${tag}")"
+              [ "${code}" = "200" ] && break
+              echo "  attempt ${attempt}: HTTP ${code}, retrying in 10s..."
+              sleep 10
+            done
+            if [ "${code}" != "200" ]; then
+              echo "::error::Anonymous pull of ghcr.io/${repo}:${tag} returned HTTP ${code} (expected 200) — the package is not anonymously pullable (likely private). Failing the release." >&2
+              exit 1
+            fi
+            echo "  -> HTTP 200 (anonymously pullable)"
+            # The tag a public consumer resolves must be exactly the index we attested.
+            pulled="$(grep -i '^docker-content-digest:' "${hdr}" | tr -d '\r' | awk '{print $2}')"
+            if [ -n "${EXPECTED_DIGEST}" ] && [ -n "${pulled}" ] && [ "${pulled}" != "${EXPECTED_DIGEST}" ]; then
+              echo "::error::ghcr.io/${repo}:${tag} resolves to ${pulled} but the just-published index digest is ${EXPECTED_DIGEST} — mismatch. Failing the release." >&2
+              exit 1
+            fi
+          done
+
+      - name: Verify build provenance from the consumer side
+        run: |
+          set -euo pipefail
+          # Verify by digest (the attested subject) and by the tags users actually pull.
+          # No registry login above means this exercises the genuine anonymous OCI path.
+          refs="oci://${IMAGE}@${EXPECTED_DIGEST}"
+          if [ -z "${EXPECTED_DIGEST}" ]; then
+            refs="oci://${IMAGE}:latest"
+          fi
+          if [ -n "${VERSION}" ] && [ "${VERSION}" != "dev" ]; then
+            refs="${refs} oci://${IMAGE}:${VERSION}"
+          fi
+          for ref in ${refs}; do
+            echo "gh attestation verify ${ref} --repo ${REPO}"
+            # gh queries the public attestations API right after publish; brief retry to
+            # absorb indexing lag, then fail loud if it still cannot verify.
+            ok=""
+            for attempt in 1 2 3 4 5; do
+              if gh attestation verify "${ref}" --repo "${REPO}"; then
+                ok="yes"; break
+              fi
+              echo "  attempt ${attempt}: not yet verifiable, retrying in 10s..."
+              sleep 10
+            done
+            if [ -z "${ok}" ]; then
+              echo "::error::Attestation for ${ref} did not verify from the consumer side. Failing the release." >&2
+              exit 1
+            fi
+          done
