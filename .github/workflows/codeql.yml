@@ -17,7 +17,10 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze (Go)
+    # The job name is the status-check context GitHub reports. The `main` branch
+    # ruleset (.github/rulesets/main.json) requires the "CodeQL" check, so this
+    # name must stay "CodeQL" — renaming it would break the required-status gate.
+    name: CodeQL
     runs-on: ubuntu-latest
     permissions:
       contents: read
