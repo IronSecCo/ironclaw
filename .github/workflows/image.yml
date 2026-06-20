@@ -10,6 +10,13 @@ name: Image
 #
 # The image bundles ironclaw-controlplane + ironctl (container/controlplane.Dockerfile);
 # docker-compose.yml and the README pull it from ghcr.io/<owner>/ironclaw-controlplane.
+#
+# Multi-arch (linux/amd64 + linux/arm64): the image embeds a CGO (SQLCipher) binary, so
+# each arch is built NATIVELY on its own GitHub-hosted runner (ubuntu-latest for amd64,
+# ubuntu-24.04-arm for arm64) rather than under QEMU emulation, which is slow and flaky
+# for CGO. Each arch is pushed to GHCR by digest (no tag), then a final `merge` job
+# stitches the per-arch digests into one manifest list under the real tags and attaches
+# build provenance to the index digest.
 
 on:
   workflow_run:
@@ -34,10 +41,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  controlplane:
+  # Resolve the lowercased GHCR ref + the version to tag with, once, so the per-arch
+  # build matrix and the merge job all agree. The version is the git tag the Release
+  # workflow put on THIS commit (so the image tag always matches the built commit's
+  # release — no formula duplication, no latest-release race); a manual dispatch may
+  # override it. Blank version → publish :latest only. A commit with no
+  # container/controlplane.Dockerfile (older release chaining in, or a revert) yields
+  # present=false and the build/merge jobs skip cleanly — "nothing to publish", not a
+  # failure.
+  prepare:
     runs-on: ubuntu-latest
     # On the workflow_run path, only build when the Release actually succeeded.
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      present: ${{ steps.meta.outputs.present }}
+      image: ${{ steps.meta.outputs.image }}
+      version: ${{ steps.meta.outputs.version }}
+      tag_args: ${{ steps.meta.outputs.tag_args }}
     steps:
       # Build the exact commit the release was cut from (workflow_run), else the ref
       # the dispatch was started on. Full history + tags so we can read the release
@@ -48,10 +68,6 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      # Resolve the lowercased GHCR ref + the version to tag with. The version is the
-      # git tag the Release workflow put on THIS commit (so the image tag always
-      # matches the built commit's release — no formula duplication, no latest-release
-      # race); a manual dispatch may override it. Blank version → publish :latest only.
       - name: Resolve image ref + version
         id: meta
         env:
@@ -62,9 +78,6 @@ jobs:
           set -euo pipefail
           owner="$(printf '%s' "${OWNER}" | tr '[:upper:]' '[:lower:]')"
           image="ghcr.io/${owner}/ironclaw-controlplane"
-          # The released commit may predate the control-plane image (e.g. an older
-          # release chaining in during rollout, or a revert). Skip cleanly — a missing
-          # Dockerfile here is "nothing to publish", not a failure.
           if [ ! -f container/controlplane.Dockerfile ]; then
             echo "present=false" >> "${GITHUB_OUTPUT}"
             echo "No container/controlplane.Dockerfile at $(git rev-parse --short HEAD) — skipping image build."
@@ -75,57 +88,131 @@ jobs:
           else
             version="$(git tag --points-at HEAD | grep -E '^v[0-9]' | head -1 || true)"
           fi
-          # Newline-separated tags, no leading whitespace (build-push-action splits on \n).
-          tags="${image}:latest"
+          # `docker buildx imagetools create` takes the tags as -t flags. Always tag
+          # :latest; add the immutable :<version> tag when this commit carries one.
+          tag_args="-t ${image}:latest"
           if [ -n "${version}" ]; then
-            tags="$(printf '%s\n%s' "${image}:latest" "${image}:${version}")"
+            tag_args="${tag_args} -t ${image}:${version}"
           fi
           {
             echo "present=true"
             echo "image=${image}"
             echo "version=${version:-dev}"
-            echo "tags<<EOF"
-            printf '%s\n' "${tags}"
-            echo "EOF"
+            echo "tag_args=${tag_args}"
           } >> "${GITHUB_OUTPUT}"
-          echo "Publishing ${tags} (VERSION=${version:-dev})"
+          echo "Publishing ${tag_args} (VERSION=${version:-dev})"
+
+  # Build each arch natively on its own runner and push to GHCR BY DIGEST (no tag).
+  # The merge job below assembles these digests into the tagged manifest list.
+  build:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.present == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Sanitize platform pair
+        id: plat
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: echo "pair=${PLATFORM//\//-}" >> "${GITHUB_OUTPUT}"
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: docker/setup-buildx-action@v4
-        if: ${{ steps.meta.outputs.present == 'true' }}
 
       - uses: docker/login-action@v4
-        if: ${{ steps.meta.outputs.present == 'true' }}
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v7
+      - name: Build and push by digest
         id: build
-        if: ${{ steps.meta.outputs.present == 'true' }}
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: container/controlplane.Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          platforms: ${{ matrix.platform }}
           build-args: |
-            VERSION=${{ steps.meta.outputs.version }}
-          # linux/amd64 only: the image embeds a CGO (SQLCipher) binary, and an
-          # emulated arm64 CGO build is slow and flaky. Add linux/arm64 with a QEMU
-          # setup step when arm64 servers need a native image.
-          platforms: linux/amd64
-          # Keep the published artifact a plain single-platform image; the build's own
-          # inline attestations are off — provenance is attached separately below
-          # (GitHub artifact attestation) so it matches the release binaries.
+            VERSION=${{ needs.prepare.outputs.version }}
+          # Push by digest only; the merge job applies the real tags. name-canonical
+          # keeps the pushed ref pinned to the digest under the target repo.
+          outputs: type=image,name=${{ needs.prepare.outputs.image }},push-by-digest=true,name-canonical=true,push=true
+          # Per-arch inline attestations off — provenance is attached once to the merged
+          # index below (GitHub artifact attestation), matching the release binaries.
           provenance: false
           sbom: false
 
-      # SLSA-style build provenance for the published image, signed keylessly and
-      # pushed to GHCR next to the image (verify with `gh attestation verify oci://…`).
+      - name: Export digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/digests"
+          touch "${RUNNER_TEMP}/digests/${DIGEST#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ steps.plat.outputs.pair }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Stitch the per-arch digests into one manifest list under the real tags, then attach
+  # build provenance to the resulting index digest (verify with `gh attestation verify
+  # oci://ghcr.io/<owner>/ironclaw-controlplane:<tag>`).
+  merge:
+    needs: [prepare, build]
+    if: ${{ needs.prepare.outputs.present == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digest-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create manifest list and push
+        id: manifest
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          IMAGE: ${{ needs.prepare.outputs.image }}
+          TAG_ARGS: ${{ needs.prepare.outputs.tag_args }}
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2046,SC2086
+          docker buildx imagetools create ${TAG_ARGS} \
+            $(printf "${IMAGE}@sha256:%s " *)
+          # The index digest is the verifiable subject for the published tag.
+          digest="$(docker buildx imagetools inspect "${IMAGE}:latest" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
+          echo "Published ${IMAGE} index ${digest}"
+          docker buildx imagetools inspect "${IMAGE}:latest"
+
       - name: Attest the control-plane image
-        if: ${{ steps.meta.outputs.present == 'true' }}
         uses: actions/attest-build-provenance@v4
         with:
-          subject-name: ${{ steps.meta.outputs.image }}
-          subject-digest: ${{ steps.build.outputs.digest }}
+          subject-name: ${{ needs.prepare.outputs.image }}
+          subject-digest: ${{ steps.manifest.outputs.digest }}
           push-to-registry: true
