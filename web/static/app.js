@@ -30,6 +30,18 @@ function setStatus(msg, kind) {
   if (conn) conn.className = "conn" + (kind ? " " + kind : "");
 }
 
+// authProbe hits a bearer-gated read endpoint and reports the raw status so the
+// caller can tell "connected" (200) apart from "needs a token" (401) and
+// "daemon unreachable" (network error). This is what backs the real connection
+// indicator — never an unauthenticated /healthz ping.
+async function authProbe() {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  const headers = { Accept: "application/json" };
+  if (token) headers.Authorization = "Bearer " + token;
+  const res = await fetch("/v1/ui/agents", { headers });
+  return { status: res.status, hasToken: !!token };
+}
+
 let toastTimer = null;
 function toast(msg, kind) {
   const t = document.getElementById("toast");
@@ -127,30 +139,106 @@ function activePanel() {
   return p ? p.id : "dashboard";
 }
 
-// boot probes liveness, sets the connection status, and loads the visible panel.
-// It does NOT touch the stored token, so it is safe to run on every page load.
+// lastAuthState is the most recent result of boot(): "authed" | "open" |
+// "unauth" | "offline" | "error". connect() reads it to decide whether to show
+// an inline token error.
+let lastAuthState = "idle";
+
+// boot resolves the *real* connection state from an authenticated probe, sets the
+// indicator accordingly, reveals/hides the first-run prompt, and loads the visible
+// panel. It does NOT touch the stored token, so it is safe to run on every load.
 async function boot(announce) {
+  let live = true;
   try {
-    await api("/healthz");
-    setStatus("connected", "ok");
-    if (announce) toast("Connected", "ok");
+    const h = await fetch("/healthz");
+    live = h.ok;
+  } catch (_) {
+    live = false;
+  }
+  if (!live) {
+    lastAuthState = "offline";
+    setStatus("offline — daemon unreachable", "error");
+    if (announce) toast("Can't reach the control plane", "error");
+    applyAuthState();
+    return lastAuthState;
+  }
+
+  try {
+    const p = await authProbe();
+    if (p.status === 200) {
+      lastAuthState = p.hasToken ? "authed" : "open";
+      setStatus(p.hasToken ? "connected" : "connected · open API", "ok");
+      if (announce) toast("Connected", "ok");
+    } else if (p.status === 401) {
+      lastAuthState = "unauth";
+      setStatus(p.hasToken ? "token rejected (401)" : "not connected — token required", "warn");
+      if (announce) toast(p.hasToken ? "Token rejected (401)" : "Add an API token to connect", "error");
+    } else {
+      lastAuthState = "error";
+      setStatus("error · HTTP " + p.status, "error");
+      if (announce) toast("Unexpected response (HTTP " + p.status + ")", "error");
+    }
   } catch (e) {
+    lastAuthState = "offline";
     setStatus(String(e.message || e), "error");
     if (announce) toast(String(e.message || e), "error");
   }
+
+  applyAuthState();
   refreshPanel(activePanel());
   if (typeof Dashboard !== "undefined") Dashboard.load();
   refreshAgents();
   refreshMgGroups();
+  return lastAuthState;
 }
 
-// connect stores the token from the input, then boots.
-function connect() {
-  const token = document.getElementById("token").value.trim();
+// applyAuthState shows the first-run connect prompt and opens the sidebar token
+// control only when a token is actually needed (gated API, no/invalid token).
+function applyAuthState() {
+  const needsToken = lastAuthState === "unauth";
+  const fr = document.getElementById("firstrun");
+  if (fr) fr.hidden = !needsToken;
+  if (needsToken) {
+    const det = document.querySelector(".conn-token");
+    if (det) det.open = true;
+  } else {
+    clearTokenError();
+  }
+}
+
+function setTokenError(msg) {
+  for (const id of ["token-err", "token-fr-err"]) {
+    const e = document.getElementById(id);
+    if (e) { e.textContent = msg; e.hidden = !msg; }
+  }
+}
+function clearTokenError() { setTokenError(""); }
+
+// connect stores the token from whichever input the user used, boots, and on a
+// gated/rejected result shows an inline error instead of silently "succeeding".
+async function connect(srcId) {
+  const inp = document.getElementById(srcId || "token");
+  const token = inp ? inp.value.trim() : "";
   if (token) sessionStorage.setItem(TOKEN_KEY, token);
   else sessionStorage.removeItem(TOKEN_KEY);
+  clearTokenError();
   setStatus("connecting…");
-  return boot(true);
+  const state = await boot(true);
+  if (state === "unauth") {
+    setTokenError(token
+      ? "Token rejected — check it matches the daemon's IRONCLAW_API_TOKEN."
+      : "Enter a bearer token — this API requires authentication.");
+  } else if (state === "offline") {
+    setTokenError("Can't reach the control plane — is the daemon running?");
+  } else {
+    // Connected: keep both token inputs in sync so the value is visible wherever
+    // the operator looks next.
+    for (const id of ["token", "token-fr"]) {
+      const el2 = document.getElementById(id);
+      if (el2 && el2 !== inp) el2.value = token;
+    }
+  }
+  return state;
 }
 
 function refreshPanel(name) {
@@ -206,8 +294,14 @@ function updateApprovalsBadge(n) {
 }
 
 function init() {
-  document.getElementById("connect").addEventListener("click", connect);
-  document.getElementById("token").addEventListener("keydown", (e) => { if (e.key === "Enter") connect(); });
+  document.getElementById("connect").addEventListener("click", () => connect("token"));
+  document.getElementById("token").addEventListener("keydown", (e) => { if (e.key === "Enter") connect("token"); });
+  // First-run connect prompt (dashboard body; also the only token entry on mobile,
+  // where the sidebar footer is hidden).
+  const cfr = document.getElementById("connect-fr");
+  if (cfr) cfr.addEventListener("click", () => connect("token-fr"));
+  const tfr = document.getElementById("token-fr");
+  if (tfr) tfr.addEventListener("keydown", (e) => { if (e.key === "Enter") connect("token-fr"); });
   const ra = document.getElementById("refresh-approvals");
   if (ra) ra.addEventListener("click", loadApprovals);
   const rau = document.getElementById("refresh-audit");
@@ -226,7 +320,12 @@ function init() {
   // load the visible panel immediately (works on an open loopback; a gated
   // deployment shows a 401 prompting the user to add a token in the sidebar).
   const stored = sessionStorage.getItem(TOKEN_KEY);
-  if (stored) document.getElementById("token").value = stored;
+  if (stored) {
+    for (const id of ["token", "token-fr"]) {
+      const el2 = document.getElementById(id);
+      if (el2) el2.value = stored;
+    }
+  }
   boot(false);
 }
 

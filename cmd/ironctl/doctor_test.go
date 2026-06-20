@@ -3,6 +3,7 @@ package main
 import (
 	"net"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -42,10 +43,18 @@ func TestCheckRuntime(t *testing.T) {
 	if r := checkRuntime("go"); r.Status != checkOK {
 		t.Errorf("checkRuntime(go) = %s (%s), want OK", r.Status, r.Detail)
 	}
-	if r := checkRuntime("definitely-not-a-real-binary-xyz123"); r.Status != checkFail {
-		t.Errorf("checkRuntime(missing) = %s, want FAIL", r.Status)
+	// A missing runtime is a hard FAIL on Linux (where gVisor is required) but a
+	// soft WARN on macOS/Windows, where the production sandbox runs on the Linux
+	// host and `runsc` is not expected — so `doctor` should not exit non-zero
+	// just for being run on a dev laptop.
+	wantMissing := checkFail
+	if runtime.GOOS != "linux" {
+		wantMissing = checkWarn
+	}
+	if r := checkRuntime("definitely-not-a-real-binary-xyz123"); r.Status != wantMissing {
+		t.Errorf("checkRuntime(missing) on %s = %s, want %s", runtime.GOOS, r.Status, wantMissing)
 	} else if r.Fix == "" {
-		t.Error("expected an install fix when the runtime is missing")
+		t.Error("expected an actionable fix when the runtime is missing")
 	}
 }
 

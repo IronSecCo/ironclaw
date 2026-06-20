@@ -31,6 +31,11 @@ const defaultAddr = "http://127.0.0.1:8787"
 // IRONCLAW_API_TOKEN env var and can be overridden with the global --token flag.
 var token string
 
+// verbose, set by the global -v/--verbose flag, restores the raw "HTTP <code>"
+// status line on successful responses. By default success is quiet: callers see
+// the response body (or nothing) without protocol noise.
+var verbose bool
+
 func main() {
 	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, "ironctl:", err)
@@ -45,17 +50,30 @@ func run(args []string) error {
 		return nil
 	}
 
-	// Global --addr / --token can appear (in any order) before the subcommand.
+	// Global --addr / --token / -v can appear (in any order) before the subcommand.
 	addr := defaultAddr
 	token = os.Getenv("IRONCLAW_API_TOKEN")
-	for len(args) >= 2 && (args[0] == "--addr" || args[0] == "--token") {
+parse:
+	for len(args) >= 1 {
 		switch args[0] {
 		case "--addr":
+			if len(args) < 2 {
+				return fmt.Errorf("--addr needs a value")
+			}
 			addr = args[1]
+			args = args[2:]
 		case "--token":
+			if len(args) < 2 {
+				return fmt.Errorf("--token needs a value")
+			}
 			token = args[1]
+			args = args[2:]
+		case "-v", "--verbose":
+			verbose = true
+			args = args[1:]
+		default:
+			break parse
 		}
-		args = args[2:]
 	}
 	if len(args) < 1 {
 		usage()
@@ -235,15 +253,30 @@ func addAuth(req *http.Request) {
 }
 
 func printBody(resp *http.Response) error {
-	out, _ := io.ReadAll(resp.Body)
-	fmt.Printf("HTTP %d\n", resp.StatusCode)
-	if len(out) > 0 {
-		fmt.Println(string(bytes.TrimSpace(out)))
-	}
+	out := bytes.TrimSpace(mustReadAll(resp.Body))
 	if resp.StatusCode >= 400 {
+		// Failures always surface the status (on stderr) so they're diagnosable,
+		// regardless of -v. The body usually carries the server's reason.
+		fmt.Fprintf(os.Stderr, "HTTP %d %s\n", resp.StatusCode, http.StatusText(resp.StatusCode))
+		if len(out) > 0 {
+			fmt.Fprintln(os.Stderr, string(out))
+		}
 		return fmt.Errorf("request failed with status %d", resp.StatusCode)
 	}
+	// Success is quiet by default: no raw "HTTP 200/202" line. The response body
+	// (a JSON list/object) is the useful output; -v restores the status line.
+	if verbose {
+		fmt.Printf("HTTP %d %s\n", resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+	if len(out) > 0 {
+		fmt.Println(string(out))
+	}
 	return nil
+}
+
+func mustReadAll(r io.Reader) []byte {
+	b, _ := io.ReadAll(r)
+	return b
 }
 
 func usage() {
@@ -272,5 +305,6 @@ func usage() {
   ironctl [--addr URL] [--token T] mcp remove <name>
 
   --addr  defaults to `+defaultAddr+`
-  --token defaults to $IRONCLAW_API_TOKEN`)
+  --token defaults to $IRONCLAW_API_TOKEN
+  -v      verbose: also print the HTTP status line on success`)
 }
