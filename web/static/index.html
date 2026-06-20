@@ -78,6 +78,7 @@
                    autocomplete="off" spellcheck="false" />
             <button id="connect" class="btn-primary btn-sm" type="button">Connect</button>
           </div>
+          <p class="error token-err" id="token-err" role="alert" hidden></p>
         </details>
       </div>
     </aside>
@@ -91,6 +92,30 @@
             <h1>Dashboard</h1>
             <p class="sub">Your self-hosted, security-isolated agents — at a glance.</p>
           </div>
+
+          <!-- First-run connect prompt: shown only when the API is gated and no
+               valid token is set. Also the primary token entry on mobile, where
+               the sidebar footer is hidden. -->
+          <div id="firstrun" class="firstrun" hidden>
+            <div class="firstrun-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18v3h3l8.5-8.5"/><circle cx="16.5" cy="7.5" r="4.5"/><path d="m13.5 10.5 7 7"/></svg>
+            </div>
+            <div class="firstrun-body">
+              <h2>Connect to your control plane</h2>
+              <p class="muted">The daemon is reachable, but its API is gated. Paste a bearer token to load
+                your agents, approvals, and sessions. The token stays in this browser tab only
+                (<code>sessionStorage</code>) and is sent as <code>Authorization: Bearer</code>.</p>
+              <div class="token-row">
+                <input id="token-fr" type="password" placeholder="bearer token (IRONCLAW_API_TOKEN)"
+                       autocomplete="off" spellcheck="false" />
+                <button id="connect-fr" class="btn-primary" type="button">Connect</button>
+              </div>
+              <p class="error token-err" id="token-fr-err" role="alert" hidden></p>
+              <p class="hint">This is the <code>IRONCLAW_API_TOKEN</code> the daemon was started with.
+                On an open loopback you can leave it blank.</p>
+            </div>
+          </div>
+
           <div class="stat-grid">
             <div class="stat accent">
               <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 7V4h6v3M9 13h.01M15 13h.01"/></svg></div>
