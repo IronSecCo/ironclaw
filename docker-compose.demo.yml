@@ -1,0 +1,65 @@
+# IronClaw — zero-credential local chat demo (a working "it works" in one command).
+#
+#   bash container/build.sh                              # build the sandbox image once
+#   docker compose -f docker-compose.demo.yml up --build # start the demo control-plane
+#   open http://127.0.0.1:8787/ui/                       # Chat → "Mock Agent (offline)" → say hi
+#   docker compose -f docker-compose.demo.yml down       # tear it down
+#
+# This is a STANDALONE compose file (run it with -f, NOT alongside docker-compose.yml).
+# It brings up a single control-plane wired for an offline chat: it seeds the `mock-agent`
+# group (no model key, no network) and launches that agent's per-conversation sandbox as a
+# sibling Docker container, so the full engage→reply path works on a stock laptop with no
+# gVisor and no credentials. See docs/quickstart.md.
+#
+# SECURITY — read before reusing this outside a laptop demo. This file deliberately
+# RELAXES the isolation boundary to run without gVisor: it runs the control-plane as
+# root, mounts the host Docker socket, and uses runc (shared host kernel), not gVisor.
+# The mandatory approval gateway, the encrypted per-session queues, and host-side
+# model-credential custody are UNCHANGED — only the sandbox seal is weakened. Do NOT use
+# it in production; docker-compose.yml is the hardened posture.
+
+name: ironclaw-demo
+
+services:
+  controlplane:
+    image: ironclaw-controlplane:demo
+    build:
+      context: .
+      dockerfile: container/controlplane.Dockerfile
+    # First run builds the image (pass --build); later `up`s reuse it. The tag is
+    # local-only, so compose builds it rather than pulling from a registry.
+    # Run as root so the process can reach the bind-mounted Docker socket (root:docker).
+    user: "0:0"
+    environment:
+      # A FIXED, well-known admin token so the demo is copy-pasteable (curl + the web
+      # console both authenticate with it). Loopback-only and demo-only — the entrypoint
+      # would otherwise mint a random token you'd have to claim from the logs. NEVER use
+      # a hard-coded token like this in production; let the entrypoint mint one.
+      IRONCLAW_API_TOKEN: "ironclaw-demo"
+      # Seed the offline mock-agent + a dev owner so chat works with zero credentials.
+      IRONCLAW_DEV: "1"
+      # Launch each sandbox as a sibling Docker container (runc) — no gVisor needed.
+      IRONCLAW_RUNTIME: "docker"
+      # Carry the per-session queues/key into each sandbox at the SAME absolute path the
+      # control-plane uses. The control-plane writes them under /var/lib/ironclaw/state
+      # (the host bind below); the sandbox sibling must bind that HOST path at the same
+      # container target, or the queue handshake won't line up. ${PWD} is the host
+      # compose-project dir, so this resolves to a real host path the Docker daemon sees.
+      IRONCLAW_DOCKER_BINDS: "${PWD}/.ironclaw-demo-state:/var/lib/ironclaw/state"
+    volumes:
+      # The Docker Engine socket: the control-plane launches sandbox siblings through it.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # A HOST bind (not a named volume) for durable state, so the sandbox siblings see
+      # the same queue files at the same absolute path — that alignment is load-bearing.
+      - ./.ironclaw-demo-state:/var/lib/ironclaw/state
+    # Loopback only — no public port, same as the production compose.
+    ports:
+      - "127.0.0.1:8787:8787"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8787/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    stop_grace_period: 20s

@@ -64,8 +64,8 @@ func main() {
 		"unix socket the model proxy listens on (bound into each sandbox)")
 	stateDir := flag.String("state-dir", defaultStateDir(),
 		"directory for durable control-plane state (gateway change store, audit log, per-session queues, keys)")
-	runtimeBin := flag.String("runtime", isolation.DefaultRuntimeBinary,
-		"OCI runtime binary used to launch sandboxes (gVisor's runsc by default)")
+	runtimeBin := flag.String("runtime", envOr("IRONCLAW_RUNTIME", isolation.DefaultRuntimeBinary),
+		"OCI runtime binary used to launch sandboxes (gVisor's runsc by default; IRONCLAW_RUNTIME=docker selects the runc fallback for hosts without gVisor, e.g. macOS Docker Desktop)")
 	bundleRoot := flag.String("bundle-root", filepath.Join(defaultStateDir(), "bundles"),
 		"directory under which per-session OCI bundles (config.json + rootfs) are written")
 	sandboxImage := flag.String("sandbox-image", "ironclaw-sandbox:latest",

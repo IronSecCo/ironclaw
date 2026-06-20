@@ -1,4 +1,67 @@
-# Quickstart — your first approved action in 5 minutes
+# Quickstart
+
+Two short paths, pick one:
+
+- **[A working chat in ~5 minutes](#a-working-chat-in-5-minutes-no-credentials)** — one command, no
+  credentials. See an agent actually reply.
+- **[Your first approved action](#your-first-approved-action)** — exercise the human-approval gateway,
+  the core security invariant, from a clean clone.
+
+---
+
+## A working chat in ~5 minutes (no credentials)
+
+The fastest way to see IronClaw *work*: the offline **`mock-agent`** runs the full engage → sandbox →
+reply path with **no model key** and **no gVisor**, launching its per-conversation sandbox as a Docker
+(runc) container. Good for a laptop demo; not the sealed production posture (see the security note below).
+
+**Requires:** Docker (Docker Desktop on macOS/Windows is fine) and a clone of the repo.
+
+```sh
+git clone https://github.com/IronSecCo/ironclaw.git && cd ironclaw
+
+bash container/build.sh                                  # build the sandbox image once (~1–2 min)
+docker compose -f docker-compose.demo.yml up --build -d  # start the demo control-plane
+```
+
+Then chat — in the browser:
+
+```sh
+open http://127.0.0.1:8787/ui/      # Chat tab → "Mock Agent (offline)" → say hi
+                                    # if prompted for a token, paste: ironclaw-demo
+```
+
+…or straight from the terminal (the demo uses the fixed loopback token `ironclaw-demo`):
+
+```sh
+curl -s -X POST http://127.0.0.1:8787/v1/ui/chat/send \
+  -H 'authorization: Bearer ironclaw-demo' -H 'content-type: application/json' \
+  -d '{"agentGroupID":"mock-agent","text":"hello from the quickstart"}'
+
+sleep 3
+curl -s -H 'authorization: Bearer ironclaw-demo' \
+  http://127.0.0.1:8787/v1/ui/chat/mock-agent/messages   # the agent's reply
+```
+
+You'll get `mock-agent received: …` echoed back — proof that a real sandbox container launched and the
+reply flowed back through the encrypted queues. Tear it down with
+`docker compose -f docker-compose.demo.yml down`.
+
+> **Security — what this demo relaxes.** The demo compose file runs the control-plane as root, mounts the
+> host Docker socket, uses **runc (shared host kernel), not gVisor**, and pins a well-known API token. The
+> mandatory approval gateway, the encrypted per-session queues, and host-side model-credential custody are
+> **unchanged** — only the sandbox seal and the token are relaxed. Don't run it outside a local demo; the
+> default `docker compose up` (the production `docker-compose.yml`) is the hardened posture. For real
+> gVisor isolation see [deployment](https://github.com/IronSecCo/ironclaw/blob/main/README.md#deployment).
+
+**Chat with a real model:** set a provider key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
+`OPENROUTER_API_KEY`, …) host-side and point an agent group at that provider. The production deployment
+(gVisor sandboxes + the host model-proxy) is the supported path — see [deployment](https://github.com/IronSecCo/ironclaw/blob/main/README.md#deployment).
+Run `ironctl doctor` any time to diagnose a stuck setup, and `ironctl onboard` for a guided first-run check.
+
+---
+
+## Your first approved action
 
 This walks you from a clean clone to **submitting a change, approving it at the human-approval gateway,
 and reading the audit log** — entirely on your machine, in `--dev` mode (loopback, no gVisor required).
@@ -110,7 +173,7 @@ sandboxes.
 ## Next steps
 
 - **Run it for real:** install the prebuilt binaries and a systemd/launchd service — see the
-  [Deployment](../README.md#deployment) section of the README and [`deploy/install.sh`](../deploy/install.sh).
+  [Deployment](https://github.com/IronSecCo/ironclaw/blob/main/README.md#deployment) section of the README and [`deploy/install.sh`](https://github.com/IronSecCo/ironclaw/blob/main/deploy/install.sh).
   Production sandboxing needs **containerd + gVisor (`runsc`)**.
 - **Wire a channel:** connect an agent group to Slack / Discord / Telegram via the registry
   (`ironctl registry ...`).
