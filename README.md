@@ -35,7 +35,6 @@ builds hard, provable walls so that even a misbehaving agent can't reach your da
 > - **It's an alpha.** Flags, the on-disk format, and the HTTP/contract surfaces can still change without notice or a migration path. Don't point it at anything you can't afford to lose.
 > - **Not every feature is tested end-to-end.** The control-plane, gateway, and encrypted-queue core have real coverage (800+ Go tests plus a black-box parity suite); channel adapters, some tools, multi-provider routing, and a live sandbox launch are exercised more lightly. Treat anything outside the [tested core](#project-status) as experimental.
 > - **macOS doesn't get the full isolation story.** The production sandbox is **gVisor (`runsc`)**, which is **Linux-only**. The whole host side runs on macOS natively, but a real agent sandbox there falls back to `--runtime docker` — runc inside Docker Desktop's Linux VM, a weaker kernel-shared boundary. Details in [Platform support](#platform-support).
-> - **Prebuilt releases are paused.** The release pipeline is currently suspended, so the `install.sh` / `install.ps1` one-liners and the GitHub Releases archives may be missing or stale. **[Build from source](#from-source)** for now.
 
 ## Get running in under two minutes
 
@@ -204,13 +203,7 @@ intentionally **not vendored**. See [`deploy/README.md`](deploy/README.md) for h
 
 ## Installation
 
-> [!IMPORTANT]
-> **Prebuilt releases are paused.** The release pipeline is currently suspended, so the
-> `install.sh` / `install.ps1` one-liners and the GitHub Releases archives below may be unavailable
-> or stale. Until it's back, **[build from source](#from-source)** — it's a `git clone` and two
-> `go build` commands. The prebuilt-install instructions are kept below for when releases resume.
-
-### Prebuilt binaries (currently paused)
+### Prebuilt binaries
 
 One command installs the latest release — `ironctl` and `ironclaw-controlplane`. The script
 detects your OS/arch, downloads the matching archive from
@@ -229,8 +222,7 @@ curl -fsSL https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/ins
 irm https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/install.ps1 | iex
 ```
 
-When the release pipeline is active, a fresh release is published on every push to `main`, with
-prebuilt archives for:
+A fresh release is published on every push to `main`, with prebuilt archives for:
 
 | OS | Architectures |
 |----|---------------|
@@ -262,13 +254,12 @@ Prefer to grab files by hand? Download the archive and `SHA256SUMS` for your pla
 
 ### Verifying a release
 
-Releases are designed to be **signed and attested** — a keyless [cosign](https://docs.sigstore.dev/)
+Releases are **signed and attested** — a keyless [cosign](https://docs.sigstore.dev/)
 signature over `SHA256SUMS`, an **SBOM** (SPDX + CycloneDX), and build-provenance attestations for
-every archive and the container image. **With the release pipeline currently paused there are no
-fresh signed artifacts to verify** — the steps below are kept for when releases resume.
+every archive and the container image.
 
 <details>
-<summary>Verifying a signed release (applies once the pipeline is live)</summary>
+<summary>Verifying a signed release</summary>
 
 Each release carries `SHA256SUMS` plus `SHA256SUMS.sig` + `SHA256SUMS.pem` (the cosign signature and
 its certificate), `*.spdx.json` / `*.cdx.json` SBOMs, and per-archive + image attestations.
