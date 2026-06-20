@@ -92,6 +92,10 @@ jobs:
           # Windows x86_64 — native mingw-w64 gcc (preinstalled on the runner).
           - { goos: windows, goarch: amd64, runner: windows-latest, name: windows_amd64 }
     runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read # checkout
+      id-token: write # OIDC token for keyless provenance signing (Sigstore)
+      attestations: write # actions/attest-build-provenance over the raw binaries
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -135,6 +139,19 @@ jobs:
             go build -trimpath -ldflags "${ldflags}" -o "dist/pkg/${out}${ext}" "./cmd/${cmd}"
           done
           cp LICENSE README.md dist/pkg/
+
+      # Attest build provenance for the RAW binaries (ironctl, ironclaw-controlplane,
+      # ironclaw-sandbox), not just the archive. The archive attestation in the release
+      # job is keyed on the .tar.gz/.zip digest; a user who extracts the tarball and runs
+      # `gh attestation verify ./ironctl` is checking the *binary* digest, which has no
+      # attestation unless we publish one here — that was the IRO-46 404. Attesting per
+      # build leg is where the binaries exist (the release job only ever sees archives).
+      # The `dist/pkg/iron*` glob matches the three binaries (and their .exe variants on
+      # Windows) while excluding the copied-in LICENSE / README.md.
+      - name: Attest build provenance for the binaries
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: "dist/pkg/iron*"
 
       - name: Package archive
         shell: bash

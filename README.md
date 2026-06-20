@@ -279,10 +279,11 @@ cosign verify-blob SHA256SUMS \
 sha256sum -c SHA256SUMS        # then confirm your archive matches
 ```
 
-Verify build provenance for a binary archive or the image:
+Verify build provenance for an archive, an extracted binary, or the image:
 
 ```sh
 gh attestation verify ironclaw_<version>_<platform>.tar.gz --repo IronSecCo/ironclaw
+gh attestation verify ./ironctl --repo IronSecCo/ironclaw   # a binary extracted from the archive
 gh attestation verify oci://ghcr.io/ironsecco/ironclaw-controlplane:latest --repo IronSecCo/ironclaw
 ```
 
