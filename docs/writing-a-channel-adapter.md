@@ -2,7 +2,7 @@
 
 A **channel adapter** delivers an agent's outbound messages to one platform (Slack,
 Discord, a webhook, …). They live in
-[`internal/host/channels/`](../internal/host/channels) and are deliberately small and
+[`internal/host/channels/`](https://github.com/IronSecCo/ironclaw/tree/main/internal/host/channels) and are deliberately small and
 uniform. This guide is the house pattern; the existing adapters
 (`slack.go`, `discord.go`, `whatsapp.go`, `matrix.go` are the cleanest templates) are
 your reference implementations.
@@ -100,7 +100,7 @@ func (a *FooAdapter) Name() string { return a.AdapterName }
 ## Registering it
 
 Adapters are activated in `registerChannelAdapters` in
-[`cmd/controlplane/main.go`](../cmd/controlplane/main.go). For a single-token adapter,
+[`cmd/controlplane/main.go`](https://github.com/IronSecCo/ironclaw/blob/main/cmd/controlplane/main.go). For a single-token adapter,
 add it to the env-gated `specs` slice:
 
 ```go

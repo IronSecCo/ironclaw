@@ -1,0 +1,6 @@
+# Pinned toolchain for the IronClaw docs site (MkDocs Material).
+# Reproducibility: the published site must be re-derivable from a known commit,
+# so these are exact pins. Bump deliberately, not implicitly.
+mkdocs==1.6.1
+mkdocs-material==9.5.39
+mkdocs-render-swagger-plugin==0.1.2

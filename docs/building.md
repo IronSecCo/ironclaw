@@ -69,8 +69,8 @@ ironctl change reject  <id> --by slack:admin
 ironctl --addr http://<tailnet-ip>:8787 change pending
 ```
 
-See [../api/control-plane.md](../api/control-plane.md) for the HTTP API and
-[../deploy/README.md](../deploy/README.md) for the gVisor + Tailscale deployment.
+See the [API reference](reference/api.md) for the HTTP API and
+[../deploy/README.md](https://github.com/IronSecCo/ironclaw/blob/main/deploy/README.md) for the gVisor + Tailscale deployment.
 
 ## What stays gated
 

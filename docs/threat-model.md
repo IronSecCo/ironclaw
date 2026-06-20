@@ -1,7 +1,7 @@
 # Threat model
 
-> Versioned with the code. Linked from the [README](../README.md) and
-> [SECURITY.md](../SECURITY.md). The scope in §8 ("what counts as a
+> Versioned with the code. Linked from the [README](https://github.com/IronSecCo/ironclaw/blob/main/README.md) and
+> [SECURITY.md](https://github.com/IronSecCo/ironclaw/blob/main/SECURITY.md). The scope in §8 ("what counts as a
 > vulnerability") is the reference the disclosure policy points back to.
 
 IronClaw assumes the agent inside the sandbox is **potentially compromised** — by
@@ -201,7 +201,7 @@ per-request audit, and bounded by keeping the sandbox itself network-less.
 
 ## 8. What counts as a vulnerability
 
-For disclosure (see [SECURITY.md](../SECURITY.md)), a finding **is** a vulnerability
+For disclosure (see [SECURITY.md](https://github.com/IronSecCo/ironclaw/blob/main/SECURITY.md)), a finding **is** a vulnerability
 if it lets the untrusted agent or an external sender cross a boundary above —
 concretely, if it allows any of:
 

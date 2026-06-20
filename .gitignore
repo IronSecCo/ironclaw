@@ -31,3 +31,9 @@ Thumbs.db
 # Local agent / session state — never commit
 .claude/
 .remember/
+
+# Docs site build artifacts (MkDocs)
+/site/
+_site/
+docs/reference/openapi.yaml
+__pycache__/
