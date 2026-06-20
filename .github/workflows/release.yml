@@ -278,8 +278,8 @@ jobs:
   #
   # Each target runs the binary NATIVELY so cross-built archives (linux/arm64 via
   # the aarch64 cross-gcc, darwin/amd64 via -arch on the universal SDK) are proven
-  # to actually execute, not just compile. (Windows uses install.ps1 — tracked
-  # separately; this job covers the install.sh matrix.)
+  # to actually execute, not just compile. (Windows is the PowerShell install.ps1
+  # path — covered by the sibling smoke_windows job below, not this matrix.)
   # ---------------------------------------------------------------------------
   smoke:
     needs: [version, release]
@@ -332,3 +332,83 @@ jobs:
           fi
 
           echo "Smoke OK on ${MATRIX_NAME}: ${TAG} installs via install.sh (checksum-verified) and runs."
+
+  # ---------------------------------------------------------------------------
+  # Windows post-release smoke test — the install.ps1 mirror of `smoke` above.
+  # Installs the release we just cut through the real, checksum-verifying
+  # scripts/install.ps1 (the normal `irm | iex` user path, NOT a dev/local copy)
+  # and asserts `ironctl version` reports the exact tag. This proves the published
+  # windows_amd64 archive downloads, passes SHA256SUMS verification, installs, and
+  # runs before we trust the release on Windows.
+  #
+  # Same fail-closed contract as `smoke`: a failure here turns the whole Release
+  # run red, and image.yml chains off this workflow's success (workflow_run +
+  # conclusion == 'success'), so a Windows smoke failure also blocks the GHCR
+  # image. The assets are already published by now — a red run is the signal to
+  # yank the release (see the release runbook), never a green lie.
+  #
+  # Scope: windows_amd64 only. The build matrix publishes a single Windows archive
+  # (windows_amd64) and install.ps1 resolves only that target, so there is no
+  # windows_arm64 asset to install — a windows-11-arm leg would have nothing to
+  # verify. Add one here only once the matrix ships a native windows_arm64 archive
+  # and install.ps1 learns to select it.
+  # ---------------------------------------------------------------------------
+  smoke_windows:
+    needs: [version, release]
+    if: needs.version.outputs.exists == 'false'
+    permissions:
+      contents: read # read the just-published release assets through install.ps1
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install via scripts/install.ps1 and verify ironctl version
+        shell: pwsh
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+          MATRIX_NAME: windows_amd64
+          # Pin to the exact tag and point install.ps1 at this repo. GITHUB_TOKEN lets
+          # the installer resolve assets even while the repo is private (raised API
+          # limit + octet-stream asset download).
+          IRONCLAW_VERSION: ${{ needs.version.outputs.tag }}
+          IRONCLAW_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bindir = Join-Path $env:RUNNER_TEMP 'ironclaw-bin'
+          $env:IRONCLAW_BINDIR = $bindir
+
+          # Run the real installer (checksum-verifying path). Merge every stream
+          # (Write-Host is the Information stream) into one string so we can both
+          # echo it and assert it actually verified SHA256SUMS. A throw inside the
+          # script (ErrorActionPreference=Stop) reds the step — fail-closed.
+          $out = ''
+          try {
+            $out = & (Join-Path $PWD 'scripts/install.ps1') *>&1 | Out-String
+          } catch {
+            Write-Host $out
+            Write-Host "::error title=Smoke ($env:MATRIX_NAME)::install.ps1 failed: $($_.Exception.Message). The published release $env:TAG could not be installed on Windows — yank it (see the release runbook)."
+            exit 1
+          }
+          Write-Host $out
+
+          if ($out -notmatch 'Checksum OK') {
+            Write-Host "::error title=Smoke ($env:MATRIX_NAME)::install.ps1 did not verify SHA256SUMS — the checksum-verifying install path was not exercised. Refusing to call this release verified."
+            exit 1
+          }
+
+          $exe = Join-Path $bindir 'ironctl.exe'
+          if (-not (Test-Path $exe)) {
+            Write-Host "::error title=Smoke ($env:MATRIX_NAME)::install.ps1 reported success but $exe is missing. The windows_amd64 archive did not install ironctl.exe."
+            exit 1
+          }
+
+          $got = (& $exe version | Out-String).Trim()
+          $want = "ironctl $env:TAG"
+          Write-Host "ironctl version -> $got (want: $want)"
+          if ($got -ne $want) {
+            Write-Host "::error title=Smoke ($env:MATRIX_NAME)::version mismatch: ironctl reported '$got', expected '$want'. The published release $env:TAG is bad — yank it (see the release runbook)."
+            exit 1
+          }
+
+          Write-Host "Smoke OK on $env:MATRIX_NAME`: $env:TAG installs via install.ps1 (checksum-verified) and runs."

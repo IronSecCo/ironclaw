@@ -12,7 +12,7 @@
 #   GITHUB_TOKEN       optional; raises the GitHub API rate limit
 
 $ErrorActionPreference = "Stop"
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocol]::Tls12
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $repo    = if ($env:IRONCLAW_REPO)    { $env:IRONCLAW_REPO }    else { "IronSecCo/ironclaw" }
 $version = if ($env:IRONCLAW_VERSION) { $env:IRONCLAW_VERSION } else { "latest" }
