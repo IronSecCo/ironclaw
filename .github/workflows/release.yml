@@ -262,3 +262,73 @@ jobs:
         uses: actions/attest-build-provenance@v4
         with:
           subject-path: "dist/*.tar.gz, dist/*.zip"
+
+  # ---------------------------------------------------------------------------
+  # Post-release smoke test. Install the release we just cut through the real,
+  # checksum-verifying scripts/install.sh — the normal user path, NOT --dev — and
+  # assert `ironctl version` reports the exact tag. This proves the published
+  # artifacts download, pass SHA256SUMS verification, install, and run on every
+  # install.sh target before we trust the release.
+  #
+  # Fail-closed: a failure here turns the whole Release run red. image.yml chains
+  # off this workflow's success (workflow_run + conclusion == 'success'), so a
+  # smoke failure also blocks the GHCR image. The release assets are already
+  # published by this point — a red smoke run is the signal to yank the release
+  # (see the release runbook). Prefer a yanked/failed release over a green lie.
+  #
+  # Each target runs the binary NATIVELY so cross-built archives (linux/arm64 via
+  # the aarch64 cross-gcc, darwin/amd64 via -arch on the universal SDK) are proven
+  # to actually execute, not just compile. (Windows uses install.ps1 — tracked
+  # separately; this job covers the install.sh matrix.)
+  # ---------------------------------------------------------------------------
+  smoke:
+    needs: [version, release]
+    if: needs.version.outputs.exists == 'false'
+    permissions:
+      contents: read # read the just-published release assets through install.sh
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-latest, name: linux_amd64 }
+          - { runner: ubuntu-24.04-arm, name: linux_arm64 }
+          - { runner: macos-14, name: darwin_arm64 }
+          - { runner: macos-15-intel, name: darwin_amd64 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install via scripts/install.sh and verify ironctl version
+        shell: bash
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+          MATRIX_NAME: ${{ matrix.name }}
+          # Pin to the exact tag and point install.sh at this repo. GITHUB_TOKEN lets
+          # the installer resolve assets even while the repo is private (raised API
+          # limit + octet-stream asset download).
+          IRONCLAW_VERSION: ${{ needs.version.outputs.tag }}
+          IRONCLAW_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          bindir="${RUNNER_TEMP}/ironclaw-bin"
+
+          # Run the real installer (checksum-verifying path). Capture output so we can
+          # assert it actually verified SHA256SUMS rather than silently skipping.
+          out="$(IRONCLAW_BINDIR="${bindir}" sh scripts/install.sh 2>&1)"
+          printf '%s\n' "${out}"
+
+          if ! printf '%s\n' "${out}" | grep -q 'Checksum OK'; then
+            echo "::error title=Smoke (${MATRIX_NAME})::install.sh did not verify SHA256SUMS — the checksum-verifying install path was not exercised. Refusing to call this release verified." >&2
+            exit 1
+          fi
+
+          got="$("${bindir}/ironctl" version)"
+          want="ironctl ${TAG}"
+          echo "ironctl version → ${got} (want: ${want})"
+          if [ "${got}" != "${want}" ]; then
+            echo "::error title=Smoke (${MATRIX_NAME})::version mismatch: ironctl reported '${got}', expected '${want}'. The published release ${TAG} is bad — yank it (see the release runbook)." >&2
+            exit 1
+          fi
+
+          echo "Smoke OK on ${MATRIX_NAME}: ${TAG} installs via install.sh (checksum-verified) and runs."
