@@ -256,7 +256,8 @@ Prefer to grab files by hand? Download the archive and `SHA256SUMS` for your pla
 
 Releases are **signed and attested** — a keyless [cosign](https://docs.sigstore.dev/)
 signature over `SHA256SUMS`, an **SBOM** (SPDX + CycloneDX), and build-provenance attestations for
-every archive and the container image.
+every archive and the container image. For how releases are cut, verified, and yanked, see the
+[release runbook](docs/release-runbook.md).
 
 <details>
 <summary>Verifying a signed release</summary>
