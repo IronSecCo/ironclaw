@@ -159,3 +159,25 @@ func TestEmailAdapterRedactsPassword(t *testing.T) {
 		t.Fatalf("expected the password to be redacted, got %v", err)
 	}
 }
+
+func TestSubjectFromContent(t *testing.T) {
+	longInput := strings.Repeat("a", 150)
+	longExpected := strings.Repeat("a", 120) + "…"
+
+	tests := []struct {
+		name     string
+		content  string
+		expected string
+	}{
+		{"short content", "this is a single line", "this is a single line"},
+		{"content longer than cap", longInput, longExpected},
+		{"empty content", "", "(no subject)"},
+		{"content with newline", "This is the first line.\nThis is the second line", "This is the first line."},
+	}
+	for _, tt := range tests {
+		result := subjectFromContent(tt.content)
+		if result != tt.expected {
+			t.Errorf("subjectFromContent(%q) = %q, want %q", tt.content, result, tt.expected)
+		}
+	}
+}
