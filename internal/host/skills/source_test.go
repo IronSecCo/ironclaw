@@ -334,6 +334,87 @@ func TestResolverRefusesIdentityMismatch(t *testing.T) {
 	}
 }
 
+// TestDirSourceOpenRejectsTraversal proves that no agent-supplied name/version can
+// make Open read a file outside the source root: every "../", absolute-path, and
+// dot-segment payload is refused, and a secret placed next to (but outside) the
+// root is never read. This exercises the filepath.IsLocal confinement barrier as
+// well as the charset validators.
+func TestDirSourceOpenRejectsTraversal(t *testing.T) {
+	parent := t.TempDir()
+	root := filepath.Join(parent, "root")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// A secret bundle a traversal would try to reach, laid out so that name=".."
+	// version="secret" would resolve to it if confinement regressed.
+	if err := os.MkdirAll(filepath.Join(parent, "secret"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(parent, "secret", manifestFileName), []byte("TOPSECRET"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(parent, "secret", signatureFileName), []byte("sig"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	src := DirSource{Root: root}
+	traversals := [][2]string{
+		{"..", "secret"},
+		{"../secret", "x"},
+		{"../..", "etc"},
+		{"../../../../../../etc", "passwd"},
+		{"a/../../secret", "x"},
+		{"/etc", "passwd"},     // absolute name
+		{"ok", "/etc/passwd"},  // absolute version
+		{"ok", "../../secret"}, // traversal version
+		{".", "1.0.0"},
+		{"ok", "."},
+		{"ok", ".."},
+	}
+	for _, c := range traversals {
+		manifest, _, err := src.Open(c[0], c[1])
+		if err == nil {
+			t.Errorf("Open(%q,%q) was not rejected", c[0], c[1])
+		}
+		if string(manifest) == "TOPSECRET" {
+			t.Fatalf("Open(%q,%q) escaped the root and read the secret bundle", c[0], c[1])
+		}
+	}
+}
+
+// TestDirSourceOpenSymlinkBoundary documents the symlink stance: agent-supplied
+// name/version components are single charset-restricted labels (no separators, no
+// dot segments), so an agent can never craft a value that traverses through a
+// symlink. A symlink placed *inside* the root is part of the operator's curated
+// source (operator trust boundary), not an injection vector — this test asserts
+// only the agent-facing property, that a label which would have to contain a path
+// to escape is rejected.
+func TestDirSourceOpenSymlinkBoundary(t *testing.T) {
+	parent := t.TempDir()
+	root := filepath.Join(parent, "root")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	outside := filepath.Join(parent, "outside")
+	if err := os.MkdirAll(outside, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// A symlink whose *name* would itself have to be a traversal/separator string
+	// to be useful to an attacker; such a name is rejected by validName before any
+	// filesystem access happens.
+	link := filepath.Join(root, "link")
+	if err := os.Symlink(outside, link); err != nil {
+		t.Skipf("symlinks unsupported on this platform: %v", err)
+	}
+	for _, c := range [][2]string{{"../outside", "1.0.0"}, {"link/..", "x"}, {"a/b", "1"}} {
+		if _, _, err := src(root).Open(c[0], c[1]); err == nil {
+			t.Errorf("Open(%q,%q) via symlink-adjacent path was not rejected", c[0], c[1])
+		}
+	}
+}
+
+func src(root string) DirSource { return DirSource{Root: root} }
+
 func TestResolverRequiresTrustRoot(t *testing.T) {
 	r := &Resolver{Source: DirSource{Root: t.TempDir()}, KnownTools: resolverTools()}
 	if _, err := r.Resolve("x", "1.0.0"); err == nil {

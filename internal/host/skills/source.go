@@ -247,10 +247,19 @@ func (d DirSource) Open(name, version string) ([]byte, string, error) {
 	if !validVersion(version) {
 		return nil, "", fmt.Errorf("skills: invalid skill version %q", version)
 	}
-	base := filepath.Join(d.Root, name, version)
-	if !withinRoot(d.Root, base) {
+	// Anchor the user-supplied components to a relative path and confine it with
+	// filepath.IsLocal BEFORE joining onto the root. IsLocal (Go 1.20+) is the
+	// standard library's lexical path-confinement predicate: it rejects absolute
+	// paths, the empty path, and any "../" escape. validName/validVersion already
+	// forbid separators and dot segments, so this is defence-in-depth — but it is
+	// also the barrier the static analyser recognises, so the path that reaches
+	// os.ReadFile is provably confined to the source root rather than merely
+	// charset-checked.
+	rel := filepath.Join(name, version)
+	if !filepath.IsLocal(rel) {
 		return nil, "", errors.New("skills: resolved skill path escapes the source root")
 	}
+	base := filepath.Join(d.Root, rel)
 	manifest, err := os.ReadFile(filepath.Join(base, manifestFileName))
 	if err != nil {
 		return nil, "", fmt.Errorf("skills: read manifest: %w", err)
@@ -260,24 +269,6 @@ func (d DirSource) Open(name, version string) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("skills: read signature (unsigned bundles are refused): %w", err)
 	}
 	return manifest, string(sig), nil
-}
-
-// withinRoot reports whether p resolves to a location inside root, guarding the
-// filesystem fetch against traversal even if validation upstream regresses.
-func withinRoot(root, p string) bool {
-	rootAbs, err := filepath.Abs(root)
-	if err != nil {
-		return false
-	}
-	pAbs, err := filepath.Abs(p)
-	if err != nil {
-		return false
-	}
-	rel, err := filepath.Rel(rootAbs, pAbs)
-	if err != nil {
-		return false
-	}
-	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
 // validVersion accepts a non-empty semver-style version token (letters, digits,

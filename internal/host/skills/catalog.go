@@ -80,16 +80,21 @@ func (d DirSource) Remove(name, version string) error {
 	if !validName(name) {
 		return fmt.Errorf("skills: invalid skill name %q", name)
 	}
-	target := filepath.Join(d.Root, name)
+	rel := name
 	if version != "" {
 		if !validVersion(version) {
 			return fmt.Errorf("skills: invalid skill version %q", version)
 		}
-		target = filepath.Join(target, version)
+		rel = filepath.Join(name, version)
 	}
-	if !withinRoot(d.Root, target) {
+	// Confine the user-supplied relative path with filepath.IsLocal before joining
+	// onto the root, so the path handed to os.Stat/os.RemoveAll provably cannot
+	// escape the catalog. See DirSource.Open for the rationale; IsLocal rejects
+	// absolute paths and any "../" escape and is the barrier the analyser tracks.
+	if !filepath.IsLocal(rel) {
 		return fmt.Errorf("skills: resolved path escapes the catalog root")
 	}
+	target := filepath.Join(d.Root, rel)
 	if _, err := os.Stat(target); err != nil {
 		return fmt.Errorf("skills: %s not in catalog: %w", catalogLabel(name, version), err)
 	}

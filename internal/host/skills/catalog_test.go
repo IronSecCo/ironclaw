@@ -113,3 +113,45 @@ func TestCatalogRemoveRejects(t *testing.T) {
 		t.Error("valid bundle must be untouched by rejected removes")
 	}
 }
+
+// TestCatalogRemoveRejectsTraversal proves Remove cannot delete anything outside
+// the catalog root: every traversal/absolute payload is refused and a sentinel
+// directory placed next to (but outside) the root survives. This exercises the
+// filepath.IsLocal confinement barrier on the destructive os.RemoveAll path.
+func TestCatalogRemoveRejectsTraversal(t *testing.T) {
+	parent := t.TempDir()
+	root := filepath.Join(parent, "root")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// A sentinel a traversal would try to delete.
+	sentinel := filepath.Join(parent, "sentinel")
+	if err := os.MkdirAll(sentinel, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	catalogBundle(t, root, "triage", "1.0.0")
+	d := DirSource{Root: root}
+
+	traversals := [][2]string{
+		{"..", "sentinel"},
+		{"../sentinel", ""},
+		{"../..", ""},
+		{"../../../../../../tmp", ""},
+		{"/etc", ""},
+		{"ok", "/etc"},
+		{"ok", "../../sentinel"},
+		{".", ""},
+		{"ok", ".."},
+	}
+	for _, c := range traversals {
+		if err := d.Remove(c[0], c[1]); err == nil {
+			t.Errorf("Remove(%q,%q) was not rejected", c[0], c[1])
+		}
+	}
+	if _, err := os.Stat(sentinel); err != nil {
+		t.Fatalf("a traversal Remove deleted the out-of-root sentinel: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "triage", "1.0.0")); err != nil {
+		t.Error("valid bundle must survive rejected traversal removes")
+	}
+}
