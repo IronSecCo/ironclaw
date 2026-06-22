@@ -24,8 +24,12 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+# Least-privilege default: every job gets a read-only token unless it declares more
+# (Scorecard Token-Permissions). Only the `release` job that creates the GitHub Release
+# is granted `contents: write`, and only the jobs that sign/attest get id-token /
+# attestations write — see the per-job `permissions:` blocks below.
 permissions:
-  contents: write # create tags + releases
+  contents: read
 
 jobs:
   # ---------------------------------------------------------------------------

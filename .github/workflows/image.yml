@@ -29,11 +29,12 @@ on:
         required: false
         default: ""
 
+# Least-privilege default: read-only token for the workflow; each job below opts into
+# exactly the write scopes it needs (Scorecard Token-Permissions). `packages: write`
+# lives only on the jobs that push to GHCR (`build`, `merge`); `id-token`/`attestations`
+# write only on `merge`, which signs + attaches the provenance/SBOM attestations.
 permissions:
   contents: read
-  packages: write # push to GHCR under the repository owner
-  id-token: write # keyless provenance signing (Sigstore OIDC)
-  attestations: write # actions/attest-build-provenance for the image
 
 # Serialize image publishes so two builds never race the :latest tag.
 concurrency:
@@ -51,8 +52,19 @@ jobs:
   # failure.
   prepare:
     runs-on: ubuntu-latest
-    # On the workflow_run path, only build when the Release actually succeeded.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read # checkout only; resolve the GHCR ref + release tag for this commit
+    # Trust boundary for the `workflow_run` checkout below (Scorecard DangerousWorkflow):
+    #   - workflow_dispatch: a maintainer (write access) started it on `github.ref`.
+    #   - workflow_run: only when the Release run SUCCEEDED *and* it ran in the base repo
+    #     (head_repository.fork == false). Release itself triggers only on `push: [main]`
+    #     and `workflow_dispatch` — never on `pull_request` — so head_sha is always a
+    #     commit already merged to main; the fork gate is belt-and-suspenders so no
+    #     fork-originated run can ever reach this packages-writing chain.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_repository.fork == false) }}
     outputs:
       present: ${{ steps.meta.outputs.present }}
       image: ${{ steps.meta.outputs.image }}
@@ -107,6 +119,9 @@ jobs:
   build:
     needs: prepare
     if: ${{ needs.prepare.outputs.present == 'true' }}
+    permissions:
+      contents: read # checkout the released commit
+      packages: write # push the per-arch image to GHCR by digest
     strategy:
       fail-fast: false
       matrix:
@@ -177,6 +192,11 @@ jobs:
     needs: [prepare, build]
     if: ${{ needs.prepare.outputs.present == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # no checkout; reads digests + pushes the manifest list
+      packages: write # push the tagged manifest list to GHCR
+      id-token: write # keyless provenance/SBOM signing (Sigstore OIDC)
+      attestations: write # actions/attest-build-provenance + attest-sbom on the index
     outputs:
       digest: ${{ steps.manifest.outputs.digest }}
     steps:
