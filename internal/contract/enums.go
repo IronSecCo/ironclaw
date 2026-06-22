@@ -84,6 +84,21 @@ const (
 	// broker unix socket — so the sandbox stays network=none and never speaks MCP
 	// itself. This is the only frozen-contract change.
 	ChangeMCPAccess ChangeKind = "mcp_access"
+	// ChangeSkillInstall lets an agent PROPOSE installing a curated, signed skill from
+	// chat (RFC-0006), closing the OpenClaw add->approve->execute parity gap for skills.
+	// It is a sandbox->host PROPOSAL vocabulary only: the sandbox names a skill by
+	// {skill, version} -- it can NEVER author skill content (persona text, tool grants,
+	// asset bundles), which is the whole point of skills requiring operator-curated,
+	// minisign-signed bundles. The host RESOLVES the named skill through the SAME
+	// curated source + trust root the operator path uses (host/skills.Resolver), and
+	// only then materializes the verified ChangePermissions bundle the human approves.
+	// So this kind is the action discriminator the sandbox emits (action ==
+	// "skill_install"); it is NEVER itself submitted to the gateway as a
+	// ChangeRequest.Kind -- the resolved install rides ChangePermissions exactly like the
+	// operator path, reusing the proven skill-install applier + respawn. A proposal for
+	// a skill that is unknown, unsigned, out-of-policy, or proposed when skills are not
+	// enabled is refused host-side and never reaches the gateway.
+	ChangeSkillInstall ChangeKind = "skill_install"
 )
 
 // Verdict is the deterministic result of a single verifier in the gateway chain.

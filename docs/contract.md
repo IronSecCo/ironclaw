@@ -329,6 +329,7 @@ Per-kind `payload` shape:
 | `wiring` | object (engage mode, pattern, scope, ...) | none yet (human reviews) |
 | `permissions` | object (role/member grants) | none yet (human reviews) |
 | `mcp_access` | `{"server":"<name>","tools":["<tool>",...]}` (omit `tools` = all the server's declared tools) | `MCPServerVerifier` rejects an unknown server / a tool the server does not declare |
+| `skill_install` | `{"skill":"<name>","version":"<version>"}` | host RESOLVES the named skill (curated source + minisign trust root); an unknown/unsigned/out-of-policy skill is refused before the gateway |
 
 ### RFC-0005: approval-gated MCP-server access — `ChangeMCPAccess`
 
@@ -351,6 +352,31 @@ access through the gateway:
   host-side (`${ENV}` references resolved by the broker) and never reach the sandbox.
 - **Kept host-internal.** The MCP server catalog, the `GrantedMCP` shape, and the
   broker wire format are host-internal — not pinned in the contract.
+
+### RFC-0006: in-session skill install — `ChangeSkillInstall`
+
+OpenClaw's headline loop is *tell the assistant in chat to add a skill → a human
+approves → it executes in the same session.* IronClaw already supported this shape for
+`mcp_access`; RFC-0006 closes the gap for **skills**, which were previously
+operator-only (out-of-session `ironctl skill add` / `POST /v1/skills/install`).
+
+- **One new contract value:** `ChangeSkillInstall = "skill_install"`. It rides the
+  existing `SystemAction` envelope (`action == "skill_install"`); the agent reaches it
+  from chat via `request_capability_change` (kind `skill_install`).
+- **The sandbox may only NAME a skill** (`{"skill","version"}`) — it can never author
+  skill content (persona text, tool grants, asset bundles). That invariant is the whole
+  reason skills require operator-curated, minisign-signed bundles.
+- **The host resolves through the SAME trust gate as the operator path.**
+  `delivery.handleSkillInstall` calls `skills.InstallChange` over the configured
+  `Resolver` (curated source + trust root): fetch + signature-verify + manifest-validate.
+  The resolved install is submitted as a **`ChangePermissions`** ChangeRequest — the
+  `skill_install` kind is the sandbox→host action vocabulary only and is **never itself a
+  `ChangeRequest.Kind`** — so the proven skill-install applier + respawn handle it exactly
+  as the operator path, and the human approves the real persona/tools/egress it grants.
+- **Fail-closed.** With skills not enabled (no resolver), or a skill that is
+  unknown/unsigned/out-of-policy, the proposal is refused host-side and never reaches the
+  gateway. The sandbox can *ask*; only a curated+signed skill an operator provisioned can
+  be proposed, and a human still approves it.
 
 Kinds with no automated verifier still pass through the deterministic chain and
 the always-require-human floor; they are simply approved by a human without an
