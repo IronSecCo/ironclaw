@@ -9,6 +9,9 @@
 Thanks for your interest in IronClaw! Contributions of every kind are welcome —
 bug reports, fixes, new channel adapters, docs, and tests.
 
+New here? The [**documentation site**](https://ironsecco.github.io/ironclaw/) is the best
+starting point — architecture, threat model, quickstart, channels, and skills in one place.
+
 ## Ground rules
 
 - **Open an issue first** for anything non-trivial, so we can agree on the approach
