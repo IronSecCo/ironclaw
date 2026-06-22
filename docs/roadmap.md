@@ -149,5 +149,8 @@ component by component.
 
 ---
 
-*For the architecture and security design, see [`architecture.md`](architecture.md)
-and [`threat-model.md`](threat-model.md).*
+*This page is the single source of truth for the roadmap. For the architecture and
+security design, see [`architecture.md`](architecture.md) and
+[`threat-model.md`](threat-model.md); for the engineering build-log of the security
+backend (Waves 0–5), see the
+[README roadmap](https://github.com/IronSecCo/ironclaw#roadmap).*

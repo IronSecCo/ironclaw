@@ -665,6 +665,13 @@ To report a vulnerability, please open a private security advisory rather than a
 
 ## Roadmap
 
+> **The living roadmap is on the docs site:
+> [Road to 1.0](https://ironsecco.github.io/ironclaw/roadmap/)** — the single source
+> of truth. It tracks the *product* road to 1.0 (public launch, web UI, channels, and
+> supply-chain trust) with a status-at-a-glance table and a comparison against the
+> category. The checklist below is the **engineering build-log** for the security
+> backend (Waves 0–5) and the hardening that followed.
+
 - [x] Architecture and threat model
 - [x] Compiling skeleton: frozen contract, control-plane and sandbox stubs, CI
 - [x] Control plane (routing, gateway, isolation spec, key custody, delivery, sweep) on in-memory backends
@@ -696,6 +703,7 @@ To report a vulnerability, please open a private security advisory rather than a
 - [x] Multiple model providers — Anthropic, OpenAI, OpenRouter — selectable per agent group
 - [x] MCP servers — host-brokered, with per-tool human-approved grants
 - [x] Private, mesh-only web console at `/ui/`
+- [x] Channel breadth beyond the first three — WhatsApp, Email/SMTP, Matrix, Google Chat, Microsoft Teams, Signal, iMessage, and Webhook, plus the in-product web chat playground (twelve delivery surfaces in all)
 
 **Design-gated (built, off by default):**
 
