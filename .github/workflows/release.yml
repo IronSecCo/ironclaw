@@ -24,8 +24,11 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+# Least privilege by default: the workflow token is read-only at the top level.
+# The only job that needs to write (create the Release + tag, upload assets) grants
+# `contents: write` to itself; every other job inherits read-only.
 permissions:
-  contents: write # create tags + releases
+  contents: read
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -35,6 +38,8 @@ jobs:
   # ---------------------------------------------------------------------------
   version:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # only reads git history to derive the tag
     outputs:
       tag: ${{ steps.v.outputs.tag }}
       version: ${{ steps.v.outputs.version }}
