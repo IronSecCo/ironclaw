@@ -72,15 +72,24 @@ ironctl --addr http://<tailnet-ip>:8787 change pending
 See the [API reference](reference/api.md) for the HTTP API and
 [../deploy/README.md](https://github.com/IronSecCo/ironclaw/blob/main/deploy/README.md) for the gVisor + Tailscale deployment.
 
-## What stays gated
+## What's wired vs. what a live launch still needs
 
-The encrypted binding is wired, so `host/queue` opens real per-session databases.
-The remaining gated piece is **sandbox rootfs provisioning**: `isolation` builds
-the hardened OCI spec and execs `runsc`, but unpacking an OCI image into the bundle
-needs an external image tool, so `Launch` returns `ErrRootfsMissing` until a rootfs
-is provisioned. Until the full per-session lifecycle (session dirs + key custody +
-sandbox launch) is wired into the daemon, the control-plane runs with in-memory
-backends under `--dev`; the per-session queue factories and live `RouteInbound` /
-`Poll` / sweep wiring activate with that lifecycle. The pure logic
-(`NamespaceUserID`, `EvaluateEngage`, `DecideStuckAction`, the gateway, keys,
-model proxy, channels, queue SQL, and the API) is fully implemented and tested.
+The control-plane is composed end-to-end. `cmd/controlplane` wires the durable
+gateway + audit, key custody, the API + `/metrics`, the model proxy, the live
+per-session lifecycle (a `SessionManager` over the encrypted-queue factory +
+isolator), the maintenance sweep, the outbound delivery loop, and the channel
+adapters — so `host/queue` opens real per-session SQLCipher databases and
+`RouteInbound` / `Poll` / sweep run against them outside of `--dev`. The in-memory
+backends remain only for `--dev` and tests.
+
+The one piece that needs an external dependency at runtime is a **live sandbox
+launch**: `isolation` builds the hardened OCI spec and provisions the bundle rootfs
+through a pluggable provisioner (verifying the image digest/signature against a
+trust policy), then execs the runtime — but a real `Launch` needs `runsc` and a
+provisioned/signed image present in the host environment. You can build, vet, test,
+and run the control-plane today; only that final exec needs gVisor + an image.
+
+The remaining entrypoint task is attaching the API-server hardening knobs (optional
+TLS, rate-limit, body limits, `/readyz` readiness gate): the `api.With*` options
+exist but are not yet wired into `cmd/controlplane`. See the
+[roadmap](roadmap.md) for the full status.

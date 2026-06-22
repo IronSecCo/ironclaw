@@ -20,7 +20,7 @@ supply-chain trust.
 | **Waves 0–5** | Security backend (isolation, encrypted queues, gateway, registry, channels, scheduling, egress, a2a) | ✅ **complete** |
 | **Wave 6** | Public-launch readiness | 🚧 most of the way |
 | **Wave 7** | Product parity + web UI | 🚧 channels done; web UI planned |
-| **Wave 8** | Trust, supply-chain & ecosystem | 🚧 threat model + OpenAPI + examples done |
+| **Wave 8** | Trust, supply-chain & ecosystem | 🚧 docs site, signed releases + SBOM, threat model, OpenAPI & examples done |
 
 The backend is done; the remaining work is product surface, a UI, onboarding,
 and open-source/supply-chain polish — **not** the security core.
@@ -35,13 +35,15 @@ Everything needed to flip the repo public credibly.
 | `CODE_OF_CONDUCT.md` | ✅ |
 | Issue forms + PR template | ✅ |
 | Launch-grade README (hero, demo, badges) | ✅ |
-| Repo description, topics, social-preview image | ⬜ |
-| `docker-compose.yml` + `.env.example` + published image | 🚧 |
+| Repo description + topics | ✅ |
+| Social-preview image | 🚧 (asset ready; upload pending) |
+| `docker-compose.yml` + `.env.example` + published image | ✅ |
 | Guided `ironctl onboard` wizard | ✅ |
 | 5-minute quickstart tutorial | ✅ |
 | Homebrew tap + CHANGELOG + release notes | ✅ |
 | Public-repo ruleset for push-to-main | ⬜ |
-| Discussions + community channels + seeded good-first-issues | ⬜ |
+| Discussions + seeded good-first-issues | ✅ |
+| Real-time community chat (Discord / Matrix) | 🚧 |
 
 ## Wave 7 — Product parity & web UI
 
@@ -72,14 +74,15 @@ widening the network posture — ships embedded in the control-plane binary:
 | Channel adapter: Email / Gmail | ✅ |
 | Channel adapter: Matrix | ✅ |
 | Channel adapter: Google Chat | ✅ |
-| Teams / iMessage / Signal (tracking) | 🚧 |
+| Channel adapters: Microsoft Teams, Signal, iMessage | ✅ |
 | First-class persona / identity surface | ✅ |
 | Observability CLI (`ironctl status` / `doctor` / usage) | ✅ |
 | Host-side skills / extension system | ✅ |
 | Multi-provider model support | ✅ |
 
-IronClaw now speaks Slack, Discord, Telegram, Webhook, WhatsApp, Email/SMTP,
-Matrix, and Google Chat.
+IronClaw now speaks Slack, Discord, Telegram, Microsoft Teams, Signal, iMessage,
+Webhook, WhatsApp, Email/SMTP, Matrix, and Google Chat — plus the in-product web
+chat playground, for twelve delivery surfaces in all.
 
 ## Wave 8 — Trust, supply-chain & ecosystem
 
@@ -87,13 +90,13 @@ Press the security advantage — several of these are wins neither peer has clai
 
 | Item | Status |
 |------|--------|
-| Documentation site | ⬜ |
+| Documentation site | ✅ (this site) |
 | Checked-in OpenAPI spec | ✅ |
 | Threat model — STRIDE + data-flow | ✅ |
-| Signed releases + SBOM + provenance | ⬜ |
-| Supply-chain hygiene (Dependabot / CodeQL / secret scanning / pinned actions) | 🚧 |
-| OpenSSF Scorecard + Best-Practices badges | ⬜ |
-| SLSA L3 provenance + reproducible builds | ⬜ |
+| Signed releases + SBOM + provenance | ✅ |
+| Supply-chain hygiene (Dependabot / CodeQL / secret scanning / pinned actions) | ✅ |
+| OpenSSF Scorecard + Best-Practices badges | 🚧 (Scorecard workflow live) |
+| Reproducible builds | 🚧 (`ironctl` / `sandbox` reproducible; control-plane tracked) |
 | Examples gallery + templates | ✅ |
 | Public roadmap + comparison (this page) | ✅ |
 | Third-party security audit | 👤 |
@@ -122,7 +125,7 @@ will evolve — corrections welcome via an issue.
 | Container isolation | Docker / opt-in host access | gVisor + `network=none` + Kata backend | ✅ **stronger** |
 | Approval / permissions | role checks / host access | mandatory **deterministic gateway** with a human-approval floor | ✅ **stronger** |
 | Encrypted per-session queues | single-writer SQLite | SQLCipher-encrypted, read-only inbound | ✅ **stronger** |
-| Channels | broad | Slack · Discord · Telegram · Webhook · WhatsApp · Email · Matrix · Google Chat | ✅ **at parity** (was a gap; closed) |
+| Channels | broad | Slack · Discord · Telegram · Teams · Signal · iMessage · Webhook · WhatsApp · Email · Matrix · Google Chat · web chat | ✅ **at parity** (was a gap; closed) |
 | Outbound + interactive tools | yes | send / file / ask / schedule / tasks / a2a `create_agent` | ✅ at parity |
 | Scheduling & multi-agent (a2a) | yes | yes (RFC-0004, gateway-gated `create_agent`) | ✅ at parity |
 | Published threat model | partial / none | full STRIDE + data-flow + privilege matrix | ✅ **ahead** |
@@ -134,14 +137,15 @@ will evolve — corrections welcome via an issue.
 | Credential vault (arbitrary APIs) | yes | model credential + gateway-approved egress broker | 👤 partial (vault planned) |
 | Multiple LLM providers | drop-in modules | Anthropic / OpenAI / OpenRouter / Codex via host proxy | ✅ at parity |
 | In-product diagnostics | `/status` `/usage` | Prometheus metrics + audit + `ironctl status`/`doctor` | ✅ at parity |
-| **Signed releases + SBOM + reproducible builds** | neither peer | planned (Wave 8) | 🎯 **win available** |
+| **Signed releases + SBOM + provenance** | neither peer | cosign-signed releases + SBOM + build provenance, reproducible `ironctl`/`sandbox` | ✅ **shipped** (a win neither peer has claimed) |
 
 **The short version:** IronClaw is *ahead on the security spine* — provable
 isolation, a mandatory approval gateway, encrypted queues, and a published threat
 model — and has *closed most of the product-surface gap* (channels, an embedded web
 console, skills, and multi-provider support are all shipped). The supply-chain trust
-items (signing, SBOM, reproducible builds) are differentiators neither peer has
-claimed yet, and they're next.
+items — cosign-signed releases, an SBOM, and build provenance — have now shipped too;
+they're differentiators neither peer has claimed, and reproducible builds are landing
+component by component.
 
 ---
 
