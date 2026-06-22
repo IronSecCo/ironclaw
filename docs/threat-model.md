@@ -347,14 +347,17 @@ through.
 
 ### The skills boundary
 
-- **Install is a gateway ChangeRequest, never a sandbox action.** The trigger is
-  the host/admin CLI (`ironctl skill add`), not a sandbox tool. The host
-  fetches + verifies + validates the manifest, then synthesizes **one**
-  ChangeRequest bundling the declared grants. The change rides the
+- **Install is a gateway ChangeRequest, never a sandbox action.** Two triggers, one
+  floor. The operator CLI (`ironctl skill add`) triggers it out of session; an agent
+  can *propose* it from chat via `request_capability_change` (kind `skill_install`,
+  RFC-0006) — the agent NAMES a skill, never authors its content. Either way the host
+  fetches + signature-verifies + validates the named manifest, then synthesizes **one**
+  `ChangePermissions` ChangeRequest bundling the declared grants. The change rides the
   existing verifier chain and the `AlwaysRequireHuman` floor exactly like any
-  other capability change — never auto-approved. Even a future sandbox-side
-  `request_skill` tool could only *emit* such a ChangeRequest: the agent may ask,
-  only a human may grant (the `create_agent`/RFC-0004 posture, B3).
+  other capability change — never auto-approved. The in-session proposal is fail-closed:
+  a skill that is unknown, unsigned, out-of-policy, or proposed when skills are disabled
+  is refused host-side and never reaches the gateway. The agent may ask, only a human may
+  grant (the `create_agent`/RFC-0004 posture, B3).
 - **Apply touches config only.** On approval the change updates registry / egress
   allowlist / mount allowlist — it never writes the read-only rootfs or adds an
   executable. The install payload is structurally incapable of carrying a
