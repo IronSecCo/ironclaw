@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -152,6 +153,16 @@ func checkRuntime(bin string) checkResult {
 	r := checkResult{Name: "sandbox runtime (" + bin + ")"}
 	path, err := exec.LookPath(bin)
 	if err != nil {
+		// gVisor's runsc is Linux-only. On macOS/Windows the production sandbox
+		// runs on the Linux control-plane host, so a missing runtime here is a
+		// dev-environment note (WARN), not a hard FAIL that breaks `doctor`'s
+		// exit code on a platform where it was never expected.
+		if runtime.GOOS != "linux" {
+			r.Status = checkWarn
+			r.Detail = bin + " not found (gVisor is Linux-only; not expected on " + runtime.GOOS + ")"
+			r.Fix = "the production sandbox runs on the Linux control-plane host — install gVisor there; this check is informational on " + runtime.GOOS
+			return r
+		}
 		r.Status = checkFail
 		r.Detail = bin + " not found on PATH"
 		r.Fix = "install gVisor (https://gvisor.dev/docs/user_guide/install/) so sandboxes can launch, or pass --runtime <bin>"

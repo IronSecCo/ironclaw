@@ -74,7 +74,14 @@ Changing it requires:
 
 ## Good first contributions
 
-Channel adapters (`internal/host/channels/`) are small, uniform, and dependency-free
+The fastest way in is a
+[**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+— these are small, self-contained, and mentored. Comment on one to claim it before you start.
+
+Channel adapters (`internal/host/channels/`) are also small, uniform, and dependency-free
 — a great first PR. See [**Writing a channel adapter**](docs/writing-a-channel-adapter.md)
 for the interface and house pattern, and [`docs/channels.md`](docs/channels.md) for how
 each existing adapter is configured.
+
+Have a question instead of a change? Open a thread in
+[GitHub Discussions](https://github.com/IronSecCo/ironclaw/discussions).

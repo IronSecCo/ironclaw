@@ -1,0 +1,75 @@
+# Build the MkDocs (Material) documentation site and publish it to GitHub Pages.
+#
+# - On pull requests: build only (with --strict), as a CI gate. No deploy.
+# - On push to main: build + deploy to GitHub Pages.
+#
+# Least-privilege: the default token is read-only; only the deploy job is granted
+# the pages/id-token scopes the GitHub Pages OIDC deployment needs.
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "api/openapi.yaml"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "api/openapi.yaml"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never run two Pages deploys at once; let a newer push supersede an in-flight one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # hooks.py derives the version from `git rev-list --count HEAD`.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install MkDocs toolchain (pinned)
+        run: pip install -r docs/requirements.txt
+
+      - name: Build site (strict)
+        run: mkdocs build --strict --site-dir _site
+
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    # Publish only the main branch; PRs validate the build above but never deploy.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

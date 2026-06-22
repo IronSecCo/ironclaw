@@ -62,7 +62,7 @@ jobs:
       # Build the exact commit the release was cut from (workflow_run), else the ref
       # the dispatch was started on. Full history + tags so we can read the release
       # tag this commit carries.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
           fetch-depth: 0
@@ -123,15 +123,15 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
         run: echo "pair=${PLATFORM//\//-}" >> "${GITHUB_OUTPUT}"
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
 
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -139,7 +139,7 @@ jobs:
 
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           context: .
           file: container/controlplane.Dockerfile
@@ -163,7 +163,7 @@ jobs:
           touch "${RUNNER_TEMP}/digests/${DIGEST#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: digest-${{ steps.plat.outputs.pair }}
           path: ${{ runner.temp }}/digests/*
@@ -181,15 +181,15 @@ jobs:
       digest: ${{ steps.manifest.outputs.digest }}
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: ${{ runner.temp }}/digests
           pattern: digest-*
           merge-multiple: true
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
 
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -213,10 +213,35 @@ jobs:
           docker buildx imagetools inspect "${IMAGE}:latest"
 
       - name: Attest the control-plane image
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4
         with:
           subject-name: ${{ needs.prepare.outputs.image }}
           subject-digest: ${{ steps.manifest.outputs.digest }}
+          push-to-registry: true
+
+      # Per-container-image SBOM (IRO-32 A2). Scan the exact published index by digest
+      # with syft → CycloneDX, then attach it as a signed SBOM attestation to the same
+      # index digest. Consumers verify it anonymously alongside provenance:
+      #   gh attestation verify oci://<image>@<digest> --repo <repo> \
+      #     --predicate-type https://cyclonedx.org/bom
+      - name: Generate image SBOM (syft → CycloneDX)
+        env:
+          IMAGE: ${{ needs.prepare.outputs.image }}
+          DIGEST: ${{ steps.manifest.outputs.digest }}
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "$RUNNER_TEMP/bin"
+          "$RUNNER_TEMP/bin/syft" version
+          # Scan the multi-arch index by its immutable digest (logged into GHCR above).
+          "$RUNNER_TEMP/bin/syft" scan "registry:${IMAGE}@${DIGEST}" \
+            -o "cyclonedx-json=${RUNNER_TEMP}/image.cdx.json"
+
+      - name: Attest the image SBOM
+        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3
+        with:
+          subject-name: ${{ needs.prepare.outputs.image }}
+          subject-digest: ${{ steps.manifest.outputs.digest }}
+          sbom-path: ${{ runner.temp }}/image.cdx.json
           push-to-registry: true
 
   # Consumer-side guard. The jobs above PRODUCE the image + attestation; this proves they

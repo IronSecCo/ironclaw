@@ -40,7 +40,7 @@ jobs:
       version: ${{ steps.v.outputs.version }}
       exists: ${{ steps.v.outputs.exists }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -92,11 +92,15 @@ jobs:
           # Windows x86_64 — native mingw-w64 gcc (preinstalled on the runner).
           - { goos: windows, goarch: amd64, runner: windows-latest, name: windows_amd64 }
     runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read # checkout
+      id-token: write # OIDC token for keyless provenance signing (Sigstore)
+      attestations: write # actions/attest-build-provenance over the raw binaries
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
-          go-version: "1.23"
+          go-version: "1.23.12"
 
       - name: Install cross C toolchain
         if: matrix.apt != ''
@@ -123,7 +127,13 @@ jobs:
           [ -n "${CGO_ARCH}" ] && { export CGO_CFLAGS="-arch ${CGO_ARCH}"; export CGO_LDFLAGS="-arch ${CGO_ARCH}"; }
           ext=""
           [ "${GOOS}" = "windows" ] && ext=".exe"
-          ldflags="-s -w -X github.com/IronSecCo/ironclaw/internal/version.Version=${TAG}"
+          # -buildid= empties Go's content-hash build ID (varies across cold rebuilds)
+          # and is safe on every platform. The GNU .note.gnu.build-id is only emitted by
+          # GNU ld, so --build-id=none is gated to Linux — passing it to macOS's ld64
+          # would break the darwin targets. Together these make the Linux artifacts
+          # bit-for-bit reproducible (the platform reproducibility.yml verifies).
+          ldflags="-s -w -buildid= -X github.com/IronSecCo/ironclaw/internal/version.Version=${TAG}"
+          [ "${GOOS}" = "linux" ] && ldflags="${ldflags} -extldflags=-Wl,--build-id=none"
           mkdir -p dist/pkg
           for cmd in controlplane ironctl sandbox; do
             out="ironctl"
@@ -135,6 +145,19 @@ jobs:
             go build -trimpath -ldflags "${ldflags}" -o "dist/pkg/${out}${ext}" "./cmd/${cmd}"
           done
           cp LICENSE README.md dist/pkg/
+
+      # Attest build provenance for the RAW binaries (ironctl, ironclaw-controlplane,
+      # ironclaw-sandbox), not just the archive. The archive attestation in the release
+      # job is keyed on the .tar.gz/.zip digest; a user who extracts the tarball and runs
+      # `gh attestation verify ./ironctl` is checking the *binary* digest, which has no
+      # attestation unless we publish one here — that was the IRO-46 404. Attesting per
+      # build leg is where the binaries exist (the release job only ever sees archives).
+      # The `dist/pkg/iron*` glob matches the three binaries (and their .exe variants on
+      # Windows) while excluding the copied-in LICENSE / README.md.
+      - name: Attest build provenance for the binaries
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: "dist/pkg/iron*"
 
       - name: Package archive
         shell: bash
@@ -153,7 +176,7 @@ jobs:
           fi
           ls -l dist/out
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ${{ matrix.name }}
           path: dist/out/*
@@ -174,9 +197,9 @@ jobs:
       id-token: write # keyless cosign + provenance signing (Sigstore OIDC)
       attestations: write # actions/attest-build-provenance
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: artifacts
 
@@ -244,7 +267,7 @@ jobs:
             -o "cyclonedx-json=ironclaw_${VERSION}.cdx.json"
           gh release upload "${TAG}" "ironclaw_${VERSION}.spdx.json" "ironclaw_${VERSION}.cdx.json" --clobber
 
-      - uses: sigstore/cosign-installer@v3
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
 
       - name: Sign the checksum file (cosign keyless) and attach it
         env:
@@ -259,7 +282,7 @@ jobs:
           echo "Signed SHA256SUMS keylessly (cert + signature attached to the release)."
 
       - name: Attest build provenance for the release binaries
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4
         with:
           subject-path: "dist/*.tar.gz, dist/*.zip"
 
@@ -296,7 +319,42 @@ jobs:
           - { runner: macos-15-intel, name: darwin_amd64 }
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+
+      # Verify the keyless cosign signature over SHA256SUMS the way a real user does:
+      # anonymously, from the published release, with no key to manage — the trusted
+      # identity is the Release workflow's own OIDC cert. This proves A1 end-to-end
+      # (sign on publish → verify on consume) before we trust the release. Runs BEFORE
+      # the installer so a forged/missing signature fails the release, not just a bad
+      # checksum. (Windows is covered by the install.ps1 smoke job; cosign verify here
+      # exercises the Linux/macOS matrix.)
+      - name: Verify cosign signature over SHA256SUMS (anonymous)
+        shell: bash
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+          MATRIX_NAME: ${{ matrix.name }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          work="${RUNNER_TEMP}/cosign-verify"
+          mkdir -p "${work}"
+          # Pull exactly the three signing artifacts the Release job attached.
+          gh release download "${TAG}" --repo "${REPO}" --dir "${work}" --clobber \
+            -p SHA256SUMS -p SHA256SUMS.sig -p SHA256SUMS.pem
+          # The cert identity is this repo's Release workflow; the issuer is GitHub's
+          # OIDC provider. A signature from any other identity/issuer is rejected.
+          if ! cosign verify-blob "${work}/SHA256SUMS" \
+              --signature "${work}/SHA256SUMS.sig" \
+              --certificate "${work}/SHA256SUMS.pem" \
+              --certificate-identity-regexp "^https://github.com/${REPO}/" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com; then
+            echo "::error title=Smoke (${MATRIX_NAME})::cosign could not verify the SHA256SUMS signature for ${TAG} against the Release workflow identity. The release signature is missing or untrusted — yank it (see the release runbook)." >&2
+            exit 1
+          fi
+          echo "cosign OK on ${MATRIX_NAME}: SHA256SUMS signed by ${REPO} Release workflow (keyless)."
 
       - name: Install via scripts/install.sh and verify ironctl version
         shell: bash
@@ -360,7 +418,7 @@ jobs:
       contents: read # read the just-published release assets through install.ps1
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Install via scripts/install.ps1 and verify ironctl version
         shell: pwsh

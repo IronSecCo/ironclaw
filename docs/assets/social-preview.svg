@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="IronClaw — isolation you can prove, not just promise.">
+  <title>IronClaw — isolation you can prove, not just promise.</title>
+  <defs>
+    <!-- Brand gradients carried over from docs/assets/logo.svg -->
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#63a0ff"/>
+      <stop offset="0.5" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1a44bd"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b9d4ff"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#dbe7ff"/>
+      <stop offset="1" stop-color="#93b6ff"/>
+    </linearGradient>
+    <!-- Dark navy backdrop with a soft glow behind the shield -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1124"/>
+      <stop offset="1" stop-color="#070b18"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.22" r="0.55">
+      <stop offset="0" stop-color="#1d2c57" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#1d2c57" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="sh"><path d="M50 14 L84 26 L84 54 Q84 80 50 92 Q16 80 16 54 L16 26 Z"/></clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect width="1280" height="640" fill="url(#glow)"/>
+
+  <!-- Curved-claw shield, scaled from the 360x100 logo artwork -->
+  <g transform="translate(530,24) scale(2.2)">
+    <path d="M50 14 L84 26 L84 54 Q84 80 50 92 Q16 80 16 54 L16 26 Z" fill="url(#steel)"/>
+    <path d="M50 14 L84 26 L84 54 Q84 80 50 92 Q16 80 16 54 L16 26 Z" fill="none" stroke="url(#edge)" stroke-width="2"/>
+    <g clip-path="url(#sh)" fill="#eaf2ff" opacity="0.97">
+      <path d="M28.0 66.0 Q52.4 55.9 58.0 30.0 Q45.8 50.4 28.0 66.0 Z"/>
+      <path d="M37.0 72.0 Q62.4 60.9 69.0 34.0 Q55.8 55.4 37.0 72.0 Z"/>
+      <path d="M46.0 78.0 Q72.3 68.6 81.0 42.0 Q66.2 62.6 46.0 78.0 Z"/>
+    </g>
+  </g>
+
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" text-anchor="middle">
+    <!-- Eyebrow -->
+    <text x="640" y="280" font-size="23" font-weight="600" letter-spacing="6" fill="#7d97d6">SECURITY-FIRST · SELF-HOSTED AI AGENTS</text>
+
+    <!-- Wordmark -->
+    <text x="640" y="372" font-size="104" font-weight="800" letter-spacing="-2" fill="url(#word)">IronClaw</text>
+
+    <!-- Required tagline -->
+    <text x="640" y="436" font-size="40" font-weight="600" fill="#aec6ff">isolation you can prove, not just promise.</text>
+
+    <!-- Feature row -->
+    <text x="640" y="512" font-size="24" font-weight="500" fill="#5f78b8">gVisor sandbox · network=none · approval gateway · encrypted queues</text>
+
+    <!-- Repo URL -->
+    <text x="640" y="578" font-size="26" font-weight="600" letter-spacing="0.5" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" fill="#4f6bb0">github.com/IronSecCo/ironclaw</text>
+  </g>
+</svg>

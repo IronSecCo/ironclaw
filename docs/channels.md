@@ -1,7 +1,7 @@
 # Channel adapters & their credentials
 
 IronClaw delivers an agent's replies through **channel adapters** in
-[`internal/host/channels/`](../internal/host/channels). Each adapter implements a
+[`internal/host/channels/`](https://github.com/IronSecCo/ironclaw/tree/main/internal/host/channels). Each adapter implements a
 tiny interface (`Name()` + `Deliver()`) and talks to one platform. This page is the
 single reference for **what each adapter needs to be configured**.
 
@@ -38,7 +38,7 @@ Two things to know up front:
 ## Configuring an auto-registered adapter
 
 Set the variable in the control-plane's environment (or in `.env` when running with
-[Docker Compose](site/self-hosting/docker)), then start the daemon:
+[Docker Compose](https://github.com/IronSecCo/ironclaw/blob/main/docker-compose.yml)), then start the daemon:
 
 ```sh
 export DISCORD_BOT_TOKEN=...      # registers the Discord adapter on boot
@@ -46,8 +46,8 @@ export DISCORD_BOT_TOKEN=...      # registers the Discord adapter on boot
 ```
 
 Then wire it to an agent group with the registry — see
-[`examples/`](../examples) for runnable templates and the
-[CLI reference](site/reference/cli) for `ironctl registry`.
+[`examples/`](https://github.com/IronSecCo/ironclaw/tree/main/examples) for runnable templates and the
+[CLI reference](https://github.com/IronSecCo/ironclaw/blob/main/README.md) for `ironctl registry`.
 
 ## Adding a new adapter
 

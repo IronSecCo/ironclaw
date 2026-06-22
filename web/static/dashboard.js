@@ -26,7 +26,7 @@ const Dashboard = (() => {
     const host = $("dash-approvals");
     if (!host) return;
     host.innerHTML = "";
-    if (!approvals) { host.append(el("p", { class: "muted", text: "Not connected — add your API token in the sidebar." })); return; }
+    if (!approvals) { host.append(el("p", { class: "muted", text: "Not connected — add your API token to load approvals." })); return; }
     if (!approvals.length) { host.append(emptyState("All clear", "No changes are waiting for a decision.")); return; }
 
     for (const a of approvals.slice(0, 5)) {

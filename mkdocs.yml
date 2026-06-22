@@ -1,0 +1,101 @@
+site_name: IronClaw
+site_description: Security-first, self-hosted AI agents — isolation you can prove, not just claim.
+site_url: https://ironsecco.github.io/ironclaw/
+repo_url: https://github.com/IronSecCo/ironclaw
+repo_name: IronSecCo/ironclaw
+edit_uri: edit/main/docs/
+copyright: "© IronSec Co. — AGPL-3.0 / commercial dual-licensed"
+
+docs_dir: docs
+
+# The Mintlify scaffold (docs/site/**, docs/docs.json) is a separate hosted-docs
+# experiment; it is not part of this MkDocs build.
+exclude_docs: |
+  site/
+  docs.json
+  reference/openapi.yaml
+
+# docs/hooks.py copies api/openapi.yaml into the build and stamps the version.
+hooks:
+  - docs/hooks.py
+
+theme:
+  name: material
+  language: en
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - navigation.footer
+    - content.code.copy
+    - content.action.edit
+    - search.suggest
+    - search.highlight
+    - toc.follow
+
+extra_css:
+  - stylesheets/brand.css
+
+plugins:
+  - search
+  - render_swagger:
+      allow_arbitrary_locations: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - Get Started:
+      - Quickstart: quickstart.md
+      - Building from source: building.md
+  - Concepts:
+      - IronClaw, Explained: ironclaw-explained.md
+      - Architecture: architecture.md
+      - The frozen contract: contract.md
+      - MCP servers: mcp.md
+  - Channels:
+      - Channel adapters: channels.md
+      - Writing a channel adapter: writing-a-channel-adapter.md
+  - Skills: skills.md
+  - Security & Trust:
+      - Overview: security.md
+      - Threat model: threat-model.md
+  - Reference:
+      - API (OpenAPI): reference/api.md
+      - Release runbook: release-runbook.md
+      - Roadmap: roadmap.md

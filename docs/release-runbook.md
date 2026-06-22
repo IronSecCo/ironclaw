@@ -13,7 +13,7 @@ separately and the runbook is updated when it merges.
 > release. Every published set is checksummed, the checksum file is signed keylessly
 > with cosign, and every archive carries a build-provenance attestation tied to the
 > source commit and workflow. Never weaken or skip signing, checksums, or attestation
-> to make a build go green — yank a bad release instead (see [Yanking a release](#yanking-a-release)).
+> to make a build go green — yank a bad release instead (see [Yanking a release](#6-yanking-a-release)).
 
 ---
 
@@ -43,7 +43,7 @@ version ──> build (5-target matrix) ──> release ──> [smoke]
   is published only if every matrix target built** — no partial release sets.
 - All post-publish steps (SBOM, cosign signature, attestation) run **after** the binaries
   and checksums are uploaded, so a Sigstore/tooling hiccup cannot block the artifacts from
-  shipping. See [Partial-failure semantics](#5-partial-failure-semantics) — this is the one
+  shipping. See [Partial-failure semantics](#5-partial-failure-semantics-operator-decision) — this is the one
   case that needs an operator decision.
 
 ---
@@ -134,9 +134,12 @@ Attached to the GitHub Release for tag `<tag>` (version `<ver>` = tag without th
 - `SHA256SUMS` — checksums of every archive (**the trust anchor**).
 - `SHA256SUMS.sig` + `SHA256SUMS.pem` — the keyless cosign signature and its certificate.
 - `ironclaw_<ver>.spdx.json` + `ironclaw_<ver>.cdx.json` — SBOMs (syft, SPDX + CycloneDX).
-- Build-provenance attestations for each archive (queryable via `gh attestation verify`).
+- Build-provenance attestations for each archive **and for each raw binary**
+  (`ironctl`, `ironclaw-controlplane`, `ironclaw-sandbox` on every platform), so
+  `gh attestation verify` works whether you point it at the downloaded `.tar.gz`/`.zip`
+  or at a binary extracted from it.
 
-### 3.5 Post-release verification gate (smoke — in flight, [IRO-15](/IRO/issues/IRO-15))
+### 3.5 Post-release verification gate (smoke — in flight, IRO-15)
 
 A `smoke` job installs the freshly-cut release through the real, checksum-verifying
 `scripts/install.sh` (the normal user path, **not** `--dev`) on `linux/amd64`, `linux/arm64`,
@@ -144,7 +147,7 @@ A `smoke` job installs the freshly-cut release through the real, checksum-verify
 `ironctl version` reports the exact tag. It is **fail-closed**: a failure turns the whole
 Release run red, which also blocks the Image workflow (it chains on Release `success`). A red
 smoke run on an already-published release is the signal to **yank** (the assets are out by
-that point). This gate lands with [IRO-15](/IRO/issues/IRO-15).
+that point). This gate lands with IRO-15.
 
 ---
 
@@ -178,8 +181,11 @@ sha256sum -c SHA256SUMS        # macOS: shasum -a 256 -c SHA256SUMS
 **Step 3 — verify build provenance (ties the artifact to the source commit + workflow):**
 
 ```sh
+# the downloaded archive:
 gh attestation verify ironclaw_<ver>_<os>_<arch>.tar.gz --repo IronSecCo/ironclaw
-# and for the container image:
+# a binary extracted from it (e.g. after `tar xzf`):
+gh attestation verify ./ironctl --repo IronSecCo/ironclaw
+# and the container image:
 gh attestation verify oci://ghcr.io/ironsecco/ironclaw-controlplane:<tag> --repo IronSecCo/ironclaw
 ```
 
@@ -273,7 +279,7 @@ banners so the one-liner install path is advertised again.
 `main` is intended to be protected by enforced required checks. The spec lives at
 `.github/rulesets/main.json` (`build` + `CodeQL` required, linear history, signed commits,
 no force-push/deletion). Applying that file as an *active* GitHub ruleset is tracked
-separately ([IRO-14](/IRO/issues/IRO-14)); ratcheting protection **up** (more enforced checks)
+separately (IRO-14); ratcheting protection **up** (more enforced checks)
 is the default direction. Never relax or disable a required check to unblock a merge — fix the
 check on its own ticket instead.
 
@@ -307,10 +313,11 @@ cosign verify-blob SHA256SUMS --signature SHA256SUMS.sig --certificate SHA256SUM
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 sha256sum -c SHA256SUMS
 gh attestation verify ironclaw_<ver>_<os>_<arch>.tar.gz --repo IronSecCo/ironclaw
+gh attestation verify ./ironctl --repo IronSecCo/ironclaw   # extracted binary
 ```
 
 ---
 
-*Related tickets:* pipeline handoff [IRO-12](/IRO/issues/IRO-12); this runbook
-[IRO-16](/IRO/issues/IRO-16); arm64 image [IRO-13](/IRO/issues/IRO-13); ruleset enforcement
-[IRO-14](/IRO/issues/IRO-14); release smoke test [IRO-15](/IRO/issues/IRO-15).
+*Related tickets:* pipeline handoff IRO-12; this runbook
+IRO-16; arm64 image IRO-13; ruleset enforcement
+IRO-14; release smoke test IRO-15.

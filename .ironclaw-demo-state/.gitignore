@@ -1,0 +1,3 @@
+# Ephemeral demo runtime state (docker-compose.demo.yml). Ignore all contents.
+*
+!.gitignore
