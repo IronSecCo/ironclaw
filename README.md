@@ -707,6 +707,9 @@ Questions, ideas, "is this a bug or am I holding it wrong?" — bring them to
 **[GitHub Discussions](https://github.com/IronSecCo/ironclaw/discussions)**. It's the project's
 home for Q&A, design discussion, and show-and-tell, and it's where maintainers answer first.
 
+- **New to the project or want the full picture?** Read the
+  [**documentation site**](https://ironsecco.github.io/ironclaw/) — architecture, threat model,
+  quickstart, channels, and skills, all in one navigable place.
 - **Found a bug or have a feature request?** Open an [issue](https://github.com/IronSecCo/ironclaw/issues/new/choose).
 - **Security report?** Do **not** open a public issue — follow [`SECURITY.md`](SECURITY.md).
 - **Want to contribute code?** Start with a
