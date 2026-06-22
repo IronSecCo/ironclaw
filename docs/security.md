@@ -58,7 +58,9 @@ artifacts are:
 - **Signed** — a keyless [cosign](https://github.com/sigstore/cosign) signature
   over `SHA256SUMS` is the trust anchor.
 - **Attested** — build-provenance attestations tie every artifact back to its
-  source commit and the workflow that built it.
+  source commit and the workflow that built it. Both the release archives and the
+  individual binaries inside them carry provenance, so `gh attestation verify`
+  works against either.
 
 The [Release runbook](release-runbook.md) is the operational reference for cutting,
 verifying, and yanking a release.
