@@ -4,6 +4,7 @@
 
 ### Security-first, self-hosted AI agents — isolation you can prove, not just promise.
 
+[![Documentation](https://img.shields.io/badge/docs-ironsecco.github.io-0a7bbb.svg)](https://ironsecco.github.io/ironclaw/)
 [![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#project-status)
 [![Latest release](https://img.shields.io/github/v/release/IronSecCo/ironclaw?sort=semver)](https://github.com/IronSecCo/ironclaw/releases/latest)
 [![Go Reference](https://pkg.go.dev/badge/github.com/IronSecCo/ironclaw.svg)](https://pkg.go.dev/github.com/IronSecCo/ironclaw)
@@ -144,6 +145,10 @@ files per conversation:
 For the full design, see [`docs/architecture.md`](docs/architecture.md),
 [`docs/threat-model.md`](docs/threat-model.md), and the plain-language tour in
 [`docs/ironclaw-explained.md`](docs/ironclaw-explained.md).
+
+> 📚 **Full documentation site:** [**ironsecco.github.io/ironclaw**](https://ironsecco.github.io/ironclaw/)
+> — quickstart, architecture, threat model, channels, skills, the OpenAPI reference, and security,
+> all in one navigable place (built from `docs/` and published on every push to `main`).
 
 ## Platform support
 
