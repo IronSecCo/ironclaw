@@ -22,8 +22,10 @@ hooks:
 theme:
   name: material
   language: en
-  logo: assets/logo.svg
-  favicon: assets/logo.svg
+  # Light-wordmark logo so it reads on the steel-blue / navy header bar.
+  logo: assets/logo-light.svg
+  # Square curved-claw shield — legible at 16px, unlike the wide wordmark.
+  favicon: assets/favicon.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
