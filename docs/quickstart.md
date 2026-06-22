@@ -179,5 +179,6 @@ sandboxes.
   (`ironctl registry ...`).
 - **Understand the design:** [architecture](architecture.md) · [threat model](threat-model.md) ·
   [contract](contract.md).
-- **Where it's headed:** the [roadmap](roadmap.md) — a guided `ironctl onboard`
-  wizard and a web console are on the way.
+- **Guided first run:** `ironctl onboard` walks you through a first-run check and
+  `ironctl doctor` diagnoses the common failure modes; the web console is at `/ui/`.
+- **Where it's headed:** the [roadmap](roadmap.md).
