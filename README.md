@@ -708,6 +708,8 @@ home for Q&A, design discussion, and show-and-tell, and it's where maintainers a
   [**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
   — these are small, self-contained, and mentored. See [Contributing](#contributing) for the workflow.
 
+A real-time chat channel (Discord / Matrix) is on the way — once it's live it'll be linked right here.
+
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contract-freeze rule, the code layout
