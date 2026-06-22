@@ -140,6 +140,48 @@ func TestCapabilityChangeWireFormatSeam(t *testing.T) {
 	}
 }
 
+// TestSkillInstallProposalSeam drives the REAL sandbox tool emitting a skill_install
+// proposal (RFC-0006) through the host's REAL delivery, with a curated resolver wired as
+// in production. It proves the in-session add→approve→execute parity loop for skills: the
+// sandbox NAMES a curated skill, the host RESOLVES it through the trust gate into the
+// ChangePermissions bundle a human approves (held pending, never delivered to a channel),
+// reusing the same applier path as the operator `ironctl skill add`.
+func TestSkillInstallProposalSeam(t *testing.T) {
+	d, gw, adapter, w := newCapDelivery(t, gateway.VerifierChain{gateway.AlwaysRequireHuman{}})
+	// Stand in for skills.InstallChange: resolve the NAMED curated skill into the
+	// resolved ChangePermissions bundle (the sandbox can never author this content).
+	d.WithSkillResolver(func(skill, version string, group contract.AgentGroupID, by contract.UserID) (contract.ChangeRequest, error) {
+		if skill != "curated-skill" {
+			return contract.ChangeRequest{}, fmt.Errorf("skills: %s@%s not curated", skill, version)
+		}
+		after, _ := json.Marshal(map[string]any{"skill": skill, "version": version, "tools": []string{"web_search"}})
+		return contract.ChangeRequest{Kind: contract.ChangePermissions, AgentGroupID: group, RequestedBy: by, After: after}, nil
+	})
+
+	wire, _ := sandboxCapabilityWire(t, "skill_install", `{"skill":"curated-skill","version":"1.2.0"}`, "need web search")
+	if err := w.WriteMessageOut(contract.MessageOut{ID: "cap-skill", Seq: 1, Kind: contract.KindSystem, Content: wire}); err != nil {
+		t.Fatalf("enqueue outbound: %v", err)
+	}
+	if err := d.Poll(context.Background()); err != nil {
+		t.Fatalf("delivery poll: %v", err)
+	}
+	if got := adapter.Delivered(); len(got) != 0 {
+		t.Fatalf("a skill_install proposal must never be delivered to a channel, got %+v", got)
+	}
+	pending := waitCapPending(t, gw, 1)
+	// The resolved install rides ChangePermissions — NOT the skill_install action name —
+	// so the proven skill-install applier + respawn handle it exactly as the operator path.
+	if pending[0].Kind != contract.ChangePermissions {
+		t.Fatalf("routed Kind = %q, want permissions (resolved skill install)", pending[0].Kind)
+	}
+	var got struct {
+		Skill string `json:"skill"`
+	}
+	if err := json.Unmarshal(pending[0].After, &got); err != nil || got.Skill != "curated-skill" {
+		t.Fatalf("After is not the resolved skill bundle: %s", pending[0].After)
+	}
+}
+
 // TestCapabilityChangePayloadVerifiedByHost asserts the defense-in-depth seam: a
 // package payload the sandbox emits is judged by the host's real PackageNameVerifier
 // on the exact bytes the sandbox produced. A clean payload passes; one carrying a

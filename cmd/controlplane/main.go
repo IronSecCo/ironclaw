@@ -535,6 +535,18 @@ func main() {
 	deliverer := delivery.New(channelReg, gw, reg, manager.OutboundReader).
 		WithInboundWriter(manager.InboundWriter).
 		WithQuestions(pendingQuestions)
+	// In-session skill install (RFC-0006): when skills are enabled, let an agent PROPOSE
+	// a curated, signed skill from chat. Delivery resolves+signature-verifies the named
+	// skill through the SAME resolver the operator `ironctl skill add` path uses, then
+	// routes the resolved ChangePermissions bundle to the gateway's mandatory human floor.
+	// With skills disabled (no resolver) a sandbox skill_install proposal is refused.
+	if skillsResolver != nil {
+		resolver := skillsResolver
+		deliverer = deliverer.WithSkillResolver(
+			func(skill, version string, group contract.AgentGroupID, by contract.UserID) (contract.ChangeRequest, error) {
+				return skills.InstallChange(resolver, skill, version, group, by)
+			})
+	}
 
 	// Respawn backoff: wrap the SessionManager (which is the sweep's Prober
 	// and Killer) so a crash-looping sandbox is tracked — each stuck-kill records a
