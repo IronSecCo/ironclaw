@@ -74,21 +74,9 @@ func (d DirSource) List() ([]SkillRef, error) {
 // delete outside the catalog. Removing an absent bundle is an error (so the caller
 // learns it named nothing), not a silent success.
 func (d DirSource) Remove(name, version string) error {
-	if d.Root == "" {
-		return fmt.Errorf("skills: DirSource has no configured root")
-	}
-	if !validName(name) {
-		return fmt.Errorf("skills: invalid skill name %q", name)
-	}
-	target := filepath.Join(d.Root, name)
-	if version != "" {
-		if !validVersion(version) {
-			return fmt.Errorf("skills: invalid skill version %q", version)
-		}
-		target = filepath.Join(target, version)
-	}
-	if !withinRoot(d.Root, target) {
-		return fmt.Errorf("skills: resolved path escapes the catalog root")
+	target, err := resolveBundlePath(d.Root, name, version, false)
+	if err != nil {
+		return err
 	}
 	if _, err := os.Stat(target); err != nil {
 		return fmt.Errorf("skills: %s not in catalog: %w", catalogLabel(name, version), err)

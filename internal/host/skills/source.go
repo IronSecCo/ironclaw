@@ -238,18 +238,9 @@ type DirSource struct {
 }
 
 func (d DirSource) Open(name, version string) ([]byte, string, error) {
-	if strings.TrimSpace(d.Root) == "" {
-		return nil, "", errors.New("skills: DirSource has no configured root")
-	}
-	if !validName(name) {
-		return nil, "", fmt.Errorf("skills: invalid skill name %q", name)
-	}
-	if !validVersion(version) {
-		return nil, "", fmt.Errorf("skills: invalid skill version %q", version)
-	}
-	base := filepath.Join(d.Root, name, version)
-	if !withinRoot(d.Root, base) {
-		return nil, "", errors.New("skills: resolved skill path escapes the source root")
+	base, err := resolveBundlePath(d.Root, name, version, true)
+	if err != nil {
+		return nil, "", err
 	}
 	manifest, err := os.ReadFile(filepath.Join(base, manifestFileName))
 	if err != nil {
@@ -262,22 +253,38 @@ func (d DirSource) Open(name, version string) ([]byte, string, error) {
 	return manifest, string(sig), nil
 }
 
-// withinRoot reports whether p resolves to a location inside root, guarding the
-// filesystem fetch against traversal even if validation upstream regresses.
-func withinRoot(root, p string) bool {
-	rootAbs, err := filepath.Abs(root)
-	if err != nil {
-		return false
+// resolveBundlePath is the single path barrier every catalog filesystem op routes
+// through. It charset-validates name (and version), derives the bundle path from a
+// cleaned root, then confirms — on the exact cleaned value it returns — that the
+// result is contained within root. validName/validVersion already forbid path
+// separators and "."/"..", so the containment check is belt-and-suspenders; its real
+// job is to make the sanitizer *data-flow-visible*: the guard sits directly on the
+// returned path, so CodeQL can follow that the value handed to os.Stat/os.ReadFile/
+// os.RemoveAll is confined to root. This closes the go/path-injection findings that
+// the previous out-of-line withinRoot helper left invisible to the analyzer.
+//
+// An empty version selects the whole <root>/<name> directory (Remove uses this to
+// un-catalog every version); requireVersion forces a concrete <name>/<version>.
+func resolveBundlePath(root, name, version string, requireVersion bool) (string, error) {
+	if strings.TrimSpace(root) == "" {
+		return "", errors.New("skills: catalog has no configured root")
 	}
-	pAbs, err := filepath.Abs(p)
-	if err != nil {
-		return false
+	if !validName(name) {
+		return "", fmt.Errorf("skills: invalid skill name %q", name)
 	}
-	rel, err := filepath.Rel(rootAbs, pAbs)
-	if err != nil {
-		return false
+	cleanRoot := filepath.Clean(root)
+	target := cleanRoot + string(filepath.Separator) + name
+	if requireVersion || version != "" {
+		if !validVersion(version) {
+			return "", fmt.Errorf("skills: invalid skill version %q", version)
+		}
+		target += string(filepath.Separator) + version
 	}
-	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+	clean := filepath.Clean(target)
+	if clean != cleanRoot && !strings.HasPrefix(clean, cleanRoot+string(filepath.Separator)) {
+		return "", errors.New("skills: resolved path escapes the catalog root")
+	}
+	return clean, nil
 }
 
 // validVersion accepts a non-empty semver-style version token (letters, digits,
