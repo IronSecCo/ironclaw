@@ -255,6 +255,49 @@ func TestDirSourceRejectsBadIdentifiers(t *testing.T) {
 	}
 }
 
+// TestResolveBundlePathContainment exercises the path barrier directly: every value
+// it returns must be confined to root, and any traversal/charset violation must be
+// refused before a filesystem path is produced. This is the sanitizer CodeQL follows
+// for the go/path-injection sinks in Open/Remove.
+func TestResolveBundlePathContainment(t *testing.T) {
+	root := t.TempDir()
+	prefix := filepath.Clean(root) + string(filepath.Separator)
+
+	// Accepted: concrete name@version and (Remove-only) whole-name selection.
+	for _, c := range []struct {
+		name, version  string
+		requireVersion bool
+	}{
+		{"triage", "1.0.0", true},
+		{"triage", "", false},
+	} {
+		got, err := resolveBundlePath(root, c.name, c.version, c.requireVersion)
+		if err != nil {
+			t.Fatalf("resolveBundlePath(%q,%q) rejected a valid bundle: %v", c.name, c.version, err)
+		}
+		if got != filepath.Clean(root) && !strings.HasPrefix(got, prefix) {
+			t.Errorf("resolved path %q escapes root %q", got, root)
+		}
+	}
+
+	// Refused: traversal tokens, bad charset, empty root, and empty version when required.
+	for _, c := range []struct {
+		root, name, version string
+		requireVersion      bool
+	}{
+		{root, "../etc", "1.0.0", true},
+		{root, "ok", "../../1", true},
+		{root, "a/b", "1.0.0", true},
+		{root, "ok", "..", false},
+		{root, "ok", "", true},
+		{"", "ok", "1.0.0", true},
+	} {
+		if _, err := resolveBundlePath(c.root, c.name, c.version, c.requireVersion); err == nil {
+			t.Errorf("resolveBundlePath(root=%q,name=%q,version=%q) accepted an unsafe input", c.root, c.name, c.version)
+		}
+	}
+}
+
 // --- Resolver (end to end) ------------------------------------------------
 
 const resolverManifest = `apiVersion: ironclaw.dev/skill/v1
