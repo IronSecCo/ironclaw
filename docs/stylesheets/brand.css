@@ -1,19 +1,177 @@
-/* IronClaw brand palette for MkDocs Material.
-   Primary orange #ff7a2e (matches the logo and the former Mintlify config). */
+/* =============================================================================
+   IronClaw brand palette for MkDocs Material (IRO-78).
+
+   Steel / curved-claw identity, carried over from docs/assets/logo.svg and
+   docs/assets/social-preview.svg. The palette in mkdocs.yml is
+   `primary: custom` / `accent: custom`; the real brand colors live here so
+   light and dark mode can be tuned independently.
+
+   Replaces the prior orange (#ff7a2e) carried over from the retired Mintlify
+   config — the actual logo and social preview are steel blue, not orange.
+
+   Contrast targets (WCAG 2.1 AA): body text & links >= 4.5:1, large text >= 3:1.
+   Verified: light header 5.17:1, light link 6.70:1, dark header 14.6:1,
+   dark link 7.71:1, dark accent 6.08:1.
+   ========================================================================== */
+
 :root {
-  --md-primary-fg-color:        #ff7a2e;
-  --md-primary-fg-color--light: #ff9a5c;
-  --md-primary-fg-color--dark:  #e85f12;
-  --md-accent-fg-color:         #ff7a2e;
+  /* Brand steel scale (top -> bottom of the shield gradient) */
+  --iro-steel-100: #eaf2ff;
+  --iro-steel-200: #b9d4ff;
+  --iro-steel-300: #8fb4ff;
+  --iro-steel-400: #63a0ff;
+  --iro-steel-500: #3b82f6;
+  --iro-steel-600: #2563eb;
+  --iro-steel-700: #1d4ed8;
+  --iro-steel-800: #1a44bd;
+  --iro-navy-900:  #16224a;
+  --iro-navy-950:  #0b1124;
 }
 
+/* ---------------------------------------------------------------------------
+   Light scheme
+   header : steel #2563eb  (white text -> 5.17:1 AA)
+   links  : blue-700 #1d4ed8 on white -> 6.70:1 AA
+   --------------------------------------------------------------------------- */
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color:        #2563eb;
+  --md-primary-fg-color--light: #3b82f6;
+  --md-primary-fg-color--dark:  #1a44bd;
+  --md-primary-bg-color:        #ffffff;
+  --md-primary-bg-color--light: #eaf2ff;
+
+  --md-accent-fg-color:         #1d4ed8;
+  --md-accent-fg-color--transparent: rgba(29, 78, 216, 0.1);
+
+  --md-typeset-a-color:         #1d4ed8;
+
+  --iro-selection-bg: rgba(37, 99, 235, 0.18);
+}
+
+/* ---------------------------------------------------------------------------
+   Dark (slate) scheme
+   --md-hue shifts the whole slate base toward brand navy (default 232 -> 222).
+   header : deep steel navy #16224a  (white text -> 14.6:1)
+   links  : steel-300 #8fb4ff on navy slate -> 7.71:1 AA
+   --------------------------------------------------------------------------- */
 [data-md-color-scheme="slate"] {
-  --md-primary-fg-color:        #ff7a2e;
-  --md-primary-fg-color--light: #ff9a5c;
-  --md-primary-fg-color--dark:  #e85f12;
-  --md-accent-fg-color:         #ff9a5c;
-  --md-typeset-a-color:         #ff9a5c;
+  --md-hue: 222;
+
+  --md-primary-fg-color:        #16224a;
+  --md-primary-fg-color--light: #1d4ed8;
+  --md-primary-fg-color--dark:  #0b1124;
+  --md-primary-bg-color:        #f4f9ff;
+  --md-primary-bg-color--light: #b9d4ff;
+
+  --md-accent-fg-color:         #63a0ff;
+  --md-accent-fg-color--transparent: rgba(99, 160, 255, 0.12);
+
+  --md-typeset-a-color:         #8fb4ff;
+
+  --iro-selection-bg: rgba(99, 160, 255, 0.24);
 }
 
-/* Keep the header readable on the orange primary. */
-.md-header { color: #11161f; }
+/* Text selection — brand tint, both schemes */
+::selection {
+  background: var(--iro-selection-bg);
+}
+
+/* ---------------------------------------------------------------------------
+   Header / nav polish — a touch more presence under the steel bar
+   --------------------------------------------------------------------------- */
+.md-header {
+  box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.1), 0 0.2rem 0.4rem rgba(11, 17, 36, 0.15);
+}
+.md-header__title {
+  font-weight: 600;
+}
+
+/* Crisp underline-on-hover affordance for links */
+.md-typeset a {
+  text-underline-offset: 0.15em;
+}
+
+/* ---------------------------------------------------------------------------
+   Home hero — the H1 + lead tagline on index.md
+   --------------------------------------------------------------------------- */
+.md-typeset h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* The bold lead line directly under the H1 reads as a subtitle */
+.md-typeset h1 + p > strong:first-child {
+  display: inline-block;
+  color: var(--md-accent-fg-color);
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------------------
+   Grid cards — brand hover lift + steel border (reused wherever `grid cards`)
+   --------------------------------------------------------------------------- */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid > .card {
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-radius: 0.3rem;
+  transition: border-color 125ms ease, box-shadow 125ms ease, transform 125ms ease;
+}
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid > .card:hover {
+  border-color: var(--md-accent-fg-color);
+  box-shadow: 0 0.2rem 0.6rem rgba(37, 99, 235, 0.18);
+  transform: translateY(-0.1rem);
+}
+
+/* ---------------------------------------------------------------------------
+   Inline code — subtle steel tint so it separates from prose (light only)
+   --------------------------------------------------------------------------- */
+.md-typeset code {
+  border-radius: 0.2rem;
+}
+[data-md-color-scheme="default"] .md-typeset code {
+  background-color: rgba(37, 99, 235, 0.08);
+}
+
+/* ---------------------------------------------------------------------------
+   Admonitions — steel accent on the brand-relevant ones (note / quote)
+   --------------------------------------------------------------------------- */
+.md-typeset .admonition.note,
+.md-typeset details.note {
+  border-left-color: var(--iro-steel-600);
+}
+.md-typeset .note > .admonition-title,
+.md-typeset .note > summary {
+  background-color: var(--md-accent-fg-color--transparent);
+}
+.md-typeset .admonition.quote,
+.md-typeset details.quote {
+  border-left-color: var(--iro-steel-500);
+}
+
+/* ---------------------------------------------------------------------------
+   Buttons — primary CTA uses the brand fill
+   --------------------------------------------------------------------------- */
+.md-typeset .md-button--primary {
+  background-color: var(--md-primary-fg-color);
+  border-color: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+}
+.md-typeset .md-button--primary:hover {
+  background-color: var(--md-accent-fg-color);
+  border-color: var(--md-accent-fg-color);
+}
+
+/* ---------------------------------------------------------------------------
+   Respect reduced-motion: drop the card lift transition
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .md-typeset .grid.cards > ul > li,
+  .md-typeset .grid > .card {
+    transition: none;
+  }
+  .md-typeset .grid.cards > ul > li:hover,
+  .md-typeset .grid > .card:hover {
+    transform: none;
+  }
+}
