@@ -83,7 +83,16 @@ on-disk files:
 
 The same interfaces accept the durable backends with no caller changes.
 
-## What remains gated
+## What runs today
+
+The control-plane is composed and runnable end-to-end. `cmd/controlplane` wires the
+full daemon — durable key custody, the gateway (durable change store + append-only
+audit, including the `create_agent` verifier/applier), the API with Prometheus
+`/metrics`, structured logging, the model-proxy egress with rate caps + audit +
+secret redaction, the live per-session lifecycle (a `SessionManager` over the
+encrypted-queue factory + isolator), the maintenance sweep with respawn backoff,
+the outbound delivery loop, and the channel adapters that register from their
+environment tokens.
 
 The encrypted-SQLite queue binding is live: the frozen contract exposes
 `contract.OpenInboundRW`/`OpenInboundRO` and `OpenOutboundRW`/`OpenOutboundRO`
@@ -91,20 +100,33 @@ The encrypted-SQLite queue binding is live: the frozen contract exposes
 SQLCipher binding, and the cross-mount live-poll parity checks run in
 `test/parity`. See the RFC log in [contract.md](contract.md).
 
-- **Sandbox rootfs provisioning.** `isolation` builds a hardened OCI spec,
-  provisions the bundle `rootfs/` through a pluggable provisioner (verifying the
-  image digest/signature against a trust policy before unpack), and execs the
-  runtime. A live `Launch` now needs `runsc` and a provisioned/signed image
-  present in the environment rather than the stdlib tree itself.
-- **Daemon wiring of the Wave-4 hardening.** Durable key custody, the metrics
-  `/metrics` handler, structured logging, API hardening, respawn + provider
-  backoff, and model-proxy rate caps/audit land as standalone packages; composing
-  them into `cmd/controlplane` is the remaining integration step.
+Sandbox launch is wired through a pluggable provisioner: `isolation` builds the
+hardened OCI spec, provisions the bundle `rootfs/` (verifying the image
+digest/signature against a trust policy before unpack), and execs the runtime. A
+*live* `Launch` still needs `runsc` and a provisioned/signed image present in the
+host environment — everything up to that boundary builds, tests, and runs today.
 
-## Future extensions
+## Shipped beyond the reference design
 
-Documented but design-gated (Wave 5): a Kata isolation backend behind the same
-`Isolator` interface, an egress broker for approved external APIs (beyond the
-model-proxy allowlist), a gateway auto-approval policy + RBAC over the
-mandatory-human floor, and agent-to-agent messaging with approval-gated
-`create_agent` (RFC-0004).
+These have landed and are part of the daemon (most behind an explicit opt-in flag,
+none widening the default posture):
+
+- **Kata isolation backend** behind the same `Isolator` interface, alongside
+  gVisor/`runsc`.
+- **Egress broker** for approved external hosts — deny-by-default, audited, brokered
+  over a host unix socket; the sandbox itself stays sealed `network=none`. Powers the
+  `web_search` tool. Opt-in via `--egress-socket`.
+- **Agent-to-agent messaging** with approval-gated `create_agent` (RFC-0004).
+- **Multiple model providers** — Anthropic, OpenAI, OpenRouter — selectable per
+  agent group through the host model proxy.
+- **MCP servers** — host-brokered, per-tool human-approved, audited.
+- A private, **mesh-only web console** embedded in the control-plane binary at `/ui/`.
+
+## Built but inert by default
+
+- **Gateway auto-approval policy + RBAC.** Implemented as a verifier/approver, but
+  **off by default**: the mandatory-human floor is the only active decision path
+  until an operator deliberately opts in. The remaining entrypoint task is attaching
+  the API-server hardening knobs (optional TLS, rate-limit, body limits, `/readyz`
+  readiness gate) — the `api.With*` options exist but are not yet wired in
+  `cmd/controlplane`.
