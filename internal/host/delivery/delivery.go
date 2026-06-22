@@ -27,6 +27,19 @@ import (
 // host/queue.OpenOutbound once the encrypted-SQLite binding lands.
 type OutboundReaderFactory func(contract.SessionID) (contract.OutboundReader, error)
 
+// SkillInstallResolver resolves a NAMED, curated, signed skill into its gateway
+// install ChangeRequest — resolve = fetch from the curated source + minisign-verify
+// against the trust root + manifest-validate against the compiled tool set. Satisfied
+// host-side by skills.InstallChange over the configured skills.Resolver (cmd/controlplane);
+// a func seam so delivery does not import the skills package.
+//
+// This is the trust gate for the in-session skill-install proposal (RFC-0006): the
+// sandbox may only NAME skill@version, so an unsigned/unknown/out-of-policy skill never
+// becomes a ChangeRequest. The returned request rides ChangePermissions (the resolved
+// bundle the human approves), identical to the operator `ironctl skill add` path. May be
+// nil — then a sandbox skill_install proposal is refused rather than honored.
+type SkillInstallResolver func(skill, version string, group contract.AgentGroupID, requestedBy contract.UserID) (contract.ChangeRequest, error)
+
 // InboundWriterFactory returns the host's inbound writer for a session. Used by
 // the schedule_task system action to enqueue a future inbound prompt. Tests inject
 // a fake (host/queue.MemInbound); production wires it to host/queue.OpenInbound
@@ -45,6 +58,7 @@ type Delivery struct {
 	newReader OutboundReaderFactory
 	newWriter InboundWriterFactory // optional; enables schedule_task
 	questions *questions.Store     // optional; enables ask_user_question tracking
+	skillProp SkillInstallResolver // optional; enables the in-session skill_install proposal
 
 	mu        sync.Mutex
 	delivered map[contract.MessageID]struct{}
@@ -109,6 +123,16 @@ func (d *Delivery) WithInboundWriter(f InboundWriterFactory) *Delivery {
 // ask_user_question is recognized as non-privileged but recorded nowhere (logged).
 func (d *Delivery) WithQuestions(s *questions.Store) *Delivery {
 	d.questions = s
+	return d
+}
+
+// WithSkillResolver wires the curated, signature-verifying resolver that backs the
+// in-session skill_install proposal (RFC-0006). Returns d for chaining. When unset
+// (skills not enabled on the control-plane) a sandbox skill_install proposal is
+// refused — the sandbox can ask, but only a curated+signed skill an operator has
+// provisioned can ever be proposed, and a human still approves it.
+func (d *Delivery) WithSkillResolver(f SkillInstallResolver) *Delivery {
+	d.skillProp = f
 	return d
 }
 
@@ -198,6 +222,14 @@ func (d *Delivery) handleSystem(ctx context.Context, sess registry.Session, msg 
 	// before the privilege routing (an unknown action would otherwise be gated).
 	if strings.EqualFold(strings.TrimSpace(action), contract.ActionAskUser) {
 		return d.handleAskUser(sess, msg)
+	}
+	// skill_install is a PRIVILEGED proposal that needs a resolve step the generic
+	// passthrough cannot do: the sandbox names skill@version, but the gateway must see
+	// the resolved, signature-verified ChangePermissions bundle the human approves. Handle
+	// it before the generic privilege routing so the named skill is resolved through the
+	// curated trust gate rather than forwarded as an opaque, sandbox-authored payload.
+	if strings.EqualFold(strings.TrimSpace(action), string(contract.ChangeSkillInstall)) {
+		return d.handleSkillInstall(sess, msg)
 	}
 	kind, privileged := authorizeSystemAction(action)
 	if !privileged {
@@ -296,6 +328,54 @@ func (d *Delivery) handleAskUser(sess registry.Session, msg contract.MessageOut)
 		return nil
 	}
 	d.questions.Record(sess.ID, sess.AgentGroupID, req)
+	return nil
+}
+
+// skillInstallProposal is the payload a sandbox emits with a skill_install system
+// action: it NAMES a curated skill, nothing more. There is deliberately no persona /
+// tools / egress / asset / url field — the sandbox can never author skill content; it
+// can only point the host at a name the operator has curated and signed.
+type skillInstallProposal struct {
+	Skill   string `json:"skill"`
+	Version string `json:"version"`
+}
+
+// handleSkillInstall turns a sandbox skill_install PROPOSAL into a gateway
+// ChangeRequest by resolving the named skill through the curated, signature-verifying
+// resolver (RFC-0006) — the SAME trust gate the operator `ironctl skill add` path uses.
+// It executes nothing and authors no capability: the resolver returns a ChangePermissions
+// bundle (the resolved persona/tools/egress/mount) which Submit routes to the gateway's
+// mandatory human-approval floor, after which the existing skill-install applier mounts
+// it and respawn makes it take effect in the same session.
+//
+// Fail-closed: with no gateway or no resolver wired (skills not enabled), or a skill that
+// is unknown/unsigned/out-of-policy, the proposal is REFUSED here and never reaches the
+// gateway — a sandbox can ask, but cannot conjure a skill.
+func (d *Delivery) handleSkillInstall(sess registry.Session, msg contract.MessageOut) error {
+	if d.gw == nil {
+		return fmt.Errorf("host/delivery: skill_install refused for session %s (no gateway)", sess.ID)
+	}
+	if d.skillProp == nil {
+		return fmt.Errorf("host/delivery: skill_install refused for session %s (skills not enabled on this control-plane)", sess.ID)
+	}
+	a := contract.ParseSystemAction(msg.Content)
+	var p skillInstallProposal
+	if len(a.Payload) == 0 || json.Unmarshal(a.Payload, &p) != nil {
+		return fmt.Errorf("host/delivery: skill_install payload for %s must be {\"skill\":...,\"version\":...}", sess.ID)
+	}
+	if strings.TrimSpace(p.Skill) == "" || strings.TrimSpace(p.Version) == "" {
+		return fmt.Errorf("host/delivery: skill_install for %s requires both skill and version", sess.ID)
+	}
+	// Resolve = fetch + minisign-verify + manifest-validate. RequestedBy records the
+	// sandbox origin so the human approver sees the proposal came from the agent, not an
+	// operator. A resolve failure (unknown/unsigned/out-of-policy) refuses the proposal.
+	req, err := d.skillProp(p.Skill, p.Version, sess.AgentGroupID, contract.UserID("sandbox:"+string(sess.ID)))
+	if err != nil {
+		return fmt.Errorf("host/delivery: skill_install proposal for %s rejected at resolve: %w", sess.ID, err)
+	}
+	// Route the resolved bundle through the gateway (Submit blocks on a human; do it in
+	// the background like every other privileged action). The install is NOT applied here.
+	go func() { _, _ = d.gw.Submit(context.Background(), req) }()
 	return nil
 }
 
@@ -411,6 +491,14 @@ func authorizeSystemAction(action string) (contract.ChangeKind, bool) {
 		// widens the agent's tool surface with externally-served tools, always
 		// privileged → gateway (a human approves the named server and tools).
 		return contract.ChangeMCPAccess, true
+	case "skill_install":
+		// Proposing a curated, signed skill install from chat (RFC-0006). Delivery
+		// special-cases this BEFORE this switch (handleSkillInstall) because it needs a
+		// resolve step — the sandbox names skill@version and the host resolves it through
+		// the curated trust gate into the ChangePermissions bundle the human approves.
+		// Listed here so the authorization map is complete and stays privileged (gated,
+		// never executed inline) even if the special-case is ever removed.
+		return contract.ChangePermissions, true
 	case "script", "exec", "run", "shell":
 		// An unapproved script/RCE path: there is NO direct execution. Map it to the
 		// most privileged change kind so it is always human-gated, never run inline.

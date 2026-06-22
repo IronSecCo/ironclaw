@@ -35,6 +35,7 @@ var validChangeKinds = map[contract.ChangeKind]struct{}{
 	contract.ChangePermissions:  {},
 	contract.ChangeMounts:       {},
 	contract.ChangeMCPAccess:    {},
+	contract.ChangeSkillInstall: {},
 }
 
 type requestCapabilityChangeInput struct {
@@ -69,12 +70,16 @@ func (t *RequestCapabilityChangeTool) Description() string {
 		"- Use a host-configured MCP (Model Context Protocol) server's tools: kind \"mcp_access\", payload " +
 		"{\"server\": \"<name>\", \"tools\": [\"<tool>\", ...]} (omit \"tools\" to request all of the server's tools). " +
 		"You can only name a server an operator has already configured; the human approves the named server and tools.\n" +
+		"- Add/install a Skill: kind \"skill_install\", payload {\"skill\": \"<name>\", \"version\": \"<version>\"}. You can only " +
+		"NAME a skill the operator has curated and signed — you cannot author skill content. The host resolves and " +
+		"signature-verifies the named skill, the human approves the exact persona/tools/egress it grants, and it then " +
+		"mounts and takes effect on your next message (same session).\n" +
 		"Also supports persona, packages, permissions, and mounts. Always include a clear reason for the human approver."
 }
 
 func (t *RequestCapabilityChangeTool) JSONSchema() json.RawMessage {
 	return json.RawMessage(`{"type":"object","properties":{` +
-		`"kind":{"type":"string","enum":["persona","enabled_tools","packages","wiring","permissions","mounts","mcp_access"],"description":"The kind of control-plane change requested."},` +
+		`"kind":{"type":"string","enum":["persona","enabled_tools","packages","wiring","permissions","mounts","mcp_access","skill_install"],"description":"The kind of control-plane change requested."},` +
 		`"payload":{"type":"object","description":"The proposed new configuration for this kind."},` +
 		`"reason":{"type":"string","description":"Why the change is needed (shown to the human approver)."}` +
 		`},"required":["kind","payload"],"additionalProperties":false}`)

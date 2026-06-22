@@ -3,6 +3,7 @@ package delivery
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -333,5 +334,106 @@ func TestAskUserQuestionNoStore(t *testing.T) {
 	}
 	if got := adapter.Delivered(); len(got) != 0 {
 		t.Fatalf("ask_user_question must not deliver to a channel, got %+v", got)
+	}
+}
+
+// fakeSkillResolver mimics skills.InstallChange: it resolves a curated, signed skill
+// NAMED by the sandbox into the ChangePermissions bundle a human approves, and refuses
+// any name it does not recognize (an unknown/unsigned skill never becomes a change).
+func fakeSkillResolver(skill, version string, group contract.AgentGroupID, by contract.UserID) (contract.ChangeRequest, error) {
+	if skill != "curated-skill" {
+		return contract.ChangeRequest{}, fmt.Errorf("skills: %s@%s not in the curated source", skill, version)
+	}
+	after, _ := json.Marshal(map[string]any{
+		"skill": skill, "version": version, "tools": []string{"web_search"},
+	})
+	return contract.ChangeRequest{
+		Kind: contract.ChangePermissions, AgentGroupID: group, RequestedBy: by, After: after,
+	}, nil
+}
+
+// TestSkillInstallProposalRoutedToGateway asserts the RFC-0006 parity loop: a sandbox
+// skill_install proposal naming a curated skill is resolved through the trust gate and
+// routed to the gateway as the resolved ChangePermissions bundle (held pending a human),
+// never delivered to a channel and never executed inline.
+func TestSkillInstallProposalRoutedToGateway(t *testing.T) {
+	d, adapter, _, _, w := newTestDelivery(t)
+	d.WithSkillResolver(fakeSkillResolver)
+
+	body := `{"action":"skill_install","payload":{"skill":"curated-skill","version":"1.2.0"},"reason":"need it"}`
+	if err := w.WriteMessageOut(contract.MessageOut{ID: "sk1", Seq: 1, Kind: contract.KindSystem, Content: body}); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Poll(context.Background()); err != nil {
+		t.Fatalf("Poll: %v", err)
+	}
+	if got := adapter.Delivered(); len(got) != 0 {
+		t.Fatalf("skill_install must not be delivered to a channel, got %+v", got)
+	}
+	if !waitPending(d, 1) {
+		t.Fatal("expected one pending gateway change from the skill_install proposal")
+	}
+	pending, _ := d.gw.Pending()
+	// The resolved install rides ChangePermissions (reusing the operator path's applier),
+	// NOT a raw skill_install kind, and its After is the resolved bundle — not the
+	// sandbox's {skill,version} proposal verbatim.
+	if pending[0].Kind != contract.ChangePermissions {
+		t.Fatalf("resolved install kind = %q, want permissions", pending[0].Kind)
+	}
+	var got struct {
+		Skill string   `json:"skill"`
+		Tools []string `json:"tools"`
+	}
+	if err := json.Unmarshal(pending[0].After, &got); err != nil {
+		t.Fatalf("After is not the resolved bundle: %v (After=%s)", err, pending[0].After)
+	}
+	if got.Skill != "curated-skill" || len(got.Tools) != 1 || got.Tools[0] != "web_search" {
+		t.Fatalf("resolved bundle not threaded into After: %s", pending[0].After)
+	}
+}
+
+// TestSkillInstallRefusedWithoutResolver asserts fail-closed behavior: with skills not
+// enabled (no resolver wired) a sandbox skill_install proposal is refused, never
+// fabricated into a change and never delivered.
+func TestSkillInstallRefusedWithoutResolver(t *testing.T) {
+	d, adapter, _, _, w := newTestDelivery(t)
+	body := `{"action":"skill_install","payload":{"skill":"curated-skill","version":"1.2.0"}}`
+	w.WriteMessageOut(contract.MessageOut{ID: "sk1", Seq: 1, Kind: contract.KindSystem, Content: body})
+	if err := d.Poll(context.Background()); err == nil {
+		t.Fatal("expected skill_install to be refused when skills are not enabled")
+	}
+	if got := adapter.Delivered(); len(got) != 0 {
+		t.Fatalf("refused skill_install must not be delivered, got %+v", got)
+	}
+	if p, _ := d.gw.Pending(); len(p) != 0 {
+		t.Fatalf("refused skill_install must not become a pending change, got %d", len(p))
+	}
+}
+
+// TestSkillInstallRejectsUnknownSkill asserts the trust gate: a proposal naming a skill
+// the curated resolver does not recognize is rejected at resolve and never reaches the
+// gateway — the sandbox can ask, but cannot conjure a skill.
+func TestSkillInstallRejectsUnknownSkill(t *testing.T) {
+	d, _, _, _, w := newTestDelivery(t)
+	d.WithSkillResolver(fakeSkillResolver)
+	body := `{"action":"skill_install","payload":{"skill":"evil-skill","version":"9.9.9"}}`
+	w.WriteMessageOut(contract.MessageOut{ID: "sk1", Seq: 1, Kind: contract.KindSystem, Content: body})
+	if err := d.Poll(context.Background()); err == nil {
+		t.Fatal("expected an unknown skill to be rejected at resolve")
+	}
+	if p, _ := d.gw.Pending(); len(p) != 0 {
+		t.Fatalf("an unresolved skill must not become a pending change, got %d", len(p))
+	}
+}
+
+// TestSkillInstallRejectsBadPayload asserts a skill_install whose payload omits the
+// required name/version is refused before any resolve.
+func TestSkillInstallRejectsBadPayload(t *testing.T) {
+	d, _, _, _, w := newTestDelivery(t)
+	d.WithSkillResolver(fakeSkillResolver)
+	body := `{"action":"skill_install","payload":{"skill":"curated-skill"}}`
+	w.WriteMessageOut(contract.MessageOut{ID: "sk1", Seq: 1, Kind: contract.KindSystem, Content: body})
+	if err := d.Poll(context.Background()); err == nil {
+		t.Fatal("expected a skill_install missing its version to be refused")
 	}
 }
