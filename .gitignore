@@ -14,6 +14,7 @@ go.work.sum
 
 # Local env / secrets — never commit
 .env
+deploy/.env.prod
 *.local
 *.key
 *.pem

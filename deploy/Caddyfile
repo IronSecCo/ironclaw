@@ -1,0 +1,37 @@
+# IronClaw — TLS-terminating reverse proxy in front of the control-plane.
+#
+# Used by deploy/docker-compose.prod.yml. Caddy provisions TLS automatically:
+#   - a real public FQDN in IRONCLAW_DOMAIN  -> Let's Encrypt certificate
+#   - "localhost" / a bare host or IP        -> Caddy's local self-signed CA
+#
+# The control-plane serves plain HTTP on the private compose network (its security
+# boundary is the network + the bearer token, not its own TLS); Caddy terminates TLS
+# at the edge and forwards over the internal hop. See docs/deployment.md.
+
+{$IRONCLAW_DOMAIN} {
+	# Forward everything to the control-plane on the private network. This fronts the
+	# web console (/ui/), the gated admin API (/v1/…), the health probes, and the
+	# Prometheus endpoint (/metrics — itself bearer-gated by the control-plane).
+	reverse_proxy controlplane:8787
+
+	# Baseline security headers. The console is same-origin; lock the browser down.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		# Don't leak the proxy/server banner.
+		-Server
+	}
+
+	# Structured access log; ship it or rotate it as you see fit.
+	log {
+		output stdout
+		format json
+	}
+
+	# OPTIONAL: keep /metrics off the public edge and scrape it on the private
+	# network instead. Uncomment to return 404 for external metrics requests.
+	# @metrics path /metrics
+	# respond @metrics 404
+}
