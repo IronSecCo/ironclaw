@@ -254,14 +254,17 @@ func (d DirSource) Open(name, version string) ([]byte, string, error) {
 }
 
 // resolveBundlePath is the single path barrier every catalog filesystem op routes
-// through. It charset-validates name (and version), derives the bundle path from a
-// cleaned root, then confirms — on the exact cleaned value it returns — that the
-// result is contained within root. validName/validVersion already forbid path
-// separators and "."/"..", so the containment check is belt-and-suspenders; its real
-// job is to make the sanitizer *data-flow-visible*: the guard sits directly on the
-// returned path, so CodeQL can follow that the value handed to os.Stat/os.ReadFile/
-// os.RemoveAll is confined to root. This closes the go/path-injection findings that
-// the previous out-of-line withinRoot helper left invisible to the analyzer.
+// through. It charset-validates name (and version), assembles the user-supplied
+// components into a relative path, and confines that relative path with
+// filepath.IsLocal *before* joining it onto the root. validName/validVersion already
+// forbid path separators and "."/"..", so the confinement is belt-and-suspenders;
+// its real job is to make the sanitizer *data-flow-visible to CodeQL*. IsLocal
+// (Go 1.20+) is the standard library's lexical path-confinement predicate — it
+// rejects absolute paths, the empty path, and any ".." escape — and, unlike a custom
+// filepath.Clean + strings.HasPrefix containment check, it is a barrier the CodeQL
+// go/path-injection query recognises. So the value handed to os.Stat/os.ReadFile/
+// os.RemoveAll is provably confined to root rather than merely charset-checked,
+// which closes alerts #22–#25 that the prior custom checks left visibly tainted.
 //
 // An empty version selects the whole <root>/<name> directory (Remove uses this to
 // un-catalog every version); requireVersion forces a concrete <name>/<version>.
@@ -272,19 +275,17 @@ func resolveBundlePath(root, name, version string, requireVersion bool) (string,
 	if !validName(name) {
 		return "", fmt.Errorf("skills: invalid skill name %q", name)
 	}
-	cleanRoot := filepath.Clean(root)
-	target := cleanRoot + string(filepath.Separator) + name
+	rel := name
 	if requireVersion || version != "" {
 		if !validVersion(version) {
 			return "", fmt.Errorf("skills: invalid skill version %q", version)
 		}
-		target += string(filepath.Separator) + version
+		rel = filepath.Join(name, version)
 	}
-	clean := filepath.Clean(target)
-	if clean != cleanRoot && !strings.HasPrefix(clean, cleanRoot+string(filepath.Separator)) {
+	if !filepath.IsLocal(rel) {
 		return "", errors.New("skills: resolved path escapes the catalog root")
 	}
-	return clean, nil
+	return filepath.Join(filepath.Clean(root), rel), nil
 }
 
 // validVersion accepts a non-empty semver-style version token (letters, digits,
