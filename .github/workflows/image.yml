@@ -29,11 +29,11 @@ on:
         required: false
         default: ""
 
+# Least privilege by default: the workflow token is read-only at the top level.
+# The write scopes (packages / id-token / attestations) are granted only to the
+# specific jobs that push to GHCR and sign/attest the image — see each job below.
 permissions:
   contents: read
-  packages: write # push to GHCR under the repository owner
-  id-token: write # keyless provenance signing (Sigstore OIDC)
-  attestations: write # actions/attest-build-provenance for the image
 
 # Serialize image publishes so two builds never race the :latest tag.
 concurrency:
@@ -53,41 +53,87 @@ jobs:
     runs-on: ubuntu-latest
     # On the workflow_run path, only build when the Release actually succeeded.
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read # read-only API lookups + trust-gate; no push/sign here
     outputs:
       present: ${{ steps.meta.outputs.present }}
       image: ${{ steps.meta.outputs.image }}
       version: ${{ steps.meta.outputs.version }}
       tag_args: ${{ steps.meta.outputs.tag_args }}
+      sha: ${{ steps.meta.outputs.sha }}
     steps:
-      # Build the exact commit the release was cut from (workflow_run), else the ref
-      # the dispatch was started on. Full history + tags so we can read the release
-      # tag this commit carries.
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Resolve image ref + version
+      # SECURITY (Dangerous-Workflow / "pwn request"): this workflow runs in a
+      # privileged context (the build/merge jobs hold packages + attestations write),
+      # so it must NEVER `actions/checkout` the event-supplied head_sha — that is the
+      # attacker-controllable ref a forked PR could smuggle in. Instead we resolve all
+      # metadata over the read-only API and TRUST-GATE the commit here; the build job
+      # checks out the SHA this job emits (`needs.prepare.outputs.sha`), never the raw
+      # event variable. The gate proves the commit actually lives on the protected
+      # default branch (Release only runs on push-to-main), so a privileged build can
+      # only ever run on trusted, branch-protected code.
+      - name: Resolve + trust-gate the commit, image ref, and version
         id: meta
         env:
           OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
           EVENT: ${{ github.event_name }}
           INPUT_TAG: ${{ github.event.inputs.tag }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          DISPATCH_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          default_branch="${DEFAULT_BRANCH:-main}"
+
+          # 1) Resolve the commit to build and trust-gate it. A manual dispatch runs on a
+          #    ref only a repo-writer could have selected, so its commit (github.sha) is
+          #    trusted as-is. On the workflow_run path the SHA comes from the event and is
+          #    treated as untrusted until proven to live on the protected branch: it must
+          #    have been pushed to ${default_branch} AND be reachable from that branch's
+          #    tip. Anything else (e.g. a fork PR head) is refused — fail loud, fail closed.
+          if [ "${EVENT}" = "workflow_dispatch" ]; then
+            sha="${DISPATCH_SHA}"
+          else
+            sha="${RUN_SHA}"
+            if [ "${RUN_BRANCH}" != "${default_branch}" ]; then
+              echo "::error::Release ran on '${RUN_BRANCH}', not the protected '${default_branch}' branch — refusing to build a privileged image from an untrusted ref." >&2
+              exit 1
+            fi
+            status="$(gh api "repos/${REPO}/compare/${default_branch}...${sha}" --jq '.status')"
+            case "${status}" in
+              identical|behind) : ;; # sha is the branch tip or an ancestor of it → on-branch, trusted
+              *)
+                echo "::error::Commit ${sha} is not reachable from '${default_branch}' (compare status: ${status}) — refusing to build a privileged image from an untrusted ref." >&2
+                exit 1
+                ;;
+            esac
+          fi
+          echo "Trusted build commit: ${sha} (on ${default_branch})"
+
           owner="$(printf '%s' "${OWNER}" | tr '[:upper:]' '[:lower:]')"
           image="ghcr.io/${owner}/ironclaw-controlplane"
-          if [ ! -f container/controlplane.Dockerfile ]; then
+
+          # 2) Dockerfile presence at that commit — via the contents API, no checkout. A
+          #    commit without it (older release chaining in, or a revert) → present=false
+          #    and the build/merge jobs skip cleanly: "nothing to publish", not a failure.
+          if ! gh api "repos/${REPO}/contents/container/controlplane.Dockerfile?ref=${sha}" --silent >/dev/null 2>&1; then
             echo "present=false" >> "${GITHUB_OUTPUT}"
-            echo "No container/controlplane.Dockerfile at $(git rev-parse --short HEAD) — skipping image build."
+            echo "No container/controlplane.Dockerfile at ${sha} — skipping image build."
             exit 0
           fi
+
+          # 3) Version: an explicit dispatch input wins; otherwise the release tag this
+          #    commit carries, read from the tags API (not a local checkout).
           if [ "${EVENT}" = "workflow_dispatch" ] && [ -n "${INPUT_TAG}" ]; then
             version="${INPUT_TAG}"
           else
-            version="$(git tag --points-at HEAD | grep -E '^v[0-9]' | head -1 || true)"
+            version="$(gh api "repos/${REPO}/tags" --paginate \
+              --jq ".[] | select(.commit.sha == \"${sha}\") | .name" \
+              | grep -E '^v[0-9]' | head -1 || true)"
           fi
+
           # `docker buildx imagetools create` takes the tags as -t flags. Always tag
           # :latest; add the immutable :<version> tag when this commit carries one.
           tag_args="-t ${image}:latest"
@@ -99,8 +145,9 @@ jobs:
             echo "image=${image}"
             echo "version=${version:-dev}"
             echo "tag_args=${tag_args}"
+            echo "sha=${sha}"
           } >> "${GITHUB_OUTPUT}"
-          echo "Publishing ${tag_args} (VERSION=${version:-dev})"
+          echo "Publishing ${tag_args} (VERSION=${version:-dev}) from ${sha}"
 
   # Build each arch natively on its own runner and push to GHCR BY DIGEST (no tag).
   # The merge job below assembles these digests into the tagged manifest list.
@@ -116,6 +163,9 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read # checkout the trust-gated commit
+      packages: write # push the per-arch image to GHCR by digest
     steps:
       - name: Sanitize platform pair
         id: plat
@@ -123,9 +173,12 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
         run: echo "pair=${PLATFORM//\//-}" >> "${GITHUB_OUTPUT}"
 
+      # Check out the commit the prepare job already trust-gated to the protected
+      # branch — never the raw event-supplied head_sha. (Dangerous-Workflow: no
+      # untrusted checkout in a privileged workflow_run context.)
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -177,6 +230,11 @@ jobs:
     needs: [prepare, build]
     if: ${{ needs.prepare.outputs.present == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # read-only; this job does not check out source
+      packages: write # push the merged manifest list to GHCR
+      id-token: write # keyless provenance + SBOM signing (Sigstore OIDC)
+      attestations: write # actions/attest-build-provenance + attest-sbom on the index
     outputs:
       digest: ${{ steps.manifest.outputs.digest }}
     steps:
