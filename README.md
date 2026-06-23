@@ -11,6 +11,7 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](LICENSE)
 [![Commercial license](https://img.shields.io/badge/License-Commercial%20available-555.svg)](LICENSING.md)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/IronSecCo/ironclaw/badge)](https://scorecard.dev/viewer/?uri=github.com/IronSecCo/ironclaw)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13348/badge)](https://www.bestpractices.dev/projects/13348)
 [![CodeQL](https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml/badge.svg)](https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml)
 [![Signed releases (cosign)](https://img.shields.io/badge/releases-cosign%20signed-0a7bbb.svg)](#verifying-a-release)
 [![SBOM: SPDX + CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-44883e.svg)](#verifying-a-release)
