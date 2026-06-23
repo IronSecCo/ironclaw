@@ -151,6 +151,11 @@ For the full design, see [`docs/architecture.md`](docs/architecture.md),
 > 📚 **Full documentation site:** [**ironsecco.github.io/ironclaw**](https://ironsecco.github.io/ironclaw/)
 > — quickstart, architecture, threat model, channels, skills, the OpenAPI reference, and security,
 > all in one navigable place (built from `docs/` and published on every push to `main`).
+>
+> 🧭 **New here?** The [**hands-on tutorials**](https://ironsecco.github.io/ironclaw/tutorials/) take
+> you from `git clone` to a running agent: [your first sandboxed agent in 5 minutes](https://ironsecco.github.io/ironclaw/tutorials/first-agent/),
+> [connecting Slack](https://ironsecco.github.io/ironclaw/tutorials/connect-slack/), and
+> [writing a custom channel adapter](https://ironsecco.github.io/ironclaw/tutorials/custom-channel-adapter/).
 
 ## Platform support
 

@@ -24,6 +24,11 @@ deterministic **human-approval gateway**, and every action lands in an append-on
     From a clean clone to submitting, approving, and auditing your first agent
     action — in about five minutes, on your machine.
 
+-   :material-school: **[Tutorials](tutorials/index.md)**
+
+    Hands-on, copy-pasteable walkthroughs: your first sandboxed agent, connecting
+    Slack, and writing a custom channel adapter.
+
 -   :material-shield-lock: **[Security & trust](security.md)**
 
     The trust story: the threat model, the sealed-runtime invariants, and how a
@@ -59,6 +64,7 @@ deterministic **human-approval gateway**, and every action lands in an append-on
 | If you want to… | Read |
 | --- | --- |
 | Run IronClaw locally | [Quickstart](quickstart.md) |
+| Follow a hands-on walkthrough | [Tutorials](tutorials/index.md) |
 | Understand the design | [IronClaw, Explained](ironclaw-explained.md) → [Architecture](architecture.md) |
 | Evaluate the security posture | [Security & trust](security.md) → [Threat model](threat-model.md) |
 | Wire an agent to Slack / Discord / … | [Channel adapters](channels.md) |
