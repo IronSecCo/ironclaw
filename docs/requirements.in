@@ -1,0 +1,7 @@
+# Direct docs-site dependencies for IronClaw (MkDocs Material).
+# This is the SOURCE for the hash-locked docs/requirements.txt. Bump here, then:
+#   docker run --rm -v "$PWD/docs:/d" python:3.12 sh -c \
+#     'pip install pip-tools && pip-compile --generate-hashes --allow-unsafe -o /d/requirements.txt /d/requirements.in'
+mkdocs==1.6.1
+mkdocs-material==9.5.39
+mkdocs-render-swagger-plugin==0.1.2

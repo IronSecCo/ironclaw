@@ -282,16 +282,20 @@ jobs:
       # index digest. Consumers verify it anonymously alongside provenance:
       #   gh attestation verify oci://<image>@<digest> --repo <repo> \
       #     --predicate-type https://cyclonedx.org/bom
+      # Pin syft via the SHA-pinned download-syft sub-action instead of
+      # `curl …/syft/main/install.sh | sh` (mutable branch piped to a shell).
+      # The sub-action installs a fixed syft onto PATH; the scan command is unchanged.
+      - name: Install syft (pinned)
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
       - name: Generate image SBOM (syft → CycloneDX)
         env:
           IMAGE: ${{ needs.prepare.outputs.image }}
           DIGEST: ${{ steps.manifest.outputs.digest }}
         run: |
           set -euo pipefail
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "$RUNNER_TEMP/bin"
-          "$RUNNER_TEMP/bin/syft" version
+          syft version
           # Scan the multi-arch index by its immutable digest (logged into GHCR above).
-          "$RUNNER_TEMP/bin/syft" scan "registry:${IMAGE}@${DIGEST}" \
+          syft scan "registry:${IMAGE}@${DIGEST}" \
             -o "cyclonedx-json=${RUNNER_TEMP}/image.cdx.json"
 
       - name: Attest the image SBOM

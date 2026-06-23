@@ -46,8 +46,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install MkDocs toolchain (pinned)
-        run: pip install -r docs/requirements.txt
+      - name: Install MkDocs toolchain (hash-pinned)
+        # --require-hashes makes pip refuse any wheel whose SHA-256 isn't in the
+        # lockfile, so the published site is built only from byte-for-byte known
+        # artifacts. docs/requirements.txt carries --hash= lines (pip-compile
+        # --generate-hashes) plus the full transitive closure.
+        run: pip install --require-hashes -r docs/requirements.txt
 
       - name: Build site (strict)
         run: mkdocs build --strict --site-dir _site
