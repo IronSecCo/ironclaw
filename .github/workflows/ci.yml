@@ -32,3 +32,26 @@ jobs:
         run: go vet ./...
       - name: test
         run: go test ./...
+
+  # Short bounded native-fuzz run over the highest-risk untrusted-input parsers
+  # (skill manifest YAML, minisign signature/key blobs, name/version/asset path
+  # validation). This is a regression smoke test, not an exhaustive campaign: each
+  # target runs briefly so the build stays fast while OpenSSF Scorecard's Fuzzing
+  # check detects that the repo runs Go native fuzzing. See
+  # internal/host/skills/fuzz_test.go.
+  fuzz:
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: "1"
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version: "1.23.12"
+      - name: fuzz (short, skills parsing/path surfaces)
+        run: |
+          for target in FuzzParse FuzzParseSignature FuzzParsePublicKey FuzzValidAssetPath FuzzValidIdentifiers; do
+            echo "::group::$target"
+            go test ./internal/host/skills/ -run='^$' -fuzz="^${target}$" -fuzztime=30s
+            echo "::endgroup::"
+          done
