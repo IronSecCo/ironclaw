@@ -12,7 +12,7 @@
 # Build from the repository root with container/build.sh (sets the build context).
 
 # --- build stage ------------------------------------------------------------
-FROM golang:1.23-bookworm AS build
+FROM golang:1.23-bookworm@sha256:167053a2bb901972bf2c1611f8f52c44d5fe7e762e5cab213708d82c421614db AS build
 
 # go-sqlcipher (the encrypted-queue binding) needs CGO + libcrypto headers.
 RUN apt-get update \
@@ -29,7 +29,7 @@ ENV CGO_ENABLED=1
 RUN go build -trimpath -ldflags "-s -w" -o /out/sandbox ./cmd/sandbox
 
 # --- runtime stage ----------------------------------------------------------
-FROM debian:bookworm-slim AS runtime
+FROM debian:bookworm-slim@sha256:96e378d7e6531ac9a15ad505478fcc2e69f371b10f5cdf87857c4b8188404716 AS runtime
 
 # libssl3 satisfies the go-sqlcipher dynamic link; ca-certificates is harmless and
 # small. No other packages — the sandbox has network=none and installs nothing.
