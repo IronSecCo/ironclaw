@@ -102,4 +102,13 @@ jobs:
           echo 'rootfs staged:'; ls -la "${ROOT}"
 
       - name: Run WS-G harness
-        run: go test -tags wsg_verify -v -count=1 ./test/wsg/...
+        # Run as root so the live G2 row can `runsc run` a real sandbox (rootless
+        # runsc is not configured on the hosted runner). Caches/PATH are preserved so
+        # only the toolchain the runner already set up is used. The live launch still
+        # self-skips (never fails the job) if gVisor cannot start on the runner.
+        run: |
+          sudo -E env \
+            "PATH=$PATH" \
+            "GOCACHE=$(go env GOCACHE)" \
+            "GOMODCACHE=$(go env GOMODCACHE)" \
+            go test -tags wsg_verify -v -count=1 ./test/wsg/...
