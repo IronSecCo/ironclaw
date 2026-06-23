@@ -225,7 +225,7 @@ const Agents = (() => {
       if (!list || !list.length) {
         const box = emptyState("No agents yet",
           "Create your first agent — pick a template, tweak its persona and tools, and it's ready to chat.",
-          "＋ New agent", "agents");
+          "＋ New agent", "agents", EMPTY_ICONS.agents);
         const cta = box.querySelector("button");
         if (cta) cta.addEventListener("click", openNew); // open the modal, not just switch panel
         grid.append(box);

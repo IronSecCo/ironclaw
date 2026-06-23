@@ -90,7 +90,9 @@ const Approvals = (() => {
       // dashboard is revisited, since only Dashboard.load() set it before).
       if (typeof updateApprovalsBadge === "function") updateApprovalsBadge(items.length);
       if (items.length === 0) {
-        host.replaceChildren(el("p", { class: "muted", text: "No pending changes." }));
+        host.replaceChildren(emptyState("Nothing waiting",
+          "Capability changes that need a human decision show up here. You're all caught up.",
+          null, null, EMPTY_ICONS.approvals));
         return;
       }
       host.replaceChildren(...items.map(renderRow));

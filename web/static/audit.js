@@ -118,7 +118,13 @@ const Audit = (() => {
     const count = document.getElementById("audit-count");
     if (count) count.textContent = "showing " + rows.length + " of " + entries.length;
     if (rows.length === 0) {
-      host.replaceChildren(el("p", { class: "muted", text: entries.length ? "No entries match the filter." : "No audit entries." }));
+      // A filter that matches nothing is a transient result (keep it terse); an
+      // empty log is a genuine first-run state (give it structure + scent).
+      host.replaceChildren(entries.length
+        ? el("p", { class: "muted", text: "No entries match the filter." })
+        : emptyState("Nothing audited yet",
+            "Every gateway decision (approvals, capability changes, channel events) lands here as an append-only record.",
+            null, null, EMPTY_ICONS.audit));
       return;
     }
     host.replaceChildren(...rows.map(renderRow));

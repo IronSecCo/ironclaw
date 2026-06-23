@@ -65,7 +65,9 @@ const Sessions = (() => {
     try {
       const items = (await api("/v1/ui/sessions")) || [];
       if (items.length === 0) {
-        host.replaceChildren(el("p", { class: "muted", text: "No active sessions." }));
+        host.replaceChildren(emptyState("No sessions yet",
+          "A session — a live, isolated sandbox — starts the moment an agent first replies. Create an agent and open Chat to begin.",
+          "Open Chat", "chat", EMPTY_ICONS.sessions));
         return;
       }
       host.replaceChildren(...items.map(renderRow));

@@ -166,16 +166,19 @@ const MCP = (() => {
       const servers = await api("/v1/ui/mcp-servers");
       list.replaceChildren();
       if (!servers || servers.length === 0) {
-        list.append(el("p", { class: "muted", text: "No MCP servers configured yet. Add one above." }));
+        list.append(emptyState("No MCP servers yet",
+          "Add a Model Context Protocol server above to grant agents host-side tools (gated by human approval).",
+          null, null, EMPTY_ICONS.mcp));
         return;
       }
       for (const v of servers) list.append(renderCard(v));
     } catch (e) {
       const msg = String(e.message || e);
-      list.replaceChildren(el("p", { class: "muted",
-        text: msg.indexOf("503") === 0
-          ? "MCP is not enabled on this control-plane (start the daemon with --mcp-catalog, or use --dev)."
-          : "Could not load MCP servers: " + msg }));
+      list.replaceChildren(msg.indexOf("503") === 0
+        ? emptyState("MCP not enabled",
+            "MCP loads when the host is started with --mcp-catalog (or use --dev). See the docs to enable it.",
+            null, null, EMPTY_ICONS.offline)
+        : el("p", { class: "error", text: "Could not load MCP servers: " + msg }));
     }
   }
 
