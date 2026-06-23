@@ -158,9 +158,10 @@ const (
 //     "no network stack at all" signal for runsc. NetworkNone MUST be true.
 //   - ALL capabilities dropped → every capability set is empty.
 //   - no_new_privs = true → suid/setcap binaries cannot raise privileges.
-//   - non-root uid/gid in a user namespace → the container's root maps to an
-//     unprivileged host uid; the process itself runs as NonRootUID / a non-zero
-//     gid.
+//   - non-root uid/gid in a user namespace → the process runs as NonRootUID / a
+//     non-zero gid, and that exact id is the only one mapped (to the same
+//     unprivileged host id); container uid 0 is left unmapped, so the sandbox has no
+//     nominal root inside its user namespace at all.
 //   - read-only rootfs. /workspace is writable: a per-group DURABLE bind when
 //     SandboxSpec.WorkspacePath is set, otherwise the legacy ephemeral tmpfs.
 //   - optional per-group DURABLE /memory (rw) and a global READ-ONLY /shared mount
@@ -279,6 +280,20 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 	}
 
 	mounts := []OCIMount{
+		// Standard runtime filesystems. Under gVisor these are the SENTRY's own
+		// synthetic filesystems — a virtualized /proc and /sys and a tmpfs /dev holding
+		// only standard pseudo-devices (/dev/null, /dev/zero, …). They expose the
+		// sandbox's OWN view, never the host's /proc, /sys, or real devices, so they add
+		// nothing to the trust boundary; /sys is mounted read-only. Without at least
+		// /proc and a populated /dev the container init and the Go runtime cannot come
+		// up, so a real launch silently produces no output — the in-sandbox launch
+		// failure IRO-103 tracked down. These mirror the `runsc spec` defaults.
+		{Destination: "/proc", Type: "proc", Source: "proc", Options: []string{"nosuid", "noexec", "nodev"}},
+		{Destination: "/dev", Type: "tmpfs", Source: "tmpfs", Options: []string{"nosuid", "strictatime", "mode=0755", "size=65536k"}},
+		{Destination: "/dev/pts", Type: "devpts", Source: "devpts", Options: []string{"nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"}},
+		{Destination: "/dev/shm", Type: "tmpfs", Source: "shm", Options: []string{"nosuid", "noexec", "nodev", "mode=1777", "size=65536k"}},
+		{Destination: "/dev/mqueue", Type: "mqueue", Source: "mqueue", Options: []string{"nosuid", "noexec", "nodev"}},
+		{Destination: "/sys", Type: "sysfs", Source: "sysfs", Options: []string{"nosuid", "noexec", "nodev", "ro"}},
 		workspaceMount,
 		// Inbound queue: bound READ-ONLY. The sandbox can never write it (defense in
 		// depth alongside interface segregation and PRAGMA query_only).
@@ -362,13 +377,18 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 			{Type: "uts"},
 			{Type: "user"},
 		},
-		// Map the container's uid/gid range onto an unprivileged host range. A single
-		// mapping is sufficient for the single non-root process the sandbox runs.
+		// Map the single non-root uid/gid the sandbox process runs as onto the same
+		// unprivileged host id. The process runs as ContainerID == NonRootUID, so THAT
+		// id must be mapped or the runtime cannot setuid into it — an unmapped process
+		// uid is the classic "userns container starts but the process never runs / never
+		// writes output" failure (IRO-103). We intentionally map ONLY this one id and
+		// leave container uid 0 UNMAPPED, so the sandbox has no nominal root inside its
+		// user namespace at all (stronger than mapping container-root to a host uid).
 		UIDMappings: []OCIIDMapping{
-			{ContainerID: 0, HostID: spec.NonRootUID, Size: 1},
+			{ContainerID: spec.NonRootUID, HostID: spec.NonRootUID, Size: 1},
 		},
 		GIDMappings: []OCIIDMapping{
-			{ContainerID: 0, HostID: gid, Size: 1},
+			{ContainerID: gid, HostID: gid, Size: 1},
 		},
 		// cgroup resource caps (zero knobs fall back to the safe defaults) and the
 		// restrictive default seccomp profile — both always present so a sandbox is

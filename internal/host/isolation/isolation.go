@@ -209,6 +209,21 @@ type RunscIsolator struct {
 	// caller must ensure rootfs/ exists, else Launch returns ErrRootfsMissing). Set
 	// it with WithProvisioner — typically a *ContainerdProvisioner.
 	Provisioner RootfsProvisioner
+	// DebugLogDir, when non-empty, turns on launch diagnostics: Launch runs the
+	// runtime with gVisor's --debug/--debug-log enabled (written under this dir) and
+	// captures the runtime's own stdout+stderr to <bundle>/runtime.log. It exists so a
+	// real launch that fails to start (a bad mount, a missing rootfs dir, an unmapped
+	// userns uid) is VISIBLE instead of silent — the default launch discards runtime
+	// output. Leave empty in production: the default keeps runtime stdout/stderr at
+	// /dev/null so no sandbox output is persisted to the host. Set it with
+	// WithRuntimeDebug.
+	DebugLogDir string
+	// RuntimeFlags are extra GLOBAL flags passed to the runtime binary before the
+	// `run` subcommand (e.g. --platform=systrap, --rootless, --ignore-cgroups). They
+	// let an operator or the verification harness adapt the launch to a constrained
+	// host without code changes. Empty (the default) keeps the stock invocation. Set
+	// with WithRuntimeFlags.
+	RuntimeFlags []string
 }
 
 // Option configures a RunscIsolator.
@@ -229,6 +244,28 @@ func WithBundleRoot(dir string) Option {
 		if dir != "" {
 			r.BundleRoot = dir
 		}
+	}
+}
+
+// WithRuntimeDebug turns on launch diagnostics (see RunscIsolator.DebugLogDir): the
+// runtime runs with gVisor --debug/--debug-log into dir and its stdout+stderr are
+// captured to <bundle>/runtime.log. Intended for the live-launch verification harness
+// and operator debugging; leave it off in production (the default discards runtime
+// output so no sandbox stdout reaches the host disk).
+func WithRuntimeDebug(dir string) Option {
+	return func(r *RunscIsolator) {
+		if dir != "" {
+			r.DebugLogDir = dir
+		}
+	}
+}
+
+// WithRuntimeFlags appends extra GLOBAL runtime flags (placed before the `run`
+// subcommand), for adapting the launch to a constrained host (e.g. --rootless,
+// --platform=systrap, --ignore-cgroups). Empty keeps the stock invocation.
+func WithRuntimeFlags(flags ...string) Option {
+	return func(r *RunscIsolator) {
+		r.RuntimeFlags = append(r.RuntimeFlags, flags...)
 	}
 }
 
@@ -326,8 +363,34 @@ func (r *RunscIsolator) Launch(ctx context.Context, spec SandboxSpec) (Handle, e
 		bin = DefaultRuntimeBinary
 	}
 
-	cmd := exec.CommandContext(ctx, bin, "run", "--bundle", bundleDir, containerID)
+	// Global runtime flags precede the `run` subcommand. When debugging is enabled we
+	// ask gVisor to emit its internal debug log into DebugLogDir and capture the
+	// runtime's own stdout+stderr to <bundle>/runtime.log so a failed start (bad mount,
+	// missing rootfs dir, unmapped userns uid) is observable rather than silent.
+	args := []string{"run", "--bundle", bundleDir, containerID}
+	// Operator/harness-supplied global flags (e.g. --rootless, --platform=systrap)
+	// precede the subcommand.
+	if len(r.RuntimeFlags) > 0 {
+		args = append(append([]string{}, r.RuntimeFlags...), args...)
+	}
+	if r.DebugLogDir != "" {
+		if mkErr := os.MkdirAll(r.DebugLogDir, 0o700); mkErr != nil {
+			return nil, fmt.Errorf("host/isolation: create runtime debug dir %s: %w", r.DebugLogDir, mkErr)
+		}
+		args = append([]string{"--debug", "--debug-log", r.DebugLogDir + "/"}, args...)
+	}
+
+	cmd := exec.CommandContext(ctx, bin, args...)
 	cmd.Dir = bundleDir
+	if r.DebugLogDir != "" {
+		// Best-effort: capture runtime output for diagnostics. The child keeps its own
+		// dup of the fd after Start, so closing our copy here does not truncate it.
+		if lf, lerr := os.Create(filepath.Join(bundleDir, "runtime.log")); lerr == nil {
+			cmd.Stdout = lf
+			cmd.Stderr = lf
+			defer lf.Close()
+		}
+	}
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("host/isolation: start runtime %q (is it installed?): %w", bin, err)
 	}
