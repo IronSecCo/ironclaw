@@ -1,0 +1,128 @@
+name: WS-G verify
+
+# Additive WS-G live-verification harness (IRO-93). It is DELIBERATELY separate from
+# the required CI gate (.github/workflows/ci.yml): it must never be able to break
+# release. It runs the `wsg_verify`-tagged harness in test/wsg, which exercises the
+# no-external-secret rows of the WS-G 1.0 capability gate (see the verification
+# runbook on IRO-84) as real, executing assertions:
+#   - G2 isolation     — network=none OCI bundle, egress broker allow/deny+audit, and
+#                        a real gVisor sandbox launch asserting only `lo` + no internet.
+#   - G8 skills/a2a/sched — minisign-gated skill install at the gateway, create_agent
+#                        gated child, near-term scheduled task fires once.
+#   - G5 webhook/SMTP  — Webhook + Email adapters round-trip against in-process sinks.
+#
+# The board-secret-gated rows (G5 Slack/Discord/…, G7 provider live calls) are out of
+# scope here and tracked on IRO-84.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least-privilege default (Scorecard Token-Permissions).
+permissions:
+  contents: read
+
+jobs:
+  wsg-verify:
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: "1"
+      IRONCLAW_WSG_ROOTFS: ${{ github.workspace }}/.wsg/rootfs
+      IRONCLAW_WSG_MINISIGN_DIR: ${{ github.workspace }}/.wsg/minisign
+    steps:
+      # Third-party actions pinned to a commit SHA (tag in trailing comment), matching
+      # ci.yml — see OpenSSF Scorecard Pinned-Dependencies.
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version: "1.23.12"
+
+      - name: Install gVisor (runsc)
+        run: |
+          set -euo pipefail
+          ARCH=$(uname -m)
+          URL="https://storage.googleapis.com/gvisor/releases/release/latest/${ARCH}"
+          sudo curl -fsSL -o /usr/local/bin/runsc "${URL}/runsc"
+          sudo curl -fsSL -o /usr/local/bin/containerd-shim-runsc-v1 "${URL}/containerd-shim-runsc-v1" || true
+          sudo chmod 0755 /usr/local/bin/runsc /usr/local/bin/containerd-shim-runsc-v1 || true
+          runsc --version
+
+      - name: Install minisign
+        run: sudo apt-get update && sudo apt-get install -y minisign
+
+      - name: ironctl doctor reports gVisor backend (G2 evidence)
+        run: |
+          set -euo pipefail
+          go build -o /tmp/ironctl ./cmd/ironctl
+          # doctor's API/auth checks fail without a running daemon; we only assert the
+          # sandbox-runtime (gVisor/runsc) check reports OK here.
+          /tmp/ironctl doctor 2>&1 | tee /tmp/doctor.txt || true
+          echo '--- runtime check ---'
+          if grep -E '\[OK *\].*sandbox runtime \(runsc\).*found at' /tmp/doctor.txt; then
+            echo 'ironctl doctor: gVisor (runsc) backend detected'
+          else
+            echo 'ERROR: ironctl doctor did not report the runsc backend'; exit 1
+          fi
+
+      - name: Generate minisign keypair + sign skill manifest (G8 real-CLI interop)
+        run: |
+          set -euo pipefail
+          DIR="${IRONCLAW_WSG_MINISIGN_DIR}"
+          SRC="${DIR}/source/incident-triage/1.4.0"
+          mkdir -p "${SRC}"
+          # Real, password-less minisign keypair (-W). Public key consumed by the host
+          # verifier; legacy-mode signature (default) is what the host accepts.
+          minisign -G -W -p "${DIR}/wsg.pub" -s "${DIR}/wsg.key"
+          cat > "${SRC}/skill.yaml" <<'YAML'
+          apiVersion: ironclaw.dev/skill/v1
+          name: incident-triage
+          version: 1.4.0
+          description: WS-G live-verification test skill (no runtime, only capability grants).
+          grants:
+            persona: You triage incidents.
+            tools:
+              - http_fetch
+            egress:
+              - status.example.com
+          YAML
+          minisign -S -s "${DIR}/wsg.key" -m "${SRC}/skill.yaml" -x "${SRC}/skill.yaml.minisig"
+          echo 'minisign keypair generated and manifest signed'
+
+      - name: Stage minimal rootfs with the isolation probe (G2 live launch)
+        run: |
+          set -euo pipefail
+          ROOT="${IRONCLAW_WSG_ROOTFS}"
+          mkdir -p "${ROOT}/workspace" "${ROOT}/queue" "${ROOT}/run/ironclaw" "${ROOT}/proc" "${ROOT}/dev" "${ROOT}/tmp"
+          # Static probe at /sandbox (the bundle entrypoint enforced by BuildOCISpec).
+          CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o "${ROOT}/sandbox" ./test/wsg/probe
+          chmod 0755 "${ROOT}/sandbox"
+          chmod -R 0777 "${ROOT}/workspace"
+          echo 'rootfs staged:'; ls -la "${ROOT}"
+
+      - name: gVisor runnability smoke (diagnostic, non-fatal)
+        # Establishes whether runsc can launch a sandbox at all on a hosted runner
+        # (it has no /dev/kvm; systrap is the expected platform). Captured for the G2
+        # live-launch follow-up; never fails the job.
+        continue-on-error: true
+        run: |
+          set -x
+          sudo runsc --network=none do echo runsc-do-ok || echo "runsc do (default platform) failed"
+          sudo runsc --platform=systrap --network=none do echo runsc-systrap-ok || echo "runsc do (systrap) failed"
+          sudo mkdir -p /tmp/runsc-debug
+          sudo runsc --debug --debug-log=/tmp/runsc-debug/ --network=none do /bin/true || true
+          echo '--- runsc debug log tail ---'
+          sudo sh -c 'cat /tmp/runsc-debug/* 2>/dev/null | tail -60' || true
+
+      - name: Run WS-G harness
+        # Run as root so the live G2 row can `runsc run` a real sandbox (rootless
+        # runsc is not configured on the hosted runner). Caches/PATH are preserved so
+        # only the toolchain the runner already set up is used. The live launch still
+        # self-skips (never fails the job) if gVisor cannot start on the runner.
+        run: |
+          sudo -E env \
+            "PATH=$PATH" \
+            "GOCACHE=$(go env GOCACHE)" \
+            "GOMODCACHE=$(go env GOMODCACHE)" \
+            go test -tags wsg_verify -v -count=1 ./test/wsg/...
