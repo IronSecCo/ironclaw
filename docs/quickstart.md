@@ -183,5 +183,5 @@ sandboxes.
   `ironctl doctor` diagnoses the common failure modes; the web console is at `/ui/`.
 - **Something not working?** Run `ironctl doctor` — a read-only preflight that
   reports pass/warn/fail for runtime, reachability, credentials, channels and more,
-  each with a fix. See [Troubleshooting](troubleshooting.md).
+  each with a fix. See [Troubleshooting](troubleshooting.md) and the [FAQ](faq.md).
 - **Where it's headed:** the [roadmap](roadmap.md).

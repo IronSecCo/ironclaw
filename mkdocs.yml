@@ -85,6 +85,8 @@ nav:
   - Get Started:
       - Quickstart: quickstart.md
       - Building from source: building.md
+      - Troubleshooting: troubleshooting.md
+      - FAQ: faq.md
   - Tutorials:
       - Overview: tutorials/index.md
       - Your first sandboxed agent in 5 minutes: tutorials/first-agent.md

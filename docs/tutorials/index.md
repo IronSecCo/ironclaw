@@ -31,3 +31,6 @@ one you need.
 Looking for something else? The [Quickstart](../quickstart.md) is the shortest path to a running
 control-plane, and the [Channel adapters](../channels.md) reference lists every built-in channel and
 the credential it needs.
+
+Hit an error? Run `ironctl doctor`, then see [Troubleshooting](../troubleshooting.md) (every check
+mapped to a fix, plus the common build/Docker/port/userns failures) and the [FAQ](../faq.md).

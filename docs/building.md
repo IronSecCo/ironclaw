@@ -19,6 +19,10 @@ go vet ./...
 go test ./...
 ```
 
+A build that fails with a SQLite / cgo error almost always means the C toolchain or
+`CGO_ENABLED` isn't set up — see
+[Troubleshooting → Build fails with a SQLite / cgo error](troubleshooting.md#build-fails-with-a-sqlite-cgo-error).
+
 ## Encrypted-queue binding (wired)
 
 The per-session encrypted queues are live (**RFC-0001 applied**). `contract.Open*`
