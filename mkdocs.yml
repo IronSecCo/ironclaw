@@ -22,6 +22,9 @@ hooks:
 theme:
   name: material
   language: en
+  # Static OG/Twitter social-card meta lives in overrides/main.html (avoids the
+  # material[imaging] system-lib dep that per-page social-card generation needs).
+  custom_dir: overrides
   # Light-wordmark logo so it reads on the steel-blue / navy header bar.
   logo: assets/logo-light.svg
   # Square curved-claw shield — legible at 16px, unlike the wide wordmark.

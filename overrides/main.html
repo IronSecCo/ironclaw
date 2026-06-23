@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{#-
+  Static Open Graph / Twitter card meta. We use a custom_dir override rather than
+  Material's per-page social plugin so the build does not pull in the
+  material[imaging] system-library (Cairo/Pango) dependency. The card image is a
+  single branded asset (docs/assets/social-preview.png, 1280x640) referenced at an
+  absolute URL — unfurlers (X / LinkedIn / Slack) require an absolute og:image.
+  `extrahead` is empty in Material's base.html, so these tags are purely additive.
+-#}
+{% block extrahead %}
+  {#- `page` is None on theme-rendered pages such as 404.html, so guard every
+      page.* access (default(..., true) also replaces empty strings). -#}
+  {% set _title = (page.title if page else none) | default(config.site_name, true) %}
+  {% set _descr = (page.meta.description if page and page.meta else none) | default(config.site_description, true) %}
+  {% set _url = (page.canonical_url if page else none) | default(config.site_url, true) %}
+  {% set _image = config.site_url ~ "assets/social-preview.png" %}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ config.site_name }}">
+  <meta property="og:title" content="{{ _title }}">
+  <meta property="og:description" content="{{ _descr }}">
+  <meta property="og:url" content="{{ _url }}">
+  <meta property="og:image" content="{{ _image }}">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
+  <meta property="og:image:alt" content="IronClaw — isolation you can prove, not just promise.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ _title }}">
+  <meta name="twitter:description" content="{{ _descr }}">
+  <meta name="twitter:image" content="{{ _image }}">
+{% endblock %}
