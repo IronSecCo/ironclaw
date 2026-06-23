@@ -274,15 +274,39 @@ func (d Deps) writeConfigToken(tok string) error {
 	return nil
 }
 
-// modelCredentialStep reports OK when any supported provider credential (or the
-// credential gateway) is present, naming which — never persisted, only detected.
-func modelCredentialStep(getenv func(string) string) Step {
+// ModelCredentials returns the human labels of every supported model credential
+// (or the credential gateway) present in the environment. It is provider-agnostic
+// and never reads the secret value — only presence. An empty result means none is
+// configured, in which case the zero-credential `mock` provider still works.
+// Exported so `ironctl doctor` reports exactly what onboarding checks, with no
+// risk of the two lists drifting apart.
+func ModelCredentials(getenv func(string) string) []string {
 	var have []string
 	for _, mc := range modelCredentialEnv {
 		if getenv(mc[0]) != "" {
 			have = append(have, mc[1])
 		}
 	}
+	return have
+}
+
+// ArmedChannels returns the names of the channel adapters armed by the current
+// environment (e.g. slack when SLACK_BOT_TOKEN is set). Mirrors what the
+// control-plane auto-registers on boot; shared with `ironctl doctor`.
+func ArmedChannels(getenv func(string) string) []string {
+	var ready []string
+	for _, ce := range channelEnv {
+		if ce.ready(getenv) {
+			ready = append(ready, ce.name)
+		}
+	}
+	return ready
+}
+
+// modelCredentialStep reports OK when any supported provider credential (or the
+// credential gateway) is present, naming which — never persisted, only detected.
+func modelCredentialStep(getenv func(string) string) Step {
+	have := ModelCredentials(getenv)
 	if len(have) == 0 {
 		return Step{"model-credential", StatusAction,
 			"set a model credential in the control-plane's environment — one of ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, or IRONCLAW_MODEL_GATEWAY_URL"}
@@ -332,12 +356,7 @@ func (d Deps) imageEngine() string {
 }
 
 func (d Deps) channelStep() Step {
-	var ready []string
-	for _, ce := range channelEnv {
-		if ce.ready(d.Getenv) {
-			ready = append(ready, ce.name)
-		}
-	}
+	ready := ArmedChannels(d.Getenv)
 	if len(ready) == 0 {
 		return Step{"channel", StatusAction,
 			"no channel armed from the environment — set e.g. SLACK_BOT_TOKEN or TELEGRAM_BOT_TOKEN (see docs/channels.md), or wire one with `ironctl registry wiring ...`"}

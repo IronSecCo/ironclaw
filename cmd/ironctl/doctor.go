@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/IronSecCo/ironclaw/internal/host/onboard"
 )
 
 // checkStatus is a doctor check verdict.
@@ -23,23 +25,32 @@ const (
 	checkFail checkStatus = "FAIL"
 )
 
+// docBase is the published docs site; each check links to a relevant page so an
+// operator can go straight from a red line to the fix.
+const docBase = "https://ironsecco.github.io/ironclaw"
+
 // checkResult is one diagnostic line: what was checked, the verdict, what was
-// seen, and (when not OK) an actionable fix.
+// seen, and (when not OK) an actionable fix plus a docs link.
 type checkResult struct {
 	Name   string
 	Status checkStatus
 	Detail string
 	Fix    string
+	Doc    string
 }
 
 // cmdDoctor implements `ironctl doctor` — environment + reachability checks with
-// actionable fixes. It exits non-zero if any check FAILs so it is usable as a
-// health gate in scripts.
+// actionable fixes. It is read-only and never prints secret values (presence
+// only). It exits non-zero if any check FAILs so it is usable as a health gate in
+// scripts.
 func cmdDoctor(addr string, args []string) error {
 	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
 	socket := fs.String("model-proxy-socket", "/run/ironclaw/modelproxy.sock",
 		"model-proxy unix socket to probe")
-	runtimeBin := fs.String("runtime", "runsc", "OCI runtime binary to check (gVisor)")
+	// The runtime defaults to the same resolution the control-plane uses:
+	// $IRONCLAW_RUNTIME, else gVisor's runsc. An explicit --runtime wins.
+	runtimeBin := fs.String("runtime", envOrDefault("IRONCLAW_RUNTIME", "runsc"),
+		"OCI runtime binary to check (gVisor's runsc by default; IRONCLAW_RUNTIME selects it)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -49,6 +60,10 @@ func cmdDoctor(addr string, args []string) error {
 		checkAuth(addr),
 		checkReadiness(addr),
 		checkRuntime(*runtimeBin),
+		checkToolchain(),
+		checkModelCredential(os.Getenv),
+		checkChannels(os.Getenv),
+		checkConfig(),
 		checkModelProxy(*socket),
 	}
 	printChecks(os.Stdout, results)
@@ -65,10 +80,18 @@ func cmdDoctor(addr string, args []string) error {
 	return nil
 }
 
+// envOrDefault returns the env var if set and non-empty, else def.
+func envOrDefault(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
+
 // checkAPI verifies the control-plane is reachable via its unauthenticated
 // liveness probe.
 func checkAPI(addr string) checkResult {
-	r := checkResult{Name: "control-plane API"}
+	r := checkResult{Name: "control-plane API", Doc: docBase + "/quickstart/"}
 	resp, err := httpGet(addr + "/healthz")
 	if err != nil {
 		r.Status = checkFail
@@ -90,7 +113,7 @@ func checkAPI(addr string) checkResult {
 
 // checkAuth probes a bearer-gated endpoint to classify the token posture.
 func checkAuth(addr string) checkResult {
-	r := checkResult{Name: "API auth / token"}
+	r := checkResult{Name: "API auth / token", Doc: docBase + "/quickstart/"}
 	resp, err := httpGet(addr + "/v1/changes/pending")
 	if err != nil {
 		r.Status = checkWarn
@@ -124,7 +147,7 @@ func checkAuth(addr string) checkResult {
 
 // checkReadiness reports the daemon's readiness probe.
 func checkReadiness(addr string) checkResult {
-	r := checkResult{Name: "readiness"}
+	r := checkResult{Name: "readiness", Doc: docBase + "/quickstart/"}
 	var rz struct {
 		Status string `json:"status"`
 		Reason string `json:"reason"`
@@ -148,9 +171,10 @@ func checkReadiness(addr string) checkResult {
 
 // checkRuntime verifies the OCI sandbox runtime (gVisor's runsc by default) is
 // installed and on PATH. Presence is the load-bearing check; a version probe is
-// best-effort.
+// best-effort. A relaxed runtime (docker/podman/runc) is reported OK but flagged,
+// because it does not provide gVisor's syscall-interception isolation boundary.
 func checkRuntime(bin string) checkResult {
-	r := checkResult{Name: "sandbox runtime (" + bin + ")"}
+	r := checkResult{Name: "sandbox runtime (" + bin + ")", Doc: docBase + "/quickstart/"}
 	path, err := exec.LookPath(bin)
 	if err != nil {
 		// gVisor's runsc is Linux-only. On macOS/Windows the production sandbox
@@ -165,14 +189,102 @@ func checkRuntime(bin string) checkResult {
 		}
 		r.Status = checkFail
 		r.Detail = bin + " not found on PATH"
-		r.Fix = "install gVisor (https://gvisor.dev/docs/user_guide/install/) so sandboxes can launch, or pass --runtime <bin>"
+		r.Fix = "install gVisor (https://gvisor.dev/docs/user_guide/install/) so sandboxes can launch, or set IRONCLAW_RUNTIME / pass --runtime <bin>"
 		return r
 	}
-	r.Status = checkOK
 	r.Detail = "found at " + path
 	if v, ok := tryVersion(bin); ok {
 		r.Detail += " (" + v + ")"
 	}
+	// runsc is the hardened default; anything else is the relaxed fallback.
+	if !strings.Contains(bin, "runsc") {
+		r.Status = checkWarn
+		r.Detail += " — relaxed runtime (no gVisor syscall isolation)"
+		r.Fix = "this is the runc fallback for hosts without gVisor; use runsc for the full isolation boundary in production"
+		return r
+	}
+	r.Status = checkOK
+	return r
+}
+
+// checkToolchain reports this binary's Go runtime version and restates the
+// control-plane's build expectation: encrypted (SQLCipher) queues require
+// CGO_ENABLED=1 and a C toolchain. ironctl itself is a pure HTTP client and needs
+// no cgo, so this is informational guidance rather than a self-test.
+func checkToolchain() checkResult {
+	return checkResult{
+		Name:   "build toolchain",
+		Status: checkOK,
+		Detail: runtime.Version() + " — control-plane build requires CGO_ENABLED=1 (encrypted SQLite)",
+		Doc:    docBase + "/building/",
+	}
+}
+
+// checkModelCredential reports whether any model-provider credential is present.
+// It is provider-agnostic and mirrors exactly what `ironctl onboard` checks (the
+// detector is shared). No credential is a WARN, not a FAIL: the zero-credential
+// `mock` provider still serves chat, so a fresh install is not broken — it just
+// can't reach a real model yet. Presence only; secret values are never read.
+func checkModelCredential(getenv func(string) string) checkResult {
+	r := checkResult{Name: "model credential", Doc: docBase + "/quickstart/"}
+	have := onboard.ModelCredentials(getenv)
+	if len(have) == 0 {
+		r.Status = checkWarn
+		r.Detail = "none set — the zero-credential `mock` provider works, but no real model is reachable"
+		r.Fix = "set one of ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, or IRONCLAW_MODEL_GATEWAY_URL on the daemon"
+		return r
+	}
+	r.Status = checkOK
+	r.Detail = strings.Join(have, ", ") + " configured (held host-side; never enters a sandbox)"
+	return r
+}
+
+// checkChannels reports which channel adapters are armed by the environment.
+// Channels are optional (the web console and API work without one), so none is a
+// WARN with guidance, not a failure. Shares the onboard detector so the two never
+// drift. Presence only; tokens are never read or printed.
+func checkChannels(getenv func(string) string) checkResult {
+	r := checkResult{Name: "channel adapters", Doc: docBase + "/channels/"}
+	armed := onboard.ArmedChannels(getenv)
+	if len(armed) == 0 {
+		r.Status = checkWarn
+		r.Detail = "no channel armed from the environment"
+		r.Fix = "set e.g. SLACK_BOT_TOKEN or TELEGRAM_BOT_TOKEN, or wire one with `ironctl registry wiring ...` (channels are optional)"
+		return r
+	}
+	r.Status = checkOK
+	r.Detail = "armed from env: " + strings.Join(armed, ", ")
+	return r
+}
+
+// checkConfig validates the onboarding config file (the 0600 env-file that holds
+// the API token). Absence is fine — onboard creates it on demand — so it is a
+// SKIP-style WARN. When present it must be readable and, on POSIX, not group/world
+// readable, since it bears a secret. The token value itself is never printed.
+func checkConfig() checkResult {
+	path := defaultOnboardConfig()
+	r := checkResult{Name: "onboard config", Doc: docBase + "/quickstart/"}
+	info, err := os.Stat(path)
+	if err != nil {
+		r.Status = checkWarn
+		r.Detail = "not present at " + path
+		r.Fix = "run `ironctl onboard` to mint an API token and write this file (0600)"
+		return r
+	}
+	if info.IsDir() {
+		r.Status = checkFail
+		r.Detail = path + " is a directory, expected a file"
+		r.Fix = "remove the directory and re-run `ironctl onboard`"
+		return r
+	}
+	if perm := info.Mode().Perm(); runtime.GOOS != "windows" && perm&0o077 != 0 {
+		r.Status = checkWarn
+		r.Detail = fmt.Sprintf("%s is %#o — readable beyond the owner (holds a secret token)", path, perm)
+		r.Fix = fmt.Sprintf("tighten it: chmod 600 %s", path)
+		return r
+	}
+	r.Status = checkOK
+	r.Detail = "present and owner-only at " + path
 	return r
 }
 
@@ -180,7 +292,7 @@ func checkRuntime(bin string) checkResult {
 // connection. The sandbox has network=none, so this socket is its only egress
 // path to the model host.
 func checkModelProxy(socket string) checkResult {
-	r := checkResult{Name: "model-proxy socket"}
+	r := checkResult{Name: "model-proxy socket", Doc: docBase + "/quickstart/"}
 	if _, err := os.Stat(socket); err != nil {
 		r.Status = checkWarn
 		r.Detail = "socket not present at " + socket
@@ -224,6 +336,9 @@ func printChecks(w io.Writer, results []checkResult) {
 		fmt.Fprintf(w, "  [%-4s] %s: %s\n", r.Status, r.Name, r.Detail)
 		if r.Status != checkOK && r.Fix != "" {
 			fmt.Fprintf(w, "         fix: %s\n", r.Fix)
+		}
+		if r.Status != checkOK && r.Doc != "" {
+			fmt.Fprintf(w, "         see: %s\n", r.Doc)
 		}
 	}
 }

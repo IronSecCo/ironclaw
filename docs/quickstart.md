@@ -181,4 +181,7 @@ sandboxes.
   [contract](contract.md).
 - **Guided first run:** `ironctl onboard` walks you through a first-run check and
   `ironctl doctor` diagnoses the common failure modes; the web console is at `/ui/`.
+- **Something not working?** Run `ironctl doctor` — a read-only preflight that
+  reports pass/warn/fail for runtime, reachability, credentials, channels and more,
+  each with a fix. See [Troubleshooting](troubleshooting.md).
 - **Where it's headed:** the [roadmap](roadmap.md).
