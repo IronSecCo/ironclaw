@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -45,7 +46,7 @@ type checkResult struct {
 // scripts.
 func cmdDoctor(addr string, args []string) error {
 	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
-	socket := fs.String("model-proxy-socket", "/run/ironclaw/modelproxy.sock",
+	socket := fs.String("model-proxy-socket", defaultModelProxySocket(),
 		"model-proxy unix socket to probe")
 	// The runtime defaults to the same resolution the control-plane uses:
 	// $IRONCLAW_RUNTIME, else gVisor's runsc. An explicit --runtime wins.
@@ -286,6 +287,24 @@ func checkConfig() checkResult {
 	r.Status = checkOK
 	r.Detail = "present and owner-only at " + path
 	return r
+}
+
+// defaultModelProxySocket mirrors the control-plane's defaultModelProxySocket
+// (cmd/controlplane) so `ironctl doctor` probes the same path the daemon actually
+// binds when neither side passes --model-proxy-socket. On Linux the daemon runs
+// under systemd with RuntimeDirectory=ironclaw, so /run/ironclaw is its home;
+// off-Linux (macOS --dev — there is no creatable /run at the SIP-protected root)
+// it falls back to the user cache dir. Keeping the two in sync avoids a false WARN
+// where doctor probes the Linux path while a macOS --dev daemon serves the cache
+// path. Production passes --model-proxy-socket explicitly on both sides.
+func defaultModelProxySocket() string {
+	if runtime.GOOS == "linux" {
+		return "/run/ironclaw/modelproxy.sock"
+	}
+	if d, err := os.UserCacheDir(); err == nil {
+		return filepath.Join(d, "ironclaw", "run", "modelproxy.sock")
+	}
+	return filepath.Join(os.TempDir(), "ironclaw", "modelproxy.sock")
 }
 
 // checkModelProxy verifies the model-proxy unix socket exists and accepts a
