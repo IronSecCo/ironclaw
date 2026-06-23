@@ -1,6 +1,8 @@
-# Dependabot keeps the supply chain current: Go modules and the GitHub
-# Actions used by the workflows. Weekly to keep PR volume (and Actions minutes from
-# the resulting CI runs) bounded.
+# Dependabot keeps the supply chain current: Go modules, the GitHub Actions used by
+# the workflows, and the Docker base images. Everything is pinned to immutable hashes
+# (action commit SHAs, image @sha256 digests) for provenance, so Dependabot is what
+# bumps those pins as upstream patches land. Weekly to keep PR volume (and Actions
+# minutes from the resulting CI runs) bounded.
 version: 2
 updates:
   - package-ecosystem: gomod
@@ -23,4 +25,17 @@ updates:
       prefix: ci
     groups:
       actions:
+        patterns: ["*"]
+
+  # Both container/Dockerfile and container/controlplane.Dockerfile pin their
+  # golang/debian bases to @sha256 digests; this keeps those digests fresh.
+  - package-ecosystem: docker
+    directory: "/container"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: container
+    groups:
+      docker-bases:
         patterns: ["*"]
