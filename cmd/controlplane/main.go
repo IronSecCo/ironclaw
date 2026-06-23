@@ -359,6 +359,13 @@ func main() {
 	// registry; when egress is enabled, an approved change's egress grants (e.g. a
 	// skill install's bundle) are materialized into the broker's allowlist so the
 	// grant takes effect; every other kind is logged.
+	// Per-group vault policy (threat-model §11): "which agent group may use which
+	// credential against which host", deny-by-default. Mutated only here, through the
+	// gateway apply path after a human approves a vault-policy change; read by the
+	// broker/injector before a credential is used (broker enforcement is wired
+	// separately). In-memory today (the registry itself is in-memory in this flow);
+	// durable persistence is tracked as a follow-up.
+	vaultPolicies := registry.NewVaultPolicyStore()
 	var capApplier contract.Applier = gateway.NewLogApplier()
 	capApplier = gateway.NewPersonaApplier(func(id contract.AgentGroupID, persona string) error {
 		return registry.SetPersona(reg, id, persona)
@@ -386,6 +393,16 @@ func main() {
 	capApplier = gateway.NewMCPAccessApplier(func(id contract.AgentGroupID, server string, tools []string) error {
 		return registry.SetGrantedMCP(reg, id, server, tools)
 	}, capApplier)
+	// An approved vault-policy change records the per-group {credential -> hosts} rules
+	// so subsequent vaulted calls are authorized deny-by-default. The target group is
+	// the change's trusted AgentGroupID, never the payload.
+	capApplier = gateway.NewVaultPolicyApplier(func(id contract.AgentGroupID, rules []gateway.VaultRule) error {
+		rr := make([]registry.VaultRule, 0, len(rules))
+		for _, r := range rules {
+			rr = append(rr, registry.VaultRule{Credential: r.Credential, Hosts: r.Hosts})
+		}
+		return vaultPolicies.Set(registry.VaultPolicy{AgentGroupID: id, Rules: rr})
+	}, capApplier)
 	if broker != nil {
 		capApplier = gateway.NewEgressApplier(broker, capApplier)
 	}
@@ -400,6 +417,7 @@ func main() {
 			gateway.PackageNameVerifier{},
 			gateway.NewCreateAgentVerifier(agentExists),
 			gateway.NewMCPServerVerifier(mcpServerKnown),
+			gateway.VaultPolicyVerifier{},
 			gateway.AlwaysRequireHuman{},
 		},
 		gateway.NewManualApprover(),
