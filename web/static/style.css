@@ -11,12 +11,12 @@
   --text: #e9edf5;
   --text-2: #aeb8c9;
   --muted: #7c8699;
-  --faint: #58627a;
-  --accent: #ff7a2e;
-  --accent-2: #ff9a57;
-  --accent-ink: #1a0c03;
-  --accent-soft: rgba(255, 122, 46, 0.13);
-  --accent-line: rgba(255, 122, 46, 0.35);
+  --faint: #7682a0; /* WCAG AA: ~4.6:1 on --bg for hints/placeholders (was #58627a ~3.1:1) */
+  --accent: #3b82f6;          /* steel-500 — brand (matches favicon + docs brand.css) */
+  --accent-2: #63a0ff;        /* steel-400 */
+  --accent-ink: #08122b;      /* deep navy text on the steel accent (AA on accent buttons) */
+  --accent-soft: rgba(59, 130, 246, 0.15);
+  --accent-line: rgba(99, 160, 255, 0.38);
   --ok: #35d6a0;
   --ok-soft: rgba(53, 214, 160, 0.13);
   --danger: #fb7185;
@@ -41,7 +41,7 @@ body {
   color: var(--text);
   background: var(--bg);
   background-image:
-    radial-gradient(900px 500px at 0% -10%, rgba(255, 122, 46, 0.08), transparent 60%),
+    radial-gradient(900px 500px at 0% -10%, rgba(59, 130, 246, 0.10), transparent 60%),
     radial-gradient(800px 600px at 100% 0%, rgba(103, 169, 255, 0.05), transparent 55%);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
@@ -87,9 +87,9 @@ code {
 .side-brand .mark {
   width: 34px; height: 34px; display: grid; place-items: center;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent), #ff5e1a);
-  box-shadow: 0 4px 14px rgba(255, 122, 46, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  color: #190a02;
+  background: linear-gradient(135deg, var(--accent), #1d4ed8);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  color: #eaf2ff;
 }
 .side-brand .mark svg { width: 20px; height: 20px; }
 .side-brand .name { display: flex; flex-direction: column; line-height: 1.15; }
@@ -116,7 +116,7 @@ code {
 .nav-item:hover { background: var(--surface-2); color: var(--text); }
 .nav-item.active {
   background: var(--accent-soft);
-  color: #ffd9bf;
+  color: #cfe0ff;
   border-color: var(--accent-line);
 }
 .nav-item.active svg { opacity: 1; color: var(--accent-2); }
@@ -204,11 +204,11 @@ button:active, .btn:active { transform: translateY(1px); }
 button:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible { outline: none; box-shadow: var(--ring); }
 
 .btn-primary, button.primary {
-  background: linear-gradient(135deg, var(--accent-2), #ff661c);
-  border-color: transparent; color: #1c0c02; font-weight: 650;
-  box-shadow: 0 2px 10px rgba(255, 122, 46, 0.28);
+  background: linear-gradient(135deg, var(--accent-2), #2563eb);
+  border-color: transparent; color: var(--accent-ink); font-weight: 650;
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.32);
 }
-.btn-primary:hover, button.primary:hover { filter: brightness(1.06); background: linear-gradient(135deg, var(--accent-2), #ff661c); }
+.btn-primary:hover, button.primary:hover { filter: brightness(1.06); background: linear-gradient(135deg, var(--accent-2), #2563eb); }
 .ghost, button.ghost { background: transparent; color: var(--text-2); border-color: var(--border); }
 .ghost:hover, button.ghost:hover { background: var(--surface-2); color: var(--text); }
 .danger, button.danger { background: var(--danger-soft); color: var(--danger); border-color: rgba(251, 113, 133, 0.4); }
@@ -339,8 +339,8 @@ details[open] > summary { margin-bottom: 8px; }
 .agent-card:hover { border-color: var(--accent-line); transform: translateY(-2px); }
 .agent-card .av {
   width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center;
-  font-weight: 700; font-size: 16px; color: #1c0c02;
-  background: linear-gradient(135deg, var(--accent-2), #ff661c);
+  font-weight: 700; font-size: 16px; color: var(--accent-ink);
+  background: linear-gradient(135deg, var(--accent-2), #2563eb);
 }
 .agent-card .top { display: flex; align-items: center; gap: 12px; }
 .agent-card .nm { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
@@ -436,7 +436,7 @@ details[open] > summary { margin-bottom: 8px; }
 }
 .chat-agent .av { background: var(--surface-3); color: var(--accent-2); }
 .chat-you { align-self: flex-end; flex-direction: row-reverse; }
-.chat-you .av { background: linear-gradient(135deg, var(--accent-2), #ff661c); color: #1c0c02; }
+.chat-you .av { background: linear-gradient(135deg, var(--accent-2), #2563eb); color: var(--accent-ink); }
 .chat-error .av { background: var(--danger-soft); color: var(--danger); }
 .chat-meta { font-size: 11px; color: var(--faint); margin-bottom: 3px; }
 .chat-you .chat-meta { text-align: right; }
