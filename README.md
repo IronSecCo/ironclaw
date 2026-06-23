@@ -34,7 +34,9 @@ builds hard, provable walls so that even a misbehaving agent can't reach your da
 
 <div align="center">
 
-<img src="docs/assets/demo.svg" width="800" alt="Quickstart terminal session: one command installs ironctl and the control-plane; the control-plane starts in dev mode on http://127.0.0.1:8787; a capability change is submitted and HELD at the gateway pending human approval, then approved.">
+<img src="docs/assets/demo.svg" width="800" alt="Zero-credential chat demo terminal session: one command (docker compose -f docker-compose.demo.yml up -d) starts the offline mock-agent control-plane with no API key; a chat message engages the agent, which launches a real per-session sandbox container (ic-sbx-…); the reply flows back through the encrypted per-session queue.">
+
+<sub><b>Zero credentials, one command.</b> The offline <code>mock-agent</code> runs the full chat → per-session sandbox → reply path with no API key — production seals each sandbox with gVisor and <code>network=none</code>. <a href="docs/quickstart.md">Quickstart</a></sub>
 
 </div>
 

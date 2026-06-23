@@ -1,0 +1,33 @@
+# Hero demo asset (`docs/assets/demo.{cast,svg}`)
+
+The animated terminal in the README hero and the docs landing page. It is a faithful
+re-enactment of the validated **zero-credential chat demo** (`docs/quickstart.md`,
+shipped in IRO-27): one command brings up the offline `mock-agent` control-plane, a
+chat message engages the agent — launching a real per-session sandbox container — and
+the reply flows back through the encrypted per-session queue.
+
+## Files
+
+| File | What it is |
+| --- | --- |
+| `gen-cast.mjs` | Deterministically emits `docs/assets/demo.cast` (asciinema v2). Outputs were captured verbatim from a live `docker-compose.demo.yml` run; timing/typing is scripted, no `Date.now`/random, so the cast is reproducible. |
+| `gen-profile.mjs` | Emits an iTerm2 `.itermcolors` profile in the IronClaw steel-blue palette (kept for reference / other renderers). |
+| `ironclaw-steel.itermcolors` | The generated brand profile. |
+| `build.sh` | Full pipeline: cast → `svg-term-cli` → brand recolor → `docs/assets/demo.svg`. |
+
+## Regenerate
+
+```sh
+bash scripts/demo/build.sh          # needs node + network (npx fetches svg-term-cli)
+```
+
+`svg-term-cli@2.1.1` ignores `--profile` and the cast `theme`, so `build.sh` patches its
+four default-theme slots (background, foreground, green, cursor) to the brand palette
+with `sed`. The 256-color spans and the window traffic-lights are already on-brand.
+
+## Honesty note
+
+The demo intentionally **relaxes** isolation (runc on a default bridge network), so the
+cast does **not** claim `network=none` for the demo itself — it names gVisor +
+`network=none` only as the hardened **production** posture. Keep that accurate if you
+re-record.

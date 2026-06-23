@@ -12,6 +12,11 @@ agent lives in a per-session **sandbox**, every capability change passes through
 deterministic **human-approval gateway**, and every action lands in an append-only
 **audit log**. There is no path that bypasses the gateway.
 
+<figure markdown="span">
+  ![Zero-credential chat demo: one command starts the offline mock-agent control-plane with no API key; a chat message engages the agent, which launches a real per-session sandbox container; the reply flows back through the encrypted per-session queue.](assets/demo.svg){ width="800" }
+  <figcaption><b>Zero credentials, one command.</b> The offline <code>mock-agent</code> runs the full chat → per-session sandbox → reply path with no API key — production seals each sandbox with gVisor and <code>network=none</code>. See the <a href="quickstart.md">Quickstart</a>.</figcaption>
+</figure>
+
 <div class="grid cards" markdown>
 
 -   :material-rocket-launch: **[Quickstart](quickstart.md)**
