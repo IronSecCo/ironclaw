@@ -273,6 +273,12 @@ jobs:
       # Everything below runs AFTER publish so a tooling/Sigstore hiccup can never block
       # a release — the binaries + checksums are already out; SBOMs and the signature
       # are uploaded to the existing release.
+      # Pin syft via the SHA-pinned download-syft sub-action instead of
+      # `curl …/syft/main/install.sh | sh` (mutable branch piped to a shell).
+      # The sub-action installs a fixed syft onto PATH; the scan command is unchanged.
+      # This is the trust-critical SBOM/attestation path — keep it pinned & auditable.
+      - name: Install syft (pinned)
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
       - name: Generate SBOMs (syft → SPDX + CycloneDX) and attach them
         env:
           GH_TOKEN: ${{ github.token }}
@@ -280,9 +286,8 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "$RUNNER_TEMP/bin"
-          "$RUNNER_TEMP/bin/syft" version
-          "$RUNNER_TEMP/bin/syft" scan dir:. \
+          syft version
+          syft scan dir:. \
             -o "spdx-json=ironclaw_${VERSION}.spdx.json" \
             -o "cyclonedx-json=ironclaw_${VERSION}.cdx.json"
           gh release upload "${TAG}" "ironclaw_${VERSION}.spdx.json" "ironclaw_${VERSION}.cdx.json" --clobber
