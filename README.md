@@ -121,19 +121,55 @@ verify — not something you take on faith.**
 Two compiled Go programs that never share memory and talk only through a pair of encrypted SQLite
 files per conversation:
 
-```
-                    ┌──────────────────────────────────────────────┐
-   chat platforms   │            CONTROL-PLANE (host)              │
-   ───────────────▶ │  api · gateway · router · delivery · sweep   │
-   (Tailscale only) │  keys · channels · modelproxy · isolation    │
-                    └───────┬───────────────────────────┬──────────┘
-                            │ inbound.db (ro)            │ outbound.db (rw, host reads)
-                            ▼ encrypted, per-session     ▲ encrypted, per-session
-                    ┌──────────────────────────────────────────────┐
-                    │           SANDBOX (gVisor, network=none)      │
-                    │   loop · provider · tools · queue             │
-                    │   model calls ─▶ host modelproxy unix socket  │
-                    └──────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+  CHAT["Chat platforms<br/>12 channel adapters"]
+  CLI["ironctl CLI"]
+  WEB["Web console"]
+
+  subgraph host["Trusted host — control-plane (cmd/controlplane)"]
+    API["HTTP API<br/>Tailscale mesh-only + bearer"]
+    GW["Gateway<br/>deterministic verifiers · human approval"]
+    CORE["Router · delivery · sweep · key custodian"]
+    CHAD["Channel adapters"]
+    MP["Model proxy<br/>holds provider keys"]
+    ISO["Isolation launcher<br/>gVisor / runsc"]
+  end
+
+  subgraph queues["Encrypted SQLCipher queues · per session"]
+    INQ[("inbound.db<br/>read-only to agent")]
+    OUTQ[("outbound.db<br/>append-only by agent")]
+  end
+
+  subgraph box["Agent sandbox · gVisor · network=none"]
+    LOOP["Agent loop · tools · model provider"]
+  end
+
+  PROV["Model providers<br/>Anthropic · OpenAI · OpenRouter"]
+
+  CHAT <--> CHAD
+  CLI -->|mesh only| API
+  WEB -->|mesh only| API
+  CHAD --> CORE
+  API --> GW --> CORE
+  CORE -->|write| INQ
+  OUTQ -->|read| CORE
+  ISO -->|launch| LOOP
+  INQ -->|ro bind mount| LOOP
+  LOOP -->|append| OUTQ
+  LOOP -->|unix socket| MP -->|HTTPS · key injected host-side| PROV
+
+  classDef host fill:#eaf2ff,stroke:#1d4ed8,stroke-width:1px,color:#0b1124;
+  classDef store fill:#b9d4ff,stroke:#1d4ed8,stroke-width:1px,color:#0b1124;
+  classDef box fill:#1d4ed8,stroke:#63a0ff,stroke-width:2px,color:#ffffff;
+  classDef control fill:#16224a,stroke:#63a0ff,stroke-width:2px,color:#ffffff;
+  classDef ext fill:#f4f9ff,stroke:#8fb4ff,stroke-width:1px,color:#16224a;
+
+  class API,CORE,CHAD,MP,ISO host;
+  class GW control;
+  class INQ,OUTQ store;
+  class LOOP box;
+  class CHAT,CLI,WEB,PROV ext;
 ```
 
 - The **control-plane** receives chats, routes them, holds the keys, runs the approval gateway, and
@@ -143,6 +179,45 @@ files per conversation:
   outbox. It can *request* a capability change but can never apply one.
 - The **frozen contract** (`internal/contract`) is the only package both sides import: typed IDs,
   row shapes, the embedded SQL schema, pinned cipher params, and the gateway protocol.
+
+A single message rides a clean loop; anything that would change what the agent *can do* takes the
+separate dashed path through the human-approval **gateway**:
+
+```mermaid
+flowchart LR
+  SENDER["External sender<br/>Slack · email · …"]
+  ADAPTER["Channel adapter"]
+  ROUTER["Router<br/>authorize + fan-out"]
+  INQ[("inbound.db")]
+  LOOP["Agent loop"]
+  MODEL["Model provider"]
+  OUTQ[("outbound.db")]
+  DELIVERY["Delivery"]
+  GW{"Gateway<br/>human approval"}
+  APPLY["Control-plane<br/>applies change"]
+
+  SENDER -->|message| ADAPTER --> ROUTER
+  ROUTER -->|write · encrypted| INQ
+  INQ -->|ro| LOOP
+  LOOP <-->|model call via host proxy| MODEL
+  LOOP -->|reply · append| OUTQ
+  OUTQ --> DELIVERY --> ADAPTER
+  ADAPTER -->|reply| SENDER
+  LOOP -.->|capability-change request| GW
+  GW -.->|approved| APPLY
+
+  classDef host fill:#eaf2ff,stroke:#1d4ed8,stroke-width:1px,color:#0b1124;
+  classDef store fill:#b9d4ff,stroke:#1d4ed8,stroke-width:1px,color:#0b1124;
+  classDef box fill:#1d4ed8,stroke:#63a0ff,stroke-width:2px,color:#ffffff;
+  classDef control fill:#16224a,stroke:#63a0ff,stroke-width:2px,color:#ffffff;
+  classDef ext fill:#f4f9ff,stroke:#8fb4ff,stroke-width:1px,color:#16224a;
+
+  class ADAPTER,ROUTER,DELIVERY,APPLY host;
+  class INQ,OUTQ store;
+  class LOOP box;
+  class GW control;
+  class SENDER,MODEL ext;
+```
 
 For the full design, see [`docs/architecture.md`](docs/architecture.md),
 [`docs/threat-model.md`](docs/threat-model.md), and the plain-language tour in

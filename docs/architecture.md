@@ -4,6 +4,143 @@ IronClaw is a security-hardened, open-source assistant platform written entirely
 in Go. A host **control-plane** orchestrates per-session **sandboxes**; the two
 sides communicate only through a pair of encrypted SQLite queues.
 
+## System at a glance
+
+How the pieces fit: operators and chat platforms reach the **control-plane**, which
+owns every privileged action and holds every key; agents run in **gVisor sandboxes**
+that can only read inbound and append outbound across a pair of **encrypted SQLCipher
+queues**. The gateway (highlighted) is the one path that changes what an agent *is*.
+
+```mermaid
+flowchart TB
+  CHAT["Chat platforms<br/>12 channel adapters"]
+  CLI["ironctl CLI"]
+  WEB["Web console"]
+
+  subgraph host["Trusted host — control-plane (cmd/controlplane)"]
+    API["HTTP API<br/>Tailscale mesh-only + bearer"]
+    GW["Gateway<br/>deterministic verifiers · human approval"]
+    CORE["Router · delivery · sweep · key custodian"]
+    CHAD["Channel adapters"]
+    MP["Model proxy<br/>holds provider keys"]
+    ISO["Isolation launcher<br/>gVisor / runsc"]
+  end
+
+  subgraph queues["Encrypted SQLCipher queues · per session"]
+    INQ[("inbound.db<br/>read-only to agent")]
+    OUTQ[("outbound.db<br/>append-only by agent")]
+  end
+
+  subgraph box["Agent sandbox · gVisor · network=none"]
+    LOOP["Agent loop · tools · model provider"]
+  end
+
+  PROV["Model providers<br/>Anthropic · OpenAI · OpenRouter"]
+
+  CHAT <--> CHAD
+  CLI -->|mesh only| API
+  WEB -->|mesh only| API
+  CHAD --> CORE
+  API --> GW --> CORE
+  CORE -->|write| INQ
+  OUTQ -->|read| CORE
+  ISO -->|launch| LOOP
+  INQ -->|ro bind mount| LOOP
+  LOOP -->|append| OUTQ
+  LOOP -->|unix socket| MP -->|HTTPS · key injected host-side| PROV
+
+  classDef host fill:#eaf2ff,stroke:#1d4ed8,stroke-width:1px,color:#0b1124;
+  classDef store fill:#b9d4ff,stroke:#1d4ed8,stroke-width:1px,color:#0b1124;
+  classDef box fill:#1d4ed8,stroke:#63a0ff,stroke-width:2px,color:#ffffff;
+  classDef control fill:#16224a,stroke:#63a0ff,stroke-width:2px,color:#ffffff;
+  classDef ext fill:#f4f9ff,stroke:#8fb4ff,stroke-width:1px,color:#16224a;
+
+  class API,CORE,CHAD,MP,ISO host;
+  class GW control;
+  class INQ,OUTQ store;
+  class LOOP box;
+  class CHAT,CLI,WEB,PROV ext;
+```
+
+## Sandbox isolation
+
+The sandbox has **no network interface** (`network=none`). Its only crossings to the
+outside are two host-owned unix sockets — the model proxy (always) and the egress
+broker (opt-in, deny-by-default) — plus the bind-mounted queue files. The runtime
+hardening (`runsc`) drops all capabilities, sets `no_new_privs`, runs non-root in a
+user namespace, and mounts a read-only rootfs with only `/workspace` writable. The
+per-session key arrives over a tmpfs at launch — never an env var or the image.
+
+```mermaid
+flowchart LR
+  subgraph host["Trusted host"]
+    KEYS["Key custodian<br/>per-session 256-bit keys"]
+    MP["Model proxy<br/>provider keys · allowlist · audit"]
+    EB["Egress broker<br/>opt-in · deny-by-default"]
+  end
+
+  subgraph box["gVisor sandbox (runsc) · network=none · no NIC"]
+    LOOP["Agent loop + tools"]
+    FS["read-only rootfs<br/>+ writable /workspace tmpfs"]
+    LOOP --- FS
+  end
+
+  KEYS -.->|key via tmpfs at launch| LOOP
+  LOOP -->|unix socket| MP -->|HTTPS| PROV["Model providers"]
+  LOOP -.->|unix socket · opt-in| EB -.->|approved hosts only| EXT["Approved external APIs"]
+
+  classDef host fill:#eaf2ff,stroke:#1d4ed8,stroke-width:1px,color:#0b1124;
+  classDef box fill:#1d4ed8,stroke:#63a0ff,stroke-width:2px,color:#ffffff;
+  classDef ext fill:#f4f9ff,stroke:#8fb4ff,stroke-width:1px,color:#16224a;
+
+  class KEYS,MP,EB host;
+  class LOOP,FS box;
+  class PROV,EXT ext;
+```
+
+## Channel message flow
+
+A message rides a clean loop — adapter → router → encrypted inbound queue → agent →
+model → encrypted outbound queue → delivery → adapter. Anything that would change the
+agent's capabilities takes the *separate* dashed path through the **gateway**, where a
+human approves the exact change before the control-plane applies it.
+
+```mermaid
+flowchart LR
+  SENDER["External sender<br/>Slack · email · …"]
+  ADAPTER["Channel adapter"]
+  ROUTER["Router<br/>authorize + fan-out"]
+  INQ[("inbound.db")]
+  LOOP["Agent loop"]
+  MODEL["Model provider"]
+  OUTQ[("outbound.db")]
+  DELIVERY["Delivery"]
+  GW{"Gateway<br/>human approval"}
+  APPLY["Control-plane<br/>applies change"]
+
+  SENDER -->|message| ADAPTER --> ROUTER
+  ROUTER -->|write · encrypted| INQ
+  INQ -->|ro| LOOP
+  LOOP <-->|model call via host proxy| MODEL
+  LOOP -->|reply · append| OUTQ
+  OUTQ --> DELIVERY --> ADAPTER
+  ADAPTER -->|reply| SENDER
+  LOOP -.->|capability-change request| GW
+  GW -.->|approved| APPLY
+
+  classDef host fill:#eaf2ff,stroke:#1d4ed8,stroke-width:1px,color:#0b1124;
+  classDef store fill:#b9d4ff,stroke:#1d4ed8,stroke-width:1px,color:#0b1124;
+  classDef box fill:#1d4ed8,stroke:#63a0ff,stroke-width:2px,color:#ffffff;
+  classDef control fill:#16224a,stroke:#63a0ff,stroke-width:2px,color:#ffffff;
+  classDef ext fill:#f4f9ff,stroke:#8fb4ff,stroke-width:1px,color:#16224a;
+
+  class ADAPTER,ROUTER,DELIVERY,APPLY host;
+  class INQ,OUTQ store;
+  class LOOP box;
+  class GW control;
+  class SENDER,MODEL ext;
+```
+
 ## Components
 
 - **Control-plane (host)** — HTTP API (mesh-only), the mandatory gateway,

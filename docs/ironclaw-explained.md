@@ -40,9 +40,9 @@ flowchart LR
     S -->|agent writes| OUT
     S -.model calls.-> PX["Host model proxy"]
     PX -.allowlisted.-> M["Model API"]
-    style S fill:#1f2937,stroke:#ff7a2e,color:#ffffff
-    style IN fill:#fce8e6,stroke:#ea4335
-    style OUT fill:#e6f4ea,stroke:#34a853
+    style S fill:#1d4ed8,stroke:#63a0ff,color:#ffffff
+    style IN fill:#b9d4ff,stroke:#1d4ed8,color:#0b1124
+    style OUT fill:#b9d4ff,stroke:#1d4ed8,color:#0b1124
 ```
 
 > **In plain terms:** Your message reaches the **control plane** (the always-on manager). It writes the message, encrypted, into an "inbox" file the agent can only *read*. The sealed agent thinks, writes its reply into an "outbox" file, and the manager sends it back to you. The agent has no internet of its own — even when it needs the AI model, that call is routed through the manager.
@@ -101,8 +101,8 @@ flowchart TB
     AGENT -->|reads + writes| OUTB[("Outbound queue<br/>ENCRYPTED")]
     OUTB -->|reads| HOST
     KEY -.unlocks at launch.-> AGENT
-    style INB fill:#fce8e6,stroke:#ea4335
-    style OUTB fill:#e6f4ea,stroke:#34a853
+    style INB fill:#b9d4ff,stroke:#1d4ed8,color:#0b1124
+    style OUTB fill:#b9d4ff,stroke:#1d4ed8,color:#0b1124
 ```
 
 Three things make this safe:
@@ -135,8 +135,8 @@ flowchart TB
     end
     AGENT -->|"only path out:<br/>one local socket"| PROXY
     PROXY -->|approved destinations only| NET["AI model API"]
-    style BOX fill:#11161f,stroke:#ff7a2e,color:#ffffff
-    style AGENT fill:#1f2937,stroke:#8b96a6,color:#ffffff
+    style BOX fill:#0b1124,stroke:#63a0ff,color:#ffffff
+    style AGENT fill:#1d4ed8,stroke:#63a0ff,color:#ffffff
 ```
 
 - **Containerized under gVisor.** Each agent runs in a container, and that container is wrapped by gVisor — an extra security layer that sits between the agent and the real computer and intercepts what it tries to do.
