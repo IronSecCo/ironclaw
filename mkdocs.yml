@@ -122,6 +122,7 @@ nav:
   - Security & Trust:
       - Overview: security.md
       - Threat model: threat-model.md
+      - Performance & footprint: benchmarks.md
   - Reference:
       - API (OpenAPI): reference/api.md
       - Release runbook: release-runbook.md
