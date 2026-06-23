@@ -65,11 +65,29 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
-// emptyState renders a friendly placeholder with an optional call to action.
-function emptyState(title, sub, ctaLabel, ctaPanel) {
-  const box = el("div", { class: "empty" },
-    el("h3", { text: title }),
-    el("p", { class: "muted", text: sub || "" }));
+// Inline SVG glyphs for empty states — stroke-based, single color (currentColor),
+// so they inherit .empty .ico's faint tone and stay crisp at any size. Kept here
+// so every "nothing here yet" surface draws from one consistent set.
+const EMPTY_ICONS = {
+  sessions:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 9l3 3-3 3M13 15h4"/></svg>',
+  audit:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+  approvals: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  channels:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg>',
+  skills:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8z"/></svg>',
+  mcp:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v3.5H21"/></svg>',
+  agents:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/></svg>',
+  offline:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a7 7 0 0 1 14 0M8.5 16a3.5 3.5 0 0 1 7 0M2 9a11 11 0 0 1 20 0"/><path d="M3 3l18 18"/></svg>',
+};
+
+// emptyState renders a friendly placeholder: an optional icon, a title, a one-line
+// scent, and an optional call to action. icon is an inline SVG string (e.g.
+// EMPTY_ICONS.sessions) — pass it so list/grid surfaces read as deliberate empty
+// states, not bare muted text.
+function emptyState(title, sub, ctaLabel, ctaPanel, icon) {
+  const box = el("div", { class: "empty" });
+  if (icon) box.append(el("div", { class: "ico", html: icon }));
+  box.append(el("h3", { text: title }));
+  box.append(el("p", { class: "muted", text: sub || "" }));
   if (ctaLabel) {
     const b = el("button", { class: "btn-primary", type: "button", text: ctaLabel });
     b.addEventListener("click", () => goPanel(ctaPanel));

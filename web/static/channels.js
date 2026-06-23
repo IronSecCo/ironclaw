@@ -29,7 +29,9 @@ const Channels = (() => {
       );
       const wirings = view.wirings || [];
       const rows = wirings.length === 0
-        ? [el("p", { class: "muted", text: "No wirings." })]
+        ? [emptyState("No wirings yet",
+            "Wire a connected chat surface to an agent in step 2 to see it here.",
+            null, null, EMPTY_ICONS.channels)]
         : wirings.map((w) => el("div", { class: "card" },
             el("div", { class: "card-head" },
               el("span", { class: "kind", text: w.EngageMode || "?" }),

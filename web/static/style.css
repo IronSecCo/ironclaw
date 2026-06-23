@@ -169,9 +169,14 @@ code {
 /* ---- Content ----------------------------------------------------------- */
 .content { flex: 1; min-width: 0; }
 main { padding: 30px 34px 60px; max-width: 1080px; margin: 0 auto; }
-.panel { display: none; animation: fade 0.18s ease; }
+.panel { display: none; }
 .panel.active { display: block; }
-@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+/* Honor reduced-motion: only animate the panel transition when the user has not
+   asked the OS to minimize motion (WCAG 2.3.3). */
+@media (prefers-reduced-motion: no-preference) {
+  .panel.active { animation: fade 0.18s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+}
 
 .page-head { margin-bottom: 22px; }
 .page-head h1 { font-size: 23px; margin: 0; letter-spacing: -0.02em; }
@@ -415,12 +420,18 @@ details[open] > summary { margin-bottom: 8px; }
 
 /* ---- Empty state ------------------------------------------------------- */
 .empty {
-  text-align: center; padding: 54px 20px; color: var(--muted);
+  text-align: center; padding: 54px 24px; color: var(--muted);
   border: 1px dashed var(--border); border-radius: var(--radius); background: rgba(255,255,255,0.012);
+  max-width: 520px; margin: 28px auto;
 }
+/* An empty state inside a card grid (e.g. Agents) must span every column so it
+   centers in the panel instead of being trapped in the first ~280px track. */
+.agent-grid > .empty { grid-column: 1 / -1; }
 .empty .ico { width: 46px; height: 46px; margin: 0 auto 14px; color: var(--faint); }
+.empty .ico svg { width: 100%; height: 100%; display: block; }
 .empty h3 { color: var(--text-2); font-size: 15px; margin-bottom: 6px; }
-.empty .btn { margin-top: 16px; }
+.empty p { line-height: 1.5; }
+.empty .btn-primary { margin-top: 18px; }
 
 /* ---- Chat -------------------------------------------------------------- */
 .chat-wrap { display: flex; flex-direction: column; height: calc(100vh - 200px); min-height: 420px; }

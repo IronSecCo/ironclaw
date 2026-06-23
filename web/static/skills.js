@@ -11,7 +11,9 @@ const Skills = (() => {
     const list = document.getElementById("skills-list");
     list.replaceChildren();
     if (!skills || skills.length === 0) {
-      list.append(el("p", { class: "muted", text: "No skills in the curated catalog." }));
+      list.append(emptyState("Catalog is empty",
+        "No skills in the curated catalog yet. Add a signed skill above — installs go through human approval before they apply.",
+        null, null, EMPTY_ICONS.skills));
       return;
     }
     for (const s of skills) {
@@ -32,10 +34,11 @@ const Skills = (() => {
       renderList(skills || []);
     } catch (e) {
       const msg = String(e.message || e);
-      list.replaceChildren(el("p", { class: "muted",
-        text: msg.indexOf("503") === 0
-          ? "Skills are not enabled on this control-plane (start the daemon with --skills-dir and --skills-trust-key)."
-          : "Could not load skills: " + msg }));
+      list.replaceChildren(msg.indexOf("503") === 0
+        ? emptyState("Skills not enabled",
+            "Skills load when the host is started with --skills-dir and --skills-trust-key. See the Skills docs to enable them.",
+            null, null, EMPTY_ICONS.offline)
+        : el("p", { class: "error", text: "Could not load skills: " + msg }));
     }
   }
 
