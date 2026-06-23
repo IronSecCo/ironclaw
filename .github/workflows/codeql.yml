@@ -3,6 +3,10 @@
 # Cost note: this runs on PRs to main and once weekly — deliberately NOT on every
 # push — to keep Actions minutes bounded. (The per-push release build in release.yml
 # is the heavy consumer; CodeQL is kept light.)
+#
+# workflow_dispatch lets a maintainer refresh the default-branch analysis on demand
+# (e.g. after a fix merges to main) so code-scanning alerts re-evaluate immediately
+# instead of waiting for the weekly schedule. Still bounded — manual, not per-push.
 name: CodeQL
 
 on:
@@ -10,6 +14,7 @@ on:
     branches: [main]
   schedule:
     - cron: "27 3 * * 1" # Mondays 03:27 UTC
+  workflow_dispatch:
 
 # Least privilege at the top level; the analyze job elevates only what it needs.
 permissions:
