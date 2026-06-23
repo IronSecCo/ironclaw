@@ -20,7 +20,7 @@
 #   docker build -f container/controlplane.Dockerfile -t ironclaw-controlplane:latest .
 
 # --- build stage ------------------------------------------------------------
-FROM golang:1.23-bookworm AS build
+FROM golang:1.23-bookworm@sha256:167053a2bb901972bf2c1611f8f52c44d5fe7e762e5cab213708d82c421614db AS build
 
 # go-sqlcipher (the encrypted-queue binding) needs CGO + libcrypto headers; the
 # control-plane links it transitively through the encrypted session queues.
@@ -46,7 +46,7 @@ RUN go build -trimpath \
       -o /out/ironctl ./cmd/ironctl
 
 # --- runtime stage ----------------------------------------------------------
-FROM debian:bookworm-slim AS runtime
+FROM debian:bookworm-slim@sha256:96e378d7e6531ac9a15ad505478fcc2e69f371b10f5cdf87857c4b8188404716 AS runtime
 
 # libssl3 satisfies the go-sqlcipher dynamic link; ca-certificates lets the
 # host-proxied model egress validate TLS; curl backs the compose healthcheck
