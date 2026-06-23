@@ -32,6 +32,90 @@ const Setup = (() => {
     return status === "ok" || status === "skipped";
   }
 
+  // isPending marks a step that is still the operator's to-do (would act, or needs
+  // a manual action) — these get a left accent border so the real to-do list
+  // stands out from satisfied rows (Von Restorff).
+  function isPending(status) {
+    return status === "action" || status === "planned";
+  }
+
+  // statusLabel gives the badge its human text. A "skipped" step is a satisfied,
+  // idempotent re-run (reused token, image already present) — it reads as "ready"
+  // so it isn't mistaken for a bypassed/abandoned step. The word itself carries
+  // the state, so the meaning survives without color (WCAG color-independence).
+  function statusLabel(s) {
+    return String(s) === "skipped" ? "ready" : String(s);
+  }
+
+  // DOCS is the public docs site the wizard links pending steps to. The console is
+  // served from the binary (no local docs tree), so deep help points at the site.
+  const DOCS = "https://ironsecco.github.io/ironclaw/";
+
+  // STEP_AFFORDANCE hands a pending step its concrete fix: the exact env line(s) to
+  // copy and the doc that explains them, so the to-do is actionable in-place
+  // instead of only described. Only steps with a single copy-paste remedy appear —
+  // runtime / image-build / API-reachability steps carry their command in the
+  // detail text and need no chip.
+  const STEP_AFFORDANCE = {
+    "model-credential": {
+      intro: "Set one provider credential in the control-plane's environment, then restart it:",
+      snippets: [
+        "export ANTHROPIC_API_KEY=sk-ant-…",
+        "export OPENAI_API_KEY=sk-…",
+        "export OPENROUTER_API_KEY=sk-or-…",
+      ],
+      docLabel: "Model setup",
+      docHref: DOCS + "quickstart/",
+    },
+    channel: {
+      intro: "Arm a channel by exporting its bot token host-side, then restart:",
+      snippets: [
+        "export SLACK_BOT_TOKEN=xoxb-…",
+        "export TELEGRAM_BOT_TOKEN=…",
+      ],
+      docLabel: "Channel setup",
+      docHref: DOCS + "channels/",
+    },
+  };
+
+  // copyChip renders a monospace command with a one-click Copy button. The
+  // clipboard API needs a secure context (https / localhost); on a plain-http
+  // remote it falls back to execCommand so copy still works.
+  function copyChip(snippet) {
+    const btn = el("button", { class: "ghost btn-sm copy-btn", type: "button", text: "Copy" });
+    const flash = (txt) => { btn.textContent = txt; setTimeout(() => { btn.textContent = "Copy"; }, 1600); };
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(snippet);
+        flash("Copied ✓");
+      } catch (_) {
+        const ta = el("textarea", { class: "visually-hidden", "aria-hidden": "true" });
+        ta.value = snippet;
+        document.body.append(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch (_) { ok = false; }
+        ta.remove();
+        flash(ok ? "Copied ✓" : "Copy failed");
+      }
+    });
+    return el("div", { class: "copy-row" }, el("code", { class: "copy-snip", text: snippet }), btn);
+  }
+
+  // stepAffordance builds the actionable block under a pending step's detail: the
+  // copy chips and a doc link. Returns null for steps with no chip-able remedy.
+  function stepAffordance(name) {
+    const a = STEP_AFFORDANCE[name];
+    if (!a) return null;
+    const box = el("div", { class: "step-affordance" }, el("p", { class: "hint", text: a.intro }));
+    for (const s of a.snippets) box.append(copyChip(s));
+    box.append(el("a", {
+      class: "doc-link", href: a.docHref, target: "_blank", rel: "noopener noreferrer",
+      text: a.docLabel + " ↗",
+    }));
+    return box;
+  }
+
   // STEP_LABELS gives each wizard step a human title; unknown steps fall back to
   // their raw name so a newly-added step still renders.
   const STEP_LABELS = {
@@ -60,12 +144,19 @@ const Setup = (() => {
       const summary = el("div", { class: "onboard-summary" },
         el("span", { class: "kind " + (allReady ? "ok" : "warn"), text: ready + " / " + steps.length + " ready" }),
         el("span", { class: "muted", text: allReady ? "Host is ready to run agents." : "Some steps need an operator action." }));
-      const cards = steps.map((s) =>
-        el("div", { class: "card onboard-step" },
+      const cards = steps.map((s) => {
+        const pending = isPending(s.status);
+        const card = el("div", { class: "card onboard-step" + (pending ? " pending" : "") },
           el("div", { class: "card-head" },
             el("strong", { text: STEP_LABELS[s.name] || s.name }),
-            el("span", { class: "kind " + statusClass(s.status), text: String(s.status) })),
-          el("p", { class: "muted", text: s.detail || "" })));
+            el("span", { class: "kind " + statusClass(s.status), text: statusLabel(s.status) })),
+          el("p", { class: "muted", text: s.detail || "" }));
+        if (pending) {
+          const aff = stepAffordance(s.name);
+          if (aff) card.append(aff);
+        }
+        return card;
+      });
       host.replaceChildren(summary, ...cards);
     } catch (e) {
       host.replaceChildren(el("p", { class: "error", text: String(e.message || e) }));
