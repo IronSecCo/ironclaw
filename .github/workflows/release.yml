@@ -106,6 +106,10 @@ jobs:
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version: "1.23.12"
+          # No build-cache restore: a cached archive can carry a symbol order frozen from
+          # an earlier parallel build, which would make the published binary diverge from
+          # an independent reproducible rebuild (IRO-44). Build cold every time.
+          cache: false
 
       - name: Install cross C toolchain
         if: matrix.apt != ''
@@ -119,6 +123,13 @@ jobs:
         shell: bash
         env:
           CGO_ENABLED: "1"
+          # Single-threaded build so the published artifacts are bit-for-bit reproducible:
+          # the Go compiler/linker otherwise resolve ties in symbol ordering (generic
+          # [go.shape...] instantiations, ..stmp_ statics) in the scheduling order of their
+          # GOMAXPROCS-many goroutines, so on a multi-core runner two cold builds of the
+          # same commit differ (it bit the control-plane binary). This is the canonical
+          # reproducible build that reproducibility.yml asserts. (IRO-44)
+          GOMAXPROCS: "1"
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CC_OVERRIDE: ${{ matrix.cc }}
@@ -126,6 +137,10 @@ jobs:
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           set -euo pipefail
+          # Pre-fetch modules so the build doesn't race a module download/extract on its
+          # first (and only) run — the other half of the IRO-44 reproducibility fix
+          # (otherwise a fresh-runner build diverges from a warmed independent rebuild).
+          go mod download all
           # Linux arm64 uses a GNU cross-gcc (matrix.cc); macOS Intel cross-compiles
           # with clang via -arch on the universal SDK (matrix.cgoarch).
           [ -n "${CC_OVERRIDE}" ] && export CC="${CC_OVERRIDE}"

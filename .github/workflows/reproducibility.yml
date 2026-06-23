@@ -2,12 +2,23 @@
 #
 # Proves IronClaw's binaries are bit-for-bit deterministic: build every command twice
 # from a clean checkout with the SAME pinned toolchain and flags the release uses
-# (-trimpath, pinned ldflags, -buildid=, fixed module versions via go.sum), then compare
-# the two SHA256 sets. ironctl + sandbox are hard-asserted reproducible — a drift there
-# means something non-deterministic crept into the build and fails loud. controlplane is
-# a tracked exception (IRO-44): not yet deterministic under the pinned go1.23.12 toolchain
-# though it is under newer Go, so it is reported as a loud ::warning::, never silently
-# skipped, and does not block the rest of the supply-chain guarantees.
+# (-trimpath, -buildid=, -extldflags=-Wl,--build-id=none, GOMAXPROCS=1, fixed module
+# versions via go.sum), then assert the two SHA256 sets are identical. A drift here means
+# something non-deterministic crept into the build (an unpinned tool, a timestamp, a
+# map-iteration order in codegen) and the "reproducible builds" guarantee is broken —
+# fail loud.
+#
+# All three commands (controlplane, ironctl, sandbox) are hard-asserted reproducible.
+# The control-plane binary was previously a tracked exception (IRO-44). Two factors made
+# it — the largest binary, with the most generic [go.shape...] instantiations and ..stmp_
+# statics — non-deterministic on a multi-core runner, both now removed:
+#   1. The Go compiler/linker resolve ties in symbol ordering in the scheduling order of
+#      their GOMAXPROCS-many goroutines. GOMAXPROCS=1 makes that deterministic.
+#   2. The very first `go build` on a fresh runner races module download/extract (go clean
+#      -cache does not touch the module cache), so build #1 differed from build #2+. A
+#      `go mod download` before the builds removes that seed.
+# With both applied, all three commands build bit-for-bit identically, so the exception is
+# gone and controlplane is gated like the others.
 #
 # Runs on PRs to main + weekly so a regression is caught before it ships, without
 # adding cost to the per-push release.
@@ -29,6 +40,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CGO_ENABLED: "1"
+      # Single-threaded build so symbol-ordering ties resolve deterministically — half of
+      # the control-plane reproducibility fix (IRO-44). Must match release.yml.
+      GOMAXPROCS: "1"
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
@@ -37,11 +51,18 @@ jobs:
           # Must match the exact toolchain pin in ci.yml / release.yml — a different
           # patch can change the emitted binary and is itself a reproducibility break.
           go-version: "1.23.12"
+          # Don't restore a build cache: cached archives can carry a symbol order frozen
+          # from an earlier *parallel* build, which would contaminate the comparison.
+          cache: false
 
       - name: Build twice and compare checksums
         shell: bash
         run: |
           set -euo pipefail
+          # Pre-fetch modules so neither build races a module download/extract on its first
+          # run — the second half of the IRO-44 fix (otherwise build A != build B because
+          # only A pays the download cost).
+          go mod download all
           # Mirror the release build flags. The version string is fixed (not derived
           # from git state) so it can't be the source of a difference here. We also
           # strip the two ELF identifiers that vary across cold rebuilds of a CGO
@@ -50,7 +71,8 @@ jobs:
           #                              shift when the action graph is recompiled cold)
           #   -extldflags=-Wl,--build-id=none  drops the GNU .note.gnu.build-id the
           #                              external linker (ld) stamps in. This is the
-          #                              standard reproducible-build fix for cgo binaries.
+          #                              standard reproducible-build fix for cgo binaries
+          #                              and is valid here because the runner is Linux.
           ldflags="-s -w -buildid= -X github.com/IronSecCo/ironclaw/internal/version.Version=repro-check -extldflags=-Wl,--build-id=none"
           build() {
             local dest="$1"
@@ -71,15 +93,12 @@ jobs:
           echo "== build A =="; cat a.sums
           echo "== build B =="; cat b.sums
 
-          # ironctl + sandbox MUST be bit-for-bit reproducible — a drift there is a hard
-          # failure (a non-pinned input crept in). The control-plane binary is a tracked
-          # exception: under the pinned CI toolchain (go1.23.12, linux/amd64) it is not yet
-          # deterministic, while it IS under newer Go locally — a toolchain-specific linker
-          # non-determinism, NOT a source issue (-trimpath/-buildid=/--build-id=none are all
-          # applied). Tracked in IRO-44. We surface it as a loud ::warning:: (never a silent
-          # skip) and do not block on it, so the rest of the supply-chain guarantees ship.
+          # Every command MUST be bit-for-bit reproducible — a drift in any of them is a
+          # hard failure (a non-pinned input crept in). controlplane is no longer an
+          # exception: with GOMAXPROCS=1 + pre-fetched modules it builds deterministically
+          # (IRO-44 resolved).
           rc=0
-          for bin in ironctl sandbox; do
+          for bin in controlplane ironctl sandbox; do
             a="$(grep "^${bin} " a.sums | awk '{print $2}')"
             b="$(grep "^${bin} " b.sums | awk '{print $2}')"
             if [ "${a}" != "${b}" ]; then
@@ -89,12 +108,4 @@ jobs:
               echo "Reproducible: ${bin} is byte-identical across cold rebuilds (${a})."
             fi
           done
-
-          cpa="$(grep '^controlplane ' a.sums | awk '{print $2}')"
-          cpb="$(grep '^controlplane ' b.sums | awk '{print $2}')"
-          if [ "${cpa}" != "${cpb}" ]; then
-            echo "::warning title=Reproducibility (controlplane)::controlplane is not yet bit-reproducible under go1.23.12 (${cpa} vs ${cpb}) — known toolchain issue tracked in IRO-44. ironctl + sandbox are verified reproducible."
-          else
-            echo "Reproducible: controlplane is byte-identical across cold rebuilds (${cpa}) — IRO-44 may be resolvable; promote it back to a hard assertion."
-          fi
           exit "${rc}"
