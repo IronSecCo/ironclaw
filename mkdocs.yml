@@ -110,6 +110,7 @@ nav:
       - Your first sandboxed agent in 5 minutes: tutorials/first-agent.md
       - Connect IronClaw to Slack: tutorials/connect-slack.md
       - Write a custom channel adapter: tutorials/custom-channel-adapter.md
+  - Examples: examples.md
   - Concepts:
       - IronClaw, Explained: ironclaw-explained.md
       - Architecture: architecture.md
