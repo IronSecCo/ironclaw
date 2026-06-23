@@ -9,6 +9,14 @@
 const Chat = (() => {
   const $ = (id) => document.getElementById(id);
   let timer = null;
+  // Liveness tracking (IRO-128): once a send engages we await a reply. Without
+  // this the transcript shows nothing whether the agent is working, still
+  // thinking, or has silently failed — indistinguishable bare empty state. We
+  // surface elapsed "working…" feedback and a staleness hint with a concrete
+  // diagnostic if no reply lands within STALE_AFTER_MS.
+  const STALE_AFTER_MS = 30000;
+  let awaitingSince = 0; // ms epoch of the last engaged send still awaiting a reply
+  let staleNoted = false; // ensures the staleness diagnostic is appended once
 
   function avatarFor(who) {
     return who === "you" ? "U" : who === "agent" ? "✦" : "!";
@@ -54,6 +62,8 @@ const Chat = (() => {
     }
     $("chat-transcript").innerHTML = "";
     $("chat-status").textContent = "ready — say hello";
+    awaitingSince = 0;
+    staleNoted = false;
   }
 
   async function send() {
@@ -68,7 +78,14 @@ const Chat = (() => {
         method: "POST",
         body: JSON.stringify({ agentGroupID: ag, text }),
       });
-      $("chat-status").textContent = res && res.engaged ? "engaged — awaiting reply…" : "sent (no wiring engaged for this agent)";
+      if (res && res.engaged) {
+        awaitingSince = Date.now();
+        staleNoted = false;
+        $("chat-status").textContent = "agent is working…";
+      } else {
+        awaitingSince = 0;
+        $("chat-status").textContent = "sent (no wiring engaged for this agent)";
+      }
       poll();
     } catch (e) {
       setStatus(String(e.message || e), "error");
@@ -91,9 +108,41 @@ const Chat = (() => {
     if (!ag) return;
     try {
       const res = await api("/v1/ui/chat/" + encodeURIComponent(ag) + "/messages");
-      for (const m of (res && res.messages) || []) renderReply(m);
+      const msgs = (res && res.messages) || [];
+      for (const m of msgs) renderReply(m);
+      if (msgs.length) {
+        // A reply landed — the agent is alive. Stop awaiting.
+        awaitingSince = 0;
+        staleNoted = false;
+        $("chat-status").textContent = "reply received";
+      } else if (awaitingSince) {
+        liveness();
+      }
     } catch (e) {
       setStatus(String(e.message || e), "error");
+    }
+  }
+
+  // liveness updates the status line while awaiting a reply: elapsed "working…"
+  // feedback, then a one-time staleness diagnostic if nothing lands within
+  // STALE_AFTER_MS so a silent failure is distinguishable from "still thinking".
+  function liveness() {
+    const secs = Math.round((Date.now() - awaitingSince) / 1000);
+    if (Date.now() - awaitingSince >= STALE_AFTER_MS) {
+      $("chat-status").textContent = "no reply after " + secs + "s — the agent may have stalled";
+      if (!staleNoted) {
+        staleNoted = true;
+        append(bubble("error",
+          "No reply after " + secs + "s. The agent engaged but has not replied — it may still be thinking, " +
+          "or it may have silently failed.\n\nTo diagnose, on the host find the sandbox container and read its logs:\n" +
+          "  docker ps --filter name=ic-sbx-\n" +
+          "  docker logs --tail 50 <container>\n" +
+          "(look for `engaging N message(s)` and `wrote reply …`; an `engaging` line with no following " +
+          "`wrote reply` means the turn produced no output — `model produced no reply text` confirms it). " +
+          "You can also run `ironctl doctor` to verify the sandbox image, mounts, and model-proxy socket."));
+      }
+    } else {
+      $("chat-status").textContent = "agent is working… (" + secs + "s)";
     }
   }
 
@@ -116,6 +165,8 @@ const Chat = (() => {
     if (sel) sel.addEventListener("change", () => {
       $("chat-transcript").innerHTML = "";
       $("chat-status").textContent = conv() ? "ready — say hello" : "pick an agent group";
+      awaitingSince = 0;
+      staleNoted = false;
     });
   }
 

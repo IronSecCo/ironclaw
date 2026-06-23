@@ -612,3 +612,67 @@ func TestDoneIDsSurviveRestart(t *testing.T) {
 		t.Fatalf("m1 was reprocessed after restart: calls=%d, want 1", prov.calls)
 	}
 }
+
+// newTestLoopWithLog builds a loop whose Logger writes to the returned buffer, so
+// tests can assert the liveness log lines (IRO-128).
+func newTestLoopWithLog(t *testing.T, in *fakeInbound, out *fakeOutbound, prov *fakeProvider) (*Loop, *strings.Builder) {
+	t.Helper()
+	buf := &strings.Builder{}
+	l, err := New(Config{
+		Inbound:       in,
+		Outbound:      out,
+		Provider:      prov,
+		HeartbeatPath: filepath.Join(t.TempDir(), "heartbeat"),
+		Clock:         func() time.Time { return time.Date(2026, 6, 16, 0, 0, 0, 0, time.UTC) },
+		Logger:        log.New(buf, "", 0),
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	return l, buf
+}
+
+// TestLivenessLoggingOnEngageAndReply asserts the loop logs engagement and a
+// reply write, so `docker logs ic-sbx-…` distinguishes a working loop from a
+// stalled one (IRO-128). The log must carry counts/ids, never message content.
+func TestLivenessLoggingOnEngageAndReply(t *testing.T) {
+	in := &fakeInbound{pending: []contract.MessageIn{msg("m1", "secret question", 1)}}
+	out := &fakeOutbound{}
+	prov := &fakeProvider{reply: "the answer"}
+	l, logs := newTestLoopWithLog(t, in, out, prov)
+
+	if err := l.poll(context.Background(), false); err != nil {
+		t.Fatalf("poll: %v", err)
+	}
+	got := logs.String()
+	if !strings.Contains(got, "engaging 1 message(s) [m1]") {
+		t.Fatalf("missing engage log line; got:\n%s", got)
+	}
+	if !strings.Contains(got, "wrote reply (10 bytes) in reply to m1") {
+		t.Fatalf("missing reply log line; got:\n%s", got)
+	}
+	// Secret hygiene: neither the inbound content nor the reply text may appear.
+	if strings.Contains(got, "secret question") || strings.Contains(got, "the answer") {
+		t.Fatalf("liveness log leaked message content; got:\n%s", got)
+	}
+}
+
+// TestLivenessLoggingOnEmptyReply asserts that an engaged turn producing no reply
+// text is logged distinctly — this is the "silent failure" IRO-128 targets.
+func TestLivenessLoggingOnEmptyReply(t *testing.T) {
+	in := &fakeInbound{pending: []contract.MessageIn{msg("m1", "hello", 1)}}
+	out := &fakeOutbound{}
+	prov := &fakeProvider{reply: ""} // model engaged but returned nothing
+	l, logs := newTestLoopWithLog(t, in, out, prov)
+
+	if err := l.poll(context.Background(), false); err != nil {
+		t.Fatalf("poll: %v", err)
+	}
+	if len(out.writes) != 0 {
+		t.Fatalf("empty reply should write nothing, got %d writes", len(out.writes))
+	}
+	got := logs.String()
+	if !strings.Contains(got, "model produced no reply text") {
+		t.Fatalf("missing empty-reply diagnostic; got:\n%s", got)
+	}
+}

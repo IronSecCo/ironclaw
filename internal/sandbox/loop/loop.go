@@ -351,6 +351,13 @@ func (l *Loop) engage(ctx context.Context) error {
 		ids[i] = m.ID
 	}
 
+	// Liveness logging (IRO-128): announce engagement so `docker logs ic-sbx-…`
+	// distinguishes a working loop from a stalled one. The loop is otherwise silent
+	// on clean polls/engage/reply, which made a missing reply indistinguishable from
+	// "still thinking". Log counts and ids only — never message content (secret
+	// hygiene); plaintext chat must not leak into host-readable container logs.
+	l.cfg.Logger.Printf("sandbox/loop: engaging %d message(s) [%s]", len(working), joinIDs(ids))
+
 	if err := l.cfg.Outbound.MarkProcessing(ids); err != nil {
 		return fmt.Errorf("mark processing: %w", err)
 	}
@@ -389,6 +396,15 @@ func (l *Loop) engage(ctx context.Context) error {
 			if err := l.writeReply(resp, chat[len(chat)-1].ID, routing); err != nil {
 				return err
 			}
+			// Positive signal that a reply was produced and written to the outbound
+			// queue for the host to deliver. Byte count only, never the text.
+			l.cfg.Logger.Printf("sandbox/loop: wrote reply (%d bytes) in reply to %s", len(resp), chat[len(chat)-1].ID)
+		} else {
+			// The model engaged but produced no text (e.g. a tool-only turn that ended
+			// without a final message, or an empty completion). This is exactly the
+			// "silent" failure mode IRO-128 calls out — surface it so an absent reply is
+			// diagnosable from the logs instead of looking identical to "still thinking".
+			l.cfg.Logger.Printf("sandbox/loop: model produced no reply text for %d chat message(s); nothing written to outbound", len(chat))
 		}
 		// Forward any capability-change requests the agent made to the host
 		// gateway as system messages — the sandbox never applies them itself.
@@ -696,4 +712,15 @@ func messageHeader(m contract.MessageIn) string {
 // isSlashCommand reports whether content is a slash command.
 func isSlashCommand(content string) bool {
 	return strings.HasPrefix(strings.TrimSpace(content), "/")
+}
+
+// joinIDs renders message ids for a liveness log line. Ids are opaque queue
+// identifiers (not content), so they are safe to log and let an operator
+// correlate an engage with the inbound rows it consumed.
+func joinIDs(ids []contract.MessageID) string {
+	parts := make([]string, len(ids))
+	for i, id := range ids {
+		parts[i] = string(id)
+	}
+	return strings.Join(parts, ",")
 }
