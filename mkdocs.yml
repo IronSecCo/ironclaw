@@ -92,6 +92,7 @@ nav:
   - Get Started:
       - Quickstart: quickstart.md
       - Building from source: building.md
+      - Production deployment: deployment.md
       - Troubleshooting: troubleshooting.md
       - FAQ: faq.md
   - Tutorials:

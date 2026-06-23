@@ -1,0 +1,143 @@
+# IronClaw — hardened production control-plane (Docker Compose).
+#
+#   cp deploy/.env.prod.example deploy/.env.prod   # fill in the real secrets
+#   docker compose -f deploy/docker-compose.prod.yml up -d
+#   docker compose -f deploy/docker-compose.prod.yml logs -f controlplane
+#
+# This is the production-posture compose. It differs from the repo-root
+# docker-compose.yml (a one-command self-host that publishes the API on host
+# loopback) in three ways: the control-plane is NOT published to the host at all —
+# it is reachable only on the private compose network, fronted by a TLS-terminating
+# Caddy reverse proxy; the container is locked down (read-only rootfs, all caps
+# dropped, no-new-privileges, pid + resource ceilings); and the image is meant to be
+# pinned by digest, not :latest. See docs/deployment.md for the full guide.
+#
+# ISOLATION POSTURE — read before changing the network. The sandboxes that run agent
+# code are NOT services in this file. On a runsc-capable host the control-plane
+# launches them as gVisor (runsc) children with network=none, all caps dropped, and a
+# read-only rootfs. Running real gVisor sandboxes from inside this container needs a
+# containerd+runsc host and extra privilege the lockdown below does NOT grant — for
+# full sandbox isolation use the bare-host systemd path (deploy/install.sh,
+# deploy/README.md). This compose hardens and runs the trusted control-plane itself:
+# the mandatory approval gateway, the encrypted (SQLCipher) per-session queues, and
+# host-side model-credential custody. Do NOT put sandboxes on this network or grant
+# them connectivity — that defeats the seal.
+
+name: ironclaw
+
+services:
+  controlplane:
+    # Pin by DIGEST in deploy/.env.prod — IRONCLAW_IMAGE=ghcr.io/ironsecco/
+    # ironclaw-controlplane@sha256:<digest>. A floating :latest is rejected by the
+    # supply-chain posture (cosign-verifiable, attested on the index digest).
+    image: ${IRONCLAW_IMAGE:-ghcr.io/ironsecco/ironclaw-controlplane:latest}
+    # Secrets arrive at runtime via the env-file — NEVER baked into the image. The
+    # daemon env names mirror .env.example (ANTHROPIC_API_KEY, IRONCLAW_API_TOKEN,
+    # channel tokens, …). The file is git-ignored; keep it 0600 on the host.
+    env_file:
+      - path: .env.prod
+        required: true
+    environment:
+      # JSON logs for shippers; the obs logger redacts secrets regardless.
+      IRONCLAW_LOG_FORMAT: json
+    # NO host port. Only Caddy (below) can reach the control-plane, over the private
+    # network. This removes the raw API/console from every host interface.
+    expose:
+      - "8787"
+    networks:
+      - edge
+    volumes:
+      # Durable host state: encrypted (SQLCipher) per-session queues, the gateway
+      # change store, the append-only audit log, sealed per-session keys, and the
+      # minted admin token. Back this up — losing it loses the token and all state.
+      - ironclaw-state:/var/lib/ironclaw/state
+    # Lock the container down. The control-plane needs no Linux capabilities to serve
+    # the API/gateway and custody keys; isolation is applied to the sandboxes it
+    # launches, not to this trusted process.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # Read-only rootfs needs writable scratch: the model-proxy unix socket lives under
+    # /run/ironclaw (owned by the image's nonroot uid 65532), plus a small /tmp.
+    tmpfs:
+      - /run/ironclaw:uid=65532,gid=65532,mode=0700
+      - /tmp:mode=1777
+    # Resource ceilings: a runaway control-plane cannot starve the host. Tune to your
+    # box; these suit a small-to-medium single-host deployment.
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1g
+          pids: 512
+        reservations:
+          memory: 256m
+    restart: unless-stopped
+    # /healthz is unauthenticated by design; curl ships in the image for this check.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8787/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    # The daemon stops its sandboxes (up to 10s) before exiting — give it headroom.
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # TLS-terminating reverse proxy. Only this service is published to the host; it
+  # proxies to the control-plane over the private network. Caddy provisions and
+  # renews certificates automatically (Let's Encrypt for a real IRONCLAW_DOMAIN, or
+  # a local self-signed CA when the domain is a bare host/IP).
+  caddy:
+    image: caddy:2.10-alpine
+    depends_on:
+      controlplane:
+        condition: service_healthy
+    environment:
+      # Set to your FQDN in deploy/.env.prod (e.g. ironclaw.example.com). Leave as the
+      # default to serve self-signed TLS on the host for a private/mesh deployment.
+      IRONCLAW_DOMAIN: ${IRONCLAW_DOMAIN:-localhost}
+    ports:
+      # Bind to all interfaces so the proxy is reachable; restrict with a host
+      # firewall or a tailnet bind (e.g. "${TAILNET_IP}:443:443") for mesh-only.
+      - "443:443"
+      - "80:80"
+    networks:
+      - edge
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data    # certificates + ACME account keys (back this up too)
+      - caddy-config:/config
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE    # bind 80/443 without running privileged
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+networks:
+  # Private bridge — the control-plane is never published; only Caddy bridges to it.
+  edge:
+    driver: bridge
+
+volumes:
+  ironclaw-state:
+  caddy-data:
+  caddy-config:

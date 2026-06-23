@@ -447,6 +447,12 @@ themselves are **not** compose services — the control-plane launches them as g
 (`runsc`) children with `network=none`; running real sandboxes needs a runsc-capable
 host (see [`deploy/README.md`](deploy/README.md)).
 
+Going to production? The **[deployment guide](https://ironsecco.github.io/ironclaw/deployment/)**
+covers the hardened, durable posture: locked-down [`deploy/docker-compose.prod.yml`](deploy/docker-compose.prod.yml)
+(read-only rootfs, dropped caps, resource limits) behind a TLS reverse proxy
+([`deploy/Caddyfile`](deploy/Caddyfile)), secrets via an env-file, encrypted-state
+backup/restore, pinned-digest upgrades, and Prometheus `/metrics`.
+
 ## Quickstart
 
 A fuller local walkthrough — run the control-plane **from source** in dev mode (no gVisor, binds to
