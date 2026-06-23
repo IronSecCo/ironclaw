@@ -71,6 +71,14 @@
           <span class="dot" aria-hidden="true"></span>
           <span id="status" class="conn-label" role="status">idle</span>
         </div>
+        <!-- Security-posture chip: surfaces whether the API is token-gated or open
+             on loopback. Trust-critical state for a security product, so it gets a
+             color-coded chip with a text label (color-independent) and a tooltip,
+             not buried micro-text. Set by applyAuthState() in app.js. -->
+        <div class="posture" id="posture" role="status" hidden>
+          <span class="posture-dot" aria-hidden="true"></span>
+          <span class="posture-label" id="posture-label"></span>
+        </div>
         <details class="conn-token">
           <summary>API token</summary>
           <div class="token-row">

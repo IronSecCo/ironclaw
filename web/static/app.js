@@ -211,7 +211,8 @@ async function boot(announce) {
 }
 
 // applyAuthState shows the first-run connect prompt and opens the sidebar token
-// control only when a token is actually needed (gated API, no/invalid token).
+// control only when a token is actually needed (gated API, no/invalid token), and
+// reflects the security posture in the sidebar chip.
 function applyAuthState() {
   const needsToken = lastAuthState === "unauth";
   const fr = document.getElementById("firstrun");
@@ -222,6 +223,30 @@ function applyAuthState() {
   } else {
     clearTokenError();
   }
+  applyPosture();
+}
+
+// POSTURE maps a connection state to the security-posture chip: token-gated (good)
+// vs open-on-loopback (acceptable on localhost, risky behind a mesh). Other states
+// (offline / token-required / error) are already carried by the connection label,
+// so the chip stays hidden to avoid a second, redundant alarm.
+const POSTURE = {
+  authed: { tone: "ok", label: "Token-gated", tip: "Requests carry a bearer token — the API is authenticated." },
+  open: { tone: "warn", label: "Open API (loopback)", tip: "No bearer token required — fine on localhost; set IRONCLAW_API_TOKEN behind a mesh." },
+};
+
+// applyPosture renders the security-posture chip from lastAuthState. Color carries
+// a quick read; the text label keeps it legible without color (WCAG 1.4.1).
+function applyPosture() {
+  const box = document.getElementById("posture");
+  if (!box) return;
+  const p = POSTURE[lastAuthState];
+  if (!p) { box.hidden = true; box.removeAttribute("title"); return; }
+  box.hidden = false;
+  box.className = "posture " + p.tone;
+  box.title = p.tip;
+  const label = document.getElementById("posture-label");
+  if (label) label.textContent = p.label;
 }
 
 function setTokenError(msg) {
