@@ -823,7 +823,9 @@ home for Q&A, design discussion, and show-and-tell, and it's where maintainers a
   [**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
   — these are small, self-contained, and mentored. See [Contributing](#contributing) for the workflow.
 
-A real-time chat channel (Discord / Matrix) is on the way — once it's live it'll be linked right here.
+We keep the whole community on GitHub — no Discord or Matrix to sign up for.
+[**Discussions**](https://github.com/IronSecCo/ironclaw/discussions) is the live channel: subscribe
+to a category to follow along, and watch the repo for **Announcements**.
 
 ## Contributing
 
