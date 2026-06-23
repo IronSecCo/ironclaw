@@ -55,6 +55,12 @@ theme:
 extra_css:
   - stylesheets/brand.css
 
+extra_javascript:
+  # Render the bare <div class="mermaid"> blocks (see superfences config below).
+  # Loaded as an ES module so it can `import` the pinned Mermaid build.
+  - path: javascripts/mermaid-init.js
+    type: module
+
 plugins:
   - search
   - render_swagger:
@@ -74,13 +80,17 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences:
-      # Render ```mermaid fences as diagrams (Material's built-in Mermaid
-      # integration) instead of plain code blocks. GitHub renders the same
-      # fences natively, so a diagram authored once shows on both surfaces.
+      # Render ```mermaid fences as diagrams instead of plain code blocks.
+      # GitHub renders the same fences natively, so a diagram authored once
+      # shows on both surfaces. We use fence_div_format (emits a bare
+      # <div class="mermaid">…), NOT fence_code_format: the latter wraps the
+      # source in <pre><code>, and current Mermaid passes that literal <code>
+      # tag into the parser ("No diagram type detected for text: <code>…"),
+      # leaving an empty box. A bare div is what Mermaid natively expects.
       custom_fences:
         - name: mermaid
           class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
+          format: !!python/name:pymdownx.superfences.fence_div_format
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.emoji:
