@@ -483,9 +483,20 @@ same gateway. There is no file-edit path that bypasses it.
 
 ## Examples
 
-Runnable templates that configure a real agent against a running control-plane live in
-[`examples/`](examples/) — each is a directory with a `README.md` and a `setup.sh`:
+Runnable recipes live in [`examples/`](examples/) — each is a directory with a `README.md` and a `setup.sh`.
+Three of them ship a `run-mock.sh` that drives the **whole** inbound → agent → reply pipeline on the
+offline `mock` provider, so a fresh clone runs them with **no model key and no channel tokens**:
 
+```sh
+docker compose -f docker-compose.demo.yml up -d --build   # seeds the offline mock-agent
+./examples/scheduled-report/run-mock.sh                   # cron-style self-scheduling summary
+./examples/webhook-responder/run-mock.sh                  # inbound webhook → agent reply
+./examples/slack-triage/run-mock.sh                       # classify/label every message
+```
+
+- [`scheduled-report/`](examples/scheduled-report/) — wakes itself on a schedule (`schedule_task`), summarizes, posts to a channel. *(credential-free demo)*
+- [`webhook-responder/`](examples/webhook-responder/) — routes an inbound HTTP webhook to an agent that replies. *(credential-free demo)*
+- [`slack-triage/`](examples/slack-triage/) — classifies/labels every incoming Slack message. *(credential-free demo)*
 - [`personal-assistant/`](examples/personal-assistant/) — a private 1:1 assistant on Telegram, plus a walk-through of the mandatory change-approval flow.
 - [`channel-triage/`](examples/channel-triage/) — a Slack triage bot that engages only on `@mention`, only for known senders.
 - [`multi-agent-team/`](examples/multi-agent-team/) — two agents sharing one channel, separated by engage mode and priority.
