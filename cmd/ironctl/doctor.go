@@ -25,8 +25,8 @@ const (
 	checkFail checkStatus = "FAIL"
 )
 
-// docBase is the published docs site; each check links to a relevant page so an
-// operator can go straight from a red line to the fix.
+// docBase is the published docs site; each non-OK check links straight to the
+// matching Troubleshooting anchor so an operator can go from a red line to its fix.
 const docBase = "https://ironsecco.github.io/ironclaw"
 
 // checkResult is one diagnostic line: what was checked, the verdict, what was
@@ -91,7 +91,7 @@ func envOrDefault(key, def string) string {
 // checkAPI verifies the control-plane is reachable via its unauthenticated
 // liveness probe.
 func checkAPI(addr string) checkResult {
-	r := checkResult{Name: "control-plane API", Doc: docBase + "/quickstart/"}
+	r := checkResult{Name: "control-plane API", Doc: docBase + "/troubleshooting/#daemon-unreachable-connection-refused"}
 	resp, err := httpGet(addr + "/healthz")
 	if err != nil {
 		r.Status = checkFail
@@ -113,7 +113,7 @@ func checkAPI(addr string) checkResult {
 
 // checkAuth probes a bearer-gated endpoint to classify the token posture.
 func checkAuth(addr string) checkResult {
-	r := checkResult{Name: "API auth / token", Doc: docBase + "/quickstart/"}
+	r := checkResult{Name: "API auth / token", Doc: docBase + "/troubleshooting/#api-token-missing-or-rejected-401"}
 	resp, err := httpGet(addr + "/v1/changes/pending")
 	if err != nil {
 		r.Status = checkWarn
@@ -147,7 +147,7 @@ func checkAuth(addr string) checkResult {
 
 // checkReadiness reports the daemon's readiness probe.
 func checkReadiness(addr string) checkResult {
-	r := checkResult{Name: "readiness", Doc: docBase + "/quickstart/"}
+	r := checkResult{Name: "readiness", Doc: docBase + "/troubleshooting/#daemon-unreachable-connection-refused"}
 	var rz struct {
 		Status string `json:"status"`
 		Reason string `json:"reason"`
@@ -174,7 +174,7 @@ func checkReadiness(addr string) checkResult {
 // best-effort. A relaxed runtime (docker/podman/runc) is reported OK but flagged,
 // because it does not provide gVisor's syscall-interception isolation boundary.
 func checkRuntime(bin string) checkResult {
-	r := checkResult{Name: "sandbox runtime (" + bin + ")", Doc: docBase + "/quickstart/"}
+	r := checkResult{Name: "sandbox runtime (" + bin + ")", Doc: docBase + "/troubleshooting/#sandbox-runtime-runsc-not-found-gvisor"}
 	path, err := exec.LookPath(bin)
 	if err != nil {
 		// gVisor's runsc is Linux-only. On macOS/Windows the production sandbox
@@ -216,7 +216,7 @@ func checkToolchain() checkResult {
 		Name:   "build toolchain",
 		Status: checkOK,
 		Detail: runtime.Version() + " — control-plane build requires CGO_ENABLED=1 (encrypted SQLite)",
-		Doc:    docBase + "/building/",
+		Doc:    docBase + "/troubleshooting/#build-fails-with-a-sqlite-cgo-error",
 	}
 }
 
@@ -226,7 +226,7 @@ func checkToolchain() checkResult {
 // `mock` provider still serves chat, so a fresh install is not broken — it just
 // can't reach a real model yet. Presence only; secret values are never read.
 func checkModelCredential(getenv func(string) string) checkResult {
-	r := checkResult{Name: "model credential", Doc: docBase + "/quickstart/"}
+	r := checkResult{Name: "model credential", Doc: docBase + "/troubleshooting/#no-model-credentials-and-the-zero-credential-mock-path"}
 	have := onboard.ModelCredentials(getenv)
 	if len(have) == 0 {
 		r.Status = checkWarn
@@ -244,7 +244,7 @@ func checkModelCredential(getenv func(string) string) checkResult {
 // WARN with guidance, not a failure. Shares the onboard detector so the two never
 // drift. Presence only; tokens are never read or printed.
 func checkChannels(getenv func(string) string) checkResult {
-	r := checkResult{Name: "channel adapters", Doc: docBase + "/channels/"}
+	r := checkResult{Name: "channel adapters", Doc: docBase + "/troubleshooting/#channel-adapter-not-arming-env-mismatch"}
 	armed := onboard.ArmedChannels(getenv)
 	if len(armed) == 0 {
 		r.Status = checkWarn
@@ -263,7 +263,7 @@ func checkChannels(getenv func(string) string) checkResult {
 // readable, since it bears a secret. The token value itself is never printed.
 func checkConfig() checkResult {
 	path := defaultOnboardConfig()
-	r := checkResult{Name: "onboard config", Doc: docBase + "/quickstart/"}
+	r := checkResult{Name: "onboard config", Doc: docBase + "/troubleshooting/#onboard-config-missing-or-too-permissive"}
 	info, err := os.Stat(path)
 	if err != nil {
 		r.Status = checkWarn
@@ -292,7 +292,7 @@ func checkConfig() checkResult {
 // connection. The sandbox has network=none, so this socket is its only egress
 // path to the model host.
 func checkModelProxy(socket string) checkResult {
-	r := checkResult{Name: "model-proxy socket", Doc: docBase + "/quickstart/"}
+	r := checkResult{Name: "model-proxy socket", Doc: docBase + "/troubleshooting/#daemon-unreachable-connection-refused"}
 	if _, err := os.Stat(socket); err != nil {
 		r.Status = checkWarn
 		r.Detail = "socket not present at " + socket
