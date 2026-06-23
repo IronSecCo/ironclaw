@@ -24,6 +24,29 @@ func TestCheckAPI(t *testing.T) {
 	}
 }
 
+// TestDefaultModelProxySocket guards against reintroducing a hardcoded Linux
+// socket path: off-Linux (e.g. macOS --dev) doctor must resolve the user-cache
+// path the daemon actually binds, not /run/ironclaw, or it reports a false WARN.
+func TestDefaultModelProxySocket(t *testing.T) {
+	got := defaultModelProxySocket()
+	if runtime.GOOS == "linux" {
+		if got != "/run/ironclaw/modelproxy.sock" {
+			t.Errorf("defaultModelProxySocket() on linux = %q, want /run/ironclaw/modelproxy.sock", got)
+		}
+		return
+	}
+	// Off Linux it must NOT be the systemd path; it should sit under a writable dir.
+	if got == "/run/ironclaw/modelproxy.sock" {
+		t.Errorf("defaultModelProxySocket() on %s returned the Linux /run path; expected a user-writable path", runtime.GOOS)
+	}
+	if d, err := os.UserCacheDir(); err == nil {
+		want := filepath.Join(d, "ironclaw", "run", "modelproxy.sock")
+		if got != want {
+			t.Errorf("defaultModelProxySocket() = %q, want %q (mirrors the daemon)", got, want)
+		}
+	}
+}
+
 func TestCheckReadiness(t *testing.T) {
 	token = ""
 	srv, _, _ := newStatusServer(t)
