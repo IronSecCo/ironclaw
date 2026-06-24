@@ -99,6 +99,21 @@ const (
 	// a skill that is unknown, unsigned, out-of-policy, or proposed when skills are not
 	// enabled is refused host-side and never reaches the gateway.
 	ChangeSkillInstall ChangeKind = "skill_install"
+	// ChangeMCPRegister lets an agent PROPOSE a brand-new MCP (Model Context Protocol)
+	// server endpoint from chat (RFC-0007), closing the OpenClaw register->approve->
+	// access->execute parity gap for MCP servers. Privileged: registering a new server
+	// introduces a new code-execution / egress surface (a stdio subprocess the host
+	// spawns, or a remote HTTP endpoint the host dials), so it ALWAYS routes through the
+	// gateway's mandatory human-approval floor — the human approves the EXACT command/
+	// args/image (stdio) or url/headers (http), never a blind "whatever the agent typed"
+	// endpoint. It rides the existing SystemAction envelope (action == "mcp_register");
+	// the payload is an mcp.ServerConfig-shaped definition (see docs/contract.md). The
+	// agent only PROPOSES the endpoint: an approved register lands the server in the host
+	// catalog but grants the proposing agent NOTHING — the agent must still obtain its
+	// tools through the separate, also-human-gated ChangeMCPAccess path (least-privilege).
+	// MCP servers run HOST-SIDE (network=none sandbox never speaks MCP), so this kind never
+	// widens what the sandbox itself can reach. This is the only frozen-contract change.
+	ChangeMCPRegister ChangeKind = "mcp_register"
 )
 
 // Verdict is the deterministic result of a single verifier in the gateway chain.

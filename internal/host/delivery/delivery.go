@@ -491,6 +491,13 @@ func authorizeSystemAction(action string) (contract.ChangeKind, bool) {
 		// widens the agent's tool surface with externally-served tools, always
 		// privileged → gateway (a human approves the named server and tools).
 		return contract.ChangeMCPAccess, true
+	case "mcp_register", "add_mcp_server", "register_mcp":
+		// Proposing a brand-new MCP server endpoint from chat (RFC-0007): introduces a
+		// new code-execution/egress surface (a host subprocess or a remote endpoint the
+		// host dials), always privileged → gateway. The MCPRegisterVerifier holds it for a
+		// human who approves the EXACT command/url before it lands in the catalog; an
+		// approved register grants the proposing agent nothing (it must still mcp_access).
+		return contract.ChangeMCPRegister, true
 	case "skill_install":
 		// Proposing a curated, signed skill install from chat (RFC-0006). Delivery
 		// special-cases this BEFORE this switch (handleSkillInstall) because it needs a

@@ -1,0 +1,574 @@
+/* =============================================================================
+   IronClaw landing page (home) — IRO-154.
+
+   A conversion-focused homepage rendered through the MkDocs Material
+   `overrides/home.html` template (set via `template: home.html` in index.md).
+   It reuses the steel-blue brand scale from brand.css and the Material theme
+   surface variables so the page flips cleanly with the light/dark toggle.
+
+   Design system
+   -------------
+   - Steel-blue brand (#3b82f6 / #2563eb), navy hero (#0b1124 -> #16224a).
+   - One spacing scale, one type scale (clamp()-driven, fluid + mobile-first).
+   - Full-bleed coloured sections, 1100px centred content column.
+   - Contrast targets (WCAG 2.1 AA): body >= 4.5:1, large/CTA text >= 3:1.
+     Primary CTA = white on #2563eb (5.17:1). Hero body = white on #0b1124.
+
+   Only loaded on the home template, but scoped under `.iro-landing` so it
+   cannot leak into the docs body.
+   ========================================================================== */
+
+.iro-landing {
+  /* spacing scale */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+  --s-8: 4.5rem;
+
+  --iro-radius: 0.6rem;
+  --iro-maxw: 1100px;
+
+  /* brand (mirrors brand.css; redeclared so the landing is self-contained) */
+  --iro-steel-500: #3b82f6;
+  --iro-steel-600: #2563eb;
+  --iro-steel-700: #1d4ed8;
+  --iro-navy-900: #16224a;
+  --iro-navy-950: #0b1124;
+
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+/* Material wraps content in a constrained grid; the home template renders the
+   landing directly in <main>, so reset any inherited width/padding. */
+.iro-landing {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The landing replaces `.md-content` inside `.md-main__inner.md-grid`, which is
+   capped at ~61rem and centred. On the home route only, break out of that cap so
+   the full-bleed coloured sections span the viewport. `hide: [navigation, toc]`
+   in index.md already removes both sidebars; this reclaims their grid width. */
+.md-main__inner:has(> .iro-landing) {
+  max-width: none;
+  margin: 0;
+}
+.md-main:has(.iro-landing),
+.md-main__inner:has(> .iro-landing) {
+  margin-top: 0;
+}
+/* The themed header already provides a top landmark + nav; no breadcrumbs. */
+.md-content__inner:has(.iro-landing) { margin: 0; padding: 0; }
+
+/* ----- layout primitives -------------------------------------------------- */
+.iro-section {
+  padding: clamp(3rem, 7vw, 5rem) 1.25rem;
+}
+.iro-wrap {
+  max-width: var(--iro-maxw);
+  margin-inline: auto;
+}
+.iro-section--tint {
+  background: var(--md-default-fg-color--lightest);
+}
+
+/* ----- type -------------------------------------------------------------- */
+.iro-eyebrow {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  /* Scheme-aware accent: AA on both white (#1d4ed8 6.7:1) and dark slate
+     (#63a0ff 6.08:1). A fixed steel-500 would fail AA on light backgrounds. */
+  color: var(--md-accent-fg-color);
+  margin: 0 0 var(--s-4);
+}
+.iro-h2 {
+  font-size: clamp(1.6rem, 3.5vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0 0 var(--s-3);
+}
+.iro-lead {
+  font-size: clamp(1rem, 1.6vw, 1.15rem);
+  line-height: 1.65;
+  max-width: 60ch;
+  margin: 0 0 var(--s-6);
+  color: var(--md-default-fg-color);
+}
+
+/* =============================================================================
+   1. HERO  — always-dark navy, high contrast
+   ========================================================================== */
+.iro-hero {
+  position: relative;
+  background:
+    radial-gradient(120% 120% at 80% -10%, rgba(59, 130, 246, 0.28) 0%, rgba(59, 130, 246, 0) 55%),
+    linear-gradient(160deg, var(--iro-navy-900) 0%, var(--iro-navy-950) 70%);
+  color: #f4f8ff;
+  border-bottom: 1px solid rgba(99, 160, 255, 0.18);
+  overflow: hidden;
+}
+.iro-hero .iro-eyebrow {
+  color: #8fb4ff;
+}
+.iro-hero__title {
+  font-size: clamp(2.1rem, 5.2vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.07;
+  margin: 0 0 var(--s-5);
+  max-width: 18ch;
+}
+.iro-hero__sub {
+  font-size: clamp(1.02rem, 1.7vw, 1.22rem);
+  line-height: 1.6;
+  color: #c7d6f0;
+  max-width: 56ch;
+  margin: 0 0 var(--s-6);
+}
+.iro-hero__sub strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* ----- CTA buttons ------------------------------------------------------- */
+.iro-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-bottom: var(--s-6);
+}
+.iro-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 2.9rem;
+  padding: 0.7rem 1.4rem;
+  border-radius: var(--iro-radius);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+}
+.iro-btn--primary {
+  background: var(--iro-steel-600);
+  color: #ffffff;
+  box-shadow: 0 0.3rem 1rem rgba(37, 99, 235, 0.35);
+}
+.iro-btn--primary:hover {
+  background: var(--iro-steel-700);
+  transform: translateY(-1px);
+}
+.iro-btn--ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(143, 180, 255, 0.55);
+  color: #eaf2ff;
+}
+.iro-btn--ghost:hover {
+  background: rgba(143, 180, 255, 0.12);
+  border-color: #8fb4ff;
+  transform: translateY(-1px);
+}
+/* On light sections, ghost buttons use the steel outline */
+.iro-section .iro-btn--ghost {
+  background: transparent;
+  border-color: var(--iro-steel-600);
+  color: var(--iro-steel-700);
+}
+.iro-section .iro-btn--ghost:hover {
+  background: var(--md-accent-fg-color--transparent);
+}
+.iro-btn:focus-visible {
+  outline: 3px solid #8fb4ff;
+  outline-offset: 2px;
+}
+
+/* ----- copyable demo block ----------------------------------------------- */
+.iro-code {
+  position: relative;
+  margin: 0 0 var(--s-4);
+  max-width: 760px;
+}
+.iro-code pre {
+  margin: 0;
+  background: #0a1126;
+  border: 1px solid rgba(99, 160, 255, 0.28);
+  border-radius: var(--iro-radius);
+  padding: 1rem 3.2rem 1rem 1.1rem;
+  overflow-x: auto;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: #d7e3fb;
+  -moz-tab-size: 2;
+  tab-size: 2;
+}
+.iro-code code {
+  font-family: var(--md-code-font-family, ui-monospace, SFMono-Regular, Menlo, monospace);
+  background: none;
+  padding: 0;
+  color: inherit;
+  white-space: pre;
+}
+.iro-code__prompt { color: #6f86b8; user-select: none; }
+.iro-code__cmt { color: #6f86b8; }
+.iro-copy {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 2rem;
+  padding: 0 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #c7d6f0;
+  background: rgba(99, 160, 255, 0.12);
+  border: 1px solid rgba(99, 160, 255, 0.3);
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.iro-copy:hover { background: rgba(99, 160, 255, 0.24); color: #fff; }
+.iro-copy:focus-visible { outline: 3px solid #8fb4ff; outline-offset: 2px; }
+.iro-copy[data-copied="true"] { color: #7ef0c0; border-color: rgba(126, 240, 192, 0.5); }
+.iro-caption {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #aebfe0;
+  max-width: 70ch;
+  margin: 0;
+}
+.iro-caption strong { color: #eaf2ff; }
+.iro-caption code,
+.iro-section code {
+  background: rgba(99, 160, 255, 0.14);
+  border-radius: 0.25rem;
+  padding: 0.05em 0.4em;
+  font-size: 0.88em;
+}
+.iro-section code { background: var(--md-accent-fg-color--transparent); }
+
+/* ----- trust badge row --------------------------------------------------- */
+.iro-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: var(--s-6);
+  padding-top: var(--s-5);
+  border-top: 1px solid rgba(143, 180, 255, 0.18);
+}
+.iro-badges img { height: 22px; display: block; }
+.iro-badges a:focus-visible { outline: 3px solid #8fb4ff; outline-offset: 3px; border-radius: 3px; }
+.iro-badges__note {
+  flex-basis: 100%;
+  margin: var(--s-2) 0 0;
+  font-size: 0.82rem;
+  color: #9fb2d8;
+}
+.iro-badges__note a { color: #8fb4ff; }
+
+/* =============================================================================
+   2. DIFFERENTIATORS
+   ========================================================================== */
+.iro-grid-3 {
+  display: grid;
+  gap: var(--s-5);
+  grid-template-columns: 1fr;
+  margin-top: var(--s-6);
+}
+.iro-card {
+  background: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: var(--iro-radius);
+  padding: var(--s-5);
+  transition: border-color 125ms ease, box-shadow 125ms ease, transform 125ms ease;
+}
+.iro-card:hover {
+  border-color: var(--iro-steel-500);
+  box-shadow: 0 0.3rem 0.9rem rgba(37, 99, 235, 0.16);
+  transform: translateY(-2px);
+}
+.iro-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin-bottom: var(--s-3);
+  border-radius: 0.55rem;
+  background: var(--md-accent-fg-color--transparent);
+  color: var(--iro-steel-600);
+}
+.iro-card__icon svg { width: 1.4rem; height: 1.4rem; }
+.iro-card h3 {
+  font-size: 1.12rem;
+  font-weight: 700;
+  margin: 0 0 var(--s-2);
+}
+.iro-card p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--md-default-fg-color);
+}
+.iro-card code { word-break: break-word; }
+.iro-aside {
+  margin-top: var(--s-5);
+  font-size: 0.98rem;
+  color: var(--md-default-fg-color--light);
+}
+.iro-aside strong { color: var(--md-default-fg-color); }
+
+/* =============================================================================
+   3. HOW IT WORKS
+   ========================================================================== */
+.iro-steps {
+  display: grid;
+  gap: var(--s-5);
+  grid-template-columns: 1fr;
+  margin-top: var(--s-6);
+  counter-reset: step;
+}
+.iro-step {
+  position: relative;
+  padding-left: 3.4rem;
+}
+.iro-step__num {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--iro-steel-600);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+.iro-step h3 { font-size: 1.1rem; font-weight: 700; margin: 0.2rem 0 var(--s-2); }
+.iro-step p { margin: 0; line-height: 1.6; color: var(--md-default-fg-color); font-size: 0.95rem; }
+.iro-flow {
+  margin-top: var(--s-6);
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--md-default-fg-color--light);
+}
+.iro-flow code {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* =============================================================================
+   4. PROOF STRIP
+   ========================================================================== */
+.iro-proof {
+  display: grid;
+  gap: var(--s-6);
+  grid-template-columns: 1fr;
+  margin-top: var(--s-6);
+}
+.iro-proof h3 {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--md-accent-fg-color);
+  margin: 0 0 var(--s-4);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+.iro-checklist { list-style: none; margin: 0; padding: 0; }
+.iro-checklist li {
+  position: relative;
+  padding-left: 1.9rem;
+  margin-bottom: var(--s-3);
+  line-height: 1.55;
+  font-size: 0.95rem;
+  color: var(--md-default-fg-color);
+}
+.iro-checklist li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.15rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: var(--iro-steel-600);
+  -webkit-mask: var(--iro-check) center / contain no-repeat;
+  mask: var(--iro-check) center / contain no-repeat;
+}
+.iro-landing {
+  --iro-check: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>');
+}
+.iro-checklist li strong { color: var(--md-default-fg-color); }
+.iro-pullquote {
+  margin: var(--s-7) auto 0;
+  max-width: 46ch;
+  text-align: center;
+  font-size: clamp(1.1rem, 2.2vw, 1.4rem);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--md-default-fg-color);
+  border: none;
+}
+.iro-pullquote cite {
+  display: block;
+  margin-top: var(--s-3);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-style: normal;
+  color: var(--md-default-fg-color--light);
+}
+.iro-center-cta { text-align: center; margin-top: var(--s-6); }
+
+/* =============================================================================
+   5. DEMO BLOCK (light section)  — code panel reads on light bg
+   ========================================================================== */
+.iro-demo .iro-code pre {
+  background: var(--iro-navy-950);
+}
+.iro-demo .iro-caption,
+.iro-demo .iro-footnote {
+  color: var(--md-default-fg-color--light);
+}
+.iro-demo .iro-caption strong { color: var(--md-default-fg-color); }
+.iro-footnote {
+  margin: var(--s-4) 0 0;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  max-width: 70ch;
+  padding-left: var(--s-4);
+  border-left: 3px solid var(--md-default-fg-color--lightest);
+}
+
+/* =============================================================================
+   6. FAQ  — native <details>, zero JS
+   ========================================================================== */
+.iro-faq { margin-top: var(--s-6); max-width: 820px; }
+.iro-faq details {
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+.iro-faq summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) 0;
+  font-weight: 600;
+  font-size: 1.02rem;
+  cursor: pointer;
+  list-style: none;
+}
+.iro-faq summary::-webkit-details-marker { display: none; }
+.iro-faq summary::after {
+  content: "+";
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: var(--iro-steel-600);
+  transition: transform 150ms ease;
+  flex: none;
+}
+.iro-faq details[open] summary::after { content: "\2212"; }
+.iro-faq summary:focus-visible { outline: 3px solid var(--iro-steel-500); outline-offset: 3px; border-radius: 4px; }
+.iro-faq p {
+  margin: 0 0 var(--s-4);
+  line-height: 1.65;
+  color: var(--md-default-fg-color);
+  max-width: 75ch;
+}
+
+/* =============================================================================
+   7. FINAL CTA  — dark band, repeats the primary action
+   ========================================================================== */
+.iro-final {
+  background: linear-gradient(160deg, var(--iro-navy-900) 0%, var(--iro-navy-950) 100%);
+  color: #f4f8ff;
+  text-align: center;
+}
+.iro-final .iro-h2 { color: #fff; }
+.iro-final p { color: #c7d6f0; max-width: 52ch; margin: 0 auto var(--s-6); line-height: 1.6; }
+.iro-final .iro-cta-row { justify-content: center; margin-bottom: var(--s-4); }
+.iro-final .iro-btn--ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(143, 180, 255, 0.55);
+  color: #eaf2ff;
+}
+.iro-final .iro-btn--ghost:hover { background: rgba(143, 180, 255, 0.12); }
+.iro-final__link { display: inline-block; margin-top: var(--s-2); color: #8fb4ff; font-weight: 600; }
+
+/* =============================================================================
+   8. FOOTER  (overrides the theme footer on the home template)
+   ========================================================================== */
+.iro-footer {
+  background: var(--iro-navy-950);
+  color: #aebfe0;
+  padding: clamp(2.5rem, 5vw, 3.5rem) 1.25rem 2rem;
+  border-top: 1px solid rgba(99, 160, 255, 0.18);
+}
+.iro-footer__cols {
+  max-width: var(--iro-maxw);
+  margin: 0 auto;
+  display: grid;
+  gap: var(--s-6);
+  grid-template-columns: 1fr;
+}
+.iro-footer h4 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8fb4ff;
+  margin: 0 0 var(--s-3);
+}
+.iro-footer ul { list-style: none; margin: 0; padding: 0; }
+.iro-footer li { margin-bottom: var(--s-2); }
+.iro-footer a { color: #cdd9f0; text-decoration: none; font-size: 0.92rem; }
+.iro-footer a:hover { color: #fff; text-decoration: underline; }
+.iro-footer a:focus-visible { outline: 2px solid #8fb4ff; outline-offset: 2px; border-radius: 2px; }
+.iro-footer__base {
+  max-width: var(--iro-maxw);
+  margin: var(--s-6) auto 0;
+  padding-top: var(--s-5);
+  border-top: 1px solid rgba(143, 180, 255, 0.16);
+  font-size: 0.85rem;
+  color: #8295bd;
+}
+
+/* =============================================================================
+   Responsive — widen grids on larger viewports
+   ========================================================================== */
+@media (min-width: 720px) {
+  .iro-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .iro-steps { grid-template-columns: repeat(3, 1fr); }
+  .iro-proof { grid-template-columns: 1fr 1fr; gap: var(--s-7); }
+  .iro-footer__cols { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 960px) {
+  .iro-section { padding-inline: 2rem; }
+}
+
+/* =============================================================================
+   Reduced motion
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .iro-landing * { transition: none !important; }
+  .iro-card:hover,
+  .iro-btn:hover { transform: none; }
+}

@@ -143,6 +143,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Durable per-group vault policy (threat-model §11): persisted in its own
+	// encrypted SQLCipher DB under the state dir so an approved {credential -> hosts}
+	// grant survives a control-plane restart (deny-by-default still holds for any
+	// group with no row). The DB key is derived from the host master with a distinct
+	// purpose label — never the raw master or a per-session key — so it is stable
+	// across restarts and isolated from the session keystore.
+	master, err := keySource.Master()
+	if err != nil {
+		logger.Error("master key", "error", err)
+		os.Exit(1)
+	}
+	vaultPolicyKey := keys.DeriveSubKey(master, "ironclaw/vault-policy-db/v1")
+	vaultPolicyPath := filepath.Join(*stateDir, "vault-policies.db")
+	vaultPolicies, err := registry.OpenDurableVaultPolicyStore(vaultPolicyPath, vaultPolicyKey)
+	if err != nil {
+		logger.Error("vault policy store", "path", vaultPolicyPath, "error", err)
+		os.Exit(1)
+	}
+	defer vaultPolicies.Close()
+
 	// Registry: the control-plane data model (in-memory dev backend until the
 	// durable, encrypted store is selected at startup).
 	reg := registry.NewMemRegistry()
@@ -385,9 +405,8 @@ func main() {
 	// credential against which host", deny-by-default. Mutated only here, through the
 	// gateway apply path after a human approves a vault-policy change; read by the
 	// broker/injector before a credential is used (broker enforcement is wired
-	// separately). In-memory today (the registry itself is in-memory in this flow);
-	// durable persistence is tracked as a follow-up.
-	vaultPolicies := registry.NewVaultPolicyStore()
+	// separately). Backed by the durable, encrypted store opened above, so an
+	// approved grant survives a restart (IRO-139).
 	// Wire the broker's vault guard: it enforces per-group policy on a HOST-TRUSTED
 	// session->group mapping (the per-session socket identity, never the spoofable
 	// header). The guard resolves the trusted session's group, looks up the
@@ -444,6 +463,21 @@ func main() {
 		}
 		return vaultPolicies.Set(registry.VaultPolicy{AgentGroupID: id, Rules: rr})
 	}, capApplier)
+	// An approved ChangeMCPRegister lands the proposed server in the host catalog and
+	// drops any cached broker connection so the next use reconnects with it. It grants
+	// the proposing agent NOTHING — access stays the separate ChangeMCPAccess approval.
+	capApplier = gateway.NewMCPRegisterApplier(func(cfg mcp.ServerConfig) error {
+		if mcpCatalogStore == nil {
+			return fmt.Errorf("mcp register: MCP is not enabled")
+		}
+		if err := mcpCatalogStore.Put(cfg); err != nil {
+			return err
+		}
+		if mcpBroker != nil {
+			mcpBroker.Invalidate(cfg.Name)
+		}
+		return nil
+	}, capApplier)
 	if broker != nil {
 		capApplier = gateway.NewEgressApplier(broker, capApplier)
 	}
@@ -459,6 +493,7 @@ func main() {
 			gateway.NewCreateAgentVerifier(agentExists),
 			gateway.NewMCPServerVerifier(mcpServerKnown),
 			gateway.VaultPolicyVerifier{},
+			gateway.NewMCPRegisterVerifier(func() bool { return mcpCatalogStore != nil }),
 			gateway.AlwaysRequireHuman{},
 		},
 		gateway.NewManualApprover(),
@@ -469,7 +504,7 @@ func main() {
 	// WithRegistry attaches the control-plane registry so the /v1/registry admin
 	// endpoints are live and the approvals read-model (/v1/ui/approvals) can
 	// resolve agent-group/requester names instead of showing raw ids.
-	server := api.New(gw).WithHistory(store).WithAuditPath(auditPath).WithMetrics(m.Handler()).WithRegistry(reg)
+	server := api.New(gw).WithHistory(store).WithAuditPath(auditPath).WithMetrics(m.Handler()).WithRegistry(reg).WithVault(vaultPolicies)
 	// Optional bearer-token auth (defense-in-depth behind the tailnet). Read from
 	// the host environment; never logged.
 	apiToken := os.Getenv("IRONCLAW_API_TOKEN")

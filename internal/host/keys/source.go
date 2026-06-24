@@ -1,7 +1,9 @@
 package keys
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -9,6 +11,21 @@ import (
 	"path/filepath"
 	"sync"
 )
+
+// DeriveSubKey deterministically derives a 32-byte host-internal subkey from the
+// master key for a named purpose, via HMAC-SHA256(master, purpose). It gives each
+// host-internal encrypted store (e.g. the durable vault-policy DB, a future
+// durable registry DB) its own stable, domain-separated key without ever reusing
+// the raw master or a per-session key as a database key. The result is stable
+// across restarts for a fixed master, and a distinct purpose yields an unrelated
+// key. The returned key is a secret: never log it.
+func DeriveSubKey(master [32]byte, purpose string) [32]byte {
+	mac := hmac.New(sha256.New, master[:])
+	mac.Write([]byte(purpose))
+	var out [32]byte
+	copy(out[:], mac.Sum(nil))
+	return out
+}
 
 // KeySource supplies the 32-byte host master key under which the session
 // keystore is sealed. It is the pluggable seam between an ephemeral in-process

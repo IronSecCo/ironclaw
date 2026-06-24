@@ -46,6 +46,36 @@ what the agent does:
 - **Append-only audit.** Every approve/reject decision and every gated action is
   recorded. See [Architecture](architecture.md).
 
+## Credential vault: agents use keys without holding them
+
+An agent reaches a vaulted API by **logical name** — `vault://<cred>/<path>` — and
+never by holding the key. The egress broker forwards the call to a separate host-side
+*injector* that attaches the real credential; the broker (and the sandbox) inject
+nothing. Access is **deny-by-default and per agent group**: a group may use a
+credential against a host only if an approved policy grant says so.
+
+Those grants are **config, never secrets** — every rule names a credential, never
+holds one — and they are managed through the gateway like any other capability
+change, so a grant is held until a human approves it and is recorded in the audit
+log. Manage them with `ironctl vault`:
+
+```bash
+# See a group's deny-by-default state and active grants (no secret is ever shown):
+ironctl vault list --group <agent-group>
+
+# Propose a grant (held at the gateway for human approval):
+ironctl vault grant  --group <agent-group> --credential github --host api.github.com --by you
+ironctl change approve <change-id> --by you
+
+# Narrow or remove a grant (also gateway-gated):
+ironctl vault revoke --group <agent-group> --credential github --host api.github.com --by you
+```
+
+Rotating the **secret value** behind a credential is an *injector* operation — the
+control plane never holds the key, so there is nothing for it to rotate. Point the
+broker at an injector with `--vault-endpoint`. The threat model's §11 has the full
+model.
+
 ## The supply chain is part of the promise
 
 A release a user cannot verify is not a secured release. IronClaw's published
