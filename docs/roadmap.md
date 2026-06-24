@@ -100,7 +100,7 @@ Press the security advantage — several of these are wins neither peer has clai
 | Examples gallery + templates | ✅ |
 | Public roadmap + comparison (this page) | ✅ |
 | Third-party security audit | 👤 |
-| End-user credential vault | 👤 |
+| End-user credential vault | ✅ |
 
 ### What "1.0" means
 
@@ -134,7 +134,7 @@ will evolve — corrections welcome via an issue.
 | Skills / plugin registry | yes (ClawHub) | host-side, signed, gateway-gated capability bundles | ✅ shipped |
 | MCP / external tool servers | yes (blind approval surface) | host-brokered, isolated, **per-tool human-approved** + audited | ✅ **ahead** |
 | Guided onboarding | wizard | `ironctl onboard` + quickstart | ✅ at parity |
-| Credential vault (arbitrary APIs) | yes | model credential + gateway-approved egress broker | 👤 partial (vault planned) |
+| Credential vault (arbitrary APIs) | yes | logical-name `vault://` injection via a separate host-side injector behind the gateway-approved egress broker (per-group deny-by-default, agent never holds a key) | ✅ **shipped** (1.0) |
 | Multiple LLM providers | drop-in modules | Anthropic / OpenAI / OpenRouter / Codex via host proxy | ✅ at parity |
 | In-product diagnostics | `/status` `/usage` | Prometheus metrics + audit + `ironctl status`/`doctor` | ✅ at parity |
 | **Signed releases + SBOM + provenance** | neither peer | cosign-signed releases + SBOM + build provenance, reproducible `ironctl`/`sandbox` | ✅ **shipped** (a win neither peer has claimed) |
