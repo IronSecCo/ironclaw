@@ -24,6 +24,11 @@ deterministic **human-approval gateway**, and every action lands in an append-on
     From a clean clone to submitting, approving, and auditing your first agent
     action — in about five minutes, on your machine.
 
+-   :material-scale-balance: **[Why IronClaw / vs. alternatives](comparison.md)**
+
+    Evaluating your options? How IronClaw compares to hosted agent platforms,
+    raw container + LLM glue, and other self-hosted runtimes — honestly.
+
 -   :material-school: **[Tutorials](tutorials/index.md)**
 
     Hands-on, copy-pasteable walkthroughs: your first sandboxed agent, connecting
@@ -63,6 +68,7 @@ deterministic **human-approval gateway**, and every action lands in an append-on
 
 | If you want to… | Read |
 | --- | --- |
+| See how IronClaw compares to the alternatives | [Why IronClaw](comparison.md) |
 | Run IronClaw locally | [Quickstart](quickstart.md) |
 | Follow a hands-on walkthrough | [Tutorials](tutorials/index.md) |
 | Understand the design | [IronClaw, Explained](ironclaw-explained.md) → [Architecture](architecture.md) |
