@@ -44,6 +44,7 @@ type Server struct {
 	skills     *skills.Resolver         // curated, signature-verifying skills resolver; nil = skills disabled
 	mcpCatalog *mcp.Catalog             // operator-configured MCP server catalog; nil = MCP disabled
 	mcpBroker  *mcp.Broker              // host MCP broker, for probe/discovery; nil = MCP disabled
+	vault      VaultPolicyReader        // per-group vault policy, for the read surface; nil = vault read disabled
 	mux        *http.ServeMux
 
 	// Hardening (all opt-in; see hardening.go). Zero values disable the feature.
@@ -157,6 +158,7 @@ func (s *Server) routes() {
 	s.uiCatalogRoutes()   // built-in tool catalog + starter templates at /v1/ui/{tools,templates} (see ui_catalog.go)
 	s.skillsRoutes()      // skills install/list/remove at /v1/skills (see skills.go)
 	s.mcpRoutes()         // MCP server CRUD/probe + read-model at /v1/registry/mcp-servers|/v1/ui/mcp-servers (see mcp.go)
+	s.vaultRoutes()       // per-group vault policy read surface at /v1/vault/policy (see vault.go)
 }
 
 // auth wraps h with optional bearer-token authentication. With no token set, the
