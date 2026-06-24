@@ -1,0 +1,382 @@
+{#-
+  IronClaw landing page (home) — IRO-154.
+
+  Rendered when a page sets `template: home.html` (docs/index.md). Extends
+  main.html so the static OG/Twitter card meta in main.html's `extrahead` and
+  the themed steel-blue header are preserved. We override `container` to render
+  the full-bleed marketing sections in a single <main> (no left nav / right TOC
+  on the home route), and `footer` to render the landing's three-column footer
+  in place of the default theme footer. Styles live in stylesheets/landing.css
+  (wired through extra_css), so this template is markup + one tiny copy script.
+
+  Every factual claim mirrors the IRO-153 copy spec, which footnotes each line
+  to a shipped doc or live badge — no invented metrics or competitor claims.
+-#}
+{% extends "main.html" %}
+
+{% block container %}
+<div class="iro-landing">
+
+  {# ===== 1. HERO ===== #}
+  <section class="iro-section iro-hero" aria-labelledby="hero-title">
+    <div class="iro-wrap">
+      <span class="iro-eyebrow">Open source · AGPLv3 + commercial · self-hosted</span>
+      <h1 class="iro-hero__title" id="hero-title">Security-first AI agents you actually run yourself.</h1>
+      <p class="iro-hero__sub">
+        IronClaw runs autonomous AI assistants on infrastructure you control — reachable from the
+        chat apps you already use. The difference is the threat model: every agent runs sealed off
+        from the network and <strong>cannot change its own configuration without a human approving
+        it.</strong> Isolation you can prove, not just promise.
+      </p>
+
+      <div class="iro-cta-row">
+        <a class="iro-btn iro-btn--primary" href="#demo">Run the demo
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a class="iro-btn iro-btn--ghost" href="https://github.com/IronSecCo/ironclaw" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          Star on GitHub ★
+        </a>
+      </div>
+
+      {# Above-the-fold copyable, zero-credential demo line #}
+      <div class="iro-code">
+        <pre id="hero-cmd"><code><span class="iro-code__prompt">$ </span>git clone https://github.com/IronSecCo/ironclaw.git &amp;&amp; cd ironclaw &amp;&amp; \
+  bash container/build.sh &amp;&amp; docker compose -f docker-compose.demo.yml up --build -d</code></pre>
+        <button type="button" class="iro-copy" data-copy-target="hero-cmd" aria-label="Copy command to clipboard">
+          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span class="iro-copy__label">Copy</span>
+        </button>
+      </div>
+      <p class="iro-caption">
+        <strong>Zero credentials. No model key.</strong> Then open <code>http://127.0.0.1:8787/ui/</code>
+        and say hi — a real per-session sandbox launches and replies. Requires only Docker.
+      </p>
+
+      {# Live trust badges — Best Practices "passing" gets first / priority slot #}
+      <div class="iro-badges">
+        <a href="https://www.bestpractices.dev/projects/13348" rel="noopener" title="OpenSSF Best Practices (passing)"><img src="https://www.bestpractices.dev/projects/13348/badge" alt="OpenSSF Best Practices: passing" loading="lazy"></a>
+        <a href="https://scorecard.dev/viewer/?uri=github.com/IronSecCo/ironclaw" rel="noopener" title="OpenSSF Scorecard"><img src="https://api.securityscorecards.dev/projects/github.com/IronSecCo/ironclaw/badge" alt="OpenSSF Scorecard score" loading="lazy"></a>
+        <a href="https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml" rel="noopener" title="CodeQL analysis"><img src="https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml/badge.svg" alt="CodeQL workflow status" loading="lazy"></a>
+        <a href="https://ironsecco.github.io/ironclaw/security/" title="cosign-signed releases"><img src="https://img.shields.io/badge/releases-cosign%20signed-2563eb.svg" alt="Releases: cosign signed" loading="lazy"></a>
+        <a href="https://ironsecco.github.io/ironclaw/security/" title="SBOMs published"><img src="https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-44883e.svg" alt="SBOM: SPDX and CycloneDX" loading="lazy"></a>
+        <a href="https://ironsecco.github.io/ironclaw/security/" title="SLSA build provenance"><img src="https://img.shields.io/badge/SLSA-build%20provenance-44883e.svg" alt="SLSA build provenance" loading="lazy"></a>
+        <a href="https://github.com/IronSecCo/ironclaw/blob/main/LICENSE" rel="noopener" title="AGPLv3 license"><img src="https://img.shields.io/badge/License-AGPLv3-2563eb.svg" alt="License: AGPLv3" loading="lazy"></a>
+        <p class="iro-badges__note">
+          Alpha software — the gVisor seal is Linux-only.
+          <a href="https://ironsecco.github.io/ironclaw/roadmap/">See project status →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {# ===== 2. WHAT IT IS + DIFFERENTIATORS ===== #}
+  <section class="iro-section" aria-labelledby="what-title">
+    <div class="iro-wrap">
+      <span class="iro-eyebrow">What it is</span>
+      <h2 class="iro-h2" id="what-title">A secured alternative to running agents wide-open</h2>
+      <p class="iro-lead">
+        Most ways to run an AI agent assume the agent is trustworthy. IronClaw assumes the
+        opposite — that the agent, and the box it runs on, could be compromised at any moment — and
+        builds hard, provable walls anyway. You get the same "talk to it in Slack, it gets work
+        done" experience, without handing an LLM a shell on your machine.
+      </p>
+
+      <div class="iro-grid-3">
+        <article class="iro-card">
+          <span class="iro-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/></svg>
+          </span>
+          <h3>Sealed sandboxes, not trust</h3>
+          <p>
+            Each agent runs with <code>network=none</code> in a gVisor (<code>runsc</code>)
+            sandbox — read-only rootfs, dropped capabilities, no host network. It reaches the model
+            only through a host-side proxy it never holds the key to.
+          </p>
+        </article>
+        <article class="iro-card">
+          <span class="iro-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <h3>A human approval gateway with no bypass</h3>
+          <p>
+            An agent cannot change its own persona, tools, packages, wiring, permissions, or
+            mounts. Every capability change is <em>held</em> at a deterministic gateway until a
+            human approves it, and every decision lands in an append-only audit log.
+          </p>
+        </article>
+        <article class="iro-card">
+          <span class="iro-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </span>
+          <h3>A release you can verify, end to end</h3>
+          <p>
+            Every release is re-derivable from a known commit and ships cosign signatures, SBOMs
+            (SPDX + CycloneDX), and build-provenance attestations. Installers verify the
+            <code>SHA256SUMS</code> manifest <em>before</em> executing anything.
+          </p>
+        </article>
+      </div>
+      <p class="iro-aside">
+        <strong>Talk to it where you already work</strong> — 11 channel adapters
+        (<a href="https://ironsecco.github.io/ironclaw/channels/">Slack, Discord, Telegram, and more</a>).
+      </p>
+    </div>
+  </section>
+
+  {# ===== 3. HOW IT WORKS ===== #}
+  <section class="iro-section iro-section--tint" aria-labelledby="how-title">
+    <div class="iro-wrap">
+      <span class="iro-eyebrow">How it works</span>
+      <h2 class="iro-h2" id="how-title">Three steps, one choke point</h2>
+      <div class="iro-steps">
+        <div class="iro-step">
+          <span class="iro-step__num" aria-hidden="true">1</span>
+          <h3>You message your agent</h3>
+          <p>
+            A message arrives over a channel you connected (Slack, Discord, Telegram, …). The
+            control-plane spins up a fresh, per-conversation sandbox to handle it.
+          </p>
+        </div>
+        <div class="iro-step">
+          <span class="iro-step__num" aria-hidden="true">2</span>
+          <h3>The agent works — sealed off</h3>
+          <p>
+            Inside a <code>network=none</code> gVisor sandbox, the agent reads, writes, schedules,
+            and drafts a reply. It reaches the model only through the host proxy, and the outside
+            world only through an audited, broker-mediated egress allowlist.
+          </p>
+        </div>
+        <div class="iro-step">
+          <span class="iro-step__num" aria-hidden="true">3</span>
+          <h3>Sensitive changes wait for you</h3>
+          <p>
+            Anything that would change what the agent <em>can do</em> is parked at the approval
+            gateway. You approve or reject; the result is applied and written to the audit log.
+            Nothing bypasses that choke point.
+          </p>
+        </div>
+      </div>
+      <p class="iro-flow">
+        <code>message → gateway (HELD) → approve → applied → audit log</code>
+      </p>
+    </div>
+  </section>
+
+  {# ===== 4. PROOF STRIP ===== #}
+  <section class="iro-section" aria-labelledby="trust-title">
+    <div class="iro-wrap">
+      <span class="iro-eyebrow">Why you can trust it</span>
+      <h2 class="iro-h2" id="trust-title">Built to be checked, not taken on faith</h2>
+      <div class="iro-proof">
+        <div>
+          <h3>Runtime trust</h3>
+          <ul class="iro-checklist">
+            <li><code>network=none</code> per-session sandboxes; model access via host proxy only.</li>
+            <li>gVisor (<code>runsc</code>) seal in production — read-only rootfs, dropped caps, <code>nosuid,nodev,noexec</code>.</li>
+            <li>Mandatory human-approval gateway, deny-by-default; agents can't reconfigure themselves.</li>
+            <li>Append-only audit log of every gateway decision.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Supply-chain trust</h3>
+          <ul class="iro-checklist">
+            <li><strong>OpenSSF Best Practices: passing</strong> (live badge).</li>
+            <li><strong>OpenSSF Scorecard</strong> + <strong>CodeQL</strong> run continuously in CI.</li>
+            <li><strong>Reproducible builds</strong> — every release re-derivable from a known commit.</li>
+            <li><strong>cosign-signed</strong> <code>SHA256SUMS</code>, <strong>SBOMs</strong> (SPDX + CycloneDX), and <strong>SLSA</strong> build-provenance; installers verify before executing.</li>
+          </ul>
+        </div>
+      </div>
+      <blockquote class="iro-pullquote">
+        "A release a user cannot verify is not a secured release."
+        <cite>— the bar IronClaw holds itself to</cite>
+      </blockquote>
+      <div class="iro-center-cta">
+        <a class="iro-btn iro-btn--ghost" href="https://ironsecco.github.io/ironclaw/security/">Read the security posture →</a>
+      </div>
+    </div>
+  </section>
+
+  {# ===== 5. ZERO-CREDENTIAL DEMO ===== #}
+  <section class="iro-section iro-section--tint iro-demo" id="demo" aria-labelledby="demo-title">
+    <div class="iro-wrap">
+      <span class="iro-eyebrow">See it work</span>
+      <h2 class="iro-h2" id="demo-title">See it actually work — no key, no signup</h2>
+      <p class="iro-lead">
+        The fastest way to believe any of this is to watch an agent reply on your own machine. The
+        offline <code>mock-agent</code> runs the full <strong>engage → sandbox → reply</strong> path
+        with no model key and no account — it launches a real per-conversation sandbox container and
+        routes the reply back through the encrypted per-session queue.
+      </p>
+
+      <div class="iro-code">
+        <pre id="demo-cmd"><code>git clone https://github.com/IronSecCo/ironclaw.git &amp;&amp; cd ironclaw
+bash container/build.sh                                  <span class="iro-code__cmt"># build the sandbox image once (~1–2 min)</span>
+docker compose -f docker-compose.demo.yml up --build -d  <span class="iro-code__cmt"># start the demo control-plane</span></code></pre>
+        <button type="button" class="iro-copy" data-copy-target="demo-cmd" aria-label="Copy demo commands to clipboard">
+          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span class="iro-copy__label">Copy</span>
+        </button>
+      </div>
+      <p class="iro-caption">
+        Then open <code>http://127.0.0.1:8787/ui/</code> → Chat tab → "Mock Agent (offline)" → say
+        hi. If prompted for a token, paste <code>ironclaw-demo</code>. Tear down with
+        <code>docker compose -f docker-compose.demo.yml down</code>.
+      </p>
+      <p class="iro-footnote">
+        The demo relaxes the seal for convenience — it uses runc (shared host kernel), not gVisor,
+        and a well-known token. The approval gateway, encrypted per-session queues, and host-side
+        credential custody are unchanged. The production <code>docker compose up</code> is the
+        hardened, gVisor posture.
+      </p>
+      <div class="iro-center-cta">
+        <a class="iro-btn iro-btn--primary" href="https://ironsecco.github.io/ironclaw/quickstart/">Full quickstart &amp; your first approved action →</a>
+      </div>
+    </div>
+  </section>
+
+  {# ===== 6. FAQ ===== #}
+  <section class="iro-section" aria-labelledby="faq-title">
+    <div class="iro-wrap">
+      <span class="iro-eyebrow">FAQ</span>
+      <h2 class="iro-h2" id="faq-title">Straight answers</h2>
+      <div class="iro-faq">
+        <details>
+          <summary>Is it really free / open source?</summary>
+          <p>
+            Yes — IronClaw is open source under <strong>AGPLv3</strong>, with a
+            <strong>commercial license</strong> available for teams that can't meet AGPL's terms.
+            Self-hosting needs no account and no payment.
+          </p>
+        </details>
+        <details>
+          <summary>Do I have to hand over my API keys?</summary>
+          <p>
+            Model credentials are held <strong>host-side only</strong> and never enter a sandbox.
+            The demo needs <strong>no key at all</strong>; a real agent reaches a provider through
+            the host proxy.
+          </p>
+        </details>
+        <details>
+          <summary>Does the security actually hold on my OS?</summary>
+          <p>
+            The full gVisor (<code>runsc</code>) seal is <strong>Linux-only</strong>. The whole host
+            side runs natively on macOS, but a real agent sandbox there falls back to runc inside
+            Docker Desktop's Linux VM — a weaker, kernel-shared boundary. Run production on Linux.
+          </p>
+        </details>
+        <details>
+          <summary>Is it production-ready?</summary>
+          <p>
+            It's <strong>alpha</strong>. The control-plane, gateway, and encrypted-queue core have
+            real coverage (800+ Go tests plus a black-box parity suite); channel adapters, some
+            tools, and a live sandbox launch are exercised more lightly. Don't point it at anything
+            you can't afford to lose yet.
+          </p>
+        </details>
+        <details>
+          <summary>How do I know the binary I download is the one you built?</summary>
+          <p>
+            Every release ships cosign signatures, SBOMs, and build-provenance attestations, and the
+            installers verify the <code>SHA256SUMS</code> manifest before running anything. The
+            release runbook walks through verifying it yourself.
+          </p>
+        </details>
+        <details>
+          <summary>How is this different from running an agent framework directly?</summary>
+          <p>
+            Most frameworks trust the agent. IronClaw seals it off from the network and makes every
+            capability change pass a human approval gateway. See the
+            <a href="https://ironsecco.github.io/ironclaw/comparison/">comparison page</a>.
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  {# ===== 7. FINAL CTA ===== #}
+  <section class="iro-section iro-final" aria-labelledby="final-title">
+    <div class="iro-wrap">
+      <h2 class="iro-h2" id="final-title">Run a sealed agent in the next five minutes.</h2>
+      <p>
+        One command, no credentials. If you like what you see, the production path is Linux +
+        gVisor — and every step of it is documented.
+      </p>
+      <div class="iro-cta-row">
+        <a class="iro-btn iro-btn--primary" href="#demo">Run the demo →</a>
+        <a class="iro-btn iro-btn--ghost" href="https://github.com/IronSecCo/ironclaw" rel="noopener">Star on GitHub ★</a>
+      </div>
+      <a class="iro-final__link" href="https://ironsecco.github.io/ironclaw/comparison/">Read the comparison →</a>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block footer %}
+<footer class="iro-footer" aria-label="Site footer">
+  <div class="iro-footer__cols">
+    <div>
+      <h4>Start</h4>
+      <ul>
+        <li><a href="https://ironsecco.github.io/ironclaw/quickstart/">Quickstart</a></li>
+        <li><a href="#demo">Demo</a></li>
+        <li><a href="https://ironsecco.github.io/ironclaw/deployment/">Deployment</a></li>
+        <li><a href="https://ironsecco.github.io/ironclaw/troubleshooting/">Troubleshooting</a></li>
+        <li><a href="https://ironsecco.github.io/ironclaw/faq/">FAQ</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Understand</h4>
+      <ul>
+        <li><a href="https://ironsecco.github.io/ironclaw/architecture/">Architecture</a></li>
+        <li><a href="https://ironsecco.github.io/ironclaw/threat-model/">Threat model</a></li>
+        <li><a href="https://ironsecco.github.io/ironclaw/security/">Security posture</a></li>
+        <li><a href="https://ironsecco.github.io/ironclaw/comparison/">Comparison</a></li>
+        <li><a href="https://ironsecco.github.io/ironclaw/roadmap/">Roadmap</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Project</h4>
+      <ul>
+        <li><a href="https://github.com/IronSecCo/ironclaw" rel="noopener">GitHub repo</a></li>
+        <li><a href="https://github.com/IronSecCo/ironclaw/releases" rel="noopener">Releases</a></li>
+        <li><a href="https://github.com/IronSecCo/ironclaw/blob/main/LICENSE" rel="noopener">License (AGPLv3)</a></li>
+        <li><a href="https://github.com/IronSecCo/ironclaw/blob/main/LICENSING.md" rel="noopener">Commercial license</a></li>
+        <li><a href="https://github.com/IronSecCo/ironclaw/security/policy" rel="noopener">Security policy</a></li>
+      </ul>
+    </div>
+  </div>
+  <p class="iro-footer__base">
+    IronClaw is open source (AGPLv3) by IronSecCo. Alpha software — verify before you rely on it.
+  </p>
+</footer>
+
+{#- Progressive-enhancement copy button. The <pre> is selectable without JS. -#}
+<script>
+  (function () {
+    var btns = document.querySelectorAll(".iro-copy");
+    btns.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var pre = document.getElementById(btn.getAttribute("data-copy-target"));
+        if (!pre) return;
+        var text = pre.innerText.replace(/^\$ /gm, "");
+        var done = function () {
+          var label = btn.querySelector(".iro-copy__label");
+          var prev = label ? label.textContent : "";
+          if (label) label.textContent = "Copied";
+          btn.setAttribute("data-copied", "true");
+          setTimeout(function () {
+            if (label) label.textContent = prev || "Copy";
+            btn.removeAttribute("data-copied");
+          }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, function () {});
+        }
+      });
+    });
+  })();
+</script>
+{% endblock %}

@@ -11,7 +11,10 @@
 {% block extrahead %}
   {#- `page` is None on theme-rendered pages such as 404.html, so guard every
       page.* access (default(..., true) also replaces empty strings). -#}
-  {% set _title = (page.title if page else none) | default(config.site_name, true) %}
+  {#- Prefer an explicit front-matter `title:` over the nav-derived page.title
+      (the homepage's nav label is just "Home", a poor social-share title). -#}
+  {% set _meta_title = (page.meta.title if page and page.meta else none) %}
+  {% set _title = _meta_title | default((page.title if page else none), true) | default(config.site_name, true) %}
   {% set _descr = (page.meta.description if page and page.meta else none) | default(config.site_description, true) %}
   {% set _url = (page.canonical_url if page else none) | default(config.site_url, true) %}
   {% set _image = config.site_url ~ "assets/social-preview.png" %}

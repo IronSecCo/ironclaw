@@ -57,6 +57,8 @@ theme:
 
 extra_css:
   - stylesheets/brand.css
+  # Landing-page styles, scoped under `.iro-landing` (home template only).
+  - stylesheets/landing.css
 
 extra_javascript:
   # Render the bare <div class="mermaid"> blocks (see superfences config below).
