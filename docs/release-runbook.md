@@ -197,6 +197,70 @@ when you need full supply-chain assurance beyond the checksum.
 
 ---
 
+## 4a. Reproducing the published Linux binaries from source (IRO-127)
+
+The strongest guarantee a reproducible-builds reviewer wants is to **rebuild from the source
+commit and get bit-for-bit the same artifacts** the release published — proving the binaries
+contain nothing that isn't in the public source. IronClaw's `linux/amd64` and `linux/arm64`
+artifacts are reproducible this way because the release builds them inside a **digest-pinned
+container** (`golang:1.23.12-bookworm`), so the Go compiler/linker **and** the gcc/glibc that
+compile the vendored SQLCipher C amalgamation are byte-identical for every rebuilder — not
+whatever patch a given `ubuntu-latest` runner happened to ship. Same commit → same toolchain →
+same bytes.
+
+> **Scope.** Only the Linux targets carry this guarantee. macOS and Windows archives are built
+> natively on the host (different SDK / `zip` implementation) and are **not** bit-reproducible
+> across machines — verify those via the cosign signature and provenance attestation (Section 4)
+> instead.
+
+The builder image is pinned by digest in **one place each** in `release.yml` (the `build` job's
+`container:`) and `reproducibility.yml` (the `verify` job's `container:`). To roll the toolchain,
+bump both to the new `golang:<ver>-bookworm@sha256:<digest>` and update the command below.
+
+**To reproduce `linux/amd64` (use `linux/arm64` by swapping `GOARCH` + adding the cross-gcc):**
+
+```sh
+# 1. Check out the EXACT released commit (the tag points at it).
+git clone https://github.com/IronSecCo/ironclaw && cd ironclaw
+git checkout v0.1.<n>          # the release tag you are verifying
+TAG=v0.1.<n>
+
+# 2. Build the binaries inside the same digest-pinned container the release used.
+docker run --rm -v "$PWD":/src -w /src \
+  golang:1.23.12-bookworm@sha256:167053a2bb901972bf2c1611f8f52c44d5fe7e762e5cab213708d82c421614db \
+  bash -c '
+    set -euo pipefail
+    git config --global --add safe.directory /src   # root-in-container reads the mounted .git
+    export CGO_ENABLED=1 GOMAXPROCS=1 GOOS=linux GOARCH=amd64
+    go mod download all
+    ldflags="-s -w -buildid= -X github.com/IronSecCo/ironclaw/internal/version.Version='"$TAG"' -extldflags=-Wl,--build-id=none"
+    mkdir -p dist/pkg
+    for c in controlplane ironctl sandbox; do
+      out=ironctl; [ "$c" = controlplane ] && out=ironclaw-controlplane; [ "$c" = sandbox ] && out=ironclaw-sandbox
+      go build -trimpath -ldflags "$ldflags" -o "dist/pkg/$out" "./cmd/$c"
+    done
+    cp LICENSE README.md dist/pkg/
+    # Deterministic archive (fixed mtime from the commit, sorted, numeric-0 owner, gzip -n):
+    SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+    tar --sort=name --mtime="@${SOURCE_DATE_EPOCH}" --owner=0 --group=0 --numeric-owner \
+        -cf - -C dist/pkg . | gzip -n > "ironclaw_${TAG#v}_linux_amd64.tar.gz"
+    sha256sum "ironclaw_${TAG#v}_linux_amd64.tar.gz" dist/pkg/iron*'
+```
+
+**Compare to the release.** The printed archive hash must equal the `linux_amd64` row of the
+published `SHA256SUMS`, and each printed binary hash must equal what `gh attestation verify
+./<binary> --repo IronSecCo/ironclaw` attests. A match proves the published `linux/amd64` set is
+reproducible from source; a mismatch means either you built a different commit/tag or a
+non-pinned input crept into the release — investigate before trusting it.
+
+**This is enforced in CI.** `reproducibility.yml` builds all three commands twice inside the
+pinned container on **two different host runner images** (`ubuntu-22.04` + `ubuntu-24.04`) and
+fails the build unless the binaries **and** the deterministic archive are byte-identical across
+hosts — i.e. it tests cross-machine reproducibility on every PR and weekly, not just
+same-runner determinism.
+
+---
+
 ## 5. Partial-failure semantics (operator decision)
 
 The release job uploads the binaries + `SHA256SUMS` **first**, then attaches SBOMs, the cosign

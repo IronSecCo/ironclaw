@@ -1,24 +1,28 @@
-# Reproducible-build verification (IRO-32 A4).
+# Reproducible-build verification (IRO-32 A4; cross-machine IRO-127).
 #
-# Proves IronClaw's binaries are bit-for-bit deterministic: build every command twice
-# from a clean checkout with the SAME pinned toolchain and flags the release uses
-# (-trimpath, -buildid=, -extldflags=-Wl,--build-id=none, GOMAXPROCS=1, fixed module
-# versions via go.sum), then assert the two SHA256 sets are identical. A drift here means
-# something non-deterministic crept into the build (an unpinned tool, a timestamp, a
-# map-iteration order in codegen) and the "reproducible builds" guarantee is broken —
-# fail loud.
+# Proves IronClaw's Linux binaries are bit-for-bit deterministic at TWO levels:
+#
+#   1. Same-runner determinism — build every command twice from a clean checkout with
+#      the SAME pinned toolchain and flags the release uses (-trimpath, -buildid=,
+#      -extldflags=-Wl,--build-id=none, GOMAXPROCS=1, fixed module versions via go.sum),
+#      then assert the two SHA256 sets are identical. A drift here means a non-deterministic
+#      input crept in (an unpinned tool, a timestamp, a map-iteration order in codegen).
+#
+#   2. Cross-MACHINE determinism (IRO-127) — run that same double-build inside a
+#      DIGEST-PINNED builder container (golang:1.23.12-bookworm) on two DIFFERENT host
+#      runner images (ubuntu-22.04 and ubuntu-24.04), then assert the resulting hashes
+#      match across hosts. Without the container the cgo C toolchain (gcc/glibc) drifts
+#      between runner images and the absolute hashes diverge — an independent third party
+#      rebuilding from source would NOT reproduce the published SHA256SUMS. Pinning the
+#      toolchain by container digest removes that drift; this job is the test that it did.
+#      The build runs in the exact image release.yml ships, so the linux/amd64 hash this
+#      workflow produces is the one a third party reproduces by following docs/release-runbook.md.
 #
 # All three commands (controlplane, ironctl, sandbox) are hard-asserted reproducible.
-# The control-plane binary was previously a tracked exception (IRO-44). Two factors made
-# it — the largest binary, with the most generic [go.shape...] instantiations and ..stmp_
-# statics — non-deterministic on a multi-core runner, both now removed:
-#   1. The Go compiler/linker resolve ties in symbol ordering in the scheduling order of
-#      their GOMAXPROCS-many goroutines. GOMAXPROCS=1 makes that deterministic.
-#   2. The very first `go build` on a fresh runner races module download/extract (go clean
-#      -cache does not touch the module cache), so build #1 differed from build #2+. A
-#      `go mod download` before the builds removes that seed.
-# With both applied, all three commands build bit-for-bit identically, so the exception is
-# gone and controlplane is gated like the others.
+# The control-plane binary was previously a tracked exception (IRO-44): on a multi-core
+# runner the Go compiler/linker resolved symbol-ordering ties in GOMAXPROCS-goroutine
+# scheduling order, and the first cold `go build` raced module download/extract. GOMAXPROCS=1
+# plus a `go mod download` before the builds removed both seeds, so it is gated like the rest.
 #
 # Runs on PRs to main + weekly so a regression is caught before it ships, without
 # adding cost to the per-push release.
@@ -35,9 +39,24 @@ permissions:
   contents: read
 
 jobs:
+  # Build twice inside the pinned container on each host image. Asserts same-runner
+  # determinism per host and emits the linux/amd64 hash set as an artifact for the
+  # cross-machine compare below.
   verify:
     name: Verify deterministic build
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Two genuinely different host runner images. The build runs inside the pinned
+        # container, so a matching result across these proves the container — not the host
+        # — determines the toolchain (the whole point of IRO-127). If these ever diverge,
+        # host state is leaking into the build.
+        host: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.host }}
+    # The digest-pinned builder image — identical Go compiler/linker AND gcc/glibc for
+    # everyone, regardless of which physical runner GitHub schedules this on.
+    # KEEP IN SYNC with release.yml's build-job container and docs/release-runbook.md.
+    container: golang:1.23.12-bookworm@sha256:167053a2bb901972bf2c1611f8f52c44d5fe7e762e5cab213708d82c421614db
     env:
       CGO_ENABLED: "1"
       # Single-threaded build so symbol-ordering ties resolve deterministically — half of
@@ -46,33 +65,29 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
-        with:
-          # Must match the exact toolchain pin in ci.yml / release.yml — a different
-          # patch can change the emitted binary and is itself a reproducibility break.
-          go-version: "1.23.12"
-          # Don't restore a build cache: cached archives can carry a symbol order frozen
-          # from an earlier *parallel* build, which would contaminate the comparison.
-          cache: false
+      # No setup-go: the container already provides the digest-pinned Go 1.23.12. Installing
+      # a second Go here would defer reproducibility to setup-go's toolchain instead of the
+      # image release.yml actually ships, breaking the "rebuild in this image" guarantee.
 
       - name: Build twice and compare checksums
         shell: bash
+        env:
+          HOST: ${{ matrix.host }}
         run: |
           set -euo pipefail
           # Pre-fetch modules so neither build races a module download/extract on its first
           # run — the second half of the IRO-44 fix (otherwise build A != build B because
           # only A pays the download cost).
           go mod download all
-          # Mirror the release build flags. The version string is fixed (not derived
-          # from git state) so it can't be the source of a difference here. We also
-          # strip the two ELF identifiers that vary across cold rebuilds of a CGO
-          # (external-linked) binary:
-          #   -buildid=                  empties Go's build ID (a content hash that can
-          #                              shift when the action graph is recompiled cold)
-          #   -extldflags=-Wl,--build-id=none  drops the GNU .note.gnu.build-id the
-          #                              external linker (ld) stamps in. This is the
-          #                              standard reproducible-build fix for cgo binaries
-          #                              and is valid here because the runner is Linux.
+          # Mirror the release build flags exactly. The version string is fixed to a constant
+          # here (it is the one input the published build derives from the git tag); to
+          # reproduce a PUBLISHED binary, build with Version set to the release tag instead
+          # (see docs/release-runbook.md). We strip the two ELF identifiers that otherwise
+          # vary across cold rebuilds of a CGO (external-linked) binary:
+          #   -buildid=                        empties Go's content-hash build ID
+          #   -extldflags=-Wl,--build-id=none  drops the GNU .note.gnu.build-id ld stamps in
+          #                                    (the standard reproducible-build fix for cgo;
+          #                                    valid here because the builder is Linux).
           ldflags="-s -w -buildid= -X github.com/IronSecCo/ironclaw/internal/version.Version=repro-check -extldflags=-Wl,--build-id=none"
           build() {
             local dest="$1"
@@ -90,22 +105,73 @@ jobs:
           hashes() { ( cd "$1" && sha256sum controlplane ironctl sandbox ) | awk '{print $2, $1}'; }
           hashes out/a > a.sums
           hashes out/b > b.sums
-          echo "== build A =="; cat a.sums
-          echo "== build B =="; cat b.sums
+          echo "== build A (${HOST}) =="; cat a.sums
+          echo "== build B (${HOST}) =="; cat b.sums
 
-          # Every command MUST be bit-for-bit reproducible — a drift in any of them is a
-          # hard failure (a non-pinned input crept in). controlplane is no longer an
-          # exception: with GOMAXPROCS=1 + pre-fetched modules it builds deterministically
-          # (IRO-44 resolved).
+          # Same-runner determinism: a drift in any command is a hard failure (a non-pinned
+          # input crept in).
           rc=0
           for bin in controlplane ironctl sandbox; do
             a="$(grep "^${bin} " a.sums | awk '{print $2}')"
             b="$(grep "^${bin} " b.sums | awk '{print $2}')"
             if [ "${a}" != "${b}" ]; then
-              echo "::error title=Reproducibility::${bin} is not deterministic: two clean builds differ (${a} vs ${b}). A non-pinned input crept in — investigate before trusting the reproducible-build guarantee." >&2
+              echo "::error title=Reproducibility (${HOST})::${bin} is not deterministic: two clean builds differ (${a} vs ${b}). A non-pinned input crept in — investigate before trusting the reproducible-build guarantee." >&2
               rc=1
             else
-              echo "Reproducible: ${bin} is byte-identical across cold rebuilds (${a})."
+              echo "Reproducible: ${bin} is byte-identical across cold rebuilds on ${HOST} (${a})."
             fi
           done
-          exit "${rc}"
+          [ "${rc}" -eq 0 ] || exit "${rc}"
+
+          # Package out/a into a DETERMINISTIC archive exactly the way release.yml does, then
+          # hash it too. This extends the cross-machine guarantee from the raw binaries up to
+          # the .tar.gz whose digest lands in the published SHA256SUMS — a plain tar/gzip would
+          # bake in mtimes and a gzip timestamp and break that top-level reproducibility even
+          # when the binaries match (IRO-127). SOURCE_DATE_EPOCH is the checked-out commit's
+          # committer date: identical on both host images, recoverable by any rebuilder.
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}" 2>/dev/null || true
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          cp LICENSE README.md out/a/
+          tar --sort=name --mtime="@${SOURCE_DATE_EPOCH}" \
+              --owner=0 --group=0 --numeric-owner \
+              -cf - -C out/a . | gzip -n > repro.tar.gz
+          sha256sum repro.tar.gz | awk '{print $2, $1}' >> a.sums
+
+          # Publish this host's hash set (binaries + deterministic archive; build A == build B
+          # already asserted) for the cross-machine compare. Named per host so the compare job
+          # can diff them.
+          cp a.sums "host.sums"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: repro-sums-${{ matrix.host }}
+          path: host.sums
+          if-no-files-found: error
+          retention-days: 7
+
+  # Cross-machine assertion (IRO-127): the hash sets from the two different host images,
+  # both built in the same pinned container, MUST be identical. If they differ, the
+  # container is NOT fully pinning the toolchain (host state is leaking in) and the
+  # published binaries are not reproducible by an independent rebuild — fail loud.
+  cross-machine:
+    name: Cross-machine bit-identity
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          path: dl
+
+      - name: Assert hashes identical across host images
+        shell: bash
+        run: |
+          set -euo pipefail
+          a="dl/repro-sums-ubuntu-22.04/host.sums"
+          b="dl/repro-sums-ubuntu-24.04/host.sums"
+          echo "== ubuntu-22.04 =="; cat "${a}"
+          echo "== ubuntu-24.04 =="; cat "${b}"
+          if ! diff -u "${a}" "${b}"; then
+            echo "::error title=Cross-machine reproducibility::linux/amd64 binaries built in the SAME pinned container differ across host images (ubuntu-22.04 vs ubuntu-24.04). The builder container is not fully pinning the toolchain — host state is leaking into the build, so an independent rebuild would not reproduce the published SHA256SUMS. Investigate before trusting the reproducible-build guarantee (IRO-127)." >&2
+            exit 1
+          fi
+          echo "Cross-machine reproducible: controlplane, ironctl and sandbox are byte-identical across ubuntu-22.04 and ubuntu-24.04 when built in the pinned container."

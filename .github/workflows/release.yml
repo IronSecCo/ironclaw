@@ -8,6 +8,14 @@ name: Release
 # amalgamation), so each target is built on a runner with a matching C toolchain
 # rather than cross-compiled blind. The only cross-build is linux/arm64, which is
 # pure C and links cleanly with the aarch64 GNU cross-compiler.
+#
+# The Linux legs build INSIDE a digest-pinned container (golang:1.23.12-bookworm,
+# see BUILDER_IMAGE below) so the cgo C toolchain (gcc + glibc) that compiles the
+# SQLCipher amalgamation is byte-identical for everyone — not whatever patch the
+# ubuntu-latest image happens to ship that day. That is what makes the published
+# linux/amd64 + linux/arm64 binaries reproducible by an INDEPENDENT third party,
+# not just twice on the same runner (IRO-127). macOS/Windows build natively on the
+# host. The exact rebuild procedure is documented in docs/release-runbook.md.
 
 on:
   push:
@@ -97,13 +105,25 @@ jobs:
           # Windows x86_64 — native mingw-w64 gcc (preinstalled on the runner).
           - { goos: windows, goarch: amd64, runner: windows-latest, name: windows_amd64 }
     runs-on: ${{ matrix.runner }}
+    # Pin the Linux build toolchain by container DIGEST so the published linux/amd64 +
+    # linux/arm64 artifacts are bit-for-bit reproducible by any independent rebuild, not
+    # just same-runner (IRO-127). golang:1.23.12-bookworm fixes the Go compiler/linker AND
+    # the gcc/glibc that compile the vendored SQLCipher C amalgamation — the cgo toolchain
+    # drift that made ubuntu-latest hashes vary across runners. macOS/Windows legs build
+    # natively on the host; '' = run directly on the runner (no container).
+    # KEEP IN SYNC with reproducibility.yml's BUILDER_IMAGE and docs/release-runbook.md.
+    container: ${{ matrix.goos == 'linux' && 'golang:1.23.12-bookworm@sha256:167053a2bb901972bf2c1611f8f52c44d5fe7e762e5cab213708d82c421614db' || '' }}
     permissions:
       contents: read # checkout
       id-token: write # OIDC token for keyless provenance signing (Sigstore)
       attestations: write # actions/attest-build-provenance over the raw binaries
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      # macOS/Windows build on the host and need Go installed; the Linux legs already get a
+      # digest-pinned Go 1.23.12 from the builder container, so installing a second Go there
+      # would defer reproducibility to setup-go's toolchain instead of the pinned image.
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        if: matrix.goos != 'linux'
         with:
           go-version: "1.23.12"
           # No build-cache restore: a cached archive can carry a symbol order frozen from
@@ -116,8 +136,11 @@ jobs:
         env:
           APT_PKG: ${{ matrix.apt }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y "${APT_PKG}"
+          # The Linux legs run in the builder container as root (no sudo); a host runner
+          # needs sudo. Detect and adapt so the linux/arm64 cross-gcc installs either way.
+          SUDO=""; command -v sudo >/dev/null 2>&1 && SUDO="sudo"
+          $SUDO apt-get update
+          $SUDO apt-get install -y "${APT_PKG}"
 
       - name: Build binaries
         shell: bash
@@ -189,11 +212,34 @@ jobs:
           set -euo pipefail
           base="ironclaw_${VERSION}_${MATRIX_NAME}"
           mkdir -p dist/out
-          if [ "${GOOS}" = "windows" ]; then
-            ( cd dist/pkg && 7z a -tzip "../out/${base}.zip" ./* >/dev/null )
-          else
-            tar -czf "dist/out/${base}.tar.gz" -C dist/pkg .
-          fi
+          case "${GOOS}" in
+            windows)
+              ( cd dist/pkg && 7z a -tzip "../out/${base}.zip" ./* >/dev/null )
+              ;;
+            linux)
+              # Deterministic archive so the linux rows of SHA256SUMS are reproducible by an
+              # INDEPENDENT rebuild, not just the binaries inside (IRO-127). A plain
+              # `tar -czf` embeds each file's mtime and gzip stamps its own timestamp+name,
+              # so two builds of the identical binaries still produce different archive
+              # hashes. We pin all of that:
+              #   SOURCE_DATE_EPOCH (the commit's committer date — recoverable by anyone who
+              #     checks out the tag) → every entry's mtime via --mtime
+              #   --sort=name                → stable entry order (no readdir-order seed)
+              #   --owner=0 --group=0 --numeric-owner → fixed ownership metadata
+              #   gzip -n                    → drop gzip's mtime + original-filename fields
+              # GNU tar (the bookworm builder container) supports all of these. macOS/Windows
+              # are not cross-machine reproducible (different SDK/zip) and keep their default
+              # packaging; only the Linux archives carry the reproducibility guarantee.
+              git config --global --add safe.directory "${GITHUB_WORKSPACE}" 2>/dev/null || true
+              SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+              tar --sort=name --mtime="@${SOURCE_DATE_EPOCH}" \
+                  --owner=0 --group=0 --numeric-owner \
+                  -cf - -C dist/pkg . | gzip -n > "dist/out/${base}.tar.gz"
+              ;;
+            *)
+              tar -czf "dist/out/${base}.tar.gz" -C dist/pkg .
+              ;;
+          esac
           ls -l dist/out
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
