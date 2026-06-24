@@ -145,6 +145,21 @@ func OpenRouterInjector(apiKey string) Injector {
 	}
 }
 
+// GeminiInjector returns an Injector that authenticates requests to the Google
+// Generative Language API (Google AI Studio / Gemini) with a host-held API key via
+// the x-goog-api-key header (e.g. from GOOGLE_API_KEY or GEMINI_API_KEY). Like the
+// others the key lives only on the host and never enters the sandbox. It self-guards
+// on the upstream host so it no-ops for any other provider — safe to compose through
+// MultiInjector.
+func GeminiInjector(apiKey string) Injector {
+	return func(upstreamHost string, req *http.Request) {
+		if !strings.Contains(strings.ToLower(upstreamHost), "generativelanguage.googleapis.com") {
+			return
+		}
+		req.Header.Set("x-goog-api-key", apiKey)
+	}
+}
+
 // MultiInjector composes several provider injectors into one. Each injector
 // self-guards on the upstream host, so for any given request exactly the matching
 // provider's credential is stamped and the rest no-op. This is how the proxy
@@ -229,6 +244,7 @@ func (p *Proxy) Handler() http.Handler {
 				// host-held credential for this upstream.
 				req.Header.Del("Authorization")
 				req.Header.Del("X-Api-Key")
+				req.Header.Del("X-Goog-Api-Key")
 				if p.inject != nil {
 					p.inject(target.Host, req)
 				}

@@ -18,6 +18,7 @@ least one.
 | `ANTHROPIC_API_KEY` | Default/primary provider (`api.anthropic.com`). |
 | `OPENAI_API_KEY` | Allowlists `api.openai.com` when present. |
 | `OPENROUTER_API_KEY` | Allowlists `openrouter.ai` when present. |
+| `GOOGLE_API_KEY` / `GEMINI_API_KEY` | Google Gemini (Google AI Studio). Allowlists `generativelanguage.googleapis.com` and injects the key as `x-goog-api-key`. Select with provider `gemini`. The Gemini CLI's OAuth credential is fronted by the credential gateway (`IRONCLAW_MODEL_GATEWAY_URL`) instead — the same `gemini` provider serves both. |
 
 ### Admin API token
 

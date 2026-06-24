@@ -126,6 +126,8 @@ var modelCredentialEnv = [][2]string{
 	{"ANTHROPIC_API_KEY", "Anthropic"},
 	{"OPENAI_API_KEY", "OpenAI"},
 	{"OPENROUTER_API_KEY", "OpenRouter"},
+	{"GOOGLE_API_KEY", "Google Gemini"},
+	{"GEMINI_API_KEY", "Google Gemini"},
 	{"IRONCLAW_MODEL_GATEWAY_URL", "credential gateway"},
 }
 

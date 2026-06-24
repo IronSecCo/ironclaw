@@ -65,6 +65,10 @@ const (
 	// KindCodex routes to the ChatGPT Codex Responses API (chatgpt.com), powered
 	// by a ChatGPT/Codex OAuth credential injected host-side (e.g. via OneCLI).
 	KindCodex = "codex"
+	// KindGemini routes to the Google Generative Language API
+	// (generativelanguage.googleapis.com) — Google AI Studio with a host-held API
+	// key, or the Gemini CLI's OAuth credential injected via the credential gateway.
+	KindGemini = "gemini"
 	// KindMock is a deterministic, offline backend (no network, no credential)
 	// for local demos and end-to-end tests. See MockProvider.
 	KindMock = "mock"
@@ -106,6 +110,10 @@ func New(cfg Config) (Provider, error) {
 		// NewCodex applies the chatgpt.com upstream host and the default Codex
 		// model when cfg leaves them zero.
 		return NewCodex(cfg), nil
+	case KindGemini:
+		// NewGemini applies the generativelanguage.googleapis.com upstream host and
+		// the default Gemini model when cfg leaves them zero.
+		return NewGemini(cfg), nil
 	case KindMock:
 		// Deterministic offline backend; ignores host/model/socket entirely.
 		return NewMock(cfg), nil
@@ -117,8 +125,9 @@ func New(cfg Config) (Provider, error) {
 // Config configures a Provider. The same struct serves every backend; fields a
 // given backend ignores (e.g. DisableThinking for OpenAI) are simply unused.
 type Config struct {
-	// Kind selects the backend: "" / "anthropic" (default), "openai", or
-	// "openrouter". See New. The kind is chosen per agent group host-side.
+	// Kind selects the backend: "" / "anthropic" (default), "openai",
+	// "openrouter", "codex", or "gemini". See New. The kind is chosen per agent
+	// group host-side.
 	Kind string
 	// SocketPath is the host model-proxy unix socket. Defaults to DefaultSocketPath.
 	SocketPath string
