@@ -117,6 +117,10 @@ Tailscale-bound API, so it adds no public port.)
 The throughline: **treat the agent as untrusted, and make the security boundary something you can
 verify — not something you take on faith.**
 
+> ⚖️ **Weighing your options?** See [**Why IronClaw / vs. the alternatives**](https://ironsecco.github.io/ironclaw/comparison/)
+> for an honest comparison against hosted agent platforms, raw container + LLM glue, and other
+> self-hosted agent runtimes.
+
 ## How it works
 
 Two compiled Go programs that never share memory and talk only through a pair of encrypted SQLite
