@@ -22,6 +22,9 @@ hooks:
 theme:
   name: material
   language: en
+  # Static OG/Twitter social-card meta lives in overrides/main.html (avoids the
+  # material[imaging] system-lib dep that per-page social-card generation needs).
+  custom_dir: overrides
   # Light-wordmark logo so it reads on the steel-blue / navy header bar.
   logo: assets/logo-light.svg
   # Square curved-claw shield — legible at 16px, unlike the wide wordmark.
@@ -54,6 +57,8 @@ theme:
 
 extra_css:
   - stylesheets/brand.css
+  # Landing-page styles, scoped under `.iro-landing` (home template only).
+  - stylesheets/landing.css
 
 extra_javascript:
   # Render the bare <div class="mermaid"> blocks (see superfences config below).
@@ -99,6 +104,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Why IronClaw: comparison.md
   - Get Started:
       - Quickstart: quickstart.md
       - Building from source: building.md
@@ -127,4 +133,5 @@ nav:
   - Reference:
       - API (OpenAPI): reference/api.md
       - Release runbook: release-runbook.md
+      - PR review & reviewer identity: pr-review-process.md
       - Roadmap: roadmap.md
