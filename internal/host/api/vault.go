@@ -25,10 +25,19 @@ import (
 // not keys (the real credential lives only in the host-side injector — see
 // internal/host/egress/vault.go).
 
+// VaultPolicyReader is the read-only view the API needs over the vault policy
+// store. The read surface only ever calls Get, so accepting the interface lets
+// either the in-memory *registry.VaultPolicyStore or the durable
+// *registry.DurableVaultPolicyStore back it — both satisfy this — without the
+// wiring in cmd/controlplane caring which one is configured.
+type VaultPolicyReader interface {
+	Get(contract.AgentGroupID) (registry.VaultPolicy, bool)
+}
+
 // WithVault attaches the host-side per-group vault policy store that backs the
 // GET /v1/vault/policy read surface. nil (the default) leaves the read surface
 // disabled (503), mirroring the other opt-in subsystems.
-func (s *Server) WithVault(store *registry.VaultPolicyStore) *Server {
+func (s *Server) WithVault(store VaultPolicyReader) *Server {
 	s.vault = store
 	return s
 }

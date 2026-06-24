@@ -44,7 +44,7 @@ type Server struct {
 	skills     *skills.Resolver         // curated, signature-verifying skills resolver; nil = skills disabled
 	mcpCatalog *mcp.Catalog             // operator-configured MCP server catalog; nil = MCP disabled
 	mcpBroker  *mcp.Broker              // host MCP broker, for probe/discovery; nil = MCP disabled
-	vault      *registry.VaultPolicyStore // per-group vault policy, for the read surface; nil = vault read disabled
+	vault      VaultPolicyReader        // per-group vault policy, for the read surface; nil = vault read disabled
 	mux        *http.ServeMux
 
 	// Hardening (all opt-in; see hardening.go). Zero values disable the feature.
