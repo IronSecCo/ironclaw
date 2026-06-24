@@ -1,0 +1,115 @@
+# Machine reviewer of record.
+#
+# Posts an approving review on a PR as the ironclaw-reviewer[bot] GitHub App so
+# that main's required-review gate (required_approving_review_count: 1) is
+# satisfied by an actor that is NOT the PR author — without admin bypass.
+#
+# This is NOT an auto-approver. It runs only on manual dispatch by a repo admin
+# and requires a `review_of_record` reference (the Paperclip approval id/URL of
+# the human/board decision). The GitHub approval mechanically reflects that
+# recorded decision. See docs/pr-review-process.md.
+#
+# Inert until the App is installed: without the REVIEWER_APP_* secrets a dispatch
+# fails fast with a clear message. It never runs on push/PR, so it adds no
+# required-check surface and changes no current behaviour.
+
+name: Reviewer approval
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "PR number to approve"
+        required: true
+        type: string
+      review_of_record:
+        description: "Paperclip approval id or URL of the recorded review of record"
+        required: true
+        type: string
+
+# Default to no privileges; grant the minimum per job.
+permissions: {}
+
+jobs:
+  approve:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Validate inputs and reviewer-App configuration
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+          PR: ${{ inputs.pr }}
+          ROR: ${{ inputs.review_of_record }}
+          APP_ID: ${{ secrets.REVIEWER_APP_ID }}
+          APP_KEY: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${ROR// }" ]; then
+            echo "::error::review_of_record is required (the Paperclip approval id/URL)." >&2
+            exit 1
+          fi
+          case "$PR" in
+            ''|*[!0-9]*) echo "::error::pr must be a numeric PR number." >&2; exit 1 ;;
+          esac
+
+          if [ -z "${APP_ID:-}" ] || [ -z "${APP_KEY:-}" ]; then
+            echo "::error::Reviewer App not installed: set REVIEWER_APP_ID and REVIEWER_APP_PRIVATE_KEY secrets first (see docs/pr-review-process.md)." >&2
+            exit 1
+          fi
+
+          # Tighten dispatch (which only requires write) to repo admins.
+          PERM=$(gh api "repos/${GITHUB_REPOSITORY}/collaborators/${ACTOR}/permission" --jq '.permission')
+          if [ "$PERM" != "admin" ]; then
+            echo "::error::${ACTOR} is '${PERM}', not 'admin'. Only a repo admin may dispatch the reviewer approval." >&2
+            exit 1
+          fi
+
+          # PR must be open.
+          STATE=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}" --jq '.state')
+          if [ "$STATE" != "open" ]; then
+            echo "::error::PR #${PR} is '${STATE}', not open." >&2
+            exit 1
+          fi
+
+      - name: Mint reviewer-App installation token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.REVIEWER_APP_ID }}
+          private-key: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
+
+      - name: Post approving review as the reviewer App
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR: ${{ inputs.pr }}
+          ROR: ${{ inputs.review_of_record }}
+          ACTOR: ${{ github.actor }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          set -euo pipefail
+
+          # Guard: the App must not be the PR author (author == approver defeats the gate).
+          APP_LOGIN="${APP_SLUG}[bot]"
+          PR_AUTHOR=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}" --jq '.user.login')
+          if [ "$PR_AUTHOR" = "$APP_LOGIN" ]; then
+            echo "::error::Reviewer App is the PR author; refusing to self-approve." >&2
+            exit 1
+          fi
+
+          BODY="Approved by the IronClaw machine reviewer of record.
+
+          Review of record: ${ROR}
+          Dispatched by repo admin: @${ACTOR}
+
+          This approval mechanically reflects a human/board review recorded in Paperclip.
+          See docs/pr-review-process.md."
+
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}/reviews" \
+            -f event=APPROVE \
+            -f body="$BODY"
+
+          echo "Posted approving review as ${APP_LOGIN} on PR #${PR}."

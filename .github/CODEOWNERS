@@ -1,0 +1,26 @@
+# IronClaw code owners.
+#
+# Documents ownership of the security-critical supply-chain / release surface and
+# the repository's review controls. It also lets GitHub auto-request review from
+# the right owners on matching PRs.
+#
+# Status: ADVISORY. main's ruleset currently has `require_code_owner_review:
+# false`, so these lines do not block merges yet. They are the ready-to-activate
+# path for Option B (a dedicated reviewer account/team). The RECOMMENDED reviewer
+# is the `ironclaw-reviewer` GitHub App (Option A) — a GitHub App cannot be a
+# CODEOWNER, so it is driven by .github/workflows/reviewer-approve.yml instead.
+# See docs/pr-review-process.md.
+#
+# NOTE: the `@IronSecCo/reviewers` team must exist for these owners to resolve;
+# until then GitHub shows a (non-blocking) "unknown owner" notice. Creating the
+# team is step 6 of the human handoff in docs/pr-review-process.md.
+
+# Release & supply-chain pipeline
+/.github/workflows/        @IronSecCo/reviewers
+/.github/rulesets/         @IronSecCo/reviewers
+/.github/CODEOWNERS        @IronSecCo/reviewers
+/.github/reviewer-app-manifest.yml  @IronSecCo/reviewers
+/scripts/install.sh        @IronSecCo/reviewers
+/scripts/install.ps1       @IronSecCo/reviewers
+/docs/pr-review-process.md @IronSecCo/reviewers
+/docs/release-runbook.md   @IronSecCo/reviewers
