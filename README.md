@@ -11,6 +11,7 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](LICENSE)
 [![Commercial license](https://img.shields.io/badge/License-Commercial%20available-555.svg)](LICENSING.md)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/IronSecCo/ironclaw/badge)](https://scorecard.dev/viewer/?uri=github.com/IronSecCo/ironclaw)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13348/badge)](https://www.bestpractices.dev/projects/13348)
 [![CodeQL](https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml/badge.svg)](https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml)
 [![Signed releases (cosign)](https://img.shields.io/badge/releases-cosign%20signed-0a7bbb.svg)](#verifying-a-release)
 [![SBOM: SPDX + CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-44883e.svg)](#verifying-a-release)
@@ -115,6 +116,10 @@ Tailscale-bound API, so it adds no public port.)
 
 The throughline: **treat the agent as untrusted, and make the security boundary something you can
 verify — not something you take on faith.**
+
+> ⚖️ **Weighing your options?** See [**Why IronClaw / vs. the alternatives**](https://ironsecco.github.io/ironclaw/comparison/)
+> for an honest comparison against hosted agent platforms, raw container + LLM glue, and other
+> self-hosted agent runtimes.
 
 ## How it works
 
@@ -823,7 +828,9 @@ home for Q&A, design discussion, and show-and-tell, and it's where maintainers a
   [**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
   — these are small, self-contained, and mentored. See [Contributing](#contributing) for the workflow.
 
-A real-time chat channel (Discord / Matrix) is on the way — once it's live it'll be linked right here.
+We keep the whole community on GitHub — no Discord or Matrix to sign up for.
+[**Discussions**](https://github.com/IronSecCo/ironclaw/discussions) is the live channel: subscribe
+to a category to follow along, and watch the repo for **Announcements**.
 
 ## Contributing
 

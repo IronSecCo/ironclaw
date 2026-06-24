@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/IronSecCo/ironclaw/internal/contract"
+	"github.com/IronSecCo/ironclaw/internal/host/mcp"
 )
 
 // approvalView is the read-model the approvals inbox renders: a pending
@@ -51,7 +52,7 @@ func (s *Server) handleUIApprovals(w http.ResponseWriter, r *http.Request) {
 			RequestedBy:  c.RequestedBy,
 			CreatedAt:    c.CreatedAt.UTC().Format("2006-01-02T15:04:05Z07:00"),
 			Before:       c.Before,
-			After:        c.After,
+			After:        maskApprovalAfter(c.Kind, c.After),
 		}
 		// Best-effort name resolution; absent registry or unknown ids leave the
 		// names empty and the UI shows the raw id.
@@ -66,4 +67,27 @@ func (s *Server) handleUIApprovals(w http.ResponseWriter, r *http.Request) {
 		views = append(views, v)
 	}
 	writeJSON(w, http.StatusOK, views)
+}
+
+// maskApprovalAfter masks secret-bearing values in an approval's After payload before
+// it crosses to the browser. For a ChangeMCPRegister the payload is a proposed MCP
+// ServerConfig that may carry raw credentials in env/headers; the human approver must
+// see the FULL endpoint definition (command/args/image/url/headers — the load-bearing
+// control), but never a plaintext secret. ServerConfig.Public() preserves keys and
+// ${VAR} references while masking raw values. A payload that does not parse is returned
+// unchanged (the verifier already rejected a malformed register, so it never reaches an
+// approval card; this only guards a best-effort projection). Other kinds pass through.
+func maskApprovalAfter(kind contract.ChangeKind, after json.RawMessage) json.RawMessage {
+	if kind != contract.ChangeMCPRegister || len(after) == 0 {
+		return after
+	}
+	var cfg mcp.ServerConfig
+	if err := json.Unmarshal(after, &cfg); err != nil {
+		return after
+	}
+	masked, err := json.Marshal(cfg.Public())
+	if err != nil {
+		return after
+	}
+	return masked
 }

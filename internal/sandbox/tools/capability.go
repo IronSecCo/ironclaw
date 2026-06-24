@@ -36,6 +36,7 @@ var validChangeKinds = map[contract.ChangeKind]struct{}{
 	contract.ChangeMounts:       {},
 	contract.ChangeMCPAccess:    {},
 	contract.ChangeSkillInstall: {},
+	contract.ChangeMCPRegister:  {},
 }
 
 type requestCapabilityChangeInput struct {
@@ -74,12 +75,17 @@ func (t *RequestCapabilityChangeTool) Description() string {
 		"NAME a skill the operator has curated and signed — you cannot author skill content. The host resolves and " +
 		"signature-verifies the named skill, the human approves the exact persona/tools/egress it grants, and it then " +
 		"mounts and takes effect on your next message (same session).\n" +
+		"- Register a brand-new MCP server endpoint (when no operator-configured server has the tools you need): kind " +
+		"\"mcp_register\", payload {\"name\": \"<label>\", \"transport\": \"stdio\"|\"http\", and for stdio {\"command\", \"args\", " +
+		"\"image\", \"env\"} or for http {\"url\", \"headers\"}}. You only PROPOSE the endpoint — the human approves the EXACT " +
+		"command/args/image or url before it is added to the catalog, and registering grants you NOTHING by itself: once it " +
+		"is approved you still request its tools via a separate \"mcp_access\" change.\n" +
 		"Also supports persona, packages, permissions, and mounts. Always include a clear reason for the human approver."
 }
 
 func (t *RequestCapabilityChangeTool) JSONSchema() json.RawMessage {
 	return json.RawMessage(`{"type":"object","properties":{` +
-		`"kind":{"type":"string","enum":["persona","enabled_tools","packages","wiring","permissions","mounts","mcp_access","skill_install"],"description":"The kind of control-plane change requested."},` +
+		`"kind":{"type":"string","enum":["persona","enabled_tools","packages","wiring","permissions","mounts","mcp_access","skill_install","mcp_register"],"description":"The kind of control-plane change requested."},` +
 		`"payload":{"type":"object","description":"The proposed new configuration for this kind."},` +
 		`"reason":{"type":"string","description":"Why the change is needed (shown to the human approver)."}` +
 		`},"required":["kind","payload"],"additionalProperties":false}`)
