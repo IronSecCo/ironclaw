@@ -39,3 +39,14 @@ updates:
     groups:
       docker-bases:
         patterns: ["*"]
+    ignore:
+      # Hold the golang base on the 1.23 line so the container toolchain stays
+      # aligned with go.mod (go 1.23) and the exact setup-go pin (1.23.12) used by
+      # every CI/release build — one toolchain, one reproducible output. Patch
+      # digest refreshes within 1.23.x still flow; a move to a newer Go minor is a
+      # deliberate, coordinated bump (go.mod + setup-go + reproducibility re-verify),
+      # not a container-only drift.
+      - dependency-name: "golang"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
