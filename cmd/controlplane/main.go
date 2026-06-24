@@ -52,6 +52,7 @@ import (
 	"github.com/IronSecCo/ironclaw/internal/host/session"
 	"github.com/IronSecCo/ironclaw/internal/host/skills"
 	"github.com/IronSecCo/ironclaw/internal/host/sweep"
+	"github.com/IronSecCo/ironclaw/internal/host/vaultinjector"
 	"github.com/IronSecCo/ironclaw/internal/obs"
 	"github.com/IronSecCo/ironclaw/internal/sandbox/tools"
 	"github.com/IronSecCo/ironclaw/internal/version"
@@ -86,6 +87,8 @@ func main() {
 		"comma-separated hostnames the egress broker permits (deny-by-default; only used with --egress-socket)")
 	vaultEndpoint := flag.String("vault-endpoint", "",
 		"OPT-IN: host-local credential-injector URL; enables vault://<cred>/<path> routing through the egress broker. Requires --egress-socket")
+	vaultInjectorConfig := flag.String("vault-injector-config", "",
+		"path to the JSON injector config (cred -> {upstream, secretEnv}); supplies the cred->upstream-host map the broker enforces vault policy against. Required with --vault-endpoint")
 	searchBackend := flag.String("search-backend", "",
 		"web_search provider given to each sandbox: duckduckgo (keyless) or brave[:cred] (keyed via the vault). Requires --egress-socket; its host is auto-added to the egress allowlist. Empty disables web_search (--dev defaults it to duckduckgo)")
 	skillsDir := flag.String("skills-dir", "",
@@ -139,6 +142,26 @@ func main() {
 		logger.Error("keys", "error", err)
 		os.Exit(1)
 	}
+
+	// Durable per-group vault policy (threat-model §11): persisted in its own
+	// encrypted SQLCipher DB under the state dir so an approved {credential -> hosts}
+	// grant survives a control-plane restart (deny-by-default still holds for any
+	// group with no row). The DB key is derived from the host master with a distinct
+	// purpose label — never the raw master or a per-session key — so it is stable
+	// across restarts and isolated from the session keystore.
+	master, err := keySource.Master()
+	if err != nil {
+		logger.Error("master key", "error", err)
+		os.Exit(1)
+	}
+	vaultPolicyKey := keys.DeriveSubKey(master, "ironclaw/vault-policy-db/v1")
+	vaultPolicyPath := filepath.Join(*stateDir, "vault-policies.db")
+	vaultPolicies, err := registry.OpenDurableVaultPolicyStore(vaultPolicyPath, vaultPolicyKey)
+	if err != nil {
+		logger.Error("vault policy store", "path", vaultPolicyPath, "error", err)
+		os.Exit(1)
+	}
+	defer vaultPolicies.Close()
 
 	// Registry: the control-plane data model (in-memory dev backend until the
 	// durable, encrypted store is selected at startup).
@@ -271,6 +294,25 @@ func main() {
 		logger.Error("egress broker", "error", err)
 		os.Exit(1)
 	}
+	// Vault enforcement: with --vault-endpoint set, load the injector config so the
+	// broker can enforce per-group policy against the credential's UPSTREAM host (the
+	// host dimension of VaultPolicyStore.Allows). The injector config is the one fact
+	// the broker side shares with the injector: cred -> upstream host. Fail fast on a
+	// missing/invalid config so vault is never enabled without enforceable policy.
+	var vaultCredHosts map[string]string
+	if *vaultEndpoint != "" {
+		if *vaultInjectorConfig == "" {
+			logger.Error("vault", "error", "--vault-endpoint requires --vault-injector-config (cred->upstream host map for policy enforcement)")
+			os.Exit(1)
+		}
+		cfg, cerr := vaultinjector.LoadConfig(*vaultInjectorConfig)
+		if cerr != nil {
+			logger.Error("vault injector config", "error", cerr)
+			os.Exit(1)
+		}
+		vaultCredHosts = cfg.CredHosts()
+		logger.Info("vault enforcement enabled", "credentials", len(vaultCredHosts))
+	}
 	// When a search backend is configured, approve its egress host so web_search is not
 	// present-but-403 (selecting a backend IS the operator opting into reaching it). A
 	// vault-routed backend returns "" here — its injector endpoint is allowlisted via
@@ -369,6 +411,32 @@ func main() {
 	// registry; when egress is enabled, an approved change's egress grants (e.g. a
 	// skill install's bundle) are materialized into the broker's allowlist so the
 	// grant takes effect; every other kind is logged.
+	// Per-group vault policy (threat-model §11): "which agent group may use which
+	// credential against which host", deny-by-default. Mutated only here, through the
+	// gateway apply path after a human approves a vault-policy change; read by the
+	// broker/injector before a credential is used (broker enforcement is wired
+	// separately). Backed by the durable, encrypted store opened above, so an
+	// approved grant survives a restart (IRO-139).
+	//
+	// Wire the broker's vault guard: it enforces per-group policy on a HOST-TRUSTED
+	// session->group mapping (the per-session socket identity, never the spoofable
+	// header). The guard resolves the trusted session's group, looks up the
+	// credential's approved upstream host, and consults the gateway-approved
+	// VaultPolicyStore — deny-by-default on any miss. A revoked grant stops working
+	// immediately (the store is read live).
+	if broker != nil && *vaultEndpoint != "" {
+		broker.SetVaultGuard(func(session, cred string) (string, bool) {
+			host, known := vaultCredHosts[strings.ToLower(strings.TrimSpace(cred))]
+			if !known {
+				return "", false
+			}
+			sess, ok := reg.GetSession(contract.SessionID(session))
+			if !ok {
+				return host, false
+			}
+			return host, vaultPolicies.Allows(sess.AgentGroupID, cred, host)
+		})
+	}
 	var capApplier contract.Applier = gateway.NewLogApplier()
 	capApplier = gateway.NewPersonaApplier(func(id contract.AgentGroupID, persona string) error {
 		return registry.SetPersona(reg, id, persona)
@@ -395,6 +463,16 @@ func main() {
 	// next launch exposes that server's approved tools through the per-session broker.
 	capApplier = gateway.NewMCPAccessApplier(func(id contract.AgentGroupID, server string, tools []string) error {
 		return registry.SetGrantedMCP(reg, id, server, tools)
+	}, capApplier)
+	// An approved vault-policy change records the per-group {credential -> hosts} rules
+	// so subsequent vaulted calls are authorized deny-by-default. The target group is
+	// the change's trusted AgentGroupID, never the payload.
+	capApplier = gateway.NewVaultPolicyApplier(func(id contract.AgentGroupID, rules []gateway.VaultRule) error {
+		rr := make([]registry.VaultRule, 0, len(rules))
+		for _, r := range rules {
+			rr = append(rr, registry.VaultRule{Credential: r.Credential, Hosts: r.Hosts})
+		}
+		return vaultPolicies.Set(registry.VaultPolicy{AgentGroupID: id, Rules: rr})
 	}, capApplier)
 	// An approved ChangeMCPRegister lands the proposed server in the host catalog and
 	// drops any cached broker connection so the next use reconnects with it. It grants
@@ -425,6 +503,7 @@ func main() {
 			gateway.PackageNameVerifier{},
 			gateway.NewCreateAgentVerifier(agentExists),
 			gateway.NewMCPServerVerifier(mcpServerKnown),
+			gateway.VaultPolicyVerifier{},
 			gateway.NewMCPRegisterVerifier(func() bool { return mcpCatalogStore != nil }),
 			gateway.AlwaysRequireHuman{},
 		},
@@ -436,7 +515,7 @@ func main() {
 	// WithRegistry attaches the control-plane registry so the /v1/registry admin
 	// endpoints are live and the approvals read-model (/v1/ui/approvals) can
 	// resolve agent-group/requester names instead of showing raw ids.
-	server := api.New(gw).WithHistory(store).WithAuditPath(auditPath).WithMetrics(m.Handler()).WithRegistry(reg)
+	server := api.New(gw).WithHistory(store).WithAuditPath(auditPath).WithMetrics(m.Handler()).WithRegistry(reg).WithVault(vaultPolicies)
 	// Optional bearer-token auth (defense-in-depth behind the tailnet). Read from
 	// the host environment; never logged.
 	apiToken := os.Getenv("IRONCLAW_API_TOKEN")
@@ -486,6 +565,14 @@ func main() {
 	if mcpBroker != nil {
 		mcpProvisioner = mcpBroker
 	}
+	// Vault enforcement requires a host-trusted session identity, so when vault is
+	// enabled the manager provisions a PER-SESSION egress socket per sandbox (the
+	// socket identity, not the spoofable header). Otherwise it binds the single shared
+	// EgressSocket as before.
+	var egressProvisioner session.EgressProvisioner
+	if broker != nil && *vaultEndpoint != "" {
+		egressProvisioner = broker
+	}
 	manager, err := session.New(session.Config{
 		Factory:          factory,
 		Keys:             custodian,
@@ -494,10 +581,12 @@ func main() {
 		SelectModel:      selectModelFromRegistry(reg),
 		ModelProxySocket: *socket,
 		EgressSocket:     *egressSocket,
+		EgressBroker:     egressProvisioner,
 		SearchBackend:    *searchBackend,
 		SkillsDir:        *skillsDir,
 		MCPBroker:        mcpProvisioner,
 		MCPSocketDir:     filepath.Join(filepath.Dir(*socket), "mcp"),
+		EgressSocketDir:  filepath.Join(filepath.Dir(*socket), "egress"),
 		Image:            *sandboxImage,
 		KeyDir:           filepath.Join(*stateDir, "keys"),
 		WorkspaceRoot:    filepath.Join(*stateDir, "workspaces"),

@@ -57,8 +57,15 @@ type Config struct {
 	// bound into each sandbox so an agent can reach operator-approved external APIs
 	// (and vault://-addressed credentials). Empty (the default) binds no egress
 	// socket, leaving the sandbox sealed to the model proxy alone; the sandbox stays
-	// network=none either way.
+	// network=none either way. Ignored when EgressBroker is set (per-session sockets).
 	EgressSocket string
+	// EgressBroker, when set, provisions a PER-SESSION egress socket per sandbox
+	// instead of binding the single shared EgressSocket. This is required for vault
+	// policy enforcement: the per-session socket gives the broker a host-trusted
+	// session identity (not the spoofable X-Ironclaw-Session header), so per-group
+	// vault grants cannot be escalated by a compromised sandbox. Nil keeps the legacy
+	// shared-socket behavior (allowlist egress only, no per-group vault enforcement).
+	EgressBroker EgressProvisioner
 	// SearchBackend selects the web_search tool's provider ("duckduckgo" or
 	// "brave[:cred]") for every session. It only takes effect alongside EgressSocket
 	// (web_search rides the egress broker); empty registers no search tool.
@@ -76,6 +83,9 @@ type Config struct {
 	// alongside the model-proxy socket in production). Defaults to
 	// <os.TempDir>/ironclaw/mcp.
 	MCPSocketDir string
+	// EgressSocketDir is where per-session egress sockets are created when EgressBroker
+	// is set. Defaults to <os.TempDir>/ironclaw/egress.
+	EgressSocketDir string
 	// Image is the sandbox container image reference recorded in the OCI spec.
 	Image string
 	// KeyDir is where per-session key files are written for hand-off to the sandbox
@@ -108,6 +118,18 @@ type MCPProvisioner interface {
 	// returns its host path, to be bound into that one sandbox.
 	SocketForSession(session, dir string) (string, error)
 	// CloseSession stops serving and removes a session's MCP socket.
+	CloseSession(session string)
+}
+
+// EgressProvisioner provisions a per-session egress broker socket so the broker can
+// trust the session identity for vault policy (the socket identity, not a header).
+// Satisfied host-side by *egress.Broker; a tiny interface so the session package does
+// not import the egress package.
+type EgressProvisioner interface {
+	// SocketForSession creates (idempotently) a per-session egress socket under dir and
+	// returns its host path, to be bound into that one sandbox.
+	SocketForSession(session, dir string) (string, error)
+	// CloseSession stops serving and removes a session's egress socket.
 	CloseSession(session string)
 }
 
@@ -164,6 +186,9 @@ func New(cfg Config) (*Manager, error) {
 	}
 	if cfg.MCPSocketDir == "" {
 		cfg.MCPSocketDir = filepath.Join(os.TempDir(), "ironclaw", "mcp")
+	}
+	if cfg.EgressSocketDir == "" {
+		cfg.EgressSocketDir = filepath.Join(os.TempDir(), "ironclaw", "egress")
 	}
 	if cfg.Clock == nil {
 		cfg.Clock = time.Now
@@ -346,8 +371,20 @@ func (m *Manager) Wake(id contract.SessionID) error {
 	}
 	// Bind the egress-broker socket when the daemon configured one (opt-in); the
 	// sandbox then gets the http_fetch tool and can reach approved hosts + vault://
-	// credentials. Empty keeps the sealed default.
-	if m.cfg.EgressSocket != "" {
+	// credentials. Empty keeps the sealed default. When an EgressBroker is wired,
+	// provision a PER-SESSION socket so the broker can enforce per-group vault policy
+	// against a host-trusted session identity rather than the spoofable header; fall
+	// back to the shared EgressSocket otherwise.
+	if m.cfg.EgressBroker != nil {
+		if sock, err := m.cfg.EgressBroker.SocketForSession(string(id), m.egressSocketDir()); err != nil {
+			// Best-effort: a per-session socket failure leaves the sandbox without egress
+			// rather than blocking launch (the trigger message is already queued).
+			m.cfg.Logger.Printf("host/session: egress socket for %s deferred: %v", id, err)
+		} else {
+			spec.EgressSocket = sock
+			spec.SearchBackend = m.cfg.SearchBackend
+		}
+	} else if m.cfg.EgressSocket != "" {
 		spec.EgressSocket = m.cfg.EgressSocket
 		// web_search rides the egress broker, so the search backend only takes effect
 		// here, alongside a bound egress socket.
@@ -478,6 +515,14 @@ func (m *Manager) Kill(id contract.SessionID, action sweep.StuckAction) error {
 	return m.Stop(context.Background(), id)
 }
 
+// egressSocketDir returns the directory for per-session egress sockets.
+func (m *Manager) egressSocketDir() string {
+	if m.cfg.EgressSocketDir != "" {
+		return m.cfg.EgressSocketDir
+	}
+	return filepath.Join(os.TempDir(), "ironclaw", "egress")
+}
+
 // Stop stops and untracks the sandbox for a session. It is a no-op (nil) if the
 // session is not currently running.
 func (m *Manager) Stop(ctx context.Context, id contract.SessionID) error {
@@ -491,6 +536,10 @@ func (m *Manager) Stop(ctx context.Context, id contract.SessionID) error {
 	// handle was tracked, so resources are freed and a relaunch provisions a fresh one.
 	if m.cfg.MCPBroker != nil {
 		m.cfg.MCPBroker.CloseSession(string(id))
+	}
+	// Tear down the per-session egress socket too, so a relaunch provisions a fresh one.
+	if m.cfg.EgressBroker != nil {
+		m.cfg.EgressBroker.CloseSession(string(id))
 	}
 	if !ok {
 		return nil
