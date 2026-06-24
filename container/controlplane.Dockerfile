@@ -20,7 +20,7 @@
 #   docker build -f container/controlplane.Dockerfile -t ironclaw-controlplane:latest .
 
 # --- build stage ------------------------------------------------------------
-FROM golang:1.23-bookworm@sha256:167053a2bb901972bf2c1611f8f52c44d5fe7e762e5cab213708d82c421614db AS build
+FROM golang:1.26-bookworm@sha256:5f68ec6805843bd3981a951ffada82a26a0bd2631045c8f7dba483fa868f5ec5 AS build
 
 # go-sqlcipher (the encrypted-queue binding) needs CGO + libcrypto headers; the
 # control-plane links it transitively through the encrypted session queues.
