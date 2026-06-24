@@ -140,6 +140,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Durable per-group vault policy (threat-model §11): persisted in its own
+	// encrypted SQLCipher DB under the state dir so an approved {credential -> hosts}
+	// grant survives a control-plane restart (deny-by-default still holds for any
+	// group with no row). The DB key is derived from the host master with a distinct
+	// purpose label — never the raw master or a per-session key — so it is stable
+	// across restarts and isolated from the session keystore.
+	master, err := keySource.Master()
+	if err != nil {
+		logger.Error("master key", "error", err)
+		os.Exit(1)
+	}
+	vaultPolicyKey := keys.DeriveSubKey(master, "ironclaw/vault-policy-db/v1")
+	vaultPolicyPath := filepath.Join(*stateDir, "vault-policies.db")
+	vaultPolicies, err := registry.OpenDurableVaultPolicyStore(vaultPolicyPath, vaultPolicyKey)
+	if err != nil {
+		logger.Error("vault policy store", "path", vaultPolicyPath, "error", err)
+		os.Exit(1)
+	}
+	defer vaultPolicies.Close()
+
 	// Registry: the control-plane data model (in-memory dev backend until the
 	// durable, encrypted store is selected at startup).
 	reg := registry.NewMemRegistry()
@@ -363,9 +383,8 @@ func main() {
 	// credential against which host", deny-by-default. Mutated only here, through the
 	// gateway apply path after a human approves a vault-policy change; read by the
 	// broker/injector before a credential is used (broker enforcement is wired
-	// separately). In-memory today (the registry itself is in-memory in this flow);
-	// durable persistence is tracked as a follow-up.
-	vaultPolicies := registry.NewVaultPolicyStore()
+	// separately). Backed by the durable, encrypted store opened above, so an
+	// approved grant survives a restart (IRO-139).
 	var capApplier contract.Applier = gateway.NewLogApplier()
 	capApplier = gateway.NewPersonaApplier(func(id contract.AgentGroupID, persona string) error {
 		return registry.SetPersona(reg, id, persona)
