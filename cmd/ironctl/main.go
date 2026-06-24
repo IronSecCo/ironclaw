@@ -116,6 +116,11 @@ parse:
 		return cmdMCP(addr, args[1:])
 	}
 
+	// Top-level "vault" command (per-group credential policy: list/grant/revoke/set).
+	if args[0] == "vault" {
+		return cmdVault(addr, args[1:])
+	}
+
 	// Top-level "agent" command (friendly one-shot agent create/list/show/templates).
 	if args[0] == "agent" {
 		return cmdAgent(addr, args[1:])
@@ -303,6 +308,10 @@ func usage() {
   ironctl [--addr URL] [--token T] mcp probe <name>
   ironctl [--addr URL] [--token T] mcp grant <server> --group <id> [--tools a,b] [--by <user>]
   ironctl [--addr URL] [--token T] mcp remove <name>
+  ironctl [--addr URL] [--token T] vault list --group <id> [--json]
+  ironctl [--addr URL] [--token T] vault grant --group <id> --credential C --host H [--host H2]... [--by <user>]
+  ironctl [--addr URL] [--token T] vault revoke --group <id> --credential C [--host H]... [--by <user>]
+  ironctl [--addr URL] [--token T] vault set --group <id> --rule C=h1,h2 [--rule ...] [--by <user>]
 
   --addr  defaults to `+defaultAddr+`
   --token defaults to $IRONCLAW_API_TOKEN
