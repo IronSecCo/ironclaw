@@ -55,7 +55,7 @@ reply flowed back through the encrypted queues. Tear it down with
 > gVisor isolation see [deployment](https://github.com/IronSecCo/ironclaw/blob/main/README.md#deployment).
 
 **Chat with a real model:** set a provider key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
-`OPENROUTER_API_KEY`, …) host-side and point an agent group at that provider. The production deployment
+`OPENROUTER_API_KEY`, `GOOGLE_API_KEY`, …) host-side and point an agent group at that provider. The production deployment
 (gVisor sandboxes + the host model-proxy) is the supported path — see [deployment](https://github.com/IronSecCo/ironclaw/blob/main/README.md#deployment).
 Run `ironctl doctor` any time to diagnose a stuck setup, and `ironctl onboard` for a guided first-run check.
 

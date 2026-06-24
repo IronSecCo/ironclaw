@@ -206,6 +206,16 @@ func main() {
 	if apiKey := os.Getenv("OPENROUTER_API_KEY"); apiKey != "" {
 		addProvider("openrouter.ai", modelproxy.OpenRouterInjector(apiKey), apiKey)
 	}
+	// Google Gemini (Google AI Studio). GOOGLE_API_KEY is preferred; GEMINI_API_KEY
+	// is honored as the Gemini-CLI-conventional fallback. Either enables the
+	// generativelanguage.googleapis.com host and injects the key host-side. The
+	// Gemini CLI's OAuth credential is instead fronted by the credential gateway
+	// (IRONCLAW_MODEL_GATEWAY_URL) — the same `gemini` provider serves both.
+	if apiKey := os.Getenv("GOOGLE_API_KEY"); apiKey != "" {
+		addProvider("generativelanguage.googleapis.com", modelproxy.GeminiInjector(apiKey), apiKey)
+	} else if apiKey := os.Getenv("GEMINI_API_KEY"); apiKey != "" {
+		addProvider("generativelanguage.googleapis.com", modelproxy.GeminiInjector(apiKey), apiKey)
+	}
 	credInjected := len(injectors) > 0
 	if credInjected {
 		proxyOpts = append(proxyOpts,
