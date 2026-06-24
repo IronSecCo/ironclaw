@@ -52,6 +52,7 @@ import (
 	"github.com/IronSecCo/ironclaw/internal/host/session"
 	"github.com/IronSecCo/ironclaw/internal/host/skills"
 	"github.com/IronSecCo/ironclaw/internal/host/sweep"
+	"github.com/IronSecCo/ironclaw/internal/host/vaultinjector"
 	"github.com/IronSecCo/ironclaw/internal/obs"
 	"github.com/IronSecCo/ironclaw/internal/sandbox/tools"
 	"github.com/IronSecCo/ironclaw/internal/version"
@@ -86,6 +87,8 @@ func main() {
 		"comma-separated hostnames the egress broker permits (deny-by-default; only used with --egress-socket)")
 	vaultEndpoint := flag.String("vault-endpoint", "",
 		"OPT-IN: host-local credential-injector URL; enables vault://<cred>/<path> routing through the egress broker. Requires --egress-socket")
+	vaultInjectorConfig := flag.String("vault-injector-config", "",
+		"path to the JSON injector config (cred -> {upstream, secretEnv}); supplies the cred->upstream-host map the broker enforces vault policy against. Required with --vault-endpoint")
 	searchBackend := flag.String("search-backend", "",
 		"web_search provider given to each sandbox: duckduckgo (keyless) or brave[:cred] (keyed via the vault). Requires --egress-socket; its host is auto-added to the egress allowlist. Empty disables web_search (--dev defaults it to duckduckgo)")
 	skillsDir := flag.String("skills-dir", "",
@@ -261,6 +264,25 @@ func main() {
 		logger.Error("egress broker", "error", err)
 		os.Exit(1)
 	}
+	// Vault enforcement: with --vault-endpoint set, load the injector config so the
+	// broker can enforce per-group policy against the credential's UPSTREAM host (the
+	// host dimension of VaultPolicyStore.Allows). The injector config is the one fact
+	// the broker side shares with the injector: cred -> upstream host. Fail fast on a
+	// missing/invalid config so vault is never enabled without enforceable policy.
+	var vaultCredHosts map[string]string
+	if *vaultEndpoint != "" {
+		if *vaultInjectorConfig == "" {
+			logger.Error("vault", "error", "--vault-endpoint requires --vault-injector-config (cred->upstream host map for policy enforcement)")
+			os.Exit(1)
+		}
+		cfg, cerr := vaultinjector.LoadConfig(*vaultInjectorConfig)
+		if cerr != nil {
+			logger.Error("vault injector config", "error", cerr)
+			os.Exit(1)
+		}
+		vaultCredHosts = cfg.CredHosts()
+		logger.Info("vault enforcement enabled", "credentials", len(vaultCredHosts))
+	}
 	// When a search backend is configured, approve its egress host so web_search is not
 	// present-but-403 (selecting a backend IS the operator opting into reaching it). A
 	// vault-routed backend returns "" here — its injector endpoint is allowlisted via
@@ -366,6 +388,25 @@ func main() {
 	// separately). In-memory today (the registry itself is in-memory in this flow);
 	// durable persistence is tracked as a follow-up.
 	vaultPolicies := registry.NewVaultPolicyStore()
+	// Wire the broker's vault guard: it enforces per-group policy on a HOST-TRUSTED
+	// session->group mapping (the per-session socket identity, never the spoofable
+	// header). The guard resolves the trusted session's group, looks up the
+	// credential's approved upstream host, and consults the gateway-approved
+	// VaultPolicyStore — deny-by-default on any miss. A revoked grant stops working
+	// immediately (the store is read live).
+	if broker != nil && *vaultEndpoint != "" {
+		broker.SetVaultGuard(func(session, cred string) (string, bool) {
+			host, known := vaultCredHosts[strings.ToLower(strings.TrimSpace(cred))]
+			if !known {
+				return "", false
+			}
+			sess, ok := reg.GetSession(contract.SessionID(session))
+			if !ok {
+				return host, false
+			}
+			return host, vaultPolicies.Allows(sess.AgentGroupID, cred, host)
+		})
+	}
 	var capApplier contract.Applier = gateway.NewLogApplier()
 	capApplier = gateway.NewPersonaApplier(func(id contract.AgentGroupID, persona string) error {
 		return registry.SetPersona(reg, id, persona)
@@ -478,6 +519,14 @@ func main() {
 	if mcpBroker != nil {
 		mcpProvisioner = mcpBroker
 	}
+	// Vault enforcement requires a host-trusted session identity, so when vault is
+	// enabled the manager provisions a PER-SESSION egress socket per sandbox (the
+	// socket identity, not the spoofable header). Otherwise it binds the single shared
+	// EgressSocket as before.
+	var egressProvisioner session.EgressProvisioner
+	if broker != nil && *vaultEndpoint != "" {
+		egressProvisioner = broker
+	}
 	manager, err := session.New(session.Config{
 		Factory:          factory,
 		Keys:             custodian,
@@ -486,10 +535,12 @@ func main() {
 		SelectModel:      selectModelFromRegistry(reg),
 		ModelProxySocket: *socket,
 		EgressSocket:     *egressSocket,
+		EgressBroker:     egressProvisioner,
 		SearchBackend:    *searchBackend,
 		SkillsDir:        *skillsDir,
 		MCPBroker:        mcpProvisioner,
 		MCPSocketDir:     filepath.Join(filepath.Dir(*socket), "mcp"),
+		EgressSocketDir:  filepath.Join(filepath.Dir(*socket), "egress"),
 		Image:            *sandboxImage,
 		KeyDir:           filepath.Join(*stateDir, "keys"),
 		WorkspaceRoot:    filepath.Join(*stateDir, "workspaces"),

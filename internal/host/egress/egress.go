@@ -71,7 +71,23 @@ type Broker struct {
 	vault      *Vault      // optional vault:// routing to a host-local injector
 	correlator *Correlator // optional broker<->vault audit correlation
 	redactor   *Redactor   // optional broker->sandbox response redaction
+	guard      VaultGuard  // optional per-group vault policy enforcement (trusted session)
+
+	socksMu sync.Mutex
+	socks   map[string]*sessionSock // per-session sockets (host-trusted session identity)
 }
+
+// VaultGuard authorizes a vault-addressed request for a HOST-TRUSTED session, after
+// Forward has resolved the logical credential name. It returns the upstream host the
+// credential targets (for audit) and whether the session's agent group is granted
+// that credential against that host. Deny-by-default: ok is false on any miss
+// (unknown session, group, credential, host, or un-granted policy).
+//
+// Host-side it closes over the session->group registry plus the gateway-approved
+// VaultPolicyStore (registry.VaultPolicyStore.Allows), so a revoked grant stops
+// working immediately. The session passed in is the one the broker TRUSTS — the
+// per-session socket's fixed identity, never the spoofable X-Ironclaw-Session header.
+type VaultGuard func(session, credential string) (upstreamHost string, ok bool)
 
 // Option configures a Broker at construction.
 type Option func(*Broker)
@@ -126,6 +142,29 @@ func WithResponseRedactor(rd *Redactor) Option {
 	return func(b *Broker) { b.redactor = rd }
 }
 
+// WithVaultGuard enables per-group vault policy enforcement. When set, a vault://
+// request is permitted only over a PER-SESSION socket (SocketForSession) whose
+// identity the host created — never the shared Handler socket, where the session is
+// only the spoofable header — and only after the guard authorizes the trusted
+// session's group for the credential. Deny-by-default: an un-granted or un-wired
+// vault is refused 403. Only meaningful alongside WithVault.
+func WithVaultGuard(g VaultGuard) Option {
+	return func(b *Broker) {
+		if g != nil {
+			b.guard = g
+		}
+	}
+}
+
+// SetVaultGuard wires the vault guard after construction (the policy store and the
+// session registry are typically assembled after the broker). Idempotent; a nil
+// guard is ignored so enforcement is never silently dropped.
+func (b *Broker) SetVaultGuard(g VaultGuard) {
+	if g != nil {
+		b.guard = g
+	}
+}
+
 // sessionHeader is the request header the sandbox may set to attribute an egress
 // call to its session in the audit log. It is advisory (audit only) and never a
 // security control.
@@ -145,6 +184,7 @@ func New(approvedHosts []string, opts ...Option) *Broker {
 		allowed:   m,
 		transport: http.DefaultTransport,
 		identify:  func(r *http.Request) string { return r.Header.Get(sessionHeader) },
+		socks:     map[string]*sessionSock{},
 	}
 	for _, o := range opts {
 		o(b)
@@ -200,95 +240,142 @@ func (b *Broker) Allowed(host string) bool {
 
 // Handler returns the http.Handler that enforces the allowlist and reverse-proxies
 // allowed requests to their upstream over HTTPS. Exported so it can be mounted in
-// tests without a real socket.
+// tests without a real socket. This is the SHARED socket: the session is read from
+// the advisory header, so it is UNTRUSTED — vault enforcement (WithVaultGuard) refuses
+// vault addressing here and only honors it on a per-session socket.
 func (b *Broker) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		session := b.identify(r)
+		b.serve(w, r, b.identify(r), false)
+	})
+}
 
-		// Vault routing: a vault://<cred>/<path> request is rewritten to the
-		// configured host-local injector — a SEPARATE principal that holds the
-		// credential. Forward injects no secret (it strips Authorization and tags only
-		// the credential NAME); a correlation id joins this hop to the injector's own
-		// audit. After this, the request targets the injector, which is itself subject
-		// to the allowlist below (deny-by-default like any host).
-		var correlationID, vaultCred string
-		if b.vault != nil {
-			scheme := ""
-			if r.URL != nil {
-				scheme = r.URL.Scheme
+// serve enforces vault policy + the allowlist for one request. session is the id the
+// broker attributes the call to; trusted reports whether that id is host-established
+// (a per-session socket) rather than the advisory header. Vault addressing is honored
+// only on a trusted session when a guard is wired (the spoof defense).
+func (b *Broker) serve(w http.ResponseWriter, r *http.Request, session string, trusted bool) {
+	start := time.Now()
+
+	// Vault routing: a vault://<cred>/<path> request is rewritten to the
+	// configured host-local injector — a SEPARATE principal that holds the
+	// credential. Forward injects no secret (it strips Authorization and tags only
+	// the credential NAME); a correlation id joins this hop to the injector's own
+	// audit. After this, the request targets the injector, which is itself subject
+	// to the allowlist below (deny-by-default like any host).
+	var correlationID, vaultCred string
+	if b.vault != nil {
+		scheme := ""
+		if r.URL != nil {
+			scheme = r.URL.Scheme
+		}
+		if IsVaultAddressed(r.Host, scheme) {
+			// Enforcement requires a host-trusted session. On the shared (untrusted)
+			// socket a vault address is refused outright: a compromised sandbox cannot
+			// reach a credential by spoofing X-Ironclaw-Session — vault is reachable
+			// only over the per-session socket whose identity the host created.
+			if b.guard != nil && !trusted {
+				http.Error(w, "egress: vault requires a per-session binding", http.StatusForbidden)
+				b.emitAudit(AuditRecord{
+					Time: start, Session: session, Method: r.Method, Host: hostLabel(r.Host), Path: pathOf(r),
+					Status: http.StatusForbidden, Allowed: false, RequestBytes: r.ContentLength,
+					Duration: time.Since(start),
+				})
+				return
 			}
-			if IsVaultAddressed(r.Host, scheme) {
-				cred, err := b.vault.Forward(r)
-				if err != nil {
-					http.Error(w, "egress: "+err.Error(), http.StatusForbidden)
+			cred, err := b.vault.Forward(r)
+			if err != nil {
+				http.Error(w, "egress: "+err.Error(), http.StatusForbidden)
+				b.emitAudit(AuditRecord{
+					Time: start, Session: session, Method: r.Method, Host: hostLabel(r.Host), Path: pathOf(r),
+					Status: http.StatusForbidden, Allowed: false, RequestBytes: r.ContentLength,
+					Duration: time.Since(start),
+				})
+				return
+			}
+			vaultCred = cred
+			// Per-group policy, keyed on the host-TRUSTED session->group mapping: the
+			// group must be granted this credential against its upstream host. Deny-by-
+			// default — an un-granted credential is refused 403, audited with the cred
+			// NAME (never a key).
+			if b.guard != nil {
+				upstreamHost, ok := b.guard(session, cred)
+				if !ok {
+					http.Error(w, "egress: vault credential not granted for this agent", http.StatusForbidden)
 					b.emitAudit(AuditRecord{
-						Time: start, Session: session, Method: r.Method, Host: hostLabel(r.Host), Path: pathOf(r),
+						Time: start, Session: session, Method: r.Method, Host: vaultHostFallback(upstreamHost, r.Host), Path: pathOf(r),
 						Status: http.StatusForbidden, Allowed: false, RequestBytes: r.ContentLength,
-						Duration: time.Since(start),
+						Duration: time.Since(start), VaultCredential: vaultCred,
 					})
 					return
 				}
-				vaultCred = cred
-				if b.correlator != nil {
-					if id, e := b.correlator.Stamp(r); e == nil {
-						correlationID = id
-					}
+			}
+			if b.correlator != nil {
+				if id, e := b.correlator.Stamp(r); e == nil {
+					correlationID = id
 				}
 			}
 		}
+	}
 
-		host := r.Host
-		if r.URL != nil && r.URL.Host != "" {
-			host = r.URL.Host
-		}
-		path := pathOf(r)
+	host := r.Host
+	if r.URL != nil && r.URL.Host != "" {
+		host = r.URL.Host
+	}
+	path := pathOf(r)
 
-		if !b.Allowed(host) {
-			http.Error(w, "egress: destination not on allowlist", http.StatusForbidden)
-			b.emitAudit(AuditRecord{
-				Time: start, Session: session, Method: r.Method, Host: host, Path: path,
-				Status: http.StatusForbidden, Allowed: false, RequestBytes: r.ContentLength,
-				Duration: time.Since(start), CorrelationID: correlationID, VaultCredential: vaultCred,
-			})
-			return
-		}
-
-		// Upstream target: external hosts are dialed over HTTPS with the port implied
-		// (the allowlist is bare-host). The host-local vault injector keeps the exact
-		// scheme AND host:port Forward set on it (it may be plain http on a loopback
-		// port).
-		scheme, targetHost := "https", hostOnly(host)
-		if vaultCred != "" && r.URL != nil {
-			scheme, targetHost = r.URL.Scheme, r.URL.Host
-		}
-		target := &url.URL{Scheme: scheme, Host: targetHost}
-		rp := &httputil.ReverseProxy{
-			Director: func(req *http.Request) {
-				req.URL.Scheme = target.Scheme
-				req.URL.Host = target.Host
-				req.Host = target.Host
-				// The audit-only session header is host-internal; never forward it
-				// to the external API.
-				req.Header.Del(sessionHeader)
-			},
-			Transport: b.transport,
-		}
-		if b.redactor != nil {
-			// Scrub configured secrets + credential headers from the response before
-			// it reaches the sandbox.
-			rp.ModifyResponse = b.redactor.Redact
-		}
-
-		rec := &countingRW{ResponseWriter: w}
-		rp.ServeHTTP(rec, r)
+	if !b.Allowed(host) {
+		http.Error(w, "egress: destination not on allowlist", http.StatusForbidden)
 		b.emitAudit(AuditRecord{
 			Time: start, Session: session, Method: r.Method, Host: host, Path: path,
-			Status: rec.status, Allowed: true, RequestBytes: r.ContentLength,
-			ResponseBytes: rec.n, Duration: time.Since(start),
-			CorrelationID: correlationID, VaultCredential: vaultCred,
+			Status: http.StatusForbidden, Allowed: false, RequestBytes: r.ContentLength,
+			Duration: time.Since(start), CorrelationID: correlationID, VaultCredential: vaultCred,
 		})
+		return
+	}
+
+	// Upstream target: external hosts are dialed over HTTPS with the port implied
+	// (the allowlist is bare-host). The host-local vault injector keeps the exact
+	// scheme AND host:port Forward set on it (it may be plain http on a loopback
+	// port).
+	scheme, targetHost := "https", hostOnly(host)
+	if vaultCred != "" && r.URL != nil {
+		scheme, targetHost = r.URL.Scheme, r.URL.Host
+	}
+	target := &url.URL{Scheme: scheme, Host: targetHost}
+	rp := &httputil.ReverseProxy{
+		Director: func(req *http.Request) {
+			req.URL.Scheme = target.Scheme
+			req.URL.Host = target.Host
+			req.Host = target.Host
+			// The audit-only session header is host-internal; never forward it
+			// to the external API.
+			req.Header.Del(sessionHeader)
+		},
+		Transport: b.transport,
+	}
+	if b.redactor != nil {
+		// Scrub configured secrets + credential headers from the response before
+		// it reaches the sandbox.
+		rp.ModifyResponse = b.redactor.Redact
+	}
+
+	rec := &countingRW{ResponseWriter: w}
+	rp.ServeHTTP(rec, r)
+	b.emitAudit(AuditRecord{
+		Time: start, Session: session, Method: r.Method, Host: host, Path: path,
+		Status: rec.status, Allowed: true, RequestBytes: r.ContentLength,
+		ResponseBytes: rec.n, Duration: time.Since(start),
+		CorrelationID: correlationID, VaultCredential: vaultCred,
 	})
+}
+
+// vaultHostFallback returns the upstream host for audit on a vault denial: the guard's
+// resolved host when known, else the request's labelled host (e.g. "vault").
+func vaultHostFallback(upstreamHost, reqHost string) string {
+	if upstreamHost != "" {
+		return upstreamHost
+	}
+	return hostLabel(reqHost)
 }
 
 // pathOf safely reads the request path.
