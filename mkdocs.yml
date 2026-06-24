@@ -130,4 +130,5 @@ nav:
   - Reference:
       - API (OpenAPI): reference/api.md
       - Release runbook: release-runbook.md
+      - PR review & reviewer identity: pr-review-process.md
       - Roadmap: roadmap.md

@@ -1,0 +1,34 @@
+# GitHub App manifest for the IronClaw "machine reviewer of record".
+#
+# This is documentation + the source of truth for the App's settings. GitHub App
+# creation requires an interactive browser session (and yields a private key an
+# agent must never handle), so the App is created by a human following the
+# click-by-click steps in docs/pr-review-process.md. The fields below MUST match
+# what is entered there.
+#
+# Purpose: provide a distinct reviewer actor (ironclaw-reviewer[bot]) so that
+# main's required-review gate can be satisfied without admin bypass, while every
+# agent still operates under the single omerzamir identity. See
+# docs/pr-review-process.md for the full rationale and flow.
+
+name: ironclaw-reviewer
+url: https://github.com/IronSecCo/ironclaw
+description: >-
+  Posts the approving review of record on IronClaw PRs after a human/board
+  review is recorded in Paperclip. Driven only by the manually dispatched
+  reviewer-approve.yml workflow; never auto-approves.
+
+# No webhook: the App is driven by Actions, not events.
+hook_attributes:
+  active: false
+
+public: false
+
+# Least privilege. Only what is needed to post an approving review.
+default_permissions:
+  pull_requests: write   # submit the APPROVE review
+  contents: read         # read PR head / repo metadata
+  metadata: read         # mandatory baseline
+
+# The App is event-driven by nothing; it subscribes to no events.
+default_events: []
