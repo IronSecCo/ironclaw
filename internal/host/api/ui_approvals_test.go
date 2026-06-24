@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,6 +71,54 @@ func TestUIApprovalsEnrichesNames(t *testing.T) {
 	}
 	if string(v.After) != `{"persona":"helpful"}` {
 		t.Errorf("after payload = %s", v.After)
+	}
+}
+
+// TestUIApprovalsMasksMCPRegisterSecrets: an mcp_register approval card must show the
+// FULL proposed endpoint (the load-bearing control the human approves) but never a
+// plaintext secret — raw env/header values are masked, while ${VAR} references and the
+// command/url are preserved.
+func TestUIApprovalsMasksMCPRegisterSecrets(t *testing.T) {
+	store := gateway.NewMemoryStore()
+	gw := gateway.New(
+		gateway.VerifierChain{gateway.AlwaysRequireHuman{}},
+		gateway.NewManualApprover(),
+		gateway.NewLogApplier(),
+		store,
+	)
+	if err := seedPending(store, contract.ChangeRequest{
+		ID:           "reg1",
+		Kind:         contract.ChangeMCPRegister,
+		AgentGroupID: "grp1",
+		RequestedBy:  "user1",
+		After:        json.RawMessage(`{"name":"weather","transport":"http","url":"https://weather.example.com/mcp","headers":{"Authorization":"sk-RAWSECRET","X-Env":"${WEATHER_TOKEN}"}}`),
+		CreatedAt:    time.Now().UTC(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	h := New(gw).Handler()
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/ui/approvals", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d, want 200", rec.Code)
+	}
+	var views []approvalView
+	if err := json.Unmarshal(rec.Body.Bytes(), &views); err != nil {
+		t.Fatal(err)
+	}
+	if len(views) != 1 {
+		t.Fatalf("got %d views, want 1", len(views))
+	}
+	body := string(views[0].After)
+	if !strings.Contains(body, `"weather"`) || !strings.Contains(body, "weather.example.com/mcp") {
+		t.Errorf("endpoint definition not surfaced: %s", body)
+	}
+	if strings.Contains(body, "sk-RAWSECRET") {
+		t.Errorf("raw secret leaked to approval card: %s", body)
+	}
+	if !strings.Contains(body, "${WEATHER_TOKEN}") {
+		t.Errorf("env reference should be preserved (non-secret): %s", body)
 	}
 }
 

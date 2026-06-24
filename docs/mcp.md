@@ -125,9 +125,14 @@ expose.
 
 The agent gets ordinary tools named `‹server›__‹tool›` with the server's own JSON
 schema. Calling one forwards to the broker; a policy denial or an upstream error comes
-back as a tool error the model can read. An agent that wants a server it does not have
-can ask for it with the `request_capability_change` tool (kind `mcp_access`) — which is
-still just a request a human must approve.
+back as a tool error the model can read. An agent that wants tools on a *configured*
+server can ask for them with the `request_capability_change` tool (kind `mcp_access`).
+If no configured server has what it needs, it can go one step earlier and *propose a
+brand-new server endpoint* (kind `mcp_register`, RFC-0007): the human approves the exact
+`command`/`image` or `url` before it lands in the catalog, and the agent then requests
+its tools via the separate `mcp_access` approval. Both are just requests a human must
+approve — closing the OpenClaw register→approve→access→execute loop without a blind
+approval surface.
 
 ## Trying it without a real server
 

@@ -330,6 +330,7 @@ Per-kind `payload` shape:
 | `permissions` | object (role/member grants) | none yet (human reviews) |
 | `mcp_access` | `{"server":"<name>","tools":["<tool>",...]}` (omit `tools` = all the server's declared tools) | `MCPServerVerifier` rejects an unknown server / a tool the server does not declare |
 | `skill_install` | `{"skill":"<name>","version":"<version>"}` | host RESOLVES the named skill (curated source + minisign trust root); an unknown/unsigned/out-of-policy skill is refused before the gateway |
+| `mcp_register` | `{"name","transport":"stdio"\|"http", stdio: "command","args","image","env" \| http: "url","headers"}` | `MCPRegisterVerifier` rejects when MCP is disabled / a malformed def (reusing the catalog's `ServerConfig.Validate`); else require-human |
 
 ### RFC-0005: approval-gated MCP-server access — `ChangeMCPAccess`
 
@@ -377,6 +378,35 @@ operator-only (out-of-session `ironctl skill add` / `POST /v1/skills/install`).
   unknown/unsigned/out-of-policy, the proposal is refused host-side and never reaches the
   gateway. The sandbox can *ask*; only a curated+signed skill an operator provisioned can
   be proposed, and a human still approves it.
+
+### RFC-0007: in-session MCP-server registration — `ChangeMCPRegister`
+
+`mcp_access` (RFC-0005) lets an agent ask for tools on a server **an operator already
+configured**. OpenClaw's full loop is *register → approve → access → execute*: the
+assistant can propose a brand-new server endpoint in chat, a human approves it, and only
+then is it usable. RFC-0007 closes that first hop — **without** weakening the blind-MCP
+gate RFC-0005 closed.
+
+- **One new contract value:** `ChangeMCPRegister = "mcp_register"`. It rides the existing
+  `SystemAction` envelope (`action == "mcp_register"`); the agent reaches it from chat via
+  `request_capability_change` (kind `mcp_register`). `delivery.authorizeSystemAction` maps
+  it (privileged → gateway).
+- **The agent only PROPOSES the endpoint.** The `After` payload is an `mcp.ServerConfig`
+  definition (name + transport + the stdio `command`/`args`/`image` or http `url`/
+  `headers`). The `MCPRegisterVerifier` is **deny-by-default** (reject when MCP is
+  disabled), rejects a malformed def by reusing the catalog's own `ServerConfig.Validate`
+  (empty name, not exactly one of command/url, non-`https` url to a non-loopback host,
+  unknown fields), and otherwise returns **require-human** — never auto-approved.
+- **The human approves the EXACT command/url.** Registering a server introduces a new
+  code-execution / egress surface, so the approval card surfaces the full endpoint
+  definition (secrets in `env`/`headers` masked via `ServerConfig.Public`). On approval the
+  `MCPRegisterApplier` calls `catalog.Put` + `broker.Invalidate(name)`.
+- **Registration grants the proposing agent NOTHING.** An approved register lands the
+  server in the catalog only; the agent must still obtain its tools through the separate,
+  also-human-gated `mcp_access` approval (least-privilege — registering an endpoint and
+  being allowed to call it are two independent human decisions). The server still runs
+  **host-side** behind the per-session broker socket, so the sandbox stays `network=none`
+  and never speaks MCP itself.
 
 Kinds with no automated verifier still pass through the deterministic chain and
 the always-require-human floor; they are simply approved by a human without an

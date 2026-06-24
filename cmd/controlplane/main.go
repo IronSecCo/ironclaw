@@ -386,6 +386,21 @@ func main() {
 	capApplier = gateway.NewMCPAccessApplier(func(id contract.AgentGroupID, server string, tools []string) error {
 		return registry.SetGrantedMCP(reg, id, server, tools)
 	}, capApplier)
+	// An approved ChangeMCPRegister lands the proposed server in the host catalog and
+	// drops any cached broker connection so the next use reconnects with it. It grants
+	// the proposing agent NOTHING — access stays the separate ChangeMCPAccess approval.
+	capApplier = gateway.NewMCPRegisterApplier(func(cfg mcp.ServerConfig) error {
+		if mcpCatalogStore == nil {
+			return fmt.Errorf("mcp register: MCP is not enabled")
+		}
+		if err := mcpCatalogStore.Put(cfg); err != nil {
+			return err
+		}
+		if mcpBroker != nil {
+			mcpBroker.Invalidate(cfg.Name)
+		}
+		return nil
+	}, capApplier)
 	if broker != nil {
 		capApplier = gateway.NewEgressApplier(broker, capApplier)
 	}
@@ -400,6 +415,7 @@ func main() {
 			gateway.PackageNameVerifier{},
 			gateway.NewCreateAgentVerifier(agentExists),
 			gateway.NewMCPServerVerifier(mcpServerKnown),
+			gateway.NewMCPRegisterVerifier(func() bool { return mcpCatalogStore != nil }),
 			gateway.AlwaysRequireHuman{},
 		},
 		gateway.NewManualApprover(),
