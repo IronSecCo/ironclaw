@@ -414,8 +414,9 @@ The reference design IronClaw hardens treated MCP as a **blind approval surface*
 "approve this server" pulled in whatever tools and reach it chose. IronClaw keeps
 MCP entirely **host-side and
 gateway-gated**, so it adds tool reach without adding a boundary the sandbox can
-cross. Design + how-to: [mcp.md](mcp.md); the one frozen-contract value is RFC-0005
-(`ChangeMCPAccess`) in [contract.md](contract.md).
+cross. Design + how-to: [mcp.md](mcp.md); the frozen-contract values are RFC-0005
+(`ChangeMCPAccess`, grant tools on a configured server) and RFC-0007
+(`ChangeMCPRegister`, propose a new server endpoint) in [contract.md](contract.md).
 
 ### The MCP boundary (a new trust edge: broker ↔ MCP server)
 
@@ -458,9 +459,44 @@ or an egress response (§1):
   name (`-e KEY`), never in the argv (no `ps` leak). The broker is **not** a credential
   vault for the agent — it injects the server's own configured auth toward the server,
   never launders a host secret back to the sandbox (the B4-E posture).
-- **Operator-configured catalog, not an agent-supplied URL.** A sandbox can only name a
-  server an operator already configured; it can never point the broker at an arbitrary
-  endpoint.
+- **Human-approved catalog, not an agent-supplied URL.** A sandbox can never silently
+  point the broker at an arbitrary endpoint. A server enters the catalog only via an
+  operator (`ironctl`/API) **or** via an agent's `mcp_register` *proposal* that a human
+  approves — see the next section. Either way, the endpoint the broker dials is one a
+  human chose.
+
+### Registering a new server: `mcp_register` (RFC-0007)
+
+`mcp_access` grants tools on a server **already in the catalog**. `mcp_register`
+(`ChangeMCPRegister`) lets a sandbox *propose a brand-new server endpoint* from chat,
+closing OpenClaw's register→approve→access→execute loop. It is the riskiest MCP edge — a
+proposal can name an arbitrary `command`/`image` (a would-be host RCE) or an arbitrary
+`url` (a would-be egress channel) — so it is gated the hardest:
+
+- **It is a PROPOSAL, never an action.** Like `create_agent`/`mcp_access`, the sandbox can
+  only *emit* an `mcp_register` request (B3); delivery refuses to act on it and routes it
+  to the gateway as a `ChangeMCPRegister` ChangeRequest.
+- **Deny-by-default + validate + require-human.** `MCPRegisterVerifier` rejects when MCP
+  is disabled (an agent cannot turn MCP on), rejects a malformed def by reusing the
+  catalog's own `ServerConfig.Validate` (empty name, not exactly one of command/url,
+  non-`https` url to a non-loopback host, unknown/smuggled fields), and otherwise returns
+  **require-human** — it is never auto-approved.
+- **The human approves the EXACT endpoint.** The approval card surfaces the full
+  definition — `command`/`args`/`image` (stdio) or `url`/`headers` (http) — with secrets
+  in `env`/`headers` masked (`ServerConfig.Public`). The human is approving precisely the
+  code that will run or the host that will be dialed; there is no blind "register whatever
+  the agent typed".
+- **No new execution/egress surface bypasses existing isolation.** An approved local
+  server still runs in the same hardened, `network=none` container as any operator-added
+  local server (above); an approved remote server is still TLS-only and dialed host-side.
+  Registering does not change *where* MCP code runs or *how* it is isolated — it only adds
+  a human-approved entry to the same gated catalog.
+- **Registration grants the proposer nothing.** An approved register lands the server in
+  the catalog and invalidates the broker's cached connection — and stops there. The
+  proposing agent gets **no** tools until a *separate* `mcp_access` approval (the
+  least-privilege split: registering an endpoint and being allowed to call it are two
+  independent human decisions). So even a maliciously-crafted-but-approved server is inert
+  until a second human approval explicitly grants a named tool subset.
 
 ### Residual risk
 
