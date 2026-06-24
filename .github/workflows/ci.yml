@@ -21,7 +21,7 @@ jobs:
       # a trailing comment) so a moved tag can never change what runs in CI. Dependabot
       # (github-actions ecosystem) bumps these SHAs. See OpenSSF Scorecard Pinned-Dependencies.
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           # Exact patch pin (not just "1.23") so every build uses one toolchain — a
           # prerequisite for reproducible builds (IRO-32 A4).
@@ -45,7 +45,7 @@ jobs:
       CGO_ENABLED: "1"
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version: "1.23.12"
       - name: fuzz (short, skills parsing/path surfaces)
