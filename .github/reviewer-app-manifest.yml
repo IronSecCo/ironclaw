@@ -24,10 +24,17 @@ hook_attributes:
 
 public: false
 
-# Least privilege. Only what is needed to post an approving review.
+# Least privilege. Only what is needed to post a *counting* approving review.
 default_permissions:
   pull_requests: write   # submit the APPROVE review
-  contents: read         # read PR head / repo metadata
+  # contents:write (not read) is REQUIRED: GitHub only counts an approving
+  # review toward required approvals if the reviewer has WRITE access to the
+  # repo. With contents:read the App's APPROVE is recorded but not counted
+  # (author_association=NONE, reviewDecision stays REVIEW_REQUIRED). main stays
+  # PR+checks protected, so write here only makes the approval count — it does
+  # not let the App bypass review.
+  # https://docs.github.com/articles/approving-a-pull-request-with-required-reviews
+  contents: write        # required for the App's approval to be counted
   metadata: read         # mandatory baseline
 
 # The App is event-driven by nothing; it subscribes to no events.
