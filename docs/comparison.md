@@ -79,6 +79,12 @@ HTTPS call; the sandbox itself runs with no network of its own.[^creds]
   agent can read and exfiltrate it. IronClaw's host-side injection is designed precisely to
   remove that path.
 
+You can also remove the cloud key **entirely**: point IronClaw at a self-hosted,
+OpenAI-compatible model — **Ollama, LM Studio, vLLM, or llama.cpp** — and the whole stack
+runs on your own hardware with **no cloud credential at all** and no model data leaving the
+box.[^local] Same isolation posture; the proxy just forwards to your loopback instead of an
+upstream API.
+
 ### 3. Capability changes — *can the agent change what it's allowed to do?*
 
 No. Persona, enabled tools, packages, channel wiring, permissions, and mounts are all
@@ -175,6 +181,7 @@ We'd rather you find this out here than after an install:
 [^iso]: Isolation model — gVisor/`runsc` syscall interception, seccomp allowlist, dropped capabilities, read-only rootfs, `network=none`, and the sealed compiled-binary runtime. See the [Security posture](security.md), the [Threat model](threat-model.md), and the [Platform support](https://github.com/IronSecCo/ironclaw#platform-support) table.
 [^platform]: Platform support and the macOS/Windows fallback to runc inside Docker Desktop's Linux VM. See [Platform support](https://github.com/IronSecCo/ironclaw#platform-support).
 [^creds]: Host-side model-proxy key injection; the sandbox has no network and reaches the model only through a host proxy over a Unix socket. See the [Architecture overview](architecture.md) and the data-flow diagram in the [README](https://github.com/IronSecCo/ironclaw#how-it-works).
+[^local]: First-class local / self-hosted model support via any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, llama.cpp). See [Run IronClaw with a 100% local model (Ollama)](tutorials/local-model-ollama.md).
 [^gateway]: Deterministic human-approval gateway; every capability change is held until approved, with no bypass path. See the [Security posture](security.md) and [Quickstart](quickstart.md).
 [^channels]: The 12 shipped channel adapters and how to wire them: [Channels](channels.md).
 [^demo]: Zero-credential offline `mock-agent` demo driving the full chat → sandbox → reply path. See the [Quickstart](quickstart.md) and [Examples](examples.md).

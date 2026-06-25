@@ -114,6 +114,7 @@ nav:
   - Tutorials:
       - Overview: tutorials/index.md
       - Your first sandboxed agent in 5 minutes: tutorials/first-agent.md
+      - Run a 100% local model (Ollama): tutorials/local-model-ollama.md
       - Connect IronClaw to Slack: tutorials/connect-slack.md
       - Write a custom channel adapter: tutorials/custom-channel-adapter.md
   - Examples: examples.md
