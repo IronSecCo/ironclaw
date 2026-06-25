@@ -159,7 +159,7 @@ const Channels = (() => {
     if (!host || host.dataset.rendered) return;
     host.dataset.rendered = "1";
     host.replaceChildren(...ADAPTERS.map((a) => {
-      const input = el("input", { type: "password", placeholder: a.env + " (masked; not sent)", autocomplete: "off" });
+      const input = el("input", { type: "password", "aria-label": a.env + " value", placeholder: a.env + " (masked; not sent)", autocomplete: "off" });
       const cmd = el("pre", { class: "payload", text: "export " + a.env + "=<token>" });
       const reveal = el("button", { class: "ghost", type: "button", text: "Show export line" });
       reveal.addEventListener("click", () => {

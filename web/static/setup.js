@@ -277,7 +277,7 @@ const Setup = (() => {
 
   function renderForm() {
     const host = $("setup-change-form");
-    const select = el("select", { id: "setup-kind" });
+    const select = el("select", { id: "setup-kind", "aria-label": "Change type" });
     for (const [k, spec] of Object.entries(KINDS)) select.append(el("option", { value: k, text: spec.label }));
     const help = el("p", { class: "hint", id: "setup-kind-help" });
     const fieldsBox = el("div", { id: "setup-kind-fields", class: "form-row" });

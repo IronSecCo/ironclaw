@@ -28,7 +28,10 @@
   --radius-xs: 6px;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.28);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
-  --ring: 0 0 0 3px var(--accent-soft);
+  /* Keyboard focus ring: a dark gap then a solid steel-400 band so the indicator
+     stays clearly visible on any surface — inputs, cards, or the light primary
+     button (WCAG 2.4.11 focus appearance). A translucent fill alone read too faint. */
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-2);
   --sidebar-w: 248px;
 }
 
@@ -65,8 +68,25 @@ code {
   font-size: 0.9em;
 }
 
+/* ---- Skip link --------------------------------------------------------- */
+/* Bypass-block (WCAG 2.4.1): off-screen until focused, then anchored top-left
+   above everything so keyboard users see it land. */
+.skip-link {
+  position: fixed; top: 10px; left: 10px; z-index: 100;
+  transform: translateY(-150%); transition: transform 0.16s ease;
+  background: var(--accent); color: var(--accent-ink);
+  padding: 9px 16px; border-radius: var(--radius-sm); font-weight: 650; font-size: 13px;
+  box-shadow: var(--shadow);
+}
+.skip-link:focus-visible { transform: translateY(0); outline: none; box-shadow: var(--ring), var(--shadow); }
+@media (prefers-reduced-motion: reduce) { .skip-link { transition: none; } }
+
 /* ---- App shell --------------------------------------------------------- */
 .app { display: flex; min-height: 100vh; }
+
+/* main is a focus target for the skip link; never show a focus ring on the
+   container itself (it receives focus only programmatically). */
+#main-content:focus { outline: none; }
 
 .sidebar {
   width: var(--sidebar-w);
