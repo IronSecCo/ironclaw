@@ -96,6 +96,37 @@ function emptyState(title, sub, ctaLabel, ctaPanel, icon) {
   return box;
 }
 
+// linkFieldLabels associates each single-control field label with its control so
+// assistive tech announces the field name when the control is focused (WCAG 1.3.1 /
+// 4.1.2). The console builds forms as `<div class="field"><label>…</label><control>`
+// with no `for`; wiring it once here keeps the markup clean and is idempotent, so it
+// can re-run safely when panels render their forms lazily (Setup, MCP grants).
+let _labelSeq = 0;
+function linkFieldLabels(root) {
+  for (const label of (root || document).querySelectorAll(".field > label")) {
+    if (label.htmlFor) continue;                                   // already linked
+    if (label.querySelector("input, select, textarea")) continue; // wrapping label
+    const control = label.parentElement.querySelector("input, select, textarea");
+    if (!control) continue;
+    if (!control.id) control.id = "fld-" + ++_labelSeq;
+    label.htmlFor = control.id;
+  }
+}
+
+// watchDynamicLabels re-links labels for forms built after first paint (e.g. the
+// Setup change-form, MCP tool grants). Scoped to the content area and gated on a
+// `.field` actually being added, so chat/list churn doesn't trigger needless work.
+function watchDynamicLabels() {
+  const target = document.querySelector(".content");
+  if (!target || typeof MutationObserver === "undefined") return;
+  new MutationObserver((muts) => {
+    if (muts.some((m) => [...m.addedNodes].some((n) =>
+      n.nodeType === 1 && (n.matches?.(".field") || n.querySelector?.(".field"))))) {
+      linkFieldLabels();
+    }
+  }).observe(target, { childList: true, subtree: true });
+}
+
 // ---- Agent pickers ---------------------------------------------------------
 // Any <select data-agents> is filled from /v1/ui/agents so an operator picks an
 // agent from a list instead of typing an id. Cached so panel switches are instant.
@@ -301,7 +332,12 @@ function refreshPanel(name) {
 
 function showPanel(name) {
   for (const tab of document.querySelectorAll(".nav-item")) {
-    tab.classList.toggle("active", tab.dataset.panel === name);
+    const on = tab.dataset.panel === name;
+    tab.classList.toggle("active", on);
+    // Convey the active section programmatically — the .active class alone is a
+    // visual-only signal a screen reader can't perceive (WCAG 4.1.2).
+    if (on) tab.setAttribute("aria-current", "page");
+    else tab.removeAttribute("aria-current");
   }
   for (const panel of document.querySelectorAll(".panel")) {
     const on = panel.id === name;
@@ -354,10 +390,22 @@ function init() {
 
   for (const tab of document.querySelectorAll(".nav-item")) {
     tab.addEventListener("click", () => showPanel(tab.dataset.panel));
+    // Mark the section that loads active on first paint so the state is exposed
+    // before the first navigation, not only after a click.
+    if (tab.classList.contains("active")) tab.setAttribute("aria-current", "page");
+    // Give every nav item a stable accessible name. On mobile the text span is
+    // display:none (icon-only), which would otherwise leave the button nameless
+    // to assistive tech (WCAG 4.1.2). textContent survives the CSS hide.
+    const lbl = tab.querySelector("span:not(.nav-badge)");
+    if (lbl && !tab.getAttribute("aria-label")) tab.setAttribute("aria-label", lbl.textContent.trim());
   }
   for (const b of document.querySelectorAll("[data-go]")) {
     b.addEventListener("click", () => goPanel(b.dataset.go));
   }
+
+  // Associate static field labels now and keep lazily-rendered forms covered.
+  linkFieldLabels();
+  watchDynamicLabels();
 
   // Prefill any token already held in this tab so connect() preserves it, then
   // load the visible panel immediately (works on an open loopback; a gated

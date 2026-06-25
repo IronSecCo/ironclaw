@@ -44,7 +44,7 @@ const Agents = (() => {
     box.replaceChildren();
     if (!personaSections.length) {
       // Fallback: a single textarea so persona is still editable if the schema fails.
-      box.append(el("textarea", { id: "ab-persona", rows: "3", placeholder: "How it should behave (optional)" }));
+      box.append(el("textarea", { id: "ab-persona", rows: "3", "aria-label": "Persona", placeholder: "How it should behave (optional)" }));
       return;
     }
     for (const sec of personaSections) {
@@ -53,7 +53,7 @@ const Agents = (() => {
           el("span", { class: "pd-title", text: sec.title }),
           el("span", { class: "pd-file mono", text: sec.filename }),
           el("span", { class: "pd-help", text: sec.help })),
-        el("textarea", { rows: "2", "data-doc": sec.key, placeholder: sec.placeholder })));
+        el("textarea", { id: "ab-doc-" + sec.key, rows: "2", "data-doc": sec.key, "aria-label": sec.title, placeholder: sec.placeholder })));
     }
   }
 

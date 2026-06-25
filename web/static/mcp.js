@@ -100,8 +100,8 @@ const MCP = (() => {
       checks.append(el("label", { class: "muted", style: "display:flex;align-items:center;gap:.3rem;margin-right:.6rem", title: t.description || "" },
         el("input", { type: "checkbox", value: t.name, id }), t.name));
     }
-    const agentSel = el("select", { "data-agents": "" }, el("option", { value: "", text: "Select an agent…" }));
-    const by = el("input", { placeholder: "requested by (e.g. slack:alice)" });
+    const agentSel = el("select", { "data-agents": "", "aria-label": "Grant tools to agent" }, el("option", { value: "", text: "Select an agent…" }));
+    const by = el("input", { "aria-label": "Requested by", placeholder: "requested by (e.g. slack:alice)" });
     const btn = el("button", { class: "btn-primary", type: "button" }, "Request grant (needs approval)");
     btn.addEventListener("click", () => {
       const picked = [...checks.querySelectorAll("input:checked")].map((c) => c.value);
