@@ -304,7 +304,22 @@ intentionally **not vendored**. See [`deploy/README.md`](deploy/README.md) for h
 
 ## Installation
 
-### Prebuilt binaries
+### Homebrew (macOS / Linux)
+
+```sh
+brew tap IronSecCo/ironclaw https://github.com/IronSecCo/ironclaw
+brew install ironclaw
+```
+
+This installs `ironctl`, `ironclaw-controlplane`, and `ironclaw-sandbox` from the latest release. The
+formula pins each archive to the SHA-256 recorded in the release's signed `SHA256SUMS`, so Homebrew
+verifies the download before installing. Confirm it with `ironctl version`.
+
+> In production the control plane usually runs as the GHCR container image (see the
+> [deployment guide](https://ironsecco.github.io/ironclaw/deployment/)); the native
+> `ironclaw-controlplane` binary is convenient for local / `--dev` runs.
+
+### Prebuilt binaries (installer script)
 
 One command installs the latest release — `ironctl` and `ironclaw-controlplane`. The script
 detects your OS/arch, downloads the matching archive from

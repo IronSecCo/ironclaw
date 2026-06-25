@@ -105,6 +105,22 @@ CGO_ENABLED=1 go build -o bin/ ./cmd/controlplane ./cmd/ironctl
 This produces `bin/controlplane` (the host daemon) and `bin/ironctl` (the admin CLI).
 If the build fails with an SQLite/cgo error, your C toolchain isn't set up — see Prerequisites.
 
+!!! tip "Prefer a prebuilt binary? Skip the build."
+    On macOS or Linux you can install the latest checksum-verified release instead of building:
+
+    ```sh
+    # Homebrew (macOS / Linux)
+    brew tap IronSecCo/ironclaw https://github.com/IronSecCo/ironclaw
+    brew install ironclaw
+
+    # …or the one-line installer (verifies SHA256SUMS before installing)
+    curl -fsSL https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/install.sh | sh
+    ```
+
+    Both put `ironctl`, `ironclaw-controlplane`, and `ironclaw-sandbox` on your `PATH`. If you take
+    this path, run `ironclaw-controlplane` wherever the steps below say `./bin/controlplane`. See
+    [Installation](https://github.com/IronSecCo/ironclaw#installation) for all options.
+
 ## 2. Start the control-plane (Terminal 1)
 
 ```sh

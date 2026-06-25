@@ -3,7 +3,8 @@
 Operational guide for cutting, verifying, and yanking an IronClaw release.
 
 **Owner:** Relay (Release Engineer). **Scope:** `.github/workflows/release.yml`,
-`.github/workflows/image.yml`, `scripts/install.sh`, `scripts/install.ps1`.
+`.github/workflows/image.yml`, `scripts/install.sh`, `scripts/install.ps1`,
+`scripts/update-homebrew-formula.sh`, `Formula/ironclaw.rb`.
 
 This runbook documents the pipeline as it ships on `main`. Where a section names an
 in-flight ticket (e.g. the post-release smoke gate), that capability is landing
@@ -148,6 +149,44 @@ A `smoke` job installs the freshly-cut release through the real, checksum-verify
 Release run red, which also blocks the Image workflow (it chains on Release `success`). A red
 smoke run on an already-published release is the signal to **yank** (the assets are out by
 that point). This gate lands with IRO-15.
+
+### 3.6 Bump the Homebrew formula (after a release you want `brew install` to track)
+
+`brew install ironclaw` is served by `Formula/ironclaw.rb` in this repo, tapped with
+`brew tap IronSecCo/ironclaw https://github.com/IronSecCo/ironclaw`. The formula pins each
+platform archive to the SHA-256 recorded in that release's **signed `SHA256SUMS`** — the same
+trust anchor `install.sh` uses — so a `brew` user gets the same checksum-verified bytes.
+
+Because a new release is cut on every push to `main`, the formula is intentionally **pinned, not
+auto-tracking**: it points at one specific tag and is bumped deliberately. There is **no CI job
+that pushes to `main`** to do this — that would need a branch-protection bypass, which we do not
+grant. Bump it with the generator instead, which reads the published `SHA256SUMS` and never
+invents a checksum:
+
+```sh
+# Pin the formula to a specific release (or omit the tag for the latest):
+scripts/update-homebrew-formula.sh v0.1.123
+
+# Review, then commit + open a PR (it goes through the normal required checks):
+git add Formula/ironclaw.rb
+git commit -m "chore(brew): bump formula to v0.1.123"
+gh pr create --fill
+```
+
+Verify locally before merging (requires Homebrew):
+
+```sh
+brew style Formula/ironclaw.rb          # lint
+# install through a throwaway tap and run the test block:
+TAP="$(brew --repository)/Library/Taps/ironsecco/homebrew-ironclaw"
+mkdir -p "$TAP/Formula" && cp Formula/ironclaw.rb "$TAP/Formula/"
+brew install ironsecco/ironclaw/ironclaw && brew test ironclaw   # asserts `ironctl version`
+brew uninstall ironclaw; rm -rf "$TAP"
+```
+
+You don't have to bump on every push — refresh the formula on releases you want `brew` users to
+land on. Pinning to an old/yanked tag is fail-safe: the URLs 404 and `brew install` errors rather
+than installing something unverifiable.
 
 ---
 
@@ -307,6 +346,9 @@ gh release view <tag> --json assets -q '.assets[].name'
 gh release delete <tag> --yes --cleanup-tag
 gh release edit <previous-good-tag> --latest
 
+# Bump the Homebrew formula to a release (omit the tag for the latest)
+scripts/update-homebrew-formula.sh v0.1.123
+
 # Verify (user path)
 cosign verify-blob SHA256SUMS --signature SHA256SUMS.sig --certificate SHA256SUMS.pem \
   --certificate-identity-regexp '^https://github.com/IronSecCo/ironclaw/' \
@@ -320,4 +362,4 @@ gh attestation verify ./ironctl --repo IronSecCo/ironclaw   # extracted binary
 
 *Related tickets:* pipeline handoff IRO-12; this runbook
 IRO-16; arm64 image IRO-13; ruleset enforcement
-IRO-14; release smoke test IRO-15.
+IRO-14; release smoke test IRO-15; Homebrew formula IRO-175.
