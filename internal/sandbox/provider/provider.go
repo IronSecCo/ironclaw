@@ -75,6 +75,17 @@ const (
 	// in the URL path, and auth is an OAuth2 bearer (gcloud ADC / service account)
 	// injected host-side, not a static API key. See NewVertex.
 	KindVertex = "vertex"
+	// KindLocal routes to a LOCAL, self-hosted OpenAI-compatible model server —
+	// Ollama (http://localhost:11434/v1), LM Studio, vLLM, or llama.cpp — running on
+	// the operator's own machine. It speaks the identical Chat Completions wire
+	// format as KindOpenAI (the same /v1/chat/completions path), so it reuses
+	// OpenAIProvider; the only difference is that the upstream is the operator's
+	// loopback host (set host-side; there is no sensible default) and that NO cloud
+	// credential is required — the host model-proxy forwards to the local server over
+	// plain HTTP and injects a key only if the operator configured one. This is the
+	// "100% local, zero cloud credential" path: the model runs on the same box, so no
+	// data leaves it. See New (requires UpstreamHost) and modelproxy.WithInsecureUpstreams.
+	KindLocal = "local"
 	// KindMock is a deterministic, offline backend (no network, no credential)
 	// for local demos and end-to-end tests. See MockProvider.
 	KindMock = "mock"
@@ -125,6 +136,17 @@ func New(cfg Config) (Provider, error) {
 		// Vertex URL from cfg.Project/cfg.Location and derives the regional
 		// {location}-aiplatform.googleapis.com host when cfg leaves them zero.
 		return NewVertex(cfg), nil
+	case KindLocal:
+		// Local, self-hosted OpenAI-compatible server (Ollama, LM Studio, vLLM,
+		// llama.cpp). It is OpenAI wire-compatible, so it reuses OpenAIProvider — but
+		// there is no default loopback host, so require one explicitly rather than
+		// silently falling back to api.openai.com (which would send "local" traffic to
+		// the cloud). The operator always passes the model id too; NewOpenAI keeps its
+		// own default only as a last resort.
+		if cfg.UpstreamHost == "" {
+			return nil, fmt.Errorf("sandbox/provider: local provider requires an upstream host (set --model-host, e.g. localhost:11434)")
+		}
+		return NewOpenAI(cfg), nil
 	case KindMock:
 		// Deterministic offline backend; ignores host/model/socket entirely.
 		return NewMock(cfg), nil
@@ -137,8 +159,8 @@ func New(cfg Config) (Provider, error) {
 // given backend ignores (e.g. DisableThinking for OpenAI) are simply unused.
 type Config struct {
 	// Kind selects the backend: "" / "anthropic" (default), "openai",
-	// "openrouter", "codex", "gemini", or "vertex". See New. The kind is chosen per
-	// agent group host-side.
+	// "openrouter", "codex", "gemini", "vertex", or "local". See New. The kind is
+	// chosen per agent group host-side.
 	Kind string
 	// Project and Location are the Google Cloud project id and region used by the
 	// Vertex AI backend (KindVertex); they ride in the request URL path. They are

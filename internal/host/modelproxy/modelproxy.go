@@ -38,6 +38,11 @@ type Injector func(upstreamHost string, req *http.Request)
 type Proxy struct {
 	mu      sync.RWMutex
 	allowed map[string]struct{}
+	// insecure marks allowlisted hosts that are reached over plain HTTP instead of
+	// HTTPS — loopback model servers (Ollama, LM Studio, vLLM, llama.cpp) that serve
+	// the OpenAI-compatible API without TLS. Keyed exactly as registered (host or
+	// host:port). Never set for a real remote upstream.
+	insecure map[string]struct{}
 	// transport is used for upstream calls; overridable in tests.
 	transport http.RoundTripper
 	// inject, if set, stamps the host-held credential onto each forwarded
@@ -56,6 +61,25 @@ type Option func(*Proxy)
 
 // WithInjector sets the credential injector (the host-side authenticator).
 func WithInjector(f Injector) Option { return func(p *Proxy) { p.inject = f } }
+
+// WithInsecureUpstreams marks allowlisted hosts that the proxy reaches over plain
+// HTTP instead of HTTPS, preserving any explicit port. This is for a local,
+// loopback OpenAI-compatible model server (Ollama at localhost:11434, LM Studio,
+// vLLM, llama.cpp) that serves the API without TLS — the "100% local, zero cloud
+// credential" path. Hosts must also be on the allowlist (pass them to New). Never
+// use this for a real remote upstream: plain HTTP would expose the request.
+func WithInsecureUpstreams(hosts ...string) Option {
+	return func(p *Proxy) {
+		if p.insecure == nil {
+			p.insecure = make(map[string]struct{}, len(hosts))
+		}
+		for _, h := range hosts {
+			if h = strings.ToLower(strings.TrimSpace(h)); h != "" {
+				p.insecure[h] = struct{}{}
+			}
+		}
+	}
+}
 
 // WithTransport overrides the upstream RoundTripper (used in tests).
 func WithTransport(rt http.RoundTripper) Option {
@@ -160,6 +184,37 @@ func GeminiInjector(apiKey string) Injector {
 	}
 }
 
+// LocalInjector returns an Injector that authenticates requests to a local
+// OpenAI-compatible model server (Ollama, LM Studio, vLLM, llama.cpp) with an
+// OPTIONAL host-held API key via the Bearer scheme. Most local servers need no
+// credential at all — pass an empty apiKey and this injector is a no-op (the proxy
+// forwards with no Authorization header). A non-empty key is for the rare local
+// server configured to require one (e.g. a vLLM deployment). It self-guards on the
+// exact upstream host so it never leaks the key to any other provider. host is the
+// allowlist entry (host or host:port); the key, when set, lives only on the host
+// and never enters the sandbox.
+func LocalInjector(host, apiKey string) Injector {
+	host = strings.ToLower(strings.TrimSpace(host))
+	bare := host
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		bare = h
+	}
+	return func(upstreamHost string, req *http.Request) {
+		if apiKey == "" {
+			return
+		}
+		u := strings.ToLower(strings.TrimSpace(upstreamHost))
+		ub := u
+		if h, _, err := net.SplitHostPort(u); err == nil {
+			ub = h
+		}
+		if u != host && ub != bare {
+			return
+		}
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+}
+
 // MultiInjector composes several provider injectors into one. Each injector
 // self-guards on the upstream host, so for any given request exactly the matching
 // provider's credential is stamped and the rest no-op. This is how the proxy
@@ -190,6 +245,27 @@ func (p *Proxy) allowedHost(host string) bool {
 	}
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		if _, ok := p.allowed[h]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// insecureUpstream reports whether host is registered (via WithInsecureUpstreams)
+// to be reached over plain HTTP instead of HTTPS. Like allowedHost it matches the
+// full host:port and the bare host.
+func (p *Proxy) insecureUpstream(host string) bool {
+	host = strings.ToLower(strings.TrimSpace(host))
+	if host == "" {
+		return false
+	}
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	if _, ok := p.insecure[host]; ok {
+		return true
+	}
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		if _, ok := p.insecure[h]; ok {
 			return true
 		}
 	}
@@ -233,7 +309,15 @@ func (p *Proxy) Handler() http.Handler {
 			return
 		}
 
+		// Default to HTTPS with the scheme-implied port stripped. A registered
+		// insecure (local/loopback) upstream is reached over plain HTTP with its
+		// explicit port preserved — Ollama et al. listen on a non-standard port
+		// (e.g. localhost:11434) and serve no TLS.
 		target := &url.URL{Scheme: "https", Host: hostOnly(host)}
+		if p.insecureUpstream(host) {
+			target.Scheme = "http"
+			target.Host = host
+		}
 		rp := &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
 				req.URL.Scheme = target.Scheme
