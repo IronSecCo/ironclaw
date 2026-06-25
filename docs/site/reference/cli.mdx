@@ -61,9 +61,16 @@ model credential, point at the sandbox image build, and verify the API is reacha
 ## Observability
 
 ```sh
-ironctl status [--json]       # control-plane status summary
-ironctl doctor [--runtime BIN] [--model-proxy-socket PATH]   # environment + readiness checks
-ironctl usage  [--json]       # model-call usage / metrics
+ironctl status  [--json]       # control-plane status summary
+ironctl doctor  [--runtime BIN] [--model-proxy-socket PATH]   # environment + readiness checks
+ironctl metrics [--json]       # model-call usage / metrics (queries /metrics)
+```
+
+## Help
+
+```sh
+ironctl help                   # short, friendly first-run banner (also: ironctl, --help, -h)
+ironctl usage                  # full command reference to stdout (also: ironctl commands)
 ```
 
 ## Skills

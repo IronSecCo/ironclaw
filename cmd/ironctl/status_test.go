@@ -105,10 +105,21 @@ ironclaw_model_call_duration_seconds_count 42
 	}
 }
 
-func TestUsageCommandSmoke(t *testing.T) {
+func TestMetricsCommandSmoke(t *testing.T) {
 	token = ""
 	srv, _, _ := newStatusServer(t)
-	if err := run([]string{"--addr", srv.URL, "usage", "--json"}); err != nil {
-		t.Fatalf("ironctl usage: %v", err)
+	if err := run([]string{"--addr", srv.URL, "metrics", "--json"}); err != nil {
+		t.Fatalf("ironctl metrics: %v", err)
+	}
+}
+
+// `ironctl usage` / `commands` print the full command reference to stdout and
+// exit 0 — they must not hit the network (no daemon on a fresh machine).
+func TestUsageCommandPrintsReference(t *testing.T) {
+	token = ""
+	for _, name := range []string{"usage", "commands"} {
+		if err := run([]string{name}); err != nil {
+			t.Fatalf("ironctl %s: unexpected error %v", name, err)
+		}
 	}
 }
