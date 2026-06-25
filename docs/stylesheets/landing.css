@@ -449,6 +449,27 @@
   color: var(--md-default-fg-color--light);
 }
 .iro-demo .iro-caption strong { color: var(--md-default-fg-color); }
+
+/* Animated terminal re-enactment — framed to match the code/card panels. */
+.iro-cast {
+  margin: 0 0 var(--s-5);
+  max-width: 760px;
+}
+.iro-cast img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid rgba(99, 160, 255, 0.28);
+  border-radius: var(--iro-radius);
+  background: var(--iro-navy-950);
+  box-shadow: 0 0.4rem 1.2rem rgba(11, 17, 36, 0.18);
+}
+.iro-cast__cap {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--md-default-fg-color--light);
+}
 .iro-footnote {
   margin: var(--s-4) 0 0;
   font-size: 0.86rem;
