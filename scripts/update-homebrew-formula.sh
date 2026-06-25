@@ -55,6 +55,9 @@ LINUX_AMD64="$(sum "ironclaw_${VERSION}_linux_amd64.tar.gz")"
 base="https://github.com/${REPO}/releases/download/${TAG}"
 
 mkdir -p "${ROOT}/Formula"
+# NOTE: this is an UNQUOTED heredoc so ${VERSION}/${TAG}/${base}/${sha} expand. Do
+# NOT put backticks or $(...) in the template below — the shell would execute them.
+# Ruby string interpolation (#{version}, #{bin}) is safe (no leading $).
 cat > "$OUT" <<EOF
 # typed: false
 # frozen_string_literal: true
@@ -66,7 +69,11 @@ cat > "$OUT" <<EOF
 # newer release, re-run that script and commit the result.
 #
 # Install:  brew tap IronSecCo/ironclaw https://github.com/IronSecCo/ironclaw
-#           brew install ironclaw
+#           brew install ironsecco/ironclaw/ironclaw
+#
+# NOTE: homebrew-core ships an UNRELATED formula also named "ironclaw", and core
+# wins the bare name. Always install the fully-qualified tap formula above; a bare
+# "brew install ironclaw" would fetch the core package, not this one.
 class Ironclaw < Formula
   desc "Security-hardened, self-hosted AI assistant platform (secured Go port)"
   homepage "https://github.com/IronSecCo/ironclaw"

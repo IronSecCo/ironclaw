@@ -8,7 +8,11 @@
 # newer release, re-run that script and commit the result.
 #
 # Install:  brew tap IronSecCo/ironclaw https://github.com/IronSecCo/ironclaw
-#           brew install ironclaw
+#           brew install ironsecco/ironclaw/ironclaw
+#
+# NOTE: homebrew-core ships an UNRELATED formula also named "ironclaw", and core
+# wins the bare name. Always install the fully-qualified tap formula above; a bare
+# "brew install ironclaw" would fetch the core package, not this one.
 class Ironclaw < Formula
   desc "Security-hardened, self-hosted AI assistant platform (secured Go port)"
   homepage "https://github.com/IronSecCo/ironclaw"
