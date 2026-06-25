@@ -210,6 +210,13 @@
         routes the reply back through the encrypted per-session queue.
       </p>
 
+      {# Animated re-enactment of the verified zero-credential chat demo (scripts/demo/build.sh). #}
+      <figure class="iro-cast">
+        <img src="{{ base_url }}/assets/demo.svg" loading="lazy" decoding="async" width="960" height="624"
+             alt="Zero-credential chat demo terminal session: one command (docker compose -f docker-compose.demo.yml up -d) starts the offline mock-agent control-plane with no API key; a chat message engages the agent, which launches a real per-session sandbox container (ic-sbx-…); the reply flows back through the encrypted per-session queue.">
+        <figcaption class="iro-cast__cap">A faithful re-enactment of the commands below. Animation respects <code>prefers-reduced-motion</code>.</figcaption>
+      </figure>
+
       <div class="iro-code">
         <pre id="demo-cmd"><code>git clone https://github.com/IronSecCo/ironclaw.git &amp;&amp; cd ironclaw
 bash container/build.sh                                  <span class="iro-code__cmt"># build the sandbox image once (~1–2 min)</span>
