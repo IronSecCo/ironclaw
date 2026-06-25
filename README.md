@@ -308,12 +308,16 @@ intentionally **not vendored**. See [`deploy/README.md`](deploy/README.md) for h
 
 ```sh
 brew tap IronSecCo/ironclaw https://github.com/IronSecCo/ironclaw
-brew install ironclaw
+brew install ironsecco/ironclaw/ironclaw
 ```
 
 This installs `ironctl`, `ironclaw-controlplane`, and `ironclaw-sandbox` from the latest release. The
 formula pins each archive to the SHA-256 recorded in the release's signed `SHA256SUMS`, so Homebrew
 verifies the download before installing. Confirm it with `ironctl version`.
+
+> **Use the fully-qualified name.** homebrew-core ships an *unrelated* formula also called `ironclaw`,
+> and core wins the bare name — so install `ironsecco/ironclaw/ironclaw`, not bare `ironclaw`. The
+> explicit tap URL is required too: our tap lives in this repo, not a `homebrew-ironclaw` repo.
 
 > In production the control plane usually runs as the GHCR container image (see the
 > [deployment guide](https://ironsecco.github.io/ironclaw/deployment/)); the native

@@ -152,10 +152,15 @@ that point). This gate lands with IRO-15.
 
 ### 3.6 Bump the Homebrew formula (after a release you want `brew install` to track)
 
-`brew install ironclaw` is served by `Formula/ironclaw.rb` in this repo, tapped with
-`brew tap IronSecCo/ironclaw https://github.com/IronSecCo/ironclaw`. The formula pins each
+`brew install ironsecco/ironclaw/ironclaw` is served by `Formula/ironclaw.rb` in this repo, tapped
+with `brew tap IronSecCo/ironclaw https://github.com/IronSecCo/ironclaw`. The formula pins each
 platform archive to the SHA-256 recorded in that release's **signed `SHA256SUMS`** — the same
 trust anchor `install.sh` uses — so a `brew` user gets the same checksum-verified bytes.
+
+> **Name collision (important).** homebrew-core ships an *unrelated* formula also named `ironclaw`,
+> and core wins the bare name. Always install/verify the **fully-qualified** `ironsecco/ironclaw/ironclaw`
+> — a bare `brew install ironclaw` fetches the core package, not ours. The explicit tap URL above is
+> also required (the tap is this repo, not a `homebrew-ironclaw` repo).
 
 Because a new release is cut on every push to `main`, the formula is intentionally **pinned, not
 auto-tracking**: it points at one specific tag and is bumped deliberately. There is **no CI job

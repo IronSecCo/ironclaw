@@ -109,9 +109,10 @@ If the build fails with an SQLite/cgo error, your C toolchain isn't set up — s
     On macOS or Linux you can install the latest checksum-verified release instead of building:
 
     ```sh
-    # Homebrew (macOS / Linux)
+    # Homebrew (macOS / Linux) — use the fully-qualified name (homebrew-core has an
+    # unrelated formula also called `ironclaw`).
     brew tap IronSecCo/ironclaw https://github.com/IronSecCo/ironclaw
-    brew install ironclaw
+    brew install ironsecco/ironclaw/ironclaw
 
     # …or the one-line installer (verifies SHA256SUMS before installing)
     curl -fsSL https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/install.sh | sh
