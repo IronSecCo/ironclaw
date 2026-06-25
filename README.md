@@ -332,6 +332,10 @@ This installs `ironctl`, `ironclaw-controlplane`, and `ironclaw-sandbox` from th
 formula pins each archive to the SHA-256 recorded in the release's signed `SHA256SUMS`, so Homebrew
 verifies the download before installing. Confirm it with `ironctl version`.
 
+Homebrew always installs the **latest** release. To pin an older version, use the installer
+script's `IRONCLAW_VERSION` ([below](#prebuilt-binaries-installer-script)) or grab the archive
+by hand — the tap carries only the current release.
+
 > **Use the fully-qualified name.** homebrew-core ships an *unrelated* formula also called `ironclaw`,
 > and core wins the bare name — so install `ironsecco/ironclaw/ironclaw`, not bare `ironclaw`. The
 > explicit tap URL is required too: our tap lives in this repo, not a `homebrew-ironclaw` repo.
