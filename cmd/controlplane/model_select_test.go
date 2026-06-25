@@ -64,6 +64,44 @@ func TestSelectModel_UnknownSessionGetsDevDefault(t *testing.T) {
 	}
 }
 
+// A group pinned to the vertex provider threads its project + location through the
+// selection so they reach the sandbox URL path.
+func TestSelectModel_VertexThreadsProjectLocation(t *testing.T) {
+	reg := registry.NewMemRegistry()
+	const groupID contract.AgentGroupID = "gv"
+	if err := reg.PutAgentGroup(registry.AgentGroup{
+		ID: groupID, Name: "gv", Provider: "vertex", Model: "gemini-2.5-pro",
+		Project: "my-proj", Location: "europe-west4",
+	}); err != nil {
+		t.Fatalf("PutAgentGroup: %v", err)
+	}
+	s, err := reg.ResolveSession(groupID, "mg1", nil, contract.SessionShared)
+	if err != nil {
+		t.Fatalf("ResolveSession: %v", err)
+	}
+	sel := selectModelFromRegistry(reg)(s.ID)
+	if sel.Provider != "vertex" || sel.Project != "my-proj" || sel.Location != "europe-west4" {
+		t.Fatalf("vertex selection must carry project+location: got %+v", sel)
+	}
+}
+
+// vertexAllowHost must match the host the sandbox provider addresses, including the
+// default-region and global cases, so the model-proxy allowlist does not 403.
+func TestVertexAllowHost(t *testing.T) {
+	cases := map[string]string{
+		"":             "us-central1-aiplatform.googleapis.com", // default region
+		"global":       "aiplatform.googleapis.com",
+		"us-central1":  "us-central1-aiplatform.googleapis.com",
+		"europe-west4": "europe-west4-aiplatform.googleapis.com",
+		"  asia-east1": "asia-east1-aiplatform.googleapis.com", // trimmed
+	}
+	for in, want := range cases {
+		if got := vertexAllowHost(in); got != want {
+			t.Errorf("vertexAllowHost(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 // With no deployment default configured, a provider-less group yields the zero
 // selection (the built-in Anthropic backend) — the original, unchanged behavior.
 func TestSelectModel_NoDevDefaultKeepsAnthropic(t *testing.T) {

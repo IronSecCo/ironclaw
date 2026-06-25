@@ -150,9 +150,14 @@ type EgressProvisioner interface {
 // ModelSelection is an optional per-session model backend override. The zero value
 // (empty Provider) keeps the default Anthropic backend and its default host/model.
 type ModelSelection struct {
-	Provider string // "anthropic" (default), "openai", or "openrouter"
+	Provider string // "anthropic" (default), "openai", "openrouter", "codex", "gemini", or "vertex"
 	Model    string // model id override; empty = the provider's default
 	Host     string // upstream host override; empty = the provider's default
+	// Project and Location are the Google Cloud project id and region for the
+	// "vertex" provider; both ride in the request URL path. Ignored by every other
+	// provider. Empty Location uses the Vertex default region.
+	Project  string
+	Location string
 }
 
 // tracked is a launched sandbox the Manager is responsible for.
@@ -385,6 +390,8 @@ func (m *Manager) Wake(id contract.SessionID) error {
 		spec.ModelProvider = sel.Provider
 		spec.ModelID = sel.Model
 		spec.ModelHost = sel.Host
+		spec.ModelProject = sel.Project
+		spec.ModelLocation = sel.Location
 	}
 	// Bind the egress-broker socket when the daemon configured one (opt-in); the
 	// sandbox then gets the http_fetch tool and can reach approved hosts + vault://

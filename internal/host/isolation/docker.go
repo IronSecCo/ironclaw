@@ -324,6 +324,12 @@ func sandboxArgs(spec SandboxSpec) []string {
 	if spec.ModelHost != "" {
 		a = append(a, "--model-host", spec.ModelHost)
 	}
+	if spec.ModelProject != "" {
+		a = append(a, "--model-project", spec.ModelProject)
+	}
+	if spec.ModelLocation != "" {
+		a = append(a, "--model-location", spec.ModelLocation)
+	}
 	if spec.Persona != "" {
 		a = append(a, "--persona", spec.Persona)
 	}

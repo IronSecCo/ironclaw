@@ -75,12 +75,17 @@ type SandboxSpec struct {
 	// sandbox process — the host model-proxy still authenticates and enforces the
 	// egress allowlist, so a sandbox cannot reach a provider the host has not
 	// enabled regardless of what it is told here.
-	//   ModelProvider — "anthropic" (default), "openai", or "openrouter".
+	//   ModelProvider — "anthropic" (default), "openai", "openrouter", "codex",
+	//                   "gemini", or "vertex".
 	//   ModelID       — model id override (empty = the provider's default).
 	//   ModelHost     — upstream host override (empty = the provider's default).
+	//   ModelProject  — Google Cloud project id (Vertex AI only; rides in the URL path).
+	//   ModelLocation — Google Cloud region (Vertex AI only; empty = default region).
 	ModelProvider string
 	ModelID       string
 	ModelHost     string
+	ModelProject  string
+	ModelLocation string
 
 	// Persona is the group's system-persona text, passed to the sandbox as a
 	// non-secret flag and appended (after the security framing) to its system prompt.

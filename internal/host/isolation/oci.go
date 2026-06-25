@@ -223,6 +223,12 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 	if spec.ModelHost != "" {
 		args = append(args, "--model-host", spec.ModelHost)
 	}
+	if spec.ModelProject != "" {
+		args = append(args, "--model-project", spec.ModelProject)
+	}
+	if spec.ModelLocation != "" {
+		args = append(args, "--model-location", spec.ModelLocation)
+	}
 	if spec.Persona != "" {
 		args = append(args, "--persona", spec.Persona)
 	}

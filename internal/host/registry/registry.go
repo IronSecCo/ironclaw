@@ -30,6 +30,11 @@ type AgentGroup struct {
 	// provider's credential enabled for it to be reachable.
 	Provider string
 	Model    string
+	// Project and Location are the Google Cloud project id and region for the
+	// "vertex" provider; both ride in the Vertex AI request URL path. Ignored by
+	// every other provider. Empty Location uses the Vertex default region.
+	Project  string
+	Location string
 	// Persona is the group's legacy single-blob system-persona text, appended to the
 	// sandbox system prompt at launch. It is set via a gateway-approved
 	// ChangePersona change — never by the sandbox itself — and is read-only to the
