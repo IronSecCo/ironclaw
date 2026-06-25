@@ -1,3 +1,8 @@
+---
+title: "Channels: connect your AI agent to Slack, Discord & more"
+description: Connect your self-hosted AI agent to Slack, Discord, Telegram and 8 more channels. Credentials stay host-side and never enter the gVisor sandbox.
+---
+
 # Channel adapters & their credentials
 
 IronClaw delivers an agent's replies through **channel adapters** in
