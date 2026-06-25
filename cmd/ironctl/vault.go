@@ -19,12 +19,13 @@ import (
 // approves it. ironctl is a thin client; the daemon owns the verifier + applier +
 // store.
 //
-// The actual credential (the key) is never held or rotated here: it lives only in
-// the host-side injector (see internal/host/egress/vault.go). Rotating the
-// injector's held secret is an injector operation, not a control-plane one.
+// The actual credential (the key) is never held here: it lives only in the host-side
+// injector (see internal/host/egress/vault.go). `rotate` does not carry or display a
+// secret either — it PROPOSES a gateway-gated rotation that, once a human approves it,
+// signals the injector to re-resolve its held secret from the host environment.
 func cmdVault(addr string, args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("expected: vault <list|grant|revoke|set>")
+		return fmt.Errorf("expected: vault <list|grant|revoke|set|rotate>")
 	}
 	switch args[0] {
 	case "list", "ls", "show":
@@ -35,8 +36,10 @@ func cmdVault(addr string, args []string) error {
 		return cmdVaultRevoke(addr, args[1:])
 	case "set":
 		return cmdVaultSet(addr, args[1:])
+	case "rotate":
+		return cmdVaultRotate(addr, args[1:])
 	default:
-		return fmt.Errorf("unknown vault subcommand %q (want list|grant|revoke|set)", args[0])
+		return fmt.Errorf("unknown vault subcommand %q (want list|grant|revoke|set|rotate)", args[0])
 	}
 }
 
@@ -159,6 +162,35 @@ func cmdVaultSet(addr string, args []string) error {
 		return err
 	}
 	return submitVaultPolicy(addr, *group, *by, rules)
+}
+
+// cmdVaultRotate proposes rotating the SECRET a logical credential maps to. The
+// control plane never holds the secret, so this carries none: it submits a
+// gateway-gated rotation request (kind permissions, a `vaultRotate` body naming the
+// credential) that, once a human approves it, signals the host-side injector to
+// re-resolve its held secret from the host environment. No key is ever entered,
+// printed, or logged — rotate the underlying secret in the injector's secret source
+// (env / secret manager) first, then run this to make the injector pick it up.
+//
+//	ironctl vault rotate --group <id> --credential github [--by <user>]
+func cmdVaultRotate(addr string, args []string) error {
+	fs := flag.NewFlagSet("vault rotate", flag.ContinueOnError)
+	group := fs.String("group", "", "target agent group id")
+	cred := fs.String("credential", "", "logical credential name to rotate (e.g. github) — never a key")
+	by := fs.String("by", "", "requesting user id (channel:handle)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *group == "" || *cred == "" {
+		return fmt.Errorf("vault rotate requires --group and --credential")
+	}
+	credential := strings.ToLower(strings.TrimSpace(*cred))
+	return postJSON(addr+"/v1/ui/config/change", map[string]any{
+		"kind":         "permissions",
+		"agentGroupID": *group,
+		"requestedBy":  *by,
+		"after":        map[string]any{"vaultRotate": map[string]any{"credential": credential}},
+	})
 }
 
 // fetchVaultPolicy GETs a group's current policy and returns it parsed + raw.

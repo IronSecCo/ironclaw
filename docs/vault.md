@@ -75,22 +75,54 @@ secretEnv}`). Secrets live in the **environment**, never in the file:
 Run the injector as its own OS user, then start the control-plane pointing at it:
 
 ```sh
-# 1) the injector (separate principal; holds the secrets)
+# 1) the injector (separate principal; holds the secrets). --control-socket is the
+#    OPT-IN rotation channel, SEPARATE from the broker-facing --addr; the broker never
+#    reaches it, only the control plane does.
 VAULT_GITHUB_TOKEN=ghp_… ironclaw-vault-injector \
-  --config vault-injector.json --addr 127.0.0.1:8200
+  --config vault-injector.json --addr 127.0.0.1:8200 \
+  --control-addr 127.0.0.1:8201
 
 # 2) the control-plane (enforces policy; holds no secret)
 controlplane \
   --egress-socket /run/ironclaw/egress.sock \
   --vault-endpoint http://127.0.0.1:8200 \
-  --vault-injector-config vault-injector.json
+  --vault-injector-config vault-injector.json \
+  --vault-control-endpoint http://127.0.0.1:8201
 ```
 
 `--vault-endpoint` requires `--vault-injector-config`: without the cred→upstream-host
 map the broker cannot enforce vault policy, so the daemon refuses to enable vault rather
-than run it unenforced.
+than run it unenforced. `--vault-control-endpoint` is optional and only enables
+credential-secret **rotation** (below); omit it and rotation is simply unavailable.
 
 A group is granted a credential through the gateway's human-approval path (a vault-policy
 change is a capability change like any other); see
 [`ironctl vault`](channels.md) for the management commands. With no grant, vault stays
 deny-by-default.
+
+## Rotating a credential's secret
+
+The control plane **never holds the secret**, so rotating it is an **injector**
+operation: the injector re-resolves the secret from its `secretEnv` and swaps the held
+value. `ironctl vault rotate` drives that through the **same human-approval + audit
+path** as the policy commands — it carries no secret and prints no secret.
+
+```sh
+# 1) Put the NEW secret where the injector reads it (its secret source) and reload it
+#    into the injector's environment — e.g. update the secret manager / env var
+#    VAULT_GITHUB_TOKEN. (How the new value reaches the injector's environment is your
+#    deployment's concern; IronClaw never sees it.)
+
+# 2) Propose the rotation. This submits a gateway-gated change naming only the
+#    credential — never a key. It takes effect after a human approves it.
+ironctl vault rotate --group <agent-group-id> --credential github --by slack:alice
+```
+
+On approval the control plane signals the injector's control endpoint
+(`--vault-control-endpoint`), which re-reads `secretEnv` and atomically swaps the held
+secret for in-flight and future requests. The signal carries only the credential
+**name**; the new secret never travels through the control plane, the change body, the
+CLI, or the audit log. A rotation whose new secret is missing/empty **fails closed** —
+the injector keeps the previous secret rather than blanking a live credential — and the
+failure surfaces on the approving change. Every rotation is audited
+(`action=rotate cred=… status=…`), secret-free, like every injection.

@@ -37,6 +37,8 @@ func main() {
 	cfgPath := flag.String("config", "", "path to the JSON injector config (cred -> {upstream, secretEnv})")
 	addr := flag.String("addr", "127.0.0.1:8200", "TCP address to listen on (use a loopback port the broker allowlists)")
 	socket := flag.String("socket", "", "unix socket to listen on instead of --addr (bound into the broker's reach)")
+	controlSocket := flag.String("control-socket", "", "OPT-IN: unix socket for the rotation CONTROL surface, reachable ONLY by the control plane (never the broker). Enables gateway-approved `ironctl vault rotate`")
+	controlAddr := flag.String("control-addr", "", "OPT-IN: TCP address for the rotation CONTROL surface (alternative to --control-socket). Bind to loopback the control plane reaches")
 	flag.Parse()
 
 	if *cfgPath == "" {
@@ -48,8 +50,12 @@ func main() {
 	}
 	inj, err := vaultinjector.New(cfg, os.LookupEnv, vaultinjector.WithAudit(func(rec vaultinjector.AuditRecord) {
 		// Audit carries the credential NAME + correlation id — never the secret value.
-		log.Printf("inject cred=%q upstream=%q path=%q status=%d allowed=%v corr=%q dur_ms=%d",
-			rec.Credential, rec.Upstream, rec.Path, rec.Status, rec.Allowed, rec.CorrelationID, rec.Duration.Milliseconds())
+		action := rec.Action
+		if action == "" {
+			action = "inject"
+		}
+		log.Printf("%s cred=%q upstream=%q path=%q status=%d allowed=%v corr=%q dur_ms=%d",
+			action, rec.Credential, rec.Upstream, rec.Path, rec.Status, rec.Allowed, rec.CorrelationID, rec.Duration.Milliseconds())
 	}))
 	if err != nil {
 		log.Fatalf("ironclaw-vault-injector: %v", err)
@@ -73,13 +79,40 @@ func main() {
 	}
 	log.Printf("ironclaw-vault-injector: listening on %s", where)
 
+	// OPT-IN rotation CONTROL surface on its OWN listener, separate from the
+	// broker-facing proxy above, so only the control plane can trigger a rotation.
+	var ctrlSrv *http.Server
+	if *controlSocket != "" || *controlAddr != "" {
+		ctrlLn, lerr := listen(*controlSocket, *controlAddr)
+		if lerr != nil {
+			log.Fatalf("ironclaw-vault-injector: control listen: %v", lerr)
+		}
+		ctrlSrv = &http.Server{Handler: inj.RotateHandler()}
+		go func() {
+			if serr := ctrlSrv.Serve(ctrlLn); serr != nil && !errors.Is(serr, http.ErrServerClosed) {
+				errCh <- serr
+			}
+		}()
+		cwhere := *controlAddr
+		if *controlSocket != "" {
+			cwhere = "unix:" + *controlSocket
+		}
+		log.Printf("ironclaw-vault-injector: rotation control listening on %s", cwhere)
+	}
+
 	select {
 	case <-ctx.Done():
 		shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = srv.Shutdown(shutCtx)
+		if ctrlSrv != nil {
+			_ = ctrlSrv.Shutdown(shutCtx)
+		}
 		if *socket != "" {
 			_ = os.Remove(*socket)
+		}
+		if *controlSocket != "" {
+			_ = os.Remove(*controlSocket)
 		}
 	case err := <-errCh:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
