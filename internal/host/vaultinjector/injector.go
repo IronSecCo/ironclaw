@@ -26,6 +26,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -119,10 +120,11 @@ func (c *Config) CredHosts() map[string]string {
 	return out
 }
 
-// AuditRecord is one injection decision, emitted to an AuditSink. It carries the
-// credential NAME and correlation id — never the secret value.
+// AuditRecord is one injection or rotation decision, emitted to an AuditSink. It
+// carries the credential NAME and correlation id — never the secret value.
 type AuditRecord struct {
 	Time          time.Time     `json:"time"`
+	Action        string        `json:"action,omitempty"` // "inject" (default) or "rotate"
 	Credential    string        `json:"credential"`
 	CorrelationID string        `json:"correlationId,omitempty"`
 	Upstream      string        `json:"upstream,omitempty"`
@@ -136,18 +138,23 @@ type AuditRecord struct {
 type AuditSink func(AuditRecord)
 
 // resolved is one credential ready to attach: upstream + the secret value pulled from
-// the environment at construction.
+// the environment at construction. secretEnv is retained so Rotate can re-resolve the
+// secret from the same host env var the credential was configured against.
 type resolved struct {
-	upstream *url.URL
-	secret   string
-	header   string
-	scheme   string
+	upstream  *url.URL
+	secret    string
+	secretEnv string
+	header    string
+	scheme    string
 }
 
 // Injector attaches host-held credentials to broker-forwarded requests. It holds the
-// secret values resolved from the environment; the config file never does.
+// secret values resolved from the environment; the config file never does. The held
+// secrets are guarded by mu so a Rotate can swap one atomically while Handler reads it.
 type Injector struct {
-	creds     map[string]resolved
+	mu        sync.RWMutex
+	creds     map[string]*resolved
+	lookupEnv func(string) (string, bool)
 	transport http.RoundTripper
 	audit     AuditSink
 }
@@ -176,7 +183,7 @@ func New(cfg *Config, lookupEnv func(string) (string, bool), opts ...Option) (*I
 	if lookupEnv == nil {
 		lookupEnv = os.LookupEnv
 	}
-	i := &Injector{creds: make(map[string]resolved, len(cfg.Creds)), transport: http.DefaultTransport}
+	i := &Injector{creds: make(map[string]*resolved, len(cfg.Creds)), lookupEnv: lookupEnv, transport: http.DefaultTransport}
 	for name, spec := range cfg.Creds {
 		u, err := url.Parse(strings.TrimSpace(spec.Upstream))
 		if err != nil {
@@ -194,7 +201,7 @@ func New(cfg *Config, lookupEnv func(string) (string, bool), opts ...Option) (*I
 		if scheme == "" {
 			scheme = "Bearer "
 		}
-		i.creds[strings.ToLower(name)] = resolved{upstream: u, secret: secret, header: header, scheme: scheme}
+		i.creds[strings.ToLower(name)] = &resolved{upstream: u, secret: secret, secretEnv: spec.SecretEnv, header: header, scheme: scheme}
 	}
 	for _, o := range opts {
 		o(i)
@@ -213,6 +220,68 @@ func (i *Injector) Creds() []string {
 	return out
 }
 
+// Rotate re-resolves a credential's secret from its configured secretEnv via the
+// injector's env lookup and atomically swaps the held value. This is the injector's
+// half of the rotation contract (IRO-144): the control plane signals a rotation only
+// AFTER a human approves it, and the new secret is read from the host environment
+// here — it NEVER travels through the control plane, the change body, or this call.
+// An unknown credential, or a secret env that is now unset/empty, returns an error
+// and KEEPS the old secret, so a botched rotation fails closed rather than blanking a
+// live credential. The secret value is never returned or logged.
+func (i *Injector) Rotate(cred string) error {
+	cred = strings.ToLower(strings.TrimSpace(cred))
+	i.mu.RLock()
+	res, ok := i.creds[cred]
+	env := ""
+	if ok {
+		env = res.secretEnv
+	}
+	i.mu.RUnlock()
+	if cred == "" || !ok {
+		return fmt.Errorf("vaultinjector: unknown credential %q", cred)
+	}
+	secret, found := i.lookupEnv(env)
+	if !found || secret == "" {
+		return fmt.Errorf("vaultinjector: credential %q secret env %q is unset", cred, env)
+	}
+	i.mu.Lock()
+	i.creds[cred].secret = secret
+	i.mu.Unlock()
+	return nil
+}
+
+// RotateHandler serves the injector's CONTROL surface: a request that re-resolves a
+// credential's held secret from the host environment. It is SEPARATE from Handler
+// (the broker-facing proxy) and MUST be bound to a channel only the control plane can
+// reach — its own loopback addr / unix socket, never the broker's — so the sandbox can
+// never trigger a rotation. The request carries the credential NAME in CredHeader
+// (never a secret) and returns no secret: 200 on a successful rotation, 403 for an
+// unknown credential, 502 when the new secret cannot be resolved. Every outcome is
+// audited (name + correlation only).
+func (i *Injector) RotateHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		cred := strings.ToLower(strings.TrimSpace(r.Header.Get(CredHeader)))
+		corr := r.Header.Get(CorrelationHeader)
+		err := i.Rotate(cred)
+		status := http.StatusOK
+		switch {
+		case err == nil:
+		case strings.Contains(err.Error(), "unknown credential"):
+			status = http.StatusForbidden
+		default:
+			status = http.StatusBadGateway
+		}
+		i.emit(AuditRecord{Time: start, Action: "rotate", Credential: cred, CorrelationID: corr, Path: "/rotate", Status: status, Allowed: err == nil, Duration: time.Since(start)})
+		if err != nil {
+			http.Error(w, "vaultinjector: rotate failed", status)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("rotated\n"))
+	})
+}
+
 // Handler serves the injector: it reads the credential name, attaches the host-held
 // secret, and reverse-proxies to the real upstream. Deny-by-default: an unknown or
 // missing credential is refused 403. The secret is attached only on the upstream hop
@@ -226,17 +295,24 @@ func (i *Injector) Handler() http.Handler {
 		if r.URL != nil {
 			path = r.URL.Path
 		}
+		// Snapshot the credential under the read lock so a concurrent Rotate cannot
+		// swap the secret mid-request; the proxy below uses these copies.
+		i.mu.RLock()
 		res, ok := i.creds[cred]
+		var target url.URL
+		var secret, header, scheme string
+		if ok {
+			target = *res.upstream
+			secret = res.secret
+			header = res.header
+			scheme = res.scheme
+		}
+		i.mu.RUnlock()
 		if cred == "" || !ok {
 			http.Error(w, "vaultinjector: unknown credential", http.StatusForbidden)
-			i.emit(AuditRecord{Time: start, Credential: cred, CorrelationID: corr, Path: path, Status: http.StatusForbidden, Allowed: false, Duration: time.Since(start)})
+			i.emit(AuditRecord{Time: start, Action: "inject", Credential: cred, CorrelationID: corr, Path: path, Status: http.StatusForbidden, Allowed: false, Duration: time.Since(start)})
 			return
 		}
-
-		target := *res.upstream
-		secret := res.secret
-		header := res.header
-		scheme := res.scheme
 		rp := &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
 				req.URL.Scheme = target.Scheme
@@ -255,7 +331,7 @@ func (i *Injector) Handler() http.Handler {
 		}
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		rp.ServeHTTP(rec, r)
-		i.emit(AuditRecord{Time: start, Credential: cred, CorrelationID: corr, Upstream: target.Host, Path: path, Status: rec.status, Allowed: true, Duration: time.Since(start)})
+		i.emit(AuditRecord{Time: start, Action: "inject", Credential: cred, CorrelationID: corr, Upstream: target.Host, Path: path, Status: rec.status, Allowed: true, Duration: time.Since(start)})
 	})
 }
 

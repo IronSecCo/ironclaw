@@ -89,6 +89,8 @@ func main() {
 		"OPT-IN: host-local credential-injector URL; enables vault://<cred>/<path> routing through the egress broker. Requires --egress-socket")
 	vaultInjectorConfig := flag.String("vault-injector-config", "",
 		"path to the JSON injector config (cred -> {upstream, secretEnv}); supplies the cred->upstream-host map the broker enforces vault policy against. Required with --vault-endpoint")
+	vaultControlEndpoint := flag.String("vault-control-endpoint", "",
+		"OPT-IN: the injector's rotation CONTROL surface (http://host:port or unix:/path), SEPARATE from --vault-endpoint; enables gateway-approved `ironctl vault rotate` to signal the injector to re-resolve a credential's held secret. No secret travels this channel")
 	searchBackend := flag.String("search-backend", "",
 		"web_search provider given to each sandbox: duckduckgo (keyless) or brave[:cred] (keyed via the vault). Requires --egress-socket; its host is auto-added to the egress allowlist. Empty disables web_search (--dev defaults it to duckduckgo)")
 	skillsDir := flag.String("skills-dir", "",
@@ -313,6 +315,21 @@ func main() {
 		vaultCredHosts = cfg.CredHosts()
 		logger.Info("vault enforcement enabled", "credentials", len(vaultCredHosts))
 	}
+	// OPT-IN credential-secret rotation (IRO-144): with --vault-control-endpoint set,
+	// an approved `vault rotate` change signals the injector's control surface to
+	// re-resolve a credential's held secret from the host environment. The signaller is
+	// the gateway's RotateCredentialFunc seam; nil leaves rotation unconfigured, so an
+	// approved rotation fails loudly ("no rotation signaller wired") rather than silently
+	// no-opping. No secret ever crosses this channel.
+	var vaultRotateSignaller func(contract.AgentGroupID, string) error
+	if *vaultControlEndpoint != "" {
+		vaultRotateSignaller, err = newVaultRotateSignaller(*vaultControlEndpoint)
+		if err != nil {
+			logger.Error("vault control endpoint", "error", err)
+			os.Exit(1)
+		}
+		logger.Info("vault credential rotation enabled")
+	}
 	// When a search backend is configured, approve its egress host so web_search is not
 	// present-but-403 (selecting a backend IS the operator opting into reaching it). A
 	// vault-routed backend returns "" here — its injector endpoint is allowlisted via
@@ -474,6 +491,10 @@ func main() {
 		}
 		return vaultPolicies.Set(registry.VaultPolicy{AgentGroupID: id, Rules: rr})
 	}, capApplier)
+	// An approved vault-rotate change signals the injector to re-resolve the named
+	// credential's held secret. It carries no secret and mutates no control-plane state;
+	// the side effect is entirely host-side in the injector.
+	capApplier = gateway.NewVaultRotateApplier(vaultRotateSignaller, capApplier)
 	// An approved ChangeMCPRegister lands the proposed server in the host catalog and
 	// drops any cached broker connection so the next use reconnects with it. It grants
 	// the proposing agent NOTHING — access stays the separate ChangeMCPAccess approval.
@@ -504,6 +525,7 @@ func main() {
 			gateway.NewCreateAgentVerifier(agentExists),
 			gateway.NewMCPServerVerifier(mcpServerKnown),
 			gateway.VaultPolicyVerifier{},
+			gateway.VaultRotateVerifier{},
 			gateway.NewMCPRegisterVerifier(func() bool { return mcpCatalogStore != nil }),
 			gateway.AlwaysRequireHuman{},
 		},
