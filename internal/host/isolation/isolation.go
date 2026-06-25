@@ -182,6 +182,31 @@ type Handle interface {
 	Alive(ctx context.Context) bool
 }
 
+// EarlyExitReporter is an OPTIONAL capability a Handle may implement: report
+// whether the sandbox has ALREADY exited and, if so, with what status and its
+// first log line. The Manager probes it shortly after launch so a sandbox that
+// dies on startup surfaces in the control-plane log instead of being hidden
+// behind "launched sandbox" while the chat silently returns []. The motivating
+// case (IRO-171) is the macOS Docker fallback: when Docker Desktop file-sharing
+// is not delivering the host state/keys dir into the container, the in-container
+// session-key read misses a file the host wrote at 0600 and the container exits 1
+// immediately — undiagnosable from the host without this.
+//
+// Handles whose runtime cannot cheaply report an exit code + log line need not
+// implement it; the Manager simply skips the probe (the sweep's heartbeat ceiling
+// remains the backstop). The Docker isolator implements it; the gVisor (runsc)
+// path, which reaps the container on exit and keeps no stdout, does not.
+type EarlyExitReporter interface {
+	// ExitInfo reports the sandbox's terminal state. exited is true ONLY when the
+	// sandbox has stopped running; code is its exit status and logLine the first
+	// non-empty line of its combined output (truncated), for a one-line diagnostic.
+	// A still-running or indeterminate sandbox (e.g. the container is gone and the
+	// exit can no longer be read) returns exited=false so the caller logs nothing
+	// misleading. err is non-nil only on a transient/unexpected runtime-query
+	// failure.
+	ExitInfo(ctx context.Context) (exited bool, code int, logLine string, err error)
+}
+
 // Isolator launches sandboxes. Implementations: RunscIsolator (gVisor); Kata is a
 // future backend behind this same interface.
 type Isolator interface {

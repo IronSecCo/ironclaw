@@ -1,9 +1,12 @@
 package session
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -303,4 +306,113 @@ func TestManagerInboundWriterEnsuresSession(t *testing.T) {
 		t.Fatalf("OutboundReader: %v", err)
 	}
 	r.Close()
+}
+
+// --- early-exit diagnostic (IRO-171) ---
+
+// exitHandle is a fakeHandle that also implements isolation.EarlyExitReporter, so
+// the Manager's post-launch early-exit watcher engages.
+type exitHandle struct {
+	fakeHandle
+	exited  bool
+	code    int
+	logLine string
+	err     error
+}
+
+func (h *exitHandle) ExitInfo(context.Context) (bool, int, string, error) {
+	return h.exited, h.code, h.logLine, h.err
+}
+
+func TestReportEarlyExit(t *testing.T) {
+	cases := []struct {
+		name        string
+		h           *exitHandle
+		wantLog     bool
+		wantSubstrs []string
+	}{
+		{
+			name:        "non-zero exit logs code, log line, and the file-sharing hint",
+			h:           &exitHandle{exited: true, code: 1, logLine: `read session key "...": no such file or directory`},
+			wantLog:     true,
+			wantSubstrs: []string{"exited early with code 1", "no such file or directory", "ironctl doctor", "file-sharing"},
+		},
+		{
+			name:        "probe error is reported, not swallowed",
+			h:           &exitHandle{err: errors.New("docker api down")},
+			wantLog:     true,
+			wantSubstrs: []string{"could not probe early exit", "docker api down"},
+		},
+		{
+			name:    "still running logs nothing",
+			h:       &exitHandle{exited: false},
+			wantLog: false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m := newTestManager(t, &fakeIsolator{})
+			var buf bytes.Buffer
+			m.cfg.Logger = log.New(&buf, "", 0)
+			m.reportEarlyExit("ses_x", c.h)
+			out := buf.String()
+			if c.wantLog && out == "" {
+				t.Fatalf("expected a log line, got none")
+			}
+			if !c.wantLog && out != "" {
+				t.Fatalf("expected no log, got %q", out)
+			}
+			for _, s := range c.wantSubstrs {
+				if !strings.Contains(out, s) {
+					t.Errorf("log %q missing %q", out, s)
+				}
+			}
+		})
+	}
+}
+
+// TestWakeWatchesEarlyExit asserts Wake spawns the early-exit watcher for an
+// isolator whose handle reports exits, and that the diagnostic eventually lands.
+func TestWakeWatchesEarlyExit(t *testing.T) {
+	iso := &exitIsolator{h: &exitHandle{exited: true, code: 1, logLine: "boom"}}
+	m := newTestManager(t, iso)
+	var buf syncBuffer
+	m.cfg.Logger = log.New(&buf, "", 0)
+	m.cfg.EarlyExitGrace = time.Millisecond // tiny but non-zero
+
+	if err := m.Wake("ses_e"); err != nil {
+		t.Fatalf("Wake: %v", err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if strings.Contains(buf.String(), "exited early with code 1") {
+			return
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	t.Fatalf("early-exit diagnostic never logged; got %q", buf.String())
+}
+
+type exitIsolator struct{ h *exitHandle }
+
+func (e *exitIsolator) Launch(context.Context, isolation.SandboxSpec) (isolation.Handle, error) {
+	return e.h, nil
+}
+
+// syncBuffer is a goroutine-safe bytes.Buffer for asserting on async log output.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
 }

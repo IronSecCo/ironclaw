@@ -15,6 +15,7 @@ package isolation
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -107,6 +108,9 @@ type dockerHandle struct {
 	id  string
 }
 
+// The Docker handle surfaces early container exits to the Manager (IRO-171).
+var _ EarlyExitReporter = (*dockerHandle)(nil)
+
 // Stop force-removes the sandbox container. Idempotent.
 func (h *dockerHandle) Stop(ctx context.Context) error {
 	if err := h.iso.do(ctx, http.MethodDelete, "/containers/"+h.id+"?force=true", nil, nil); err != nil {
@@ -127,6 +131,133 @@ func (h *dockerHandle) Alive(ctx context.Context) bool {
 		return true
 	}
 	return exists && running
+}
+
+// ExitInfo implements EarlyExitReporter: it reports whether the sandbox container
+// has already exited and, if so, with what code and its first log line. The
+// Manager calls it shortly after launch so a container that dies on startup — the
+// macOS Docker file-sharing case where the in-container session-key read misses a
+// host file (IRO-171) — is surfaced to the control-plane log instead of being
+// hidden behind "launched sandbox".
+//
+// A still-running container, or one that is already gone (HTTP 404 — a prior crash
+// auto-removed or a relaunch reclaimed the name), reports exited=false so the
+// caller logs nothing misleading. AutoRemove is off for sandbox containers, so an
+// exited-but-not-yet-removed container can still be inspected and its logs read.
+func (h *dockerHandle) ExitInfo(ctx context.Context) (exited bool, code int, logLine string, err error) {
+	running, exitCode, exists, ierr := h.iso.inspectExit(ctx, h.id)
+	if ierr != nil {
+		return false, 0, "", ierr
+	}
+	if !exists || running {
+		// Gone (can't tell) or still running: nothing to report.
+		return false, 0, "", nil
+	}
+	// Exited: best-effort fetch of the first log line for a one-line diagnostic. A
+	// log-fetch failure is non-fatal — the exit code alone is still worth surfacing.
+	line, _ := h.iso.firstLogLine(ctx, h.id)
+	return true, exitCode, line, nil
+}
+
+// inspectExit inspects a container's running state and exit code. Mirrors
+// inspectState but also returns State.ExitCode for the early-exit diagnostic.
+func (d *DockerIsolator) inspectExit(ctx context.Context, id string) (running bool, exitCode int, exists bool, err error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://docker/containers/"+id+"/json", nil)
+	if err != nil {
+		return false, 0, false, err
+	}
+	resp, err := d.client.Do(req)
+	if err != nil {
+		return false, 0, false, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return false, 0, false, nil // container is gone
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return false, 0, true, fmt.Errorf("docker api inspect %s: %s: %s", id, resp.Status, strings.TrimSpace(string(b)))
+	}
+	var out struct {
+		State struct {
+			Running  bool `json:"Running"`
+			ExitCode int  `json:"ExitCode"`
+		} `json:"State"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return false, 0, true, err
+	}
+	return out.State.Running, out.State.ExitCode, true, nil
+}
+
+// firstLogLine fetches the container's combined stdout+stderr and returns its
+// first non-empty line, truncated for a one-line log diagnostic. The Engine API
+// multiplexes stdout/stderr into a framed stream (an 8-byte header per frame) when
+// the container has no TTY (the sandbox case), so the payload is demultiplexed
+// before scanning for the first line.
+func (d *DockerIsolator) firstLogLine(ctx context.Context, id string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		"http://docker/containers/"+id+"/logs?stdout=1&stderr=1&tail=20", nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := d.client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("docker api logs %s: %s", id, resp.Status)
+	}
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, 64*1024))
+	if err != nil {
+		return "", err
+	}
+	return firstNonEmptyLine(demuxDockerStream(raw)), nil
+}
+
+// demuxDockerStream decodes Docker's multiplexed log framing (8-byte header:
+// [stream_type, 0,0,0, size:uint32be] then size payload bytes) into the raw
+// payload text. A stream that does not match the framing (a TTY container, or a
+// short/garbled buffer) is returned as-is, so the caller still gets usable text.
+func demuxDockerStream(b []byte) string {
+	var out bytes.Buffer
+	rest := b
+	framed := false
+	for len(rest) >= 8 {
+		// A valid header has a known stream type (0,1,2) and three zero pad bytes.
+		if rest[0] > 2 || rest[1] != 0 || rest[2] != 0 || rest[3] != 0 {
+			break
+		}
+		size := int(binary.BigEndian.Uint32(rest[4:8]))
+		if size < 0 || 8+size > len(rest) {
+			break
+		}
+		out.Write(rest[8 : 8+size])
+		rest = rest[8+size:]
+		framed = true
+	}
+	if framed {
+		return out.String()
+	}
+	return string(b)
+}
+
+// firstNonEmptyLine returns the first non-blank line of s, trimmed and truncated
+// to a sane length for a single log line.
+func firstNonEmptyLine(s string) string {
+	for _, line := range strings.Split(s, "\n") {
+		line = strings.TrimRight(strings.TrimSpace(line), "\r")
+		if line == "" {
+			continue
+		}
+		const max = 300
+		if len(line) > max {
+			line = line[:max] + "…"
+		}
+		return line
+	}
+	return ""
 }
 
 // inspectState inspects a container's running state. exists is false when the

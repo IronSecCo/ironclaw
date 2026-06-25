@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -52,6 +53,8 @@ func cmdDoctor(addr string, args []string) error {
 	// $IRONCLAW_RUNTIME, else gVisor's runsc. An explicit --runtime wins.
 	runtimeBin := fs.String("runtime", envOrDefault("IRONCLAW_RUNTIME", "runsc"),
 		"OCI runtime binary to check (gVisor's runsc by default; IRONCLAW_RUNTIME selects it)")
+	stateDir := fs.String("state-dir", defaultStateDir(),
+		"control-plane state dir (per-session queues/keys); used by the --runtime docker file-sharing check")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -66,6 +69,13 @@ func cmdDoctor(addr string, args []string) error {
 		checkChannels(os.Getenv),
 		checkConfig(),
 		checkModelProxy(*socket),
+	}
+	// The Docker fallback runtime (macOS dev) carries the per-session queues/keys
+	// into each sandbox via a bind mount; if the state dir is outside Docker
+	// Desktop's shared paths the bind mounts empty and the sandbox exits 1 on its
+	// session-key read (IRO-171). Only relevant when the Docker runtime is selected.
+	if strings.Contains(*runtimeBin, "docker") {
+		results = append(results, checkDockerFileSharing(*stateDir))
 	}
 	printChecks(os.Stdout, results)
 
@@ -347,6 +357,182 @@ func tryVersion(bin string) (string, bool) {
 		return "", false
 	}
 	return line, true
+}
+
+// defaultStateDir mirrors the control-plane's defaultStateDir (cmd/controlplane)
+// so the Docker file-sharing check probes the same dir the daemon binds into each
+// sandbox. Production passes --state-dir explicitly.
+func defaultStateDir() string {
+	if d, err := os.UserCacheDir(); err == nil {
+		return filepath.Join(d, "ironclaw", "state")
+	}
+	return filepath.Join(os.TempDir(), "ironclaw-state")
+}
+
+// checkDockerFileSharing verifies that, under the Docker fallback runtime, the host
+// state dir (per-session encrypted queues + keys) lands inside Docker Desktop's
+// shared paths — so the bind mount actually delivers it into each sandbox
+// container. A state dir outside the shared set mounts EMPTY in the container, and
+// the sandbox then exits 1 on its session-key read (the IRO-171 macOS failure). On
+// Linux there is no Docker Desktop VM boundary, so bind mounts always deliver.
+func checkDockerFileSharing(stateDir string) checkResult {
+	shared, ok := dockerDesktopSharedDirs()
+	return evalDockerFileSharing(stateDir, shared, ok, runtime.GOOS)
+}
+
+// evalDockerFileSharing is the pure decision core of checkDockerFileSharing,
+// separated from the OS/settings lookup so it is exhaustively unit-testable.
+func evalDockerFileSharing(stateDir string, shared []string, sharedOK bool, goos string) checkResult {
+	r := checkResult{Name: "docker file sharing", Doc: docBase + "/troubleshooting/#sandbox-exits-on-startup-macos-docker-file-sharing"}
+	if goos == "linux" {
+		r.Status = checkOK
+		r.Detail = "bind mounts deliver directly on Linux; Docker Desktop file sharing does not apply"
+		return r
+	}
+	// Resolve symlinks on both sides so the comparison is apples-to-apples (macOS
+	// /tmp -> /private/tmp, /var/folders -> /private/var/folders).
+	resolved := resolveExistingPath(stateDir)
+	probeHint := "verify it is delivered with: docker run --rm -v " + stateDir + ":/probe alpine ls -A /probe"
+	if sharedOK {
+		if pathUnderAny(resolved, resolveAll(shared)) {
+			r.Status = checkOK
+			r.Detail = stateDir + " is inside Docker Desktop's shared paths"
+			return r
+		}
+		r.Status = checkWarn
+		r.Detail = stateDir + " is NOT inside Docker Desktop's shared paths " + strings.Join(shared, ", ")
+		r.Fix = "add it under Docker Desktop → Settings → Resources → File sharing (or move --state-dir under a shared path); otherwise the per-session queues/keys bind mounts empty and the sandbox exits 1 on its session-key read. " + probeHint
+		return r
+	}
+	// Could not read Docker Desktop's settings — fall back to its default-shared roots.
+	if pathUnderAny(resolved, resolveAll(dockerDesktopDefaultRoots(goos))) {
+		r.Status = checkOK
+		r.Detail = stateDir + " is under a Docker Desktop default-shared root (Docker Desktop settings unreadable, so a custom config could not be confirmed)"
+		return r
+	}
+	r.Status = checkWarn
+	r.Detail = stateDir + " may be outside Docker Desktop's shared paths (could not read Docker Desktop settings to confirm)"
+	r.Fix = "ensure it is shared under Docker Desktop → Settings → Resources → File sharing; otherwise the per-session queues/keys bind mounts empty and the sandbox exits 1 on its session-key read. " + probeHint
+	return r
+}
+
+// dockerDesktopSharedDirs reads the host directories Docker Desktop is configured
+// to share into containers, from its settings file (macOS/Windows). ok is false
+// when no settings file is found or it has no file-sharing list, so the caller can
+// fall back to the default-shared roots heuristic.
+func dockerDesktopSharedDirs() (dirs []string, ok bool) {
+	for _, p := range dockerDesktopSettingsPaths() {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		if d := parseSharedDirs(data); len(d) > 0 {
+			return d, true
+		}
+	}
+	return nil, false
+}
+
+// dockerDesktopSettingsPaths returns the candidate Docker Desktop settings files,
+// newest layout first. Docker Desktop renamed settings.json to settings-store.json
+// in 4.34; both are tried.
+func dockerDesktopSettingsPaths() []string {
+	switch runtime.GOOS {
+	case "darwin":
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil
+		}
+		base := filepath.Join(home, "Library", "Group Containers", "group.com.docker")
+		return []string{
+			filepath.Join(base, "settings-store.json"),
+			filepath.Join(base, "settings.json"),
+		}
+	case "windows":
+		appData := os.Getenv("APPDATA")
+		if appData == "" {
+			return nil
+		}
+		base := filepath.Join(appData, "Docker")
+		return []string{
+			filepath.Join(base, "settings-store.json"),
+			filepath.Join(base, "settings.json"),
+		}
+	default:
+		return nil
+	}
+}
+
+// parseSharedDirs extracts the filesharingDirectories list from a Docker Desktop
+// settings blob. Tolerant of the surrounding schema — it only reads the one field.
+func parseSharedDirs(data []byte) []string {
+	var s struct {
+		FilesharingDirectories []string `json:"filesharingDirectories"`
+	}
+	if err := json.Unmarshal(data, &s); err != nil {
+		return nil
+	}
+	return s.FilesharingDirectories
+}
+
+// dockerDesktopDefaultRoots returns the directories Docker Desktop shares by
+// default when no custom file-sharing config can be read.
+func dockerDesktopDefaultRoots(goos string) []string {
+	if goos == "darwin" {
+		return []string{"/Users", "/Volumes", "/private", "/tmp", "/var/folders"}
+	}
+	return nil
+}
+
+// resolveExistingPath cleans path and resolves symlinks on its longest existing
+// ancestor (the state dir may not exist yet), so comparisons against shared roots
+// are apples-to-apples (e.g. macOS /tmp -> /private/tmp).
+func resolveExistingPath(path string) string {
+	path = filepath.Clean(path)
+	dir := path
+	for {
+		if resolved, err := filepath.EvalSymlinks(dir); err == nil {
+			if dir == path {
+				return resolved
+			}
+			// Re-attach the non-existent tail to the resolved existing prefix.
+			rel, rerr := filepath.Rel(dir, path)
+			if rerr != nil {
+				return resolved
+			}
+			return filepath.Join(resolved, rel)
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return path // reached the root without resolving anything
+		}
+		dir = parent
+	}
+}
+
+// resolveAll resolves symlinks on each root (best-effort), so shared-path
+// comparisons survive macOS's /tmp and /var symlinks.
+func resolveAll(roots []string) []string {
+	out := make([]string, 0, len(roots))
+	for _, r := range roots {
+		out = append(out, resolveExistingPath(r))
+	}
+	return out
+}
+
+// pathUnderAny reports whether path equals or is nested under any of roots.
+func pathUnderAny(path string, roots []string) bool {
+	path = filepath.Clean(path)
+	for _, root := range roots {
+		root = filepath.Clean(root)
+		if path == root {
+			return true
+		}
+		if rel, err := filepath.Rel(root, path); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel) {
+			return true
+		}
+	}
+	return false
 }
 
 func printChecks(w io.Writer, results []checkResult) {

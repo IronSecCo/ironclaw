@@ -238,3 +238,94 @@ func TestPrintChecks(t *testing.T) {
 		t.Error("failing check should print both the fix hint and the doc link")
 	}
 }
+
+// --- Docker file-sharing check (IRO-171) ---
+
+func TestEvalDockerFileSharing(t *testing.T) {
+	shared := []string{"/Users", "/private"}
+	cases := []struct {
+		name       string
+		stateDir   string
+		shared     []string
+		sharedOK   bool
+		goos       string
+		wantStatus checkStatus
+	}{
+		{"linux always ok", "/anywhere", nil, false, "linux", checkOK},
+		{"inside configured share", "/Users/me/Library/Caches/ironclaw/state", shared, true, "darwin", checkOK},
+		{"outside configured share", "/opt/ironclaw/state", shared, true, "darwin", checkWarn},
+		{"settings unreadable, under default root", "/Users/me/state", nil, false, "darwin", checkOK},
+		{"settings unreadable, outside default roots", "/opt/ironclaw/state", nil, false, "darwin", checkWarn},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := evalDockerFileSharing(c.stateDir, c.shared, c.sharedOK, c.goos)
+			if got.Status != c.wantStatus {
+				t.Errorf("status = %s, want %s (detail: %s)", got.Status, c.wantStatus, got.Detail)
+			}
+			if got.Status == checkWarn && got.Fix == "" {
+				t.Error("a WARN should carry an actionable fix")
+			}
+		})
+	}
+}
+
+func TestParseSharedDirs(t *testing.T) {
+	data := []byte(`{"filesharingDirectories":["/Users","/Volumes","/tmp"],"other":true}`)
+	got := parseSharedDirs(data)
+	if len(got) != 3 || got[0] != "/Users" {
+		t.Fatalf("parseSharedDirs = %v, want [/Users /Volumes /tmp]", got)
+	}
+	if d := parseSharedDirs([]byte("not json")); d != nil {
+		t.Errorf("malformed JSON should yield nil, got %v", d)
+	}
+	if d := parseSharedDirs([]byte(`{}`)); len(d) != 0 {
+		t.Errorf("missing field should yield empty, got %v", d)
+	}
+}
+
+func TestPathUnderAny(t *testing.T) {
+	roots := []string{"/Users", "/private"}
+	cases := []struct {
+		path string
+		want bool
+	}{
+		{"/Users", true},
+		{"/Users/me/state", true},
+		{"/private/var/folders/x", true},
+		{"/opt/state", false},
+		{"/UsersOther/state", false}, // prefix collision must not match
+	}
+	for _, c := range cases {
+		if got := pathUnderAny(c.path, roots); got != c.want {
+			t.Errorf("pathUnderAny(%q) = %v, want %v", c.path, got, c.want)
+		}
+	}
+}
+
+// TestCheckDockerFileSharingFromSettings exercises the end-to-end check against a
+// real on-disk Docker Desktop settings file (read via dockerDesktopSharedDirs).
+func TestCheckDockerFileSharingFromSettings(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skip("settings path layout is exercised on darwin")
+	}
+	dir := t.TempDir()
+	settings := filepath.Join(dir, "Library", "Group Containers", "group.com.docker")
+	if err := os.MkdirAll(settings, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(settings, "settings-store.json"),
+		[]byte(`{"filesharingDirectories":["`+dir+`/shared"]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", dir)
+
+	in := checkDockerFileSharing(filepath.Join(dir, "shared", "ironclaw", "state"))
+	if in.Status != checkOK {
+		t.Errorf("state under shared dir: status = %s, want OK (%s)", in.Status, in.Detail)
+	}
+	out := checkDockerFileSharing(filepath.Join(dir, "elsewhere", "state"))
+	if out.Status != checkWarn {
+		t.Errorf("state outside shared dir: status = %s, want WARN (%s)", out.Status, out.Detail)
+	}
+}

@@ -43,6 +43,7 @@ ironctl doctor — diagnostics
 | **channel adapters** | At least one adapter armed from the environment. | None armed — channels are optional; set e.g. `SLACK_BOT_TOKEN` / `TELEGRAM_BOT_TOKEN` or wire one with `ironctl registry wiring …`. | [Channel adapter not arming](#channel-adapter-not-arming-env-mismatch) |
 | **onboard config** | The `0600` token env-file is present and owner-only. | Absent (run `ironctl onboard`), a directory, or readable beyond the owner (`chmod 600`). | [onboard config](#onboard-config-missing-or-too-permissive) |
 | **model-proxy socket** | The host model-proxy unix socket accepts a connection. | Socket missing (daemon not started) or present but not accepting connections (restart the control-plane). | [Daemon unreachable](#daemon-unreachable-connection-refused) |
+| **docker file sharing** *(only with `--runtime docker`)* | The state dir is inside Docker Desktop's shared paths, so the per-session queues/key bind mount delivers into each sandbox. | State dir outside the shared set — the bind mounts empty and the sandbox exits `1` on its session-key read. | [Sandbox exits on startup](#sandbox-exits-on-startup-macos-docker-file-sharing) |
 
 The credential and channel checks read **exactly** the same environment variables
 the control-plane consumes on boot (the detectors are shared with `ironctl
@@ -127,6 +128,34 @@ Common causes: Docker isn't started; the sandbox image wasn't built yet (run
 the sandbox as a **runc** container — a relaxed, laptop-only posture, *not* the
 sealed production seal. Tear it down with
 `docker compose -f docker-compose.demo.yml down`.
+
+### Sandbox exits on startup (macOS Docker file sharing)
+
+```
+host/session: sandbox for ses_… exited early with code 1; first log line: ironclaw sandbox: read session key ".../keys/ses_…/session.key": … no such file or directory
+```
+
+Under the **`--runtime docker`** fallback (macOS dev), the control-plane carries
+the per-session encrypted queues and key into each sandbox via a **bind mount**.
+If the host **state dir** sits outside Docker Desktop's *shared paths*, the mount
+arrives **empty** inside the container — the sandbox can't read the session key
+the host just wrote (it's present at `0600` on the host), so it exits `1` right
+away. Symptom from the outside: the chat just returns `[]` and never replies.
+
+Diagnose it:
+
+```sh
+ironctl doctor --runtime docker            # the "docker file sharing" check flags an unshared state dir
+# or probe the bind directly — the listing should NOT be empty:
+docker run --rm -v "$HOME/Library/Caches/ironclaw/state:/probe" alpine ls -A /probe
+```
+
+Fix: add the state dir (and, for the Compose demo, the project's
+`.ironclaw-demo-state` dir) under **Docker Desktop → Settings → Resources → File
+sharing**, then restart Docker Desktop and the daemon. Docker Desktop shares
+`/Users`, `/Volumes`, `/private`, `/tmp`, and `/var/folders` by default, so the
+default state dir under `~/Library/Caches` is normally covered — this bites custom
+`--state-dir` locations or a trimmed file-sharing list.
 
 ### Sandbox runtime: `runsc` not found (gVisor)
 

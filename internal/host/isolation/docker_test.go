@@ -2,6 +2,7 @@ package isolation
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"io"
 	"net"
@@ -158,5 +159,95 @@ func TestDockerHandleAlive(t *testing.T) {
 		if got := h.Alive(context.Background()); got != c.want {
 			t.Errorf("Alive(%s) = %v, want %v", c.id, got, c.want)
 		}
+	}
+}
+
+// dockerLogFrame encodes one byte slice in Docker's multiplexed log framing
+// (8-byte header: [stream, 0,0,0, size:uint32be] then the payload).
+func dockerLogFrame(stream byte, payload string) []byte {
+	hdr := make([]byte, 8)
+	hdr[0] = stream
+	binary.BigEndian.PutUint32(hdr[4:8], uint32(len(payload)))
+	return append(hdr, []byte(payload)...)
+}
+
+// TestDockerHandleExitInfo drives dockerHandle.ExitInfo against a fake Engine API:
+// an exited container reports its code + first log line; a running container and a
+// vanished (404) one both report exited=false (nothing to surface). This is the
+// IRO-171 early-exit diagnostic the Manager logs after launch.
+func TestDockerHandleExitInfo(t *testing.T) {
+	sock := filepath.Join(t.TempDir(), "docker.sock")
+	ln, err := net.Listen("unix", sock)
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	const keyErr = `ironclaw sandbox: read session key "/var/lib/ironclaw/state/keys/ses_x/session.key": open ...: no such file or directory`
+	mux := http.NewServeMux()
+	mux.HandleFunc("/containers/exited/json", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"State":{"Running":false,"ExitCode":1}}`))
+	})
+	mux.HandleFunc("/containers/exited/logs", func(w http.ResponseWriter, r *http.Request) {
+		// Two frames: a blank stderr line then the real error — the first NON-EMPTY
+		// line should be returned.
+		_, _ = w.Write(dockerLogFrame(2, "\n"))
+		_, _ = w.Write(dockerLogFrame(2, keyErr+"\n"))
+	})
+	mux.HandleFunc("/containers/running/json", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"State":{"Running":true,"ExitCode":0}}`))
+	})
+	mux.HandleFunc("/containers/gone/json", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"message":"No such container: gone"}`, http.StatusNotFound)
+	})
+	srv := &http.Server{Handler: mux}
+	go srv.Serve(ln)
+	t.Cleanup(func() { srv.Close() })
+
+	d := NewDocker(sock, "none", nil, "0:0")
+
+	t.Run("exited non-zero surfaces code and first log line", func(t *testing.T) {
+		h := &dockerHandle{iso: d, id: "exited"}
+		exited, code, line, err := h.ExitInfo(context.Background())
+		if err != nil {
+			t.Fatalf("ExitInfo: %v", err)
+		}
+		if !exited || code != 1 {
+			t.Fatalf("got exited=%v code=%d, want true/1", exited, code)
+		}
+		if line != keyErr {
+			t.Errorf("logLine = %q, want %q", line, keyErr)
+		}
+	})
+
+	t.Run("running reports not exited", func(t *testing.T) {
+		h := &dockerHandle{iso: d, id: "running"}
+		exited, _, _, err := h.ExitInfo(context.Background())
+		if err != nil || exited {
+			t.Fatalf("got exited=%v err=%v, want false/nil", exited, err)
+		}
+	})
+
+	t.Run("gone container reports not exited", func(t *testing.T) {
+		h := &dockerHandle{iso: d, id: "gone"}
+		exited, _, _, err := h.ExitInfo(context.Background())
+		if err != nil || exited {
+			t.Fatalf("got exited=%v err=%v, want false/nil", exited, err)
+		}
+	})
+}
+
+// TestDemuxDockerStream checks the log-framing decoder handles both multiplexed
+// frames and a raw (un-framed) buffer.
+func TestDemuxDockerStream(t *testing.T) {
+	framed := append(dockerLogFrame(1, "hello\n"), dockerLogFrame(2, "world\n")...)
+	if got := demuxDockerStream(framed); got != "hello\nworld\n" {
+		t.Errorf("framed demux = %q, want %q", got, "hello\nworld\n")
+	}
+	// A buffer that does not look like framing is returned verbatim.
+	raw := "plain text line\n"
+	if got := demuxDockerStream([]byte(raw)); got != raw {
+		t.Errorf("raw demux = %q, want %q", got, raw)
+	}
+	if got := firstNonEmptyLine("\n\n  second\nthird\n"); got != "second" {
+		t.Errorf("firstNonEmptyLine = %q, want %q", got, "second")
 	}
 }

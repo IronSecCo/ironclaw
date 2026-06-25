@@ -107,7 +107,21 @@ type Config struct {
 	Clock func() time.Time
 	// Logger receives lifecycle diagnostics. Defaults to log.Default().
 	Logger *log.Logger
+
+	// EarlyExitGrace is how long after a launch the Manager waits before probing a
+	// sandbox for an immediate non-zero exit (only for isolators whose Handle
+	// implements isolation.EarlyExitReporter — the Docker fallback). It surfaces a
+	// container that died on startup (e.g. the macOS Docker file-sharing case where
+	// the in-container session-key read misses a host file, IRO-171) instead of
+	// hiding it behind "launched sandbox". Zero applies a small default; a negative
+	// value disables the probe.
+	EarlyExitGrace time.Duration
 }
+
+// defaultEarlyExitGrace is the post-launch wait before probing for an early exit.
+// Long enough for a container that fails its session-key read to exit and be
+// inspectable, short enough to surface the diagnostic promptly.
+const defaultEarlyExitGrace = 2 * time.Second
 
 // MCPProvisioner provisions a per-session MCP broker socket for a group with
 // gateway-approved MCP grants and tears it down when the session stops. Satisfied
@@ -195,6 +209,9 @@ func New(cfg Config) (*Manager, error) {
 	}
 	if cfg.Logger == nil {
 		cfg.Logger = log.Default()
+	}
+	if cfg.EarlyExitGrace == 0 {
+		cfg.EarlyExitGrace = defaultEarlyExitGrace
 	}
 	return &Manager{
 		cfg:     cfg,
@@ -444,7 +461,54 @@ func (m *Manager) Wake(id contract.SessionID) error {
 	m.running[id] = &tracked{handle: handle, launchedAt: m.cfg.Clock().UTC()}
 	m.mu.Unlock()
 	m.cfg.Logger.Printf("host/session: launched sandbox for %s", id)
+	// If the isolator can report an early exit (the Docker fallback), watch for a
+	// container that dies on startup so a silent failure surfaces in the host log
+	// rather than only as an empty chat. Best-effort and out-of-band: it never
+	// blocks the launch path.
+	if r, ok := handle.(isolation.EarlyExitReporter); ok && m.cfg.EarlyExitGrace >= 0 {
+		go m.watchEarlyExit(id, r)
+	}
 	return nil
+}
+
+// watchEarlyExit waits the configured grace period, then reports an early sandbox
+// exit (see reportEarlyExit). Run in its own goroutine off the launch path.
+func (m *Manager) watchEarlyExit(id contract.SessionID, r isolation.EarlyExitReporter) {
+	if m.cfg.EarlyExitGrace > 0 {
+		time.Sleep(m.cfg.EarlyExitGrace)
+	}
+	m.reportEarlyExit(id, r)
+}
+
+// reportEarlyExit probes a freshly-launched sandbox for an immediate exit and logs
+// a diagnostic when it has died. A non-zero exit gets an actionable hint pointing
+// at the most common cause on the macOS Docker fallback — Docker Desktop file
+// sharing not delivering the host state/keys dir into the container (IRO-171) —
+// and `ironctl doctor`, which checks exactly that. A still-running or already-gone
+// sandbox logs nothing.
+func (m *Manager) reportEarlyExit(id contract.SessionID, r isolation.EarlyExitReporter) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	exited, code, logLine, err := r.ExitInfo(ctx)
+	if err != nil {
+		m.cfg.Logger.Printf("host/session: could not probe early exit for %s: %v", id, err)
+		return
+	}
+	if !exited {
+		return
+	}
+	msg := fmt.Sprintf("host/session: sandbox for %s exited early with code %d", id, code)
+	if logLine != "" {
+		msg += fmt.Sprintf("; first log line: %s", logLine)
+	}
+	if code != 0 {
+		msg += " — the sandbox container failed to start. On the macOS Docker fallback this is" +
+			" most often a Docker Desktop file-sharing gap (the host state/keys dir is not" +
+			" delivered into the container, so the in-container session-key read misses a file" +
+			" the host wrote); run `ironctl doctor --runtime docker` to check. The triggering" +
+			" message stays queued and retries on the next wake."
+	}
+	m.cfg.Logger.Printf("%s", msg)
 }
 
 // Probe reports the liveness signals the sweep uses to decide whether a sandbox is
