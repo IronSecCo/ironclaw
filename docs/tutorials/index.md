@@ -16,6 +16,11 @@ one you need.
     One command, no credentials, no model key. See an agent actually reply through a real
     per-session sandbox.
 
+-   :material-laptop: **[Run a 100% local model (Ollama)](local-model-ollama.md)**
+
+    Point IronClaw at a self-hosted Ollama / LM Studio / vLLM endpoint and chat — entirely on your
+    own machine, with zero cloud credentials.
+
 -   :material-slack: **[Connect IronClaw to Slack](connect-slack.md)**
 
     Wire an agent group to a live Slack channel — bot token, messaging group, engagement rules, and

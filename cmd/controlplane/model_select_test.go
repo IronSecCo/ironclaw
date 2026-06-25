@@ -5,6 +5,7 @@ import (
 
 	"github.com/IronSecCo/ironclaw/internal/contract"
 	"github.com/IronSecCo/ironclaw/internal/host/registry"
+	"github.com/IronSecCo/ironclaw/internal/host/session"
 )
 
 // newSessionFor registers an agent group with the given provider/model and returns
@@ -30,7 +31,7 @@ func TestSelectModel_ExplicitProviderWins(t *testing.T) {
 	reg := registry.NewMemRegistry()
 	id := newSessionFor(t, reg, "openai", "gpt-4o")
 
-	sel := selectModelFromRegistry(reg)(id)
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "")(id)
 	if sel.Provider != "openai" || sel.Model != "gpt-4o" {
 		t.Fatalf("explicit group provider must win: got %+v", sel)
 	}
@@ -45,7 +46,7 @@ func TestSelectModel_GroupWithoutProviderInheritsDevDefault(t *testing.T) {
 	reg := registry.NewMemRegistry()
 	id := newSessionFor(t, reg, "", "")
 
-	sel := selectModelFromRegistry(reg)(id)
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "")(id)
 	if sel.Provider != "codex" || sel.Model != "gpt-5.5" {
 		t.Fatalf("group without provider must inherit dev default: got %+v", sel)
 	}
@@ -58,7 +59,7 @@ func TestSelectModel_UnknownSessionGetsDevDefault(t *testing.T) {
 	t.Setenv("IRONCLAW_DEV_MODEL", "gpt-5.5")
 	reg := registry.NewMemRegistry()
 
-	sel := selectModelFromRegistry(reg)("ses_does_not_exist")
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "")("ses_does_not_exist")
 	if sel.Provider != "codex" || sel.Model != "gpt-5.5" {
 		t.Fatalf("unknown session must get dev default: got %+v", sel)
 	}
@@ -79,7 +80,7 @@ func TestSelectModel_VertexThreadsProjectLocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveSession: %v", err)
 	}
-	sel := selectModelFromRegistry(reg)(s.ID)
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "")(s.ID)
 	if sel.Provider != "vertex" || sel.Project != "my-proj" || sel.Location != "europe-west4" {
 		t.Fatalf("vertex selection must carry project+location: got %+v", sel)
 	}
@@ -102,6 +103,34 @@ func TestVertexAllowHost(t *testing.T) {
 	}
 }
 
+// When a local-model default is configured (--local-model-url), it overrides the
+// env-based dev default so a provider-less group runs 100% local — provider, model,
+// and the loopback host all flow through.
+func TestSelectModel_LocalDefaultOverridesDevDefault(t *testing.T) {
+	t.Setenv("IRONCLAW_DEV_PROVIDER", "codex")
+	t.Setenv("IRONCLAW_DEV_MODEL", "gpt-5.5")
+	reg := registry.NewMemRegistry()
+	id := newSessionFor(t, reg, "", "")
+
+	localDef := session.ModelSelection{Provider: "local", Model: "llama3.2", Host: "localhost:11434"}
+	sel := selectModelFromRegistry(reg, localDef, "localhost:11434")(id)
+	if sel.Provider != "local" || sel.Model != "llama3.2" || sel.Host != "localhost:11434" {
+		t.Fatalf("local default must override dev default with host: got %+v", sel)
+	}
+}
+
+// A group explicitly pinned to the local provider but carrying no host of its own
+// inherits the deployment's configured loopback host.
+func TestSelectModel_LocalGroupInheritsHost(t *testing.T) {
+	reg := registry.NewMemRegistry()
+	id := newSessionFor(t, reg, "local", "llama3.2")
+
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "127.0.0.1:11434")(id)
+	if sel.Provider != "local" || sel.Host != "127.0.0.1:11434" {
+		t.Fatalf("local group must inherit the configured loopback host: got %+v", sel)
+	}
+}
+
 // With no deployment default configured, a provider-less group yields the zero
 // selection (the built-in Anthropic backend) — the original, unchanged behavior.
 func TestSelectModel_NoDevDefaultKeepsAnthropic(t *testing.T) {
@@ -110,7 +139,7 @@ func TestSelectModel_NoDevDefaultKeepsAnthropic(t *testing.T) {
 	reg := registry.NewMemRegistry()
 	id := newSessionFor(t, reg, "", "")
 
-	sel := selectModelFromRegistry(reg)(id)
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "")(id)
 	if sel.Provider != "" || sel.Model != "" {
 		t.Fatalf("no dev default must keep the zero selection: got %+v", sel)
 	}

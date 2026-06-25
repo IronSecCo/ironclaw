@@ -25,6 +25,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -105,6 +106,10 @@ func main() {
 		"OCI runtime for container MCP isolation, passed as docker --runtime (e.g. \"runsc\" for gVisor); empty uses the container CLI default")
 	mcpImage := flag.String("mcp-image", "",
 		"default container image for isolated local MCP servers when a server config sets no image")
+	localModelURL := flag.String("local-model-url", os.Getenv("IRONCLAW_LOCAL_MODEL_URL"),
+		"OPT-IN: base URL of a LOCAL OpenAI-compatible model server — Ollama (http://localhost:11434/v1), LM Studio, vLLM, or llama.cpp. Allowlists its host, forwards to a loopback host over plain HTTP, and makes it the deployment-default model — no cloud credential. Empty disables local-model mode")
+	localModel := flag.String("local-model", os.Getenv("IRONCLAW_LOCAL_MODEL"),
+		"model id served by --local-model-url (e.g. llama3.2); required when --local-model-url is set")
 	dev := flag.Bool("dev", false,
 		"seed the registry with a tiny dev owner/agent-group for local testing")
 	showVersion := flag.Bool("version", false, "print version and exit")
@@ -265,6 +270,42 @@ func main() {
 			logger.Info("vertex ai enabled", "host", vHost, "project", proj)
 		}
 	}
+	// Local / self-hosted model (Ollama, LM Studio, vLLM, llama.cpp). When
+	// --local-model-url is set, allowlist the server's host, reach a loopback host
+	// over plain HTTP (these servers serve no TLS), and make it the deployment-default
+	// model so a provider-less agent group runs fully local. No cloud credential is
+	// required — a key is injected ONLY if the operator set IRONCLAW_LOCAL_MODEL_KEY
+	// (e.g. a guarded vLLM). This is the "100% local, zero cloud credential" path.
+	var (
+		localModelHost  string
+		localInsecure   []string
+		localDefaultSel session.ModelSelection
+	)
+	if raw := strings.TrimSpace(*localModelURL); raw != "" {
+		parsed, perr := url.Parse(raw)
+		if perr != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+			logger.Error("invalid --local-model-url (want e.g. http://localhost:11434/v1)", "value", raw, "error", perr)
+			os.Exit(1)
+		}
+		if strings.TrimSpace(*localModel) == "" {
+			logger.Error("--local-model is required when --local-model-url is set (e.g. llama3.2)")
+			os.Exit(1)
+		}
+		localModelHost = parsed.Host
+		allowHosts = append(allowHosts, localModelHost)
+		if parsed.Scheme == "http" {
+			localInsecure = append(localInsecure, localModelHost)
+		}
+		localKeyed := false
+		if key := os.Getenv("IRONCLAW_LOCAL_MODEL_KEY"); key != "" {
+			injectors = append(injectors, modelproxy.LocalInjector(localModelHost, key))
+			redactKeys = append(redactKeys, key)
+			localKeyed = true
+		}
+		localDefaultSel = session.ModelSelection{Provider: "local", Model: *localModel, Host: localModelHost}
+		logger.Info("local model enabled", "host", localModelHost, "model", *localModel, "scheme", parsed.Scheme, "credentialed", localKeyed)
+	}
+
 	credInjected := len(injectors) > 0
 	if credInjected {
 		proxyOpts = append(proxyOpts,
@@ -308,6 +349,10 @@ func main() {
 			"host", rec.Host, "method", rec.Method, "status", rec.Status,
 			"allowed", rec.Allowed, "rate_limited", rec.RateLimited, "duration_ms", rec.Duration.Milliseconds())
 	}))
+	if len(localInsecure) > 0 {
+		// Plain-HTTP forwarding for the local loopback model server(s) only.
+		proxyOpts = append(proxyOpts, modelproxy.WithInsecureUpstreams(localInsecure...))
+	}
 	proxy := modelproxy.New(allowHosts, proxyOpts...)
 
 	// Egress broker: OPT-IN. With --egress-socket set, each sandbox gets
@@ -624,7 +669,7 @@ func main() {
 		Keys:             custodian,
 		Isolator:         isolator,
 		Registry:         reg,
-		SelectModel:      selectModelFromRegistry(reg),
+		SelectModel:      selectModelFromRegistry(reg, localDefaultSel, localModelHost),
 		ModelProxySocket: *socket,
 		EgressSocket:     *egressSocket,
 		EgressBroker:     egressProvisioner,
@@ -1090,12 +1135,19 @@ func vertexAllowHost(location string) string {
 // Codex) and no Anthropic credential is enabled, so an agent created after the seed
 // — with no Provider — would otherwise fall back to api.anthropic.com, which is not
 // allowlisted, and every model call 403s ("destination not on allowlist").
-func selectModelFromRegistry(reg *registry.MemRegistry) func(contract.SessionID) session.ModelSelection {
+// localDefault, when its Provider is non-empty, is the local-model deployment
+// default (set by --local-model-url); it overrides the env-based default so a
+// provider-less agent group runs 100% local. localHost backfills the loopback host
+// for any group pinned to the "local" provider that did not carry one itself.
+func selectModelFromRegistry(reg *registry.MemRegistry, localDefault session.ModelSelection, localHost string) func(contract.SessionID) session.ModelSelection {
 	def := session.ModelSelection{
 		Provider: os.Getenv("IRONCLAW_DEV_PROVIDER"),
 		Model:    os.Getenv("IRONCLAW_DEV_MODEL"),
 		Project:  envOr("IRONCLAW_DEV_VERTEX_PROJECT", os.Getenv("GOOGLE_VERTEX_PROJECT")),
 		Location: envOr("IRONCLAW_DEV_VERTEX_LOCATION", os.Getenv("GOOGLE_VERTEX_LOCATION")),
+	}
+	if localDefault.Provider != "" {
+		def = localDefault
 	}
 	return func(id contract.SessionID) session.ModelSelection {
 		sess, ok := reg.GetSession(id)
@@ -1109,7 +1161,13 @@ func selectModelFromRegistry(reg *registry.MemRegistry) func(contract.SessionID)
 		if g.Provider == "" {
 			return def
 		}
-		return session.ModelSelection{Provider: g.Provider, Model: g.Model, Project: g.Project, Location: g.Location}
+		sel := session.ModelSelection{Provider: g.Provider, Model: g.Model, Project: g.Project, Location: g.Location}
+		// A group pinned to the local provider but without its own host inherits the
+		// deployment's configured loopback host so it reaches the same local server.
+		if strings.EqualFold(sel.Provider, "local") && sel.Host == "" {
+			sel.Host = localHost
+		}
+		return sel
 	}
 }
 

@@ -197,6 +197,104 @@ func TestProviderInjectorsNoOpOffHost(t *testing.T) {
 	}
 }
 
+// schemeCapture records the scheme/host the Director set before forwarding to a
+// stand-in upstream, so a test can assert how the proxy chose to reach the host.
+type schemeCapture struct {
+	scheme string
+	host   string
+	target string
+}
+
+func (c *schemeCapture) RoundTrip(req *http.Request) (*http.Response, error) {
+	c.scheme = req.URL.Scheme
+	c.host = req.URL.Host
+	req.URL.Scheme = "http"
+	req.URL.Host = c.target
+	req.Host = c.target
+	return http.DefaultTransport.RoundTrip(req)
+}
+
+func TestInsecureUpstreamUsesPlainHTTP(t *testing.T) {
+	// A registered insecure (local/loopback) host must be reached over plain HTTP
+	// with its explicit port preserved — Ollama et al. serve no TLS on :11434.
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer upstream.Close()
+
+	cap := &schemeCapture{target: upstream.Listener.Addr().String()}
+	p := New([]string{"localhost:11434"},
+		WithInsecureUpstreams("localhost:11434"),
+		WithTransport(cap),
+	)
+	srv := httptest.NewServer(p.Handler())
+	defer srv.Close()
+
+	req, _ := http.NewRequest("POST", srv.URL+"/v1/chat/completions", nil)
+	req.Host = "localhost:11434"
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	if cap.scheme != "http" {
+		t.Errorf("upstream scheme = %q, want http for an insecure local upstream", cap.scheme)
+	}
+	if cap.host != "localhost:11434" {
+		t.Errorf("upstream host = %q, want localhost:11434 (port preserved)", cap.host)
+	}
+}
+
+func TestSecureUpstreamUnaffectedByInsecureSet(t *testing.T) {
+	// A normal remote host is still reached over HTTPS even when other hosts are
+	// registered insecure — the insecure marking is per-host, not global.
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer upstream.Close()
+
+	cap := &schemeCapture{target: upstream.Listener.Addr().String()}
+	p := New([]string{"api.anthropic.com", "localhost:11434"},
+		WithInsecureUpstreams("localhost:11434"),
+		WithTransport(cap),
+	)
+	srv := httptest.NewServer(p.Handler())
+	defer srv.Close()
+
+	req, _ := http.NewRequest("POST", srv.URL+"/v1/messages", nil)
+	req.Host = "api.anthropic.com"
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	if cap.scheme != "https" {
+		t.Errorf("upstream scheme = %q, want https for a remote host", cap.scheme)
+	}
+}
+
+func TestLocalInjectorOptionalKey(t *testing.T) {
+	// No key: the local injector is a no-op (most local servers need no credential).
+	req, _ := http.NewRequest("POST", "http://localhost:11434/v1/chat/completions", nil)
+	LocalInjector("localhost:11434", "")("localhost:11434", req)
+	if got := req.Header.Get("Authorization"); got != "" {
+		t.Errorf("Authorization set with empty key: %q", got)
+	}
+	// With a key: stamp Bearer on the matching host (bare host also matches).
+	LocalInjector("localhost:11434", "sk-local")("localhost", req)
+	if got := req.Header.Get("Authorization"); got != "Bearer sk-local" {
+		t.Errorf("Authorization = %q, want Bearer sk-local", got)
+	}
+	// Off-host: never leak the local key to another upstream.
+	other, _ := http.NewRequest("POST", "http://api.openai.com/v1/chat/completions", nil)
+	LocalInjector("localhost:11434", "sk-local")("api.openai.com", other)
+	if got := other.Header.Get("Authorization"); got != "" {
+		t.Errorf("local key leaked off-host: %q", got)
+	}
+}
+
 func TestServeUnixSocketRoundTrip(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, "via-socket")

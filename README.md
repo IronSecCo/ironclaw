@@ -723,6 +723,26 @@ path, and the control-plane injects nothing for the gateway's hosts. Under `dock
 gateway must be reachable *from the container*, so use `host.docker.internal:10255` (Docker Desktop)
 or put OneCLI and the control-plane on a shared Docker network instead of `127.0.0.1`.
 
+### Run a 100% local model (Ollama, LM Studio, vLLM) — no cloud key
+
+Point IronClaw at a self-hosted **OpenAI-compatible** endpoint and the whole stack runs on your own
+box with **zero cloud credentials** — nothing leaves the machine. Ollama, LM Studio, vLLM, and
+llama.cpp all expose the OpenAI `/v1` API (Ollama at `http://localhost:11434/v1`).
+
+```sh
+ollama pull llama3.2                                # 1. run a model locally
+export IRONCLAW_LOCAL_MODEL_URL=http://localhost:11434/v1
+export IRONCLAW_LOCAL_MODEL=llama3.2                # 2. point IronClaw at it
+ironclaw-controlplane --dev --api-addr 127.0.0.1:8787   # 3. chat — no API key
+```
+
+This allowlists the local host, forwards to it over plain HTTP (these servers serve no TLS), and
+makes it the deployment-default model, so every agent group without a pinned provider runs local. No
+key is required; set `IRONCLAW_LOCAL_MODEL_KEY` only for the rare local server (e.g. a guarded vLLM)
+that requires one. Under `docker compose` the server must be reachable *from the control-plane
+container*, so use `http://host.docker.internal:11434/v1` (Docker Desktop) instead of `localhost`.
+Full walkthrough: **[Run IronClaw with a 100% local model (Ollama)](docs/tutorials/local-model-ollama.md)**.
+
 ### Choosing the provider per agent
 
 `IRONCLAW_DEV_PROVIDER` / `IRONCLAW_DEV_MODEL` set the deployment-wide default for any agent group
@@ -732,11 +752,14 @@ per agent instead — a gateway-approved change, like any other config:
 ```sh
 ironctl agent create --name "Codex Bot" --provider codex  --model gpt-5.5
 ironctl agent create --name "GPT Bot"   --provider openai --model gpt-4o
+ironctl agent create --name "Local Bot" --provider local  --model llama3.2   # uses IRONCLAW_LOCAL_MODEL_URL
 ```
 
-Valid `--provider` values: `anthropic` (default), `openai`, `openrouter`, `codex`, and `mock` (a
-deterministic, offline backend for demos and tests). Each maps to a model-proxy-allowlisted upstream;
-`codex` targets `chatgpt.com` and defaults to the `gpt-5.5` model.
+Valid `--provider` values: `anthropic` (default), `openai`, `openrouter`, `codex`, `gemini`,
+`vertex`, `local` (a self-hosted OpenAI-compatible endpoint — Ollama/LM Studio/vLLM/llama.cpp), and
+`mock` (a deterministic, offline backend for demos and tests). Each maps to a model-proxy-allowlisted
+upstream; `codex` targets `chatgpt.com` and defaults to the `gpt-5.5` model, and `local` inherits the
+loopback host from `IRONCLAW_LOCAL_MODEL_URL`.
 
 ## Configuration
 
