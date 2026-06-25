@@ -168,10 +168,11 @@ type modelUsage struct {
 	AvgMillis float64 `json:"avgMillis"`
 }
 
-// cmdUsage implements `ironctl usage [--json]` — a model-call usage report from
-// the model-proxy audit counters exposed at /metrics.
+// cmdUsage implements `ironctl metrics [--json]` — a model-call usage report
+// from the model-proxy audit counters exposed at /metrics. (Named `metrics`
+// because `usage` prints the command reference, per CLI convention.)
 func cmdUsage(addr string, args []string) error {
-	fs := flag.NewFlagSet("usage", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metrics", flag.ContinueOnError)
 	asJSON := fs.Bool("json", false, "emit the usage report as JSON")
 	if err := fs.Parse(args); err != nil {
 		return err
