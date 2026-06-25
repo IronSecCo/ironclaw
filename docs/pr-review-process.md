@@ -46,7 +46,7 @@ must supply*, never in the actor approving unconditionally.
 | Distinct actor for the gate | ✅ Approvals post as `app-slug[bot]`, a different actor than `omerzamir`. App reviews count toward `required_approving_review_count`. | ✅ A second user account is a different actor; its approval counts. |
 | Can be a CODEOWNER | ❌ CODEOWNERS only accepts users/teams, not apps. (Our ruleset has `require_code_owner_review: false`, so this is not needed for the gate.) | ✅ Can be listed in CODEOWNERS and required via `require_code_owner_review`. |
 | Seats / cost | ✅ Apps consume **no seat**. Free. | ⚠️ Free on this **public** repo, but a paid org seat per private repo; account lifecycle (email, 2FA, recovery) to own forever. |
-| Secret handling | ⚠️ One long-lived **App private key** (PEM), stored as a repo/org Actions secret, scoped to `pull_requests: write` + `contents/metadata: read`. Rotatable; never touches release signing (which stays keyless/OIDC). | ❌ A full second login: password + 2FA + a long-lived PAT with `repo` scope. Larger, human-shaped attack surface. |
+| Secret handling | ⚠️ One long-lived **App private key** (PEM), stored as a repo/org Actions secret, scoped to `pull_requests: write` + `contents: write` (required so the approval counts) + `metadata: read`. Rotatable; never touches release signing (which stays keyless/OIDC). | ❌ A full second login: password + 2FA + a long-lived PAT with `repo` scope. Larger, human-shaped attack surface. |
 | Audit story | ✅ Reviews are clearly machine-posted by a named bot; fine-grained, least-privilege permissions; one auditable installation. | ⚠️ Looks like a human; easy to over-grant; harder to reason about least privilege. |
 | Automatable now | ✅ Manifest + workflow scaffolded in this repo; only App creation/install needs a human. | ⚠️ Account creation needs a human inbox + 2FA; collaborator invite + CODEOWNERS automatable after. |
 | GitHub guidance | ✅ Apps are GitHub's recommended automation primitive. | ⚠️ Machine user accounts are allowed but discouraged when an App fits. |
@@ -133,8 +133,12 @@ Click-by-click (≈5 minutes, repo admin):
    - **Homepage URL:** `https://github.com/IronSecCo/ironclaw`
    - **Webhook:** uncheck **Active** (no webhook needed).
    - **Repository permissions:** **Pull requests → Read and write**,
-     **Contents → Read-only**, **Metadata → Read-only** (mandatory). Leave
-     everything else **No access**.
+     **Contents → Read and write**, **Metadata → Read-only** (mandatory). Leave
+     everything else **No access**. (Contents **write** is required: GitHub only
+     counts an approving review toward required approvals if the reviewer has
+     write access — with read-only the App's approval is recorded but not
+     counted. `main` stays PR+checks protected, so this only makes the approval
+     count, it does not let the App bypass review.)
    - **Where can this App be installed?** *Only on this account.*
    - Click **Create GitHub App**.
    *(The values above match [`.github/reviewer-app-manifest.yml`](https://github.com/IronSecCo/ironclaw/blob/main/.github/reviewer-app-manifest.yml).)*
