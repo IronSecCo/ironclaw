@@ -292,7 +292,16 @@ jobs:
             -o "cyclonedx-json=ironclaw_${VERSION}.cdx.json"
           gh release upload "${TAG}" "ironclaw_${VERSION}.spdx.json" "ironclaw_${VERSION}.cdx.json" --clobber
 
+      # Pin cosign to the 2.x line. cosign 3.x flips `sign-blob` to the new Sigstore
+      # bundle format by default, makes `--bundle` required, and deprecates/ignores
+      # `--output-signature`/`--output-certificate` — which broke this step (it tried
+      # to write a bundle to an empty path → "create bundle file: open :"). 2.6.3 keeps
+      # the detached `.sig`/`.pem` output that the verify smoke step, README "Verify the
+      # download", docs/security.md, and the release runbook all rely on. Pinning also
+      # makes the signing tool a deterministic, reproducible dependency. See IRO-195.
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.6.3
 
       - name: Sign the checksum file (cosign keyless) and attach it
         env:
@@ -346,7 +355,11 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
+      # Pin to the same 2.x cosign the release job signed with, so verify-blob
+      # consumes the detached `.sig`/`.pem` it produced. See IRO-195.
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.6.3
 
       # Verify the keyless cosign signature over SHA256SUMS the way a real user does:
       # anonymously, from the published release, with no key to manage — the trusted
