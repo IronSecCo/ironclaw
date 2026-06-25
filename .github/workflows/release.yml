@@ -12,6 +12,13 @@ name: Release
 on:
   push:
     branches: [main]
+    # The `formula` job below opens a PR that only touches Formula/ironclaw.rb to
+    # track each release. Merging that PR must NOT cut another release (which would
+    # regenerate the formula again, looping forever), so a commit that touches only
+    # the formula is ignored here. The version is still commit-count derived, so a
+    # skipped formula-only commit just means the next real release skips a number.
+    paths-ignore:
+      - "Formula/ironclaw.rb"
   workflow_dispatch:
     inputs:
       version:
@@ -495,3 +502,83 @@ jobs:
           }
 
           Write-Host "Smoke OK on $env:MATRIX_NAME`: $env:TAG installs via install.ps1 (checksum-verified) and runs."
+
+  # ---------------------------------------------------------------------------
+  # Keep the Homebrew tap formula (Formula/ironclaw.rb) tracking the release we
+  # just cut, so `brew install ironsecco/ironclaw/ironclaw` never ships a stale
+  # binary (the formula used to lag the latest release by ten versions — IRO-193).
+  #
+  # The formula pins each platform archive to the SHA-256 recorded in the release's
+  # signed SHA256SUMS, so it can only be regenerated AFTER the release is published
+  # and verified — hence `needs: [version, release, smoke, smoke_windows]`. A
+  # release that fails its smoke tests never gets a tracking PR.
+  #
+  # It does NOT push to main directly: main requires a reviewed PR, passing checks,
+  # and signed commits (.github/rulesets/main.json), and weakening that is off the
+  # table for a security product. Instead it opens a PR whose single commit is
+  # created through the GitHub Contents API — which signs the commit with GitHub's
+  # key, satisfying required_signatures — for a maintainer to merge. The push
+  # trigger ignores Formula/ironclaw.rb so merging that PR never loops back into
+  # another release.
+  # ---------------------------------------------------------------------------
+  formula:
+    needs: [version, release, smoke, smoke_windows]
+    if: needs.version.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the formula-update branch + its signed commit
+      pull-requests: write # open the tracking PR
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Regenerate the formula from the published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # Reads the release's SHA256SUMS (the trust anchor) and rewrites
+          # Formula/ironclaw.rb in place. Pinned to the exact tag we just cut.
+          scripts/update-homebrew-formula.sh "${TAG}"
+
+      - name: Open a PR if the formula changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- Formula/ironclaw.rb; then
+            echo "Formula already tracks ${TAG} — nothing to open."
+            exit 0
+          fi
+
+          branch="brew/track-${TAG}"
+          base_sha="$(git rev-parse HEAD)"
+          # Blob OID of the formula already on main == the Contents API `sha` we must
+          # pass to replace it. Git's blob hash and GitHub's content sha are the same.
+          file_sha="$(git rev-parse "HEAD:Formula/ironclaw.rb")"
+          content_b64="$(base64 -w0 < Formula/ironclaw.rb)"
+
+          # Idempotent: drop a leftover branch from a re-run, then recreate it at the
+          # current main tip.
+          gh api -X DELETE "repos/${REPO}/git/refs/heads/${branch}" 2>/dev/null || true
+          gh api -X POST "repos/${REPO}/git/refs" \
+            -f "ref=refs/heads/${branch}" \
+            -f "sha=${base_sha}"
+
+          # Commit the regenerated formula onto that branch via the Contents API so
+          # the commit is signed by GitHub (required_signatures on main).
+          gh api -X PUT "repos/${REPO}/contents/Formula/ironclaw.rb" \
+            -f "message=chore(brew): track ${TAG} in the Homebrew formula" \
+            -f "content=${content_b64}" \
+            -f "sha=${file_sha}" \
+            -f "branch=${branch}"
+
+          gh pr create \
+            --repo "${REPO}" \
+            --base main \
+            --head "${branch}" \
+            --title "chore(brew): track ${TAG} in the Homebrew formula" \
+            --body "Automated by the Release workflow: regenerates \`Formula/ironclaw.rb\` from the signed \`SHA256SUMS\` of \`${TAG}\` so \`brew install ironsecco/ironclaw/ironclaw\` tracks the latest release. Merge to publish; the push trigger ignores this file so the merge does not cut another release." \
+            || echo "A tracking PR for ${TAG} already exists — left it in place."
