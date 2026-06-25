@@ -572,3 +572,47 @@
   .iro-card:hover,
   .iro-btn:hover { transform: none; }
 }
+
+/* =============================================================================
+   WCAG AA contrast fixes (IRO-166)
+
+   Live-rendered audit of both schemes (composited contrast, gradient/always-dark
+   hero+final excluded as known-good white-on-navy) surfaced four sub-AA cases.
+   Each fix was verified on the live site to clear its threshold in both schemes.
+   ========================================================================== */
+
+/* Secondary/caption text used `--md-default-fg-color--light`, which composited to
+   3.6:1 (slate) / 4.3:1 (light) on the tinted sections — below the 4.5:1 body
+   minimum, and these carry real content (the demo "Then open …" run path, the
+   gateway flow caption). Promote to the full-strength foreground token. */
+.iro-flow,
+.iro-aside,
+.iro-demo .iro-caption,
+.iro-demo .iro-footnote {
+  color: var(--md-default-fg-color);
+}
+
+/* Code-panel prompt/comment tokens sat at 4.33:1 on the always-dark navy panel
+   (scheme-independent). Lighten to clear 4.5:1. */
+.iro-code__cmt,
+.iro-code__prompt {
+  color: #8ea4cf;
+}
+
+/* Slate only: the `.iro-section .iro-btn--ghost` and accent-eyebrow rules assume
+   a LIGHT section background (steel-700 text = 6.7:1 on white). In dark mode the
+   tinted sections are dark, so that ghost-button text fell to 2.38:1 and the
+   accent eyebrow to 4.40:1. Restore the dark-surface treatment for slate. */
+[data-md-color-scheme="slate"] .iro-section .iro-btn--ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(143, 180, 255, 0.55);
+  color: #eaf2ff;
+}
+[data-md-color-scheme="slate"] .iro-section .iro-btn--ghost:hover {
+  background: rgba(143, 180, 255, 0.12);
+  border-color: #8fb4ff;
+}
+[data-md-color-scheme="slate"] .iro-eyebrow,
+[data-md-color-scheme="slate"] .iro-proof h3 {
+  color: #8fb4ff;
+}
