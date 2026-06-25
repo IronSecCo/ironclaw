@@ -113,7 +113,14 @@ parse:
 	if args[0] == "doctor" {
 		return cmdDoctor(addr, args[1:])
 	}
-	if args[0] == "usage" {
+	// `usage` / `commands` print the full command reference to stdout and exit 0:
+	// a help request is requested output, not an error. The model-call metrics
+	// report (which queries /metrics) now lives under `metrics`.
+	if args[0] == "usage" || args[0] == "commands" {
+		printReference(os.Stdout)
+		return nil
+	}
+	if args[0] == "metrics" {
 		return cmdUsage(addr, args[1:])
 	}
 
@@ -317,8 +324,16 @@ Run ` + "`ironctl usage`" + ` for the full command reference.
   --addr  defaults to ` + defaultAddr + `   ·   --token defaults to $IRONCLAW_API_TOKEN`)
 }
 
-func usage() {
-	fmt.Fprintln(os.Stderr, `usage:
+// usage writes the full command reference to stderr. It is the error-path
+// diagnostic shown when a command is missing or malformed.
+func usage() { printReference(os.Stderr) }
+
+// printReference writes the full command reference to w. `ironctl usage`
+// (and `ironctl commands`) call it with os.Stdout and exit 0, because asking
+// for the reference is requested output — not an error.
+func printReference(w io.Writer) {
+	fmt.Fprintln(w, `usage:
+  ironctl help | usage | commands                                          (this reference; help is the short first-run banner)
   ironctl [--addr URL] [--token T] agent create [--name N] [--template T] [--tool X ...]   (guided in a terminal)
   ironctl [--addr URL] [--token T] agent list | show <id> | templates
   ironctl [--addr URL] [--token T] tools [list]
@@ -332,7 +347,7 @@ func usage() {
   ironctl [--addr URL] onboard [--yes] [--dry-run] [--force] [--config PATH]
   ironctl [--addr URL] [--token T] status [--json]
   ironctl [--addr URL] [--token T] doctor [--runtime BIN] [--model-proxy-socket PATH]
-  ironctl [--addr URL] [--token T] usage [--json]
+  ironctl [--addr URL] [--token T] metrics [--json]
   ironctl [--addr URL] [--token T] skill add <name>@<version> --group <id> [--by <user>]
   ironctl [--addr URL] [--token T] skill list
   ironctl [--addr URL] [--token T] skill remove <name>[@<version>]
