@@ -50,6 +50,14 @@ func run(args []string) error {
 		return nil
 	}
 
+	// `ironctl help` / `--help` / `-h` is an explicit, friendly first-run banner
+	// (not an error). It points newcomers at onboard/doctor/status before the
+	// dense `usage` reference, and exits 0.
+	if len(args) >= 1 && (args[0] == "help" || args[0] == "--help" || args[0] == "-h") {
+		firstRunHelp()
+		return nil
+	}
+
 	// Global --addr / --token / -v can appear (in any order) before the subcommand.
 	addr := defaultAddr
 	token = os.Getenv("IRONCLAW_API_TOKEN")
@@ -76,8 +84,11 @@ parse:
 		}
 	}
 	if len(args) < 1 {
-		usage()
-		return fmt.Errorf("expected: change <...> or audit")
+		// Bare `ironctl` (or only global flags) is a first-run user discovering the
+		// tool, not a misuse — greet them and exit 0 instead of dumping the full
+		// reference and failing.
+		firstRunHelp()
+		return nil
 	}
 
 	// Top-level "audit" command.
@@ -282,6 +293,28 @@ func printBody(resp *http.Response) error {
 func mustReadAll(r io.Reader) []byte {
 	b, _ := io.ReadAll(r)
 	return b
+}
+
+// firstRunHelp prints a short, friendly banner for `ironctl` with no command and
+// for `ironctl help`. It curates a first-run path (onboard → doctor → status)
+// ahead of the full reference so newcomers are not met with the dense `usage`
+// block (Hick's Law), and it writes to stdout because it is requested output,
+// not an error diagnostic.
+func firstRunHelp() {
+	fmt.Println(`ironctl ` + version.String() + ` — IronClaw control-plane admin CLI
+
+New here? Start with:
+  ironctl onboard      Guided first-run setup (checks deps, writes config)
+  ironctl doctor       Diagnose your install (runtime, model creds, channels)
+  ironctl status       Control-plane health at a glance
+
+Everyday commands:
+  ironctl agent create | list             Create and inspect agents
+  ironctl change pending | approve <id>   Review gated capability changes
+  ironctl audit                           Tail the append-only audit log
+
+Run ` + "`ironctl usage`" + ` for the full command reference.
+  --addr  defaults to ` + defaultAddr + `   ·   --token defaults to $IRONCLAW_API_TOKEN`)
 }
 
 func usage() {
