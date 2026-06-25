@@ -175,6 +175,14 @@ jobs:
           # bit-for-bit reproducible (the platform reproducibility.yml verifies).
           ldflags="-s -w -buildid= -X github.com/IronSecCo/ironclaw/internal/version.Version=${TAG}"
           [ "${GOOS}" = "linux" ] && ldflags="${ldflags} -extldflags=-Wl,--build-id=none"
+          # The linux legs build inside a container as root over a workspace owned by a
+          # different uid, so git refuses with "dubious ownership" and `go build`'s VCS
+          # stamping aborts ("error obtaining VCS status: exit status 128"). Disable VCS
+          # stamping on linux — the binary's provenance is recorded cryptographically by the
+          # build-provenance attestation below (stronger than Go's embedded git stamp), and
+          # the version string is already injected via -ldflags -X. (IRO-192)
+          vcs=""
+          [ "${GOOS}" = "linux" ] && vcs="-buildvcs=false"
           mkdir -p dist/pkg
           for cmd in controlplane ironctl sandbox; do
             out="ironctl"
@@ -183,7 +191,7 @@ jobs:
               sandbox)      out="ironclaw-sandbox" ;;
             esac
             echo "==> building ${out}${ext} (${GOOS}/${GOARCH})"
-            go build -trimpath -ldflags "${ldflags}" -o "dist/pkg/${out}${ext}" "./cmd/${cmd}"
+            go build -trimpath ${vcs} -ldflags "${ldflags}" -o "dist/pkg/${out}${ext}" "./cmd/${cmd}"
           done
           cp LICENSE README.md dist/pkg/
 

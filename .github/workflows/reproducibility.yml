@@ -79,11 +79,15 @@ jobs:
           #                              standard reproducible-build fix for cgo binaries
           #                              and is valid here because the runner is Linux.
           ldflags="-s -w -buildid= -X github.com/IronSecCo/ironclaw/internal/version.Version=repro-check -extldflags=-Wl,--build-id=none"
+          # -buildvcs=false: now that this rebuilds inside the release container (root over a
+          # workspace owned by another uid), git's "dubious ownership" guard would abort VCS
+          # stamping. Disabling it also removes a VCS-state input, which only helps determinism.
+          # Matches release.yml's linux build (IRO-192).
           build() {
             local dest="$1"
             mkdir -p "${dest}"
             for cmd in controlplane ironctl sandbox; do
-              go build -trimpath -ldflags "${ldflags}" -o "${dest}/${cmd}" "./cmd/${cmd}"
+              go build -trimpath -buildvcs=false -ldflags "${ldflags}" -o "${dest}/${cmd}" "./cmd/${cmd}"
             done
           }
           build out/a

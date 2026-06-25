@@ -88,8 +88,11 @@ jobs:
               controlplane) out="ironclaw-controlplane" ;;
               sandbox)      out="ironclaw-sandbox" ;;
             esac
+            # -buildvcs=false: this runs in a container as root over a workspace owned by a
+            # different uid, so git's "dubious ownership" guard would abort VCS stamping
+            # ("error obtaining VCS status"). Matches release.yml's linux build (IRO-192).
             CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
-              go build -trimpath -ldflags "${ldflags}" -o "dist/pkg/${out}" "./cmd/${cmd}"
+              go build -trimpath -buildvcs=false -ldflags "${ldflags}" -o "dist/pkg/${out}" "./cmd/${cmd}"
           done
           floor="2.31"
           fail=0
