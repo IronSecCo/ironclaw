@@ -1,3 +1,8 @@
+---
+title: "Skills: declarative capability bundles, no in-sandbox code"
+description: Skills are declarative capability bundles for IronClaw agents — persona, tool subset, egress allowlist — composed through the human-approval gateway, never new code in the sandbox.
+---
+
 # Skills
 
 A **skill** is a declarative, host-curated **capability bundle** — a persona

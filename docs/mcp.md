@@ -1,3 +1,8 @@
+---
+title: "MCP servers: gated, audited tools outside the sandbox"
+description: Add MCP server tools to a self-hosted AI agent without weakening the gVisor sandbox — a human approves named servers and tools, and every call is gated and audited.
+---
+
 # MCP servers
 
 IronClaw can extend an agent with the tools of a **Model Context Protocol (MCP)**

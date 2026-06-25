@@ -1,0 +1,8 @@
+# robots.txt for the IronClaw documentation site.
+# Copied verbatim into the site root by MkDocs (non-Markdown files in docs/ are
+# treated as static assets). Allows all well-behaved crawlers and advertises the
+# MkDocs-generated sitemap so search engines can discover every page.
+User-agent: *
+Allow: /
+
+Sitemap: https://ironsecco.github.io/ironclaw/sitemap.xml

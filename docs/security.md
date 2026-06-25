@@ -1,3 +1,8 @@
+---
+title: "Security & trust: gVisor sandbox + approval gateway"
+description: How IronClaw's security holds — per-session gVisor sandboxes with network=none, a no-bypass human approval gateway, and cosign-signed, reproducible releases you can verify.
+---
+
 # Security & trust
 
 IronClaw's value is not "AI agents" — it is **AI agents you can run without

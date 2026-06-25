@@ -1,3 +1,8 @@
+---
+title: "Quickstart: zero-credential AI agent in 5 minutes"
+description: Run a self-hosted AI agent gateway in about five minutes — zero credentials, no model key. One Docker command launches a real per-session gVisor sandbox that replies.
+---
+
 # Quickstart
 
 Two short paths, pick one:

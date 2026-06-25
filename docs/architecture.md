@@ -1,3 +1,8 @@
+---
+title: "Architecture: control-plane, gVisor sandboxes & encrypted queues"
+description: How IronClaw fits together — a host control-plane orchestrates per-session gVisor sandboxes that talk only through a pair of encrypted SQLCipher queues.
+---
+
 # Architecture
 
 IronClaw is a security-hardened, open-source assistant platform written entirely

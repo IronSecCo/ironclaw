@@ -1,3 +1,8 @@
+---
+title: "Threat model: a compromised AI agent that can't escalate"
+description: IronClaw's threat model assumes the agent is compromised. A zero-credential, network-sealed gVisor sandbox and a no-bypass approval gateway keep it from escalating.
+---
+
 # Threat model
 
 > Versioned with the code. Linked from the [README](https://github.com/IronSecCo/ironclaw/blob/main/README.md) and

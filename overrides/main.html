@@ -32,4 +32,58 @@
   <meta name="twitter:title" content="{{ _title }}">
   <meta name="twitter:description" content="{{ _descr }}">
   <meta name="twitter:image" content="{{ _image }}">
+  {#- Structured data (schema.org JSON-LD) on the homepage only. Two linked
+      nodes in one @graph: the product (SoftwareApplication) and its source
+      (SoftwareSourceCode). Keeps every URL absolute so validators resolve them.
+      Validate with https://validator.schema.org/ against the rendered home. -#}
+  {% if page and page.is_homepage %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "@id": "{{ config.site_url }}#software",
+        "name": "IronClaw",
+        "alternateName": "IronClaw self-hosted AI agent gateway",
+        "applicationCategory": "DeveloperApplication",
+        "applicationSubCategory": "AI agent gateway",
+        "operatingSystem": "Linux, macOS",
+        "url": "{{ config.site_url }}",
+        "downloadUrl": "https://github.com/IronSecCo/ironclaw/releases",
+        "description": "Security-first, self-hosted AI agent gateway. Every agent runs in a per-session gVisor sandbox with network=none, reaches the model only through a host-side proxy, and cannot change its own configuration without a human approving it at a no-bypass gateway.",
+        "keywords": "self-hosted AI agent gateway, gVisor sandbox, zero-credential, AI agent security, human approval gateway, sandboxed AI agents",
+        "license": "https://github.com/IronSecCo/ironclaw/blob/main/LICENSE",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "author": {
+          "@type": "Organization",
+          "name": "IronSec Co.",
+          "url": "https://github.com/IronSecCo"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "IronSec Co.",
+          "url": "https://github.com/IronSecCo"
+        }
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": "https://github.com/IronSecCo/ironclaw#source",
+        "name": "IronClaw",
+        "description": "Open-source (AGPLv3) source for IronClaw, a self-hosted AI agent gateway that seals each agent in a gVisor sandbox and gates every capability change behind human approval.",
+        "codeRepository": "https://github.com/IronSecCo/ironclaw",
+        "programmingLanguage": "Go",
+        "license": "https://github.com/IronSecCo/ironclaw/blob/main/LICENSE",
+        "url": "{{ config.site_url }}",
+        "about": { "@id": "{{ config.site_url }}#software" }
+      }
+    ]
+  }
+  </script>
+  {% endif %}
 {% endblock %}

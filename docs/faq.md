@@ -1,3 +1,8 @@
+---
+title: "FAQ: self-hosted, sandboxed AI agents"
+description: Straight answers on running self-hosted, sandboxed AI agents — gVisor isolation, the zero-credential demo, host-side API-key custody, and production readiness.
+---
+
 # FAQ
 
 Short, straight answers to the questions people ask before (and right after) their
