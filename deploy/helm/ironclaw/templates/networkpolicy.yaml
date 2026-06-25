@@ -1,0 +1,25 @@
+{{- if .Values.networkPolicy.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ironclaw.fullname" . }}
+  labels:
+    {{- include "ironclaw.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ironclaw.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        {{- if .Values.networkPolicy.ingressFrom }}
+        {{- toYaml .Values.networkPolicy.ingressFrom | nindent 8 }}
+        {{- else }}
+        # Default: same-namespace sources only (e.g. an in-namespace ingress proxy).
+        - podSelector: {}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 8787
+{{- end }}

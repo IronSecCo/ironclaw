@@ -1,0 +1,214 @@
+# Default values for the IronClaw control-plane chart.
+#
+# These defaults mirror the hardened Docker Compose posture
+# (deploy/docker-compose.prod.yml): non-root uid 65532, read-only rootfs, all
+# Linux capabilities dropped, no-new-privileges, resource ceilings, and durable
+# encrypted (SQLCipher) state on a PersistentVolume. Keep the securityContext
+# blocks locked down — they are part of the product's security promise, not
+# boilerplate.
+#
+# IMPORTANT — where the sandboxes run. This chart deploys the *trusted
+# control-plane only*. IronClaw's agent sandboxes run under gVisor (runsc),
+# launched by the control-plane directly on a runsc-capable host — they are NOT
+# Kubernetes Pods and never share this Pod's network. For full sandbox
+# isolation the control-plane must run on a gVisor-capable node; see
+# docs/deployment.md.
+
+# -- Number of control-plane replicas. Keep at 1: the control-plane owns durable
+# SQLCipher state on a ReadWriteOnce volume and is not designed to run active-active.
+replicaCount: 1
+
+image:
+  # ghcr.io/ironsecco/ironclaw-controlplane — published on every release, signed
+  # with cosign and attested on the index digest.
+  repository: ghcr.io/ironsecco/ironclaw-controlplane
+  # In production pin by DIGEST, not a floating tag, so deploys are reproducible
+  # and cosign-verifiable. Set `tag` to "" and use `digest` below, e.g.:
+  #   docker buildx imagetools inspect ghcr.io/ironsecco/ironclaw-controlplane:v0.1.0
+  #   cosign verify <repo>@sha256:<digest> \
+  #     --certificate-identity-regexp '^https://github.com/IronSecCo/ironclaw' \
+  #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+  # Leave tag empty to fall back to .Chart.appVersion.
+  tag: ""
+  # Pin by immutable digest (preferred in production). When set it takes
+  # precedence over `tag`. Example: "sha256:abc123...".
+  digest: ""
+  pullPolicy: IfNotPresent
+
+# Image pull secrets for a private registry (the GHCR image is public).
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  # The control-plane never talks to the Kubernetes API — do not mount a token
+  # into the Pod (least privilege).
+  automountServiceAccountToken: false
+
+# -- Non-secret daemon configuration, rendered into a ConfigMap and exposed as
+# env. Names mirror .env.example / the container entrypoint.
+config:
+  # Listen address INSIDE the Pod. Must be 0.0.0.0 so the Service can reach it;
+  # the Pod is never exposed except through the Service / Ingress.
+  apiAddr: "0.0.0.0:8787"
+  # text | json — json for log shippers. The logger redacts secrets regardless.
+  logFormat: "json"
+  # MUST stay "0" in production: "1" seeds an unauthenticated dev owner/agent-group.
+  dev: "0"
+  # Durable state directory (the PVC mounts here). Holds the encrypted SQLCipher
+  # queues, gateway change store, append-only audit log, sealed keys, and the
+  # minted admin token.
+  stateDir: "/var/lib/ironclaw/state"
+  # Extra non-secret env vars (e.g. IRONCLAW_DEV_PROVIDER for a mock demo). Never
+  # put secrets here — use `secrets` below or an existing Secret.
+  extraEnv: {}
+
+# -- Secrets (admin token, model credential, channel tokens). Names mirror
+# .env.example. Leave a value empty to omit it.
+#
+#   * If you set values here, the chart creates a Secret holding them. This is
+#     convenient but writes secrets into your Helm release/values — prefer an
+#     existing Secret (secrets.existingSecret) sourced from your secrets manager.
+#   * If you leave IRONCLAW_API_TOKEN empty, the control-plane MINTS one on first
+#     run and prints it ONCE in the Pod logs (no recovery). Set it explicitly in
+#     production.
+secrets:
+  # Reference an existing Secret instead of creating one from the values below.
+  # Its keys are mounted as env vars verbatim (IRONCLAW_API_TOKEN, ANTHROPIC_API_KEY, …).
+  existingSecret: ""
+
+  # Admin/API bearer token (ironctl + console + Prometheus scraper).
+  # Generate: openssl rand -hex 32
+  apiToken: ""
+
+  # Model credential — set at least one so agents can call a model. Held
+  # host-side by the model-proxy; NEVER enters a sandbox.
+  anthropicApiKey: ""
+  openaiApiKey: ""
+  openrouterApiKey: ""
+
+  # Channel adapters (each registers only when its token/URL is set).
+  slackBotToken: ""
+  discordBotToken: ""
+  telegramBotToken: ""
+  teamsWebhookUrl: ""
+  signalCliUrl: ""
+  signalNumber: ""
+
+  # Extra secret env vars merged into the created Secret (ignored when
+  # existingSecret is set).
+  extraEnv: {}
+
+service:
+  type: ClusterIP
+  port: 8787
+  annotations: {}
+
+# -- Ingress for TLS termination. The control-plane serves PLAIN HTTP — its
+# security boundary is the network plus the bearer token, not its own TLS.
+# Terminate TLS at the Ingress (cert-manager / your controller). Disabled by
+# default; enable and set a host.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+  hosts:
+    - host: ironclaw.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - hosts:
+    #     - ironclaw.example.com
+    #   secretName: ironclaw-tls
+
+# -- Durable state. The state directory holds ALL durable state, including the
+# encryption keys and admin token — back the PVC up encrypted (see
+# docs/deployment.md). ReadWriteOnce: a single writer, matching replicaCount 1.
+persistence:
+  enabled: true
+  # Use an already-provisioned PVC instead of creating one.
+  existingClaim: ""
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+  annotations: {}
+
+# -- Resource ceilings. A runaway control-plane must not starve the node. These
+# mirror the Compose limits; tune to your cluster.
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "2"
+    memory: 1Gi
+
+# -- Pod-level security context. uid/gid 65532 is the image's non-root account;
+# fsGroup makes the PVC and emptyDir scratch group-writable by it.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container security context. The control-plane needs NO Linux capabilities;
+# the read-only rootfs is backed by the emptyDir scratch mounts below. Do not
+# relax these — they are the chart's hardening contract.
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  privileged: false
+  capabilities:
+    drop:
+      - ALL
+
+# -- Liveness/readiness probes. /healthz and /readyz are unauthenticated by
+# design (probes need no credential) and exempt from rate limiting.
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 5
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# -- Graceful shutdown: the daemon stops its sandboxes (up to 10s) before exiting.
+terminationGracePeriodSeconds: 20
+
+# -- Optional NetworkPolicy restricting ingress to the control-plane Pod, mirroring
+# the Compose "private network, only the proxy reaches it" posture. Requires a CNI
+# that enforces NetworkPolicy. Disabled by default to avoid silently dropping
+# traffic on clusters without an enforcing CNI; enable it once you have one.
+networkPolicy:
+  enabled: false
+  # Selectors for sources allowed to reach the control-plane port (e.g. your
+  # ingress controller). Empty means "same namespace only".
+  ingressFrom: []
+    # - namespaceSelector:
+    #     matchLabels:
+    #       kubernetes.io/metadata.name: ingress-nginx
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations: {}
+podLabels: {}

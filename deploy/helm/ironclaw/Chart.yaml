@@ -1,0 +1,36 @@
+apiVersion: v2
+name: ironclaw
+description: |
+  Hardened, self-hosted IronClaw control-plane for Kubernetes — the mandatory
+  approval gateway, encrypted (SQLCipher) per-session queues, host-side model
+  credential custody, web console and channel adapters. Mirrors the security
+  posture of the hardened Docker Compose (deploy/docker-compose.prod.yml):
+  non-root uid 65532, read-only rootfs, all capabilities dropped,
+  no-new-privileges, resource ceilings, and durable encrypted state on a PVC.
+type: application
+
+# Chart version — bump on chart changes (semver, independent of the app).
+version: 0.1.0
+
+# The IronClaw release this chart tracks. `helm install` pins this as the image
+# tag by default; override values.image.tag (ideally with a @sha256 digest) to
+# pin a verified, attested image in production.
+appVersion: "0.1.0"
+
+home: https://github.com/IronSecCo/ironclaw
+sources:
+  - https://github.com/IronSecCo/ironclaw
+keywords:
+  - ai
+  - agents
+  - self-hosted
+  - security
+  - gvisor
+  - sandbox
+maintainers:
+  - name: IronSec Co.
+    url: https://github.com/IronSecCo
+annotations:
+  # The control-plane is the trusted process; agent sandboxes are launched by it
+  # on a gVisor-capable host and are NOT Kubernetes workloads (see README.md).
+  category: Security

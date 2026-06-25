@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ironclaw.fullname" . }}
+  labels:
+    {{- include "ironclaw.labels" . | nindent 4 }}
+data:
+  IRONCLAW_API_ADDR: {{ .Values.config.apiAddr | quote }}
+  IRONCLAW_LOG_FORMAT: {{ .Values.config.logFormat | quote }}
+  IRONCLAW_DEV: {{ .Values.config.dev | quote }}
+  IRONCLAW_STATE_DIR: {{ .Values.config.stateDir | quote }}
+  {{- range $k, $v := .Values.config.extraEnv }}
+  {{ $k }}: {{ $v | quote }}
+  {{- end }}
