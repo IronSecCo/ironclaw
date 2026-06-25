@@ -5,6 +5,9 @@ dist/
 *.dll
 *.so
 *.dylib
+# Top-level dev build artifacts (`go build ./cmd/...` drops these at the repo root)
+/ironctl
+/controlplane
 
 # Go
 *.test
