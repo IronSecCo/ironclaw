@@ -97,13 +97,23 @@ jobs:
           - { goos: darwin, goarch: amd64, runner: macos-14, name: darwin_amd64, cgoarch: x86_64 }
           # macOS Apple Silicon — native clang.
           - { goos: darwin, goarch: arm64, runner: macos-14, name: darwin_arm64 }
-          # Linux x86_64 — native gcc.
-          - { goos: linux, goarch: amd64, runner: ubuntu-latest, name: linux_amd64 }
-          # Linux arm64 — cross-compiled with the aarch64 GNU toolchain.
-          - { goos: linux, goarch: arm64, runner: ubuntu-latest, name: linux_arm64, cc: aarch64-linux-gnu-gcc, apt: gcc-aarch64-linux-gnu }
+          # Linux x86_64 — native gcc, inside a pinned glibc-2.31 (Debian 11 "bullseye")
+          # container. GitHub's hosted ubuntu-latest now ships glibc 2.39, which makes the
+          # linker version every symbol up to GLIBC_2.38 — so the published binary refuses
+          # to start on every mainstream server LTS (Ubuntu 22.04 = 2.35, Debian 12 = 2.36,
+          # RHEL 9 = 2.34). Building in bullseye floors the requirement at GLIBC_2.31, which
+          # every distro from Ubuntu 20.04 / Debian 11 / RHEL 9 onward satisfies. The digest
+          # pin makes the build glibc a deterministic, reproducible input (IRO-192).
+          - { goos: linux, goarch: amd64, runner: ubuntu-latest, name: linux_amd64, container: "golang:1.23.12-bullseye@sha256:161b8513c09cbfa4c174fd32e46eddc5eddf487a43958b9cf8b07d628e9e0f85" }
+          # Linux arm64 — cross-compiled with the aarch64 GNU toolchain, in the same
+          # bullseye container so the arm64 binary floors at the same GLIBC_2.31.
+          - { goos: linux, goarch: arm64, runner: ubuntu-latest, name: linux_arm64, cc: aarch64-linux-gnu-gcc, apt: gcc-aarch64-linux-gnu, container: "golang:1.23.12-bullseye@sha256:161b8513c09cbfa4c174fd32e46eddc5eddf487a43958b9cf8b07d628e9e0f85" }
           # Windows x86_64 — native mingw-w64 gcc (preinstalled on the runner).
           - { goos: windows, goarch: amd64, runner: windows-latest, name: windows_amd64 }
     runs-on: ${{ matrix.runner }}
+    # Only the linux legs set matrix.container; for macOS/Windows it is undefined, which
+    # evaluates to an empty string here and runs the job directly on the host runner.
+    container: ${{ matrix.container }}
     permissions:
       contents: read # checkout
       id-token: write # OIDC token for keyless provenance signing (Sigstore)
@@ -123,8 +133,12 @@ jobs:
         env:
           APT_PKG: ${{ matrix.apt }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y "${APT_PKG}"
+          set -euo pipefail
+          # Inside the bullseye container we run as root with no sudo binary; on a bare
+          # runner we are an unprivileged user and need sudo. Pick whichever applies.
+          if command -v sudo >/dev/null 2>&1; then SUDO="sudo"; else SUDO=""; fi
+          ${SUDO} apt-get update
+          ${SUDO} apt-get install -y "${APT_PKG}"
 
       - name: Build binaries
         shell: bash
@@ -161,6 +175,14 @@ jobs:
           # bit-for-bit reproducible (the platform reproducibility.yml verifies).
           ldflags="-s -w -buildid= -X github.com/IronSecCo/ironclaw/internal/version.Version=${TAG}"
           [ "${GOOS}" = "linux" ] && ldflags="${ldflags} -extldflags=-Wl,--build-id=none"
+          # The linux legs build inside a container as root over a workspace owned by a
+          # different uid, so git refuses with "dubious ownership" and `go build`'s VCS
+          # stamping aborts ("error obtaining VCS status: exit status 128"). Disable VCS
+          # stamping on linux — the binary's provenance is recorded cryptographically by the
+          # build-provenance attestation below (stronger than Go's embedded git stamp), and
+          # the version string is already injected via -ldflags -X. (IRO-192)
+          vcs=""
+          [ "${GOOS}" = "linux" ] && vcs="-buildvcs=false"
           mkdir -p dist/pkg
           for cmd in controlplane ironctl sandbox; do
             out="ironctl"
@@ -169,9 +191,38 @@ jobs:
               sandbox)      out="ironclaw-sandbox" ;;
             esac
             echo "==> building ${out}${ext} (${GOOS}/${GOARCH})"
-            go build -trimpath -ldflags "${ldflags}" -o "dist/pkg/${out}${ext}" "./cmd/${cmd}"
+            go build -trimpath ${vcs} -ldflags "${ldflags}" -o "dist/pkg/${out}${ext}" "./cmd/${cmd}"
           done
           cp LICENSE README.md dist/pkg/
+
+      # Fail the release if a linux binary regresses past the glibc-2.31 floor. This is the
+      # exact failure mode IRO-192 fixed: a build env with a newer glibc silently versions
+      # symbols up, and the binary won't start on mainstream server LTS distros (Ubuntu
+      # 22.04 = 2.35, Debian 12 = 2.36, RHEL 9 = 2.34). objdump -T lists the versioned libc
+      # symbols the binary requires; we assert the highest is <= GLIBC_2.31. (ci.yml runs the
+      # same assertion on every PR so a regression is caught before it ever reaches a tag.)
+      - name: Assert Linux glibc floor (<= 2.31)
+        if: matrix.goos == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          floor="2.31"
+          fail=0
+          for bin in dist/pkg/ironctl dist/pkg/ironclaw-controlplane dist/pkg/ironclaw-sandbox; do
+            max=$(objdump -T "$bin" 2>/dev/null | grep -oE 'GLIBC_[0-9]+\.[0-9]+' | sed 's/GLIBC_//' | sort -V | tail -1)
+            : "${max:=none}"
+            if [ "$max" = "none" ]; then
+              echo "==> $bin: no versioned GLIBC symbols (static/none) — OK"
+              continue
+            fi
+            if [ "$(printf '%s\n%s\n' "$max" "$floor" | sort -V | tail -1)" != "$floor" ]; then
+              echo "::error title=glibc floor::$bin requires GLIBC_${max} > ${floor} — would not run on Ubuntu 22.04 / Debian 12 / RHEL 9. Build env glibc regressed (IRO-192)." >&2
+              fail=1
+            else
+              echo "==> $bin: max GLIBC_${max} <= ${floor} — OK"
+            fi
+          done
+          [ "$fail" -eq 0 ]
 
       # Attest build provenance for the RAW binaries (ironctl, ironclaw-controlplane,
       # ironclaw-sandbox), not just the archive. The archive attestation in the release
