@@ -67,7 +67,9 @@ func run() error {
 		mcpSocket     = flag.String("mcp-socket", "", "host MCP-broker unix socket; when set, registers the agent's gateway-approved MCP-server tools (empty = no MCP surface)")
 		modelHost     = flag.String("model-host", "", "upstream model host the proxy allowlists (defaults to the provider's host)")
 		model         = flag.String("model", "", "model id override (defaults to the provider's default)")
-		modelKind     = flag.String("provider", "", "model provider: anthropic (default), openai, or openrouter; selected per agent group host-side")
+		modelKind     = flag.String("provider", "", "model provider: anthropic (default), openai, openrouter, codex, gemini, or vertex; selected per agent group host-side")
+		modelProject  = flag.String("model-project", "", "Google Cloud project id for the vertex provider (rides in the request URL path)")
+		modelLocation = flag.String("model-location", "", "Google Cloud region for the vertex provider (empty = the provider's default region)")
 		persona       = flag.String("persona", "", "group system-persona text appended to the system prompt (set host-side from the registry; never by the sandbox)")
 		enabledTools  = flag.String("enabled-tools", "", "comma-separated subset of compiled tools to enable (empty = all; set host-side per agent group)")
 		searchBackend = flag.String("search-backend", "", "search provider for the web_search tool: duckduckgo (keyless) or brave[:cred] (keyed via the vault). Requires --egress-socket; empty disables web_search")
@@ -130,6 +132,8 @@ func run() error {
 		SocketPath:   *modelSocket,
 		UpstreamHost: *modelHost,
 		Model:        *model,
+		Project:      *modelProject,
+		Location:     *modelLocation,
 		System:       loop.SystemPromptWith(*persona),
 	})
 	if err != nil {

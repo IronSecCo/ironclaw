@@ -69,6 +69,12 @@ const (
 	// (generativelanguage.googleapis.com) — Google AI Studio with a host-held API
 	// key, or the Gemini CLI's OAuth credential injected via the credential gateway.
 	KindGemini = "gemini"
+	// KindVertex routes to Google Cloud Vertex AI
+	// ({location}-aiplatform.googleapis.com). It speaks the identical Gemini wire
+	// format — only the transport envelope differs: the GCP project and location ride
+	// in the URL path, and auth is an OAuth2 bearer (gcloud ADC / service account)
+	// injected host-side, not a static API key. See NewVertex.
+	KindVertex = "vertex"
 	// KindMock is a deterministic, offline backend (no network, no credential)
 	// for local demos and end-to-end tests. See MockProvider.
 	KindMock = "mock"
@@ -114,6 +120,11 @@ func New(cfg Config) (Provider, error) {
 		// NewGemini applies the generativelanguage.googleapis.com upstream host and
 		// the default Gemini model when cfg leaves them zero.
 		return NewGemini(cfg), nil
+	case KindVertex:
+		// NewVertex reuses GeminiProvider (identical wire format) but builds the
+		// Vertex URL from cfg.Project/cfg.Location and derives the regional
+		// {location}-aiplatform.googleapis.com host when cfg leaves them zero.
+		return NewVertex(cfg), nil
 	case KindMock:
 		// Deterministic offline backend; ignores host/model/socket entirely.
 		return NewMock(cfg), nil
@@ -126,9 +137,16 @@ func New(cfg Config) (Provider, error) {
 // given backend ignores (e.g. DisableThinking for OpenAI) are simply unused.
 type Config struct {
 	// Kind selects the backend: "" / "anthropic" (default), "openai",
-	// "openrouter", "codex", or "gemini". See New. The kind is chosen per agent
-	// group host-side.
+	// "openrouter", "codex", "gemini", or "vertex". See New. The kind is chosen per
+	// agent group host-side.
 	Kind string
+	// Project and Location are the Google Cloud project id and region used by the
+	// Vertex AI backend (KindVertex); they ride in the request URL path. They are
+	// ignored by every other backend. Empty Location defaults to the Vertex default
+	// region; an empty Project yields a malformed Vertex URL (a misconfiguration the
+	// upstream rejects), so the control-plane only selects vertex when a project is set.
+	Project  string
+	Location string
 	// SocketPath is the host model-proxy unix socket. Defaults to DefaultSocketPath.
 	SocketPath string
 	// UpstreamHost is the model API host the proxy allowlists and routes to.

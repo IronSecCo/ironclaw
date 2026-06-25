@@ -239,6 +239,30 @@ func main() {
 	} else if apiKey := os.Getenv("GEMINI_API_KEY"); apiKey != "" {
 		addProvider("generativelanguage.googleapis.com", modelproxy.GeminiInjector(apiKey), apiKey)
 	}
+	// Google Cloud Vertex AI. Vertex speaks the identical Gemini wire format but auth
+	// is an OAuth2 bearer (not an API key) and the project/region ride in the URL path,
+	// so the allowlisted host is the regional {location}-aiplatform.googleapis.com. The
+	// token is sourced host-side and refreshed there; the sandbox never holds it. Two
+	// token sources, in precedence: a static GOOGLE_VERTEX_ACCESS_TOKEN (operator
+	// refreshes out of band), else gcloud Application Default Credentials when
+	// GOOGLE_VERTEX_USE_GCLOUD=1 (auto-refreshing, no extra dependency). A project is
+	// required; the region defaults to the provider default when unset.
+	if proj := envOr("GOOGLE_VERTEX_PROJECT", os.Getenv("GOOGLE_CLOUD_PROJECT")); proj != "" {
+		var ts modelproxy.TokenSource
+		if tok := os.Getenv("GOOGLE_VERTEX_ACCESS_TOKEN"); tok != "" {
+			ts = modelproxy.StaticTokenSource(tok)
+		} else if os.Getenv("GOOGLE_VERTEX_USE_GCLOUD") == "1" {
+			ts = &modelproxy.GcloudTokenSource{}
+		}
+		if ts != nil {
+			loc := envOr("GOOGLE_VERTEX_LOCATION", os.Getenv("GOOGLE_CLOUD_LOCATION"))
+			vHost := vertexAllowHost(loc)
+			// The bearer is dynamic (refreshed per call), so it is not added to the
+			// static redactKeys set; nothing host-side echoes it into a response body.
+			addProvider(vHost, modelproxy.VertexInjector(ts), "")
+			logger.Info("vertex ai enabled", "host", vHost, "project", proj)
+		}
+	}
 	credInjected := len(injectors) > 0
 	if credInjected {
 		proxyOpts = append(proxyOpts,
@@ -1017,6 +1041,22 @@ func envOr(key, def string) string {
 	return def
 }
 
+// vertexAllowHost returns the Vertex AI host to allowlist for a region: the global
+// (region-less) endpoint for "global", otherwise the regional
+// {location}-aiplatform.googleapis.com. An unset location resolves to the same
+// default region the sandbox provider applies (provider.defaultVertexLocation,
+// "us-central1") so the allowlisted host matches the one the sandbox addresses.
+func vertexAllowHost(location string) string {
+	location = strings.TrimSpace(location)
+	if location == "" {
+		location = "us-central1"
+	}
+	if location == "global" {
+		return "aiplatform.googleapis.com"
+	}
+	return location + "-aiplatform.googleapis.com"
+}
+
 // selectModelFromRegistry resolves a session's model backend from its agent group
 // : session -> agent group -> {Provider, Model}. A group pinned to an
 // explicit Provider uses it; any group without one inherits the deployment default.
@@ -1032,6 +1072,8 @@ func selectModelFromRegistry(reg *registry.MemRegistry) func(contract.SessionID)
 	def := session.ModelSelection{
 		Provider: os.Getenv("IRONCLAW_DEV_PROVIDER"),
 		Model:    os.Getenv("IRONCLAW_DEV_MODEL"),
+		Project:  envOr("IRONCLAW_DEV_VERTEX_PROJECT", os.Getenv("GOOGLE_VERTEX_PROJECT")),
+		Location: envOr("IRONCLAW_DEV_VERTEX_LOCATION", os.Getenv("GOOGLE_VERTEX_LOCATION")),
 	}
 	return func(id contract.SessionID) session.ModelSelection {
 		sess, ok := reg.GetSession(id)
@@ -1045,7 +1087,7 @@ func selectModelFromRegistry(reg *registry.MemRegistry) func(contract.SessionID)
 		if g.Provider == "" {
 			return def
 		}
-		return session.ModelSelection{Provider: g.Provider, Model: g.Model}
+		return session.ModelSelection{Provider: g.Provider, Model: g.Model, Project: g.Project, Location: g.Location}
 	}
 }
 
@@ -1063,6 +1105,10 @@ func seedDev(reg *registry.MemRegistry, logger *obs.Logger) {
 	if p := os.Getenv("IRONCLAW_DEV_PROVIDER"); p != "" {
 		grp.Provider = p
 		grp.Model = os.Getenv("IRONCLAW_DEV_MODEL")
+		// Vertex needs a project + region in the URL path. Honor the dev-specific
+		// overrides first, then the standard GOOGLE_VERTEX_* the proxy reads.
+		grp.Project = envOr("IRONCLAW_DEV_VERTEX_PROJECT", os.Getenv("GOOGLE_VERTEX_PROJECT"))
+		grp.Location = envOr("IRONCLAW_DEV_VERTEX_LOCATION", os.Getenv("GOOGLE_VERTEX_LOCATION"))
 	}
 	_ = reg.PutAgentGroup(grp)
 	// Always seed a deterministic, offline agent group. Its mock provider makes

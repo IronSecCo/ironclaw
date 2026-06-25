@@ -128,6 +128,8 @@ var modelCredentialEnv = [][2]string{
 	{"OPENROUTER_API_KEY", "OpenRouter"},
 	{"GOOGLE_API_KEY", "Google Gemini"},
 	{"GEMINI_API_KEY", "Google Gemini"},
+	{"GOOGLE_VERTEX_ACCESS_TOKEN", "Google Vertex AI"},
+	{"GOOGLE_VERTEX_USE_GCLOUD", "Google Vertex AI"},
 	{"IRONCLAW_MODEL_GATEWAY_URL", "credential gateway"},
 }
 

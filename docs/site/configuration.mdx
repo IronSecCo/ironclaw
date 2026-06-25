@@ -19,6 +19,20 @@ least one.
 | `OPENAI_API_KEY` | Allowlists `api.openai.com` when present. |
 | `OPENROUTER_API_KEY` | Allowlists `openrouter.ai` when present. |
 | `GOOGLE_API_KEY` / `GEMINI_API_KEY` | Google Gemini (Google AI Studio). Allowlists `generativelanguage.googleapis.com` and injects the key as `x-goog-api-key`. Select with provider `gemini`. The Gemini CLI's OAuth credential is fronted by the credential gateway (`IRONCLAW_MODEL_GATEWAY_URL`) instead — the same `gemini` provider serves both. |
+| `GOOGLE_VERTEX_PROJECT` (+ token source) | Google Cloud **Vertex AI**. Speaks the same Gemini wire format, but the project and region ride in the URL path and auth is an OAuth2 bearer. Select with provider `vertex`. See **Vertex AI** below. |
+
+#### Vertex AI
+
+Vertex reuses the Gemini backend; only the transport envelope differs (project/region in the path, OAuth bearer instead of an API key). The bearer is held and refreshed host-side — it never enters a sandbox. Set:
+
+| Variable | Purpose |
+|---|---|
+| `GOOGLE_VERTEX_PROJECT` / `GOOGLE_CLOUD_PROJECT` | GCP project id (required). Allowlists the regional `{location}-aiplatform.googleapis.com` host. |
+| `GOOGLE_VERTEX_LOCATION` / `GOOGLE_CLOUD_LOCATION` | GCP region (default `us-central1`; `global` uses the region-less endpoint). |
+| `GOOGLE_VERTEX_ACCESS_TOKEN` | A static OAuth2 access token (you refresh it out of band, e.g. a timer running `gcloud auth print-access-token`). Takes precedence over gcloud. |
+| `GOOGLE_VERTEX_USE_GCLOUD=1` | Auto-refresh the token host-side from Application Default Credentials by execing `gcloud auth print-access-token` (no static token needed; covers `gcloud` login, a service-account key via `GOOGLE_APPLICATION_CREDENTIALS`, or the GCE metadata server). |
+
+A project plus one token source enables Vertex. Per agent group, set provider `vertex` with the group's `Project`/`Location` (or, in `--dev`, `IRONCLAW_DEV_PROVIDER=vertex` with `IRONCLAW_DEV_VERTEX_PROJECT` / `IRONCLAW_DEV_VERTEX_LOCATION`).
 
 ### Admin API token
 
