@@ -55,3 +55,56 @@ jobs:
             go test ./internal/host/skills/ -run='^$' -fuzz="^${target}$" -fuzztime=30s
             echo "::endgroup::"
           done
+
+  # Guard the published Linux binaries' glibc floor on every PR (IRO-192). The release job
+  # builds the linux artifacts inside a pinned glibc-2.31 (Debian 11 "bullseye") container
+  # so they run on every mainstream server LTS (Ubuntu 22.04 = 2.35, Debian 12 = 2.36,
+  # RHEL 9 = 2.34). release.yml only runs on push to main, so this job is the pre-merge
+  # proof: it rebuilds the same way and fails if any binary requires a newer glibc than 2.31.
+  # It mirrors release.yml's build env exactly (same container digest, setup-go, GOMAXPROCS),
+  # so it also catches a setup-go / toolchain regression inside the container before a tag.
+  glibc-floor:
+    runs-on: ubuntu-latest
+    container: "golang:1.23.12-bullseye@sha256:161b8513c09cbfa4c174fd32e46eddc5eddf487a43958b9cf8b07d628e9e0f85"
+    env:
+      CGO_ENABLED: "1"
+      GOMAXPROCS: "1"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: "1.23.12"
+          cache: false
+      - name: Build linux/amd64 in the release container and assert glibc <= 2.31
+        shell: bash
+        run: |
+          set -euo pipefail
+          go mod download all
+          mkdir -p dist/pkg
+          ldflags="-s -w -buildid= -extldflags=-Wl,--build-id=none"
+          for cmd in controlplane ironctl sandbox; do
+            out="ironctl"
+            case "$cmd" in
+              controlplane) out="ironclaw-controlplane" ;;
+              sandbox)      out="ironclaw-sandbox" ;;
+            esac
+            CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
+              go build -trimpath -ldflags "${ldflags}" -o "dist/pkg/${out}" "./cmd/${cmd}"
+          done
+          floor="2.31"
+          fail=0
+          for bin in dist/pkg/ironctl dist/pkg/ironclaw-controlplane dist/pkg/ironclaw-sandbox; do
+            max=$(objdump -T "$bin" 2>/dev/null | grep -oE 'GLIBC_[0-9]+\.[0-9]+' | sed 's/GLIBC_//' | sort -V | tail -1)
+            : "${max:=none}"
+            if [ "$max" = "none" ]; then
+              echo "==> $bin: no versioned GLIBC symbols — OK"
+              continue
+            fi
+            if [ "$(printf '%s\n%s\n' "$max" "$floor" | sort -V | tail -1)" != "$floor" ]; then
+              echo "::error title=glibc floor::$bin requires GLIBC_${max} > ${floor} — would not run on Ubuntu 22.04 / Debian 12 / RHEL 9 (IRO-192)." >&2
+              fail=1
+            else
+              echo "==> $bin: max GLIBC_${max} <= ${floor} — OK"
+            fi
+          done
+          [ "$fail" -eq 0 ]

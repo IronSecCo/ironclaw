@@ -38,6 +38,11 @@ jobs:
   verify:
     name: Verify deterministic build
     runs-on: ubuntu-latest
+    # Rebuild inside the exact pinned glibc-2.31 (Debian 11 "bullseye") container the
+    # release job uses for the linux binaries (IRO-192). Without this the determinism
+    # check would run against a different glibc than the published artifact, so its
+    # "reproducible" claim wouldn't transfer to what users actually download.
+    container: "golang:1.23.12-bullseye@sha256:161b8513c09cbfa4c174fd32e46eddc5eddf487a43958b9cf8b07d628e9e0f85"
     env:
       CGO_ENABLED: "1"
       # Single-threaded build so symbol-ordering ties resolve deterministically — half of
