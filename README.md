@@ -4,18 +4,19 @@
 
 ### Security-first, self-hosted AI agents — isolation you can prove, not just promise.
 
-[![Documentation](https://img.shields.io/badge/docs-ironsecco.github.io-0a7bbb.svg)](https://ironsecco.github.io/ironclaw/)
-[![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#project-status)
-[![Latest release](https://img.shields.io/github/v/release/IronSecCo/ironclaw?sort=semver)](https://github.com/IronSecCo/ironclaw/releases/latest)
-[![Go Reference](https://pkg.go.dev/badge/github.com/IronSecCo/ironclaw.svg)](https://pkg.go.dev/github.com/IronSecCo/ironclaw)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](LICENSE)
-[![Commercial license](https://img.shields.io/badge/License-Commercial%20available-555.svg)](LICENSING.md)
+<!-- Security & supply-chain trust cluster — lead with what makes this project different -->
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/IronSecCo/ironclaw/badge)](https://scorecard.dev/viewer/?uri=github.com/IronSecCo/ironclaw)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13348/badge)](https://www.bestpractices.dev/projects/13348)
 [![CodeQL](https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml/badge.svg)](https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml)
 [![Signed releases (cosign)](https://img.shields.io/badge/releases-cosign%20signed-0a7bbb.svg)](#verifying-a-release)
 [![SBOM: SPDX + CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-44883e.svg)](#verifying-a-release)
 [![SLSA provenance](https://img.shields.io/badge/SLSA-build%20provenance-44883e.svg)](#verifying-a-release)
+
+[![Documentation](https://img.shields.io/badge/docs-ironsecco.github.io-0a7bbb.svg)](https://ironsecco.github.io/ironclaw/)
+[![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#project-status)
+[![Latest release](https://img.shields.io/github/v/release/IronSecCo/ironclaw?sort=semver)](https://github.com/IronSecCo/ironclaw/releases/latest)
+[![Go Reference](https://pkg.go.dev/badge/github.com/IronSecCo/ironclaw.svg)](https://pkg.go.dev/github.com/IronSecCo/ironclaw)
+[![License: AGPLv3 + Commercial](https://img.shields.io/badge/License-AGPLv3%20%2B%20Commercial-blue.svg)](LICENSING.md)
 [![GitHub Discussions](https://img.shields.io/github/discussions/IronSecCo/ironclaw?logo=github&label=discussions)](https://github.com/IronSecCo/ironclaw/discussions)
 [![Good first issues](https://img.shields.io/github/issues/IronSecCo/ironclaw/good%20first%20issue?label=good%20first%20issues)](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 [![GitHub stars](https://img.shields.io/github/stars/IronSecCo/ironclaw?style=social)](https://github.com/IronSecCo/ironclaw/stargazers)
@@ -23,10 +24,8 @@
 </div>
 
 IronClaw is an open-source platform for running personal AI assistants on infrastructure you
-control. You talk to them through the chat apps you already use; each assistant runs as a real,
-autonomous agent that can read, write, schedule, and reply. What makes it different is the threat
-model: it assumes the agent — and the box it runs in — could be compromised at any moment, and
-builds hard, provable walls so that even a misbehaving agent can't reach your data or your machine.
+control — reached through the chat apps you already use, each a real autonomous agent that can
+read, write, schedule, and reply.
 
 > **The security model, in one line:** each sandboxed agent runs with `network=none`, reaches the
 > model only through a host proxy, and **cannot change its own configuration** — every capability
@@ -46,7 +45,22 @@ builds hard, provable walls so that even a misbehaving agent can't reach your da
 >
 > - **It's an alpha.** Flags, the on-disk format, and the HTTP/contract surfaces can still change without notice or a migration path. Don't point it at anything you can't afford to lose.
 > - **Not every feature is tested end-to-end.** The control-plane, gateway, and encrypted-queue core have real coverage (800+ Go tests plus a black-box parity suite); channel adapters, some tools, multi-provider routing, and a live sandbox launch are exercised more lightly. Treat anything outside the [tested core](#project-status) as experimental.
-> - **macOS doesn't get the full isolation story.** The production sandbox is **gVisor (`runsc`)**, which is **Linux-only**. The whole host side runs on macOS natively, but a real agent sandbox there falls back to `--runtime docker` — runc inside Docker Desktop's Linux VM, a weaker kernel-shared boundary. Details in [Platform support](#platform-support).
+>
+> macOS/Windows get a weaker sandbox boundary than Linux+gVisor — see [Platform support](#platform-support).
+
+> **Want to see it work first — no API key, no signup?**
+> One offline demo runs the full chat → per-session sandbox → reply loop on a stock
+> laptop, where a mock agent actually replies — no credentials, no gVisor required:
+>
+> ```sh
+> git clone https://github.com/IronSecCo/ironclaw.git && cd ironclaw
+> bash container/build.sh                                  # build the sandbox image once
+> docker compose -f docker-compose.demo.yml up --build -d  # start the offline demo
+> ```
+>
+> Open **http://127.0.0.1:8787/ui/**, pick **Mock Agent (offline)** in the Chat tab, and
+> watch the agent reply — production seals each sandbox with gVisor and `network=none`.
+> [Zero-credential quickstart →](docs/quickstart.md)
 
 ## Get running in under two minutes
 
@@ -81,7 +95,8 @@ Tailscale-bound API, so it adds no public port.)
 
 ---
 
-## Table of contents
+<details>
+<summary><b>Table of contents</b></summary>
 
 - [Get running in under two minutes](#get-running-in-under-two-minutes)
 - [CLI-first and API-first](#cli-first-and-api-first)
@@ -103,6 +118,8 @@ Tailscale-bound API, so it adds no public port.)
 - [Community](#community)
 - [Contributing](#contributing)
 - [License](#license)
+
+</details>
 
 ## Why it's different
 
