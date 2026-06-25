@@ -9,15 +9,15 @@ exist. This page is the *how*.
 
 ## Pick a deployment path
 
-There are two supported ways to run the control-plane in production. They differ in
+There are three supported ways to run the control-plane in production. They differ in
 **how much sandbox isolation you get**, because that depends on the host kernel.
 
-| | Bare-host (systemd / launchd) | Hardened Docker Compose |
-|---|---|---|
-| Installer | [`deploy/install.sh`](https://github.com/IronSecCo/ironclaw/blob/main/deploy/install.sh) | [`deploy/docker-compose.prod.yml`](https://github.com/IronSecCo/ironclaw/blob/main/deploy/docker-compose.prod.yml) |
-| Sandbox isolation | **Full gVisor (`runsc`)** — `network=none`, all caps dropped, read-only rootfs, user-namespaced | Control-plane only; sandboxes need a runsc host |
-| Best for | The real production posture: agents executing tool calls under gVisor | Hardened control-plane, gateway, console, channels on any Docker host |
-| Host requirements | Linux + containerd + gVisor (or macOS/launchd for the control-plane) | Any host with Docker + Compose |
+| | Bare-host (systemd / launchd) | Hardened Docker Compose | Kubernetes (Helm) |
+|---|---|---|---|
+| Installer | [`deploy/install.sh`](https://github.com/IronSecCo/ironclaw/blob/main/deploy/install.sh) | [`deploy/docker-compose.prod.yml`](https://github.com/IronSecCo/ironclaw/blob/main/deploy/docker-compose.prod.yml) | [`deploy/helm/ironclaw`](https://github.com/IronSecCo/ironclaw/tree/main/deploy/helm/ironclaw) |
+| Sandbox isolation | **Full gVisor (`runsc`)** — `network=none`, all caps dropped, read-only rootfs, user-namespaced | Control-plane only; sandboxes need a runsc host | Control-plane only; full gVisor needs a runsc-capable node |
+| Best for | The real production posture: agents executing tool calls under gVisor | Hardened control-plane, gateway, console, channels on any Docker host | Self-hosters who run their infra on k8s |
+| Host requirements | Linux + containerd + gVisor (or macOS/launchd for the control-plane) | Any host with Docker + Compose | A Kubernetes cluster (1.25+) + Helm |
 
 !!! important "Where the sandboxes run"
     IronClaw's security value is that **agent code runs inside a gVisor sandbox** with
@@ -156,6 +156,83 @@ docker compose -f deploy/docker-compose.prod.yml logs -f controlplane
 The control-plane comes up `healthy` (the `/healthz` probe), locked down: read-only
 rootfs, `CapDrop=ALL`, `no-new-privileges`, non-root, with a tmpfs for the model-proxy
 socket. Caddy fronts it on `:443`/`:80`.
+
+---
+
+## Path C — Kubernetes (Helm)
+
+For self-hosters who already run on Kubernetes, the
+[`deploy/helm/ironclaw`](https://github.com/IronSecCo/ironclaw/tree/main/deploy/helm/ironclaw)
+chart deploys the control-plane with the **same hardening as the Compose path**:
+non-root uid `65532`, read-only rootfs, **all capabilities dropped**,
+`allowPrivilegeEscalation: false` (`no-new-privileges`), `RuntimeDefault` seccomp,
+resource ceilings, and durable encrypted (SQLCipher) state on a PersistentVolume. Like
+Compose, this runs and locks down the **trusted control-plane only** — agent sandboxes
+run under gVisor on the host and are never Kubernetes Pods (see the box above); for full
+sandbox isolation, schedule the control-plane onto a **runsc-capable node**.
+
+### 1. Install
+
+```sh
+helm install ironclaw ./deploy/helm/ironclaw \
+  --namespace ironclaw --create-namespace \
+  --set secrets.apiToken="$(openssl rand -hex 32)" \
+  --set secrets.anthropicApiKey="sk-ant-…"
+```
+
+The control-plane is `ClusterIP` only (not exposed outside the cluster). Try it with a
+port-forward:
+
+```sh
+kubectl -n ironclaw port-forward svc/ironclaw 8787:8787
+curl -fsS http://127.0.0.1:8787/healthz
+```
+
+!!! tip "Bring your own Secret"
+    Putting secrets in `--set` writes them into the Helm release. In production, create a
+    Secret (keys = daemon env names like `IRONCLAW_API_TOKEN`, `ANTHROPIC_API_KEY`) from
+    your secrets manager and pass `--set secrets.existingSecret=<name>`. If
+    `IRONCLAW_API_TOKEN` is unset the control-plane mints one and prints it **once** in
+    the Pod logs (`kubectl logs deploy/ironclaw`) — no recovery.
+
+### 2. Pin a verified image digest
+
+Mirror the Compose digest-pinning. Resolve and `cosign verify` the digest (as in Path B),
+then:
+
+```sh
+helm upgrade --install ironclaw ./deploy/helm/ironclaw -n ironclaw \
+  --set image.digest=sha256:<digest>
+```
+
+### 3. TLS termination via Ingress
+
+The control-plane serves **plain HTTP** — terminate TLS at the Ingress (cert-manager or
+your controller), exactly as Caddy/nginx do for the other paths:
+
+```sh
+helm upgrade --install ironclaw ./deploy/helm/ironclaw -n ironclaw \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx \
+  --set ingress.hosts[0].host=ironclaw.example.com \
+  --set ingress.tls[0].secretName=ironclaw-tls \
+  --set ingress.tls[0].hosts[0]=ironclaw.example.com
+```
+
+### Persistence, PID limits & network policy
+
+- **State** lives on the `state` PVC (`persistence.size`, default `1Gi`; or
+  `persistence.existingClaim`). It holds the encryption keys and admin token — back it up
+  **encrypted** (see [Backups & restore](#backups-restore)).
+- **PID ceiling:** Kubernetes has no per-container `pids` field (the Compose path sets
+  one), so enforce it at the node (`--pod-max-pids`) or with a namespace `LimitRange`.
+- **NetworkPolicy:** set `networkPolicy.enabled=true` (with an enforcing CNI) to restrict
+  ingress to the Pod, mirroring the Compose "private network" posture.
+
+Full value reference and validation commands are in the chart
+[README](https://github.com/IronSecCo/ironclaw/blob/main/deploy/helm/ironclaw/README.md).
+The chart is validated with `helm lint` and `helm template` rendering against the
+Kubernetes schema; a live-cluster apply is left to the operator.
 
 ---
 

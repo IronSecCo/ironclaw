@@ -1,0 +1,51 @@
+IronClaw control-plane installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Image: {{ include "ironclaw.image" . }}
+{{- if not .Values.image.digest }}
+
+  ⚠  You are running a tag, not a pinned digest. In production set
+     image.digest to a cosign-verified sha256 (see docs/deployment.md).
+{{- end }}
+
+1. Admin/API token
+{{- if .Values.secrets.existingSecret }}
+   Loaded from existing Secret "{{ .Values.secrets.existingSecret }}".
+{{- else if .Values.secrets.apiToken }}
+   Set from chart values into Secret "{{ include "ironclaw.fullname" . }}".
+{{- else }}
+   ⚠  No IRONCLAW_API_TOKEN provided. The control-plane MINTED one on first run
+      and printed it ONCE in the Pod logs (no recovery). Grab it now:
+
+        kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "ironclaw.fullname" . }} | grep -A2 "token MINTED"
+
+      Then set secrets.apiToken (or secrets.existingSecret) and `helm upgrade`.
+{{- end }}
+
+2. Reach the control-plane
+{{- if .Values.ingress.enabled }}
+   Ingress is enabled. TLS is terminated at the Ingress; the control-plane serves
+   plain HTTP behind it. Hosts:
+   {{- range .Values.ingress.hosts }}
+     - https://{{ .host }}
+   {{- end }}
+{{- else }}
+   ClusterIP only (not exposed outside the cluster). Port-forward to try it:
+
+     kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "ironclaw.fullname" . }} 8787:{{ .Values.service.port }}
+     curl -fsS http://127.0.0.1:8787/healthz
+
+   For external access, enable ingress.* and terminate TLS there.
+{{- end }}
+
+3. State & backups
+{{- if .Values.persistence.enabled }}
+   Durable state (encrypted SQLCipher queues, keys, admin token) lives on PVC
+   "{{ include "ironclaw.pvcName" . }}". It holds the encryption keys — back it up
+   ENCRYPTED. Losing it loses the token and all session state.
+{{- else }}
+   ⚠  persistence.enabled=false — state is EPHEMERAL and lost on restart. Use only
+      for evaluation; enable persistence for any real deployment.
+{{- end }}
+
+Security posture: non-root uid 65532, read-only rootfs, all caps dropped,
+no-new-privileges, RuntimeDefault seccomp. See docs/deployment.md (Kubernetes).

@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ironclaw.fullname" . }}
+  labels:
+    {{- include "ironclaw.labels" . | nindent 4 }}
+spec:
+  # The control-plane owns durable SQLCipher state on a ReadWriteOnce volume and
+  # is single-writer; Recreate avoids two Pods racing for the same PVC on rollout.
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "ironclaw.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        # Roll the Pod when non-secret config changes.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "ironclaw.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "ironclaw.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      containers:
+        - name: controlplane
+          image: {{ include "ironclaw.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "ironclaw.fullname" . }}
+            - secretRef:
+                name: {{ include "ironclaw.secretName" . }}
+          ports:
+            - name: http
+              containerPort: 8787
+              protocol: TCP
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            # Durable encrypted state (SQLCipher queues, gateway store, audit log,
+            # sealed keys, minted admin token).
+            - name: state
+              mountPath: {{ .Values.config.stateDir | quote }}
+            # Writable scratch required by the read-only rootfs: the model-proxy
+            # unix socket lives under /run/ironclaw, plus a small /tmp.
+            - name: run
+              mountPath: /run/ironclaw
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: state
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "ironclaw.pvcName" . }}
+          {{- else }}
+          # No persistence: state is ephemeral and lost on Pod restart (the admin
+          # token is re-minted). Use only for evaluation.
+          emptyDir: {}
+          {{- end }}
+        - name: run
+          emptyDir:
+            medium: Memory
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
