@@ -6,8 +6,20 @@ name: Release
 #
 # CGO is mandatory (the encrypted-SQLite binding compiles the vendored SQLCipher C
 # amalgamation), so each target is built on a runner with a matching C toolchain
-# rather than cross-compiled blind. The only cross-build is linux/arm64, which is
-# pure C and links cleanly with the aarch64 GNU cross-compiler.
+# rather than cross-compiled blind.
+#
+# The Linux archives are built as **fully static musl** binaries (CC=musl-gcc,
+# -extldflags=-static). A dynamically-linked glibc cgo binary bakes in the *build
+# host's* GLIBC symbol versions: building on ubuntu-latest (glibc 2.39) made the
+# binary demand GLIBC_2.38 and fail to even print --version on Ubuntu 22.04 /
+# Debian 12 / RHEL 9 / Amazon Linux 2023 — every mainstream server LTS (IRO-192).
+# go-sqlcipher uses the vendored libtomcrypt crypto backend
+# (-DSQLCIPHER_CRYPTO_LIBTOMCRYPT), so the only external link is libc itself; a
+# static musl link drops the glibc floor entirely and runs on any Linux / any libc.
+# Each Linux arch builds natively (amd64 on x86_64, arm64 on an arm64 runner) so
+# musl-gcc is the native toolchain — never a blind cross-compile. The
+# smoke_linux_compat job re-runs the IRO-192 repro on old-glibc distros every
+# release so this can never silently regress.
 
 on:
   push:
@@ -97,10 +109,10 @@ jobs:
           - { goos: darwin, goarch: amd64, runner: macos-14, name: darwin_amd64, cgoarch: x86_64 }
           # macOS Apple Silicon — native clang.
           - { goos: darwin, goarch: arm64, runner: macos-14, name: darwin_arm64 }
-          # Linux x86_64 — native gcc.
-          - { goos: linux, goarch: amd64, runner: ubuntu-latest, name: linux_amd64 }
-          # Linux arm64 — cross-compiled with the aarch64 GNU toolchain.
-          - { goos: linux, goarch: arm64, runner: ubuntu-latest, name: linux_arm64, cc: aarch64-linux-gnu-gcc, apt: gcc-aarch64-linux-gnu }
+          # Linux x86_64 — native, fully static musl link (no glibc floor, IRO-192).
+          - { goos: linux, goarch: amd64, runner: ubuntu-latest, name: linux_amd64, cc: musl-gcc, apt: musl-tools, static: "1" }
+          # Linux arm64 — native on an arm64 runner, fully static musl link (IRO-192).
+          - { goos: linux, goarch: arm64, runner: ubuntu-24.04-arm, name: linux_arm64, cc: musl-gcc, apt: musl-tools, static: "1" }
           # Windows x86_64 — native mingw-w64 gcc (preinstalled on the runner).
           - { goos: windows, goarch: amd64, runner: windows-latest, name: windows_amd64 }
     runs-on: ${{ matrix.runner }}
@@ -118,7 +130,7 @@ jobs:
           # an independent reproducible rebuild (IRO-44). Build cold every time.
           cache: false
 
-      - name: Install cross C toolchain
+      - name: Install C toolchain
         if: matrix.apt != ''
         env:
           APT_PKG: ${{ matrix.apt }}
@@ -141,6 +153,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CC_OVERRIDE: ${{ matrix.cc }}
           CGO_ARCH: ${{ matrix.cgoarch }}
+          STATIC: ${{ matrix.static }}
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           set -euo pipefail
@@ -148,8 +161,8 @@ jobs:
           # first (and only) run — the other half of the IRO-44 reproducibility fix
           # (otherwise a fresh-runner build diverges from a warmed independent rebuild).
           go mod download all
-          # Linux arm64 uses a GNU cross-gcc (matrix.cc); macOS Intel cross-compiles
-          # with clang via -arch on the universal SDK (matrix.cgoarch).
+          # Linux uses musl-gcc for a fully static link (matrix.cc=musl-gcc); macOS Intel
+          # cross-compiles with clang via -arch on the universal SDK (matrix.cgoarch).
           [ -n "${CC_OVERRIDE}" ] && export CC="${CC_OVERRIDE}"
           [ -n "${CGO_ARCH}" ] && { export CGO_CFLAGS="-arch ${CGO_ARCH}"; export CGO_LDFLAGS="-arch ${CGO_ARCH}"; }
           ext=""
@@ -160,7 +173,15 @@ jobs:
           # would break the darwin targets. Together these make the Linux artifacts
           # bit-for-bit reproducible (the platform reproducibility.yml verifies).
           ldflags="-s -w -buildid= -X github.com/IronSecCo/ironclaw/internal/version.Version=${TAG}"
-          [ "${GOOS}" = "linux" ] && ldflags="${ldflags} -extldflags=-Wl,--build-id=none"
+          if [ -n "${STATIC}" ]; then
+            # Linux: fully static musl link so the binary carries no GLIBC symbol floor
+            # (IRO-192) and runs on any Linux/any libc. The external linker still drops the
+            # GNU .note.gnu.build-id for reproducibility — both flags go through one quoted
+            # -extldflags value so musl-gcc receives `-static` AND `-Wl,--build-id=none`.
+            ldflags="${ldflags} -linkmode external -extldflags '-static -Wl,--build-id=none'"
+          elif [ "${GOOS}" = "linux" ]; then
+            ldflags="${ldflags} -extldflags=-Wl,--build-id=none"
+          fi
           mkdir -p dist/pkg
           for cmd in controlplane ironctl sandbox; do
             out="ironctl"
