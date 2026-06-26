@@ -59,7 +59,8 @@ read, write, schedule, and reply.
 > ```
 >
 > Open **http://127.0.0.1:8787/ui/**, pick **Mock Agent (offline)** in the Chat tab, and
-> watch the agent reply — production seals each sandbox with gVisor and `network=none`.
+> watch the agent reply. If the console prompts for an API token, paste `ironclaw-demo` (the
+> demo's fixed loopback token). Production seals each sandbox with gVisor and `network=none`.
 > [Zero-credential quickstart →](docs/quickstart.md)
 
 ## Get running in under two minutes

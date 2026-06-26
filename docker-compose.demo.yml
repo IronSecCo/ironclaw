@@ -3,6 +3,7 @@
 #   bash container/build.sh                              # build the sandbox image once
 #   docker compose -f docker-compose.demo.yml up --build # start the demo control-plane
 #   open http://127.0.0.1:8787/ui/                       # Chat → "Mock Agent (offline)" → say hi
+#                                                         # (if it asks for an API token, paste: ironclaw-demo)
 #   docker compose -f docker-compose.demo.yml down       # tear it down
 #
 # This is a STANDALONE compose file (run it with -f, NOT alongside docker-compose.yml).
