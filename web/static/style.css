@@ -506,6 +506,9 @@ details[open] > summary { margin-bottom: 8px; }
 #chat-transcript {
   flex: 1; overflow-y: auto; padding: 18px 2px; display: flex; flex-direction: column; gap: 14px;
 }
+/* Center the before-first-message empty state in the otherwise-blank log: in the
+   flex column, margin:auto absorbs the free space on both axes (IRO-218). */
+#chat-transcript .empty { margin: auto; }
 .chat-msg { display: flex; gap: 10px; max-width: 78%; }
 .chat-msg .av {
   width: 28px; height: 28px; border-radius: 8px; flex: 0 0 28px; display: grid; place-items: center;

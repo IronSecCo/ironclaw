@@ -32,11 +32,47 @@ const Chat = (() => {
 
   function append(node) {
     const host = $("chat-transcript");
+    // The empty state is purely a before-first-message orientation cue: the
+    // moment any real card (a "you"/agent bubble or the error diagnostic) lands
+    // it must yield, so clear it on every append (IRO-218).
+    const placeholder = host.querySelector(".empty");
+    if (placeholder) placeholder.remove();
     host.append(node);
     host.scrollTop = host.scrollHeight;
   }
 
   function conv() { return $("chat-ag").value.trim(); }
+
+  // renderEmpty draws a centered orientation cue in the otherwise-blank
+  // conversation region before the first message (IRO-218). It reuses the
+  // shared emptyState() pattern (muted icon + title + one line) so the Chat
+  // playground reads like the Agents/Sessions tabs. It is a no-op once any real
+  // message bubble exists, and append() removes it the instant one appears.
+  function renderEmpty() {
+    const host = $("chat-transcript");
+    if (!host) return;
+    const existing = host.querySelector(".empty");
+    if (existing) existing.remove();
+    if (host.querySelector(".chat-msg")) return; // real transcript present — no cue
+    const sel = $("chat-ag");
+    const ag = sel ? sel.value.trim() : "";
+    let box;
+    if (!ag) {
+      // No agent picked yet — point attention at the selector above.
+      box = emptyState("Pick an agent to start", "", null, null, EMPTY_ICONS.agents);
+      box.querySelector("p").innerHTML =
+        "Choose an agent group above — the demo ships with <strong>Mock Agent (offline)</strong>, " +
+        "which runs the full engage → sandbox → reply path with no API key.";
+    } else {
+      // Agent picked, transcript still blank — invite the first message.
+      const opt = sel.selectedOptions && sel.selectedOptions[0];
+      const name = (opt ? opt.text : ag).split("·")[0].trim() || ag;
+      box = emptyState("Say hi to " + name,
+        "Your message runs the real engage / delivery path. First reply can take a few seconds while the sandbox spins up.",
+        null, null, EMPTY_ICONS.channels);
+    }
+    host.append(box);
+  }
 
   // populate fills the agent picker, preserving the current selection.
   async function populate() {
@@ -50,6 +86,7 @@ const Chat = (() => {
       for (const a of (list || [])) sel.append(el("option", { value: a.id, text: (a.name || a.id) + "  ·  " + a.id }));
       if (current) sel.value = current;
     } catch (_) { /* leave the existing options */ }
+    renderEmpty(); // refresh the before-first-message orientation cue (IRO-218)
   }
 
   // select switches to a specific agent (used by the Agents page "Chat" action).
@@ -64,6 +101,7 @@ const Chat = (() => {
     $("chat-status").textContent = "ready — say hello";
     awaitingSince = 0;
     staleNoted = false;
+    renderEmpty();
   }
 
   async function send() {
@@ -167,6 +205,7 @@ const Chat = (() => {
       $("chat-status").textContent = conv() ? "ready — say hello" : "pick an agent group";
       awaitingSince = 0;
       staleNoted = false;
+      renderEmpty();
     });
   }
 
