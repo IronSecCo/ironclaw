@@ -206,8 +206,13 @@
   background: #0a1126;
   border: 1px solid rgba(99, 160, 255, 0.28);
   border-radius: var(--iro-radius);
-  padding: 1rem 3.2rem 1rem 1.1rem;
-  overflow-x: auto;
+  /* extra right pad keeps the first wrapped line clear of the Copy button */
+  padding: 1rem 4.5rem 1rem 1.1rem;
+  /* wrap the install one-liner so it stays inside the card at every width
+     (mobile included) instead of scrolling off-screen under the Copy button */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   font-size: 0.86rem;
   line-height: 1.6;
   color: #d7e3fb;
@@ -219,7 +224,7 @@
   background: none;
   padding: 0;
   color: inherit;
-  white-space: pre;
+  white-space: inherit;
 }
 .iro-code__prompt { color: #6f86b8; user-select: none; }
 .iro-code__cmt { color: #6f86b8; }
