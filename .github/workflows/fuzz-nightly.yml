@@ -1,0 +1,74 @@
+# Nightly extended fuzz campaign over IronClaw's trust-boundary parsers (IRO-208).
+#
+# The PR/push `fuzz` job in ci.yml runs each target for only 30s — enough to catch a
+# regression and to keep OpenSSF Scorecard's Fuzzing check satisfied, but far too short
+# to find deep bugs. This workflow is the long-running companion: each target runs for
+# several minutes on a nightly schedule (and on demand), giving the engine time to walk
+# past the seed corpus into novel inputs.
+#
+# It is deliberately ISOLATED from the release path:
+#   * It lives in its own workflow, never in release.yml, and triggers only on `schedule`
+#     and manual `workflow_dispatch` — never on push/tag — so it can never gate a release.
+#   * Its only write permission is `contents: read`; a failure here does not block merges.
+# A crash here produces a reproducer that `go test` writes under
+# internal/host/skills/testdata/fuzz/<Target>/; we upload that directory as an artifact so
+# the failure is triageable without re-running the campaign locally.
+name: fuzz-nightly
+
+on:
+  schedule:
+    # 03:17 UTC daily — off-peak, and offset from the Monday Scorecard run.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      fuzztime:
+        description: "Per-target fuzz duration (Go duration, e.g. 300s, 10m)"
+        required: false
+        default: "300s"
+
+# Least-privilege: this workflow only reads the repo (Scorecard Token-Permissions).
+permissions:
+  contents: read
+
+# A new nightly run supersedes an in-flight one rather than piling up.
+concurrency:
+  group: fuzz-nightly
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    # CGO is required: the skills package transitively pulls in the encrypted-SQLite
+    # binding via the host module graph, which builds through cgo.
+    env:
+      CGO_ENABLED: "1"
+      FUZZTIME: ${{ github.event.inputs.fuzztime || '300s' }}
+    strategy:
+      # One job per target so a crash in one does not cut the others short, and each
+      # target's artifact is uploaded independently.
+      fail-fast: false
+      matrix:
+        target:
+          - FuzzParse
+          - FuzzParseSignature
+          - FuzzParsePublicKey
+          - FuzzValidAssetPath
+          - FuzzValidIdentifiers
+    steps:
+      # Third-party actions pinned to commit SHA (human tag in trailing comment) so a
+      # moved tag can never change what runs (OpenSSF Scorecard Pinned-Dependencies).
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: "1.23.12"
+      - name: "fuzz ${{ matrix.target }} (${{ env.FUZZTIME }})"
+        run: |
+          go test ./internal/host/skills/ -run='^$' \
+            -fuzz="^${{ matrix.target }}$" -fuzztime="${FUZZTIME}"
+      - name: Upload crash reproducer (only if the fuzzer found one)
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-crash-${{ matrix.target }}
+          path: internal/host/skills/testdata/fuzz/
+          if-no-files-found: ignore
