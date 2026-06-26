@@ -375,7 +375,7 @@ The installer reads a few environment variables (pass them on the `sh` side of t
 
 ```sh
 # Pin a version instead of latest
-curl -fsSL https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/install.sh | IRONCLAW_VERSION=v0.1.66 sh
+curl -fsSL https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/install.sh | IRONCLAW_VERSION=v0.1.102 sh
 
 # Install system-wide (a normal user defaults to ~/.local/bin)
 curl -fsSL https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/install.sh | sudo sh
@@ -483,7 +483,7 @@ Prefer the published image? It is pushed to GitHub Container Registry on every r
 
 ```sh
 docker pull ghcr.io/ironsecco/ironclaw-controlplane:latest
-# or pin a release: docker pull ghcr.io/ironsecco/ironclaw-controlplane:v0.1.0
+# or pin a release: docker pull ghcr.io/ironsecco/ironclaw-controlplane:v0.1.102
 ```
 
 Set `IRONCLAW_IMAGE` in `.env` to pin that tag for `docker compose`. Every variable the
