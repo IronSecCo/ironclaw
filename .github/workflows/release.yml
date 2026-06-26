@@ -130,6 +130,11 @@ jobs:
 
       - name: Install cross C toolchain
         if: matrix.apt != ''
+        # Runs inside the bullseye container (the linux/arm64 leg sets matrix.apt),
+        # whose default shell is sh (dash) — and dash rejects `set -o pipefail`. The
+        # sibling run-steps already pin bash; this one was missed in #211, which reds
+        # every Release run on the linux/arm64 leg. Pin bash so pipefail is valid. (IRO-201)
+        shell: bash
         env:
           APT_PKG: ${{ matrix.apt }}
         run: |
