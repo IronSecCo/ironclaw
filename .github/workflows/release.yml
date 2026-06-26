@@ -600,6 +600,29 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
+      # Mint a short-lived ironclaw-reviewer[bot] App token scoped to ONLY
+      # pull-requests:write, used solely to open the formula-bump PR (IRO-203
+      # Option B). The default GITHUB_TOKEN cannot create PRs while the repo
+      # "Allow GitHub Actions to create and approve pull requests" setting stays
+      # OFF — and we keep it off on purpose: that toggle bundles create + APPROVE,
+      # which would let any workflow's token satisfy our `main` required-review
+      # ruleset (a control we ship as a product feature). A scoped App token with
+      # no approval rights preserves least-privilege.
+      #
+      # continue-on-error (not an `if:` on secrets — the `secrets` context is not
+      # available in a step `if`): when REVIEWER_APP_* aren't provisioned the action
+      # fails, the job continues, the token output is empty, and gh pr create below
+      # falls back to GITHUB_TOKEN so the IRO-202 loud-fail path still fires instead
+      # of this step erroring the whole job.
+      - name: Mint reviewer-App token for the formula PR
+        id: app-token
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.REVIEWER_APP_ID }}
+          private-key: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
+          permission-pull-requests: write # PR-create only; no contents/approval scope
+
       - name: Regenerate the formula from the published release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -612,7 +635,13 @@ jobs:
 
       - name: Open a PR if the formula changed
         env:
+          # GH_TOKEN (default) creates the branch + signs the commit via the
+          # Contents API — it has contents:write; the scoped App token does not.
           GH_TOKEN: ${{ github.token }}
+          # PR_TOKEN opens the PR: the scoped reviewer-App token when provisioned,
+          # else the default token (which fails loud per IRO-202 when the repo
+          # PR-create setting is off).
+          PR_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
           TAG: ${{ needs.version.outputs.tag }}
           REPO: ${{ github.repository }}
         run: |
@@ -644,16 +673,19 @@ jobs:
             -f "sha=${file_sha}" \
             -f "branch=${branch}"
 
-          # Open the tracking PR. The signed branch above is already pushed; the only
-          # thing left is the PR. The default GITHUB_TOKEN can only open PRs when the
-          # repo setting "Allow GitHub Actions to create and approve pull requests" is
-          # enabled — if it is OFF, gh fails with "GitHub Actions is not permitted to
-          # create or approve pull requests". Do NOT swallow that: a silently-skipped
-          # PR strands `brew install` on a stale release (it pinned v0.1.90 across
+          # Open the tracking PR with the scoped reviewer-App token (PR_TOKEN). The
+          # signed branch above is already pushed; the only thing left is the PR.
+          # When the App secrets are absent, PR_TOKEN falls back to the default
+          # GITHUB_TOKEN, which can only open PRs if the repo setting "Allow GitHub
+          # Actions to create and approve pull requests" is enabled — and we keep
+          # that OFF on purpose (it would also let any token APPROVE PRs). So the
+          # fallback fails with "GitHub Actions is not permitted to create or approve
+          # pull requests". Do NOT swallow that: a silently-skipped PR strands
+          # `brew install` on a stale release (it pinned v0.1.90 across
           # v0.1.94/95/96 before IRO-202 caught it). Fail LOUD and leave a one-click
           # manual fallback in the job summary, but treat an already-open PR as success.
           body="Automated by the Release workflow: regenerates \`Formula/ironclaw.rb\` from the signed \`SHA256SUMS\` of \`${TAG}\` so \`brew install ironsecco/ironclaw/ironclaw\` tracks the latest release. Merge to publish; the push trigger ignores this file so the merge does not cut another release."
-          if out="$(gh pr create \
+          if out="$(GH_TOKEN="${PR_TOKEN}" gh pr create \
             --repo "${REPO}" \
             --base main \
             --head "${branch}" \
@@ -673,7 +705,7 @@ jobs:
               printf '%s\n' "$out"
               echo '```'
               echo
-              echo "Usual cause: **Settings → Actions → General → \"Allow GitHub Actions to create and approve pull requests\"** is disabled. Enable it so future releases self-bump, or open the PR manually from the already-signed branch:"
+              echo "Usual cause: the **\`REVIEWER_APP_ID\` / \`REVIEWER_APP_PRIVATE_KEY\`** repo secrets are not provisioned, so the formula PR fell back to \`GITHUB_TOKEN\` (which cannot create PRs — the repo PR-create setting is intentionally OFF). Provision the reviewer-App secrets so future releases self-bump (IRO-203 Option B), or open the PR manually from the already-signed branch:"
               echo
               echo '```'
               echo "gh pr create --repo ${REPO} --base main --head ${branch} \\"
