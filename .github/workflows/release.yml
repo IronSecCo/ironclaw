@@ -644,10 +644,41 @@ jobs:
             -f "sha=${file_sha}" \
             -f "branch=${branch}"
 
-          gh pr create \
+          # Open the tracking PR. The signed branch above is already pushed; the only
+          # thing left is the PR. The default GITHUB_TOKEN can only open PRs when the
+          # repo setting "Allow GitHub Actions to create and approve pull requests" is
+          # enabled — if it is OFF, gh fails with "GitHub Actions is not permitted to
+          # create or approve pull requests". Do NOT swallow that: a silently-skipped
+          # PR strands `brew install` on a stale release (it pinned v0.1.90 across
+          # v0.1.94/95/96 before IRO-202 caught it). Fail LOUD and leave a one-click
+          # manual fallback in the job summary, but treat an already-open PR as success.
+          body="Automated by the Release workflow: regenerates \`Formula/ironclaw.rb\` from the signed \`SHA256SUMS\` of \`${TAG}\` so \`brew install ironsecco/ironclaw/ironclaw\` tracks the latest release. Merge to publish; the push trigger ignores this file so the merge does not cut another release."
+          if out="$(gh pr create \
             --repo "${REPO}" \
             --base main \
             --head "${branch}" \
             --title "chore(brew): track ${TAG} in the Homebrew formula" \
-            --body "Automated by the Release workflow: regenerates \`Formula/ironclaw.rb\` from the signed \`SHA256SUMS\` of \`${TAG}\` so \`brew install ironsecco/ironclaw/ironclaw\` tracks the latest release. Merge to publish; the push trigger ignores this file so the merge does not cut another release." \
-            || echo "A tracking PR for ${TAG} already exists — left it in place."
+            --body "${body}" 2>&1)"; then
+            echo "Opened tracking PR: ${out}"
+          elif printf '%s' "$out" | grep -qi 'already exists'; then
+            echo "A tracking PR for ${TAG} already exists — left it in place."
+          else
+            echo "::error title=Homebrew formula bump PR not opened::gh pr create failed for ${branch}: ${out}"
+            {
+              echo "### ⚠️ Homebrew formula bump for \`${TAG}\` needs a manual PR"
+              echo
+              echo "The GitHub-signed branch [\`${branch}\`](https://github.com/${REPO}/tree/${branch}) was pushed, but the workflow could not open its PR:"
+              echo
+              echo '```'
+              printf '%s\n' "$out"
+              echo '```'
+              echo
+              echo "Usual cause: **Settings → Actions → General → \"Allow GitHub Actions to create and approve pull requests\"** is disabled. Enable it so future releases self-bump, or open the PR manually from the already-signed branch:"
+              echo
+              echo '```'
+              echo "gh pr create --repo ${REPO} --base main --head ${branch} \\"
+              echo "  --title 'chore(brew): track ${TAG} in the Homebrew formula'"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
