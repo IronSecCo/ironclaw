@@ -25,6 +25,14 @@ curl -fsSL https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/ins
 irm https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/install.ps1 | iex
 ```
 
+<Note>
+This installs the host binaries (`ironclaw-controlplane.exe` + `ironctl.exe`) and runs `--dev`
+natively, but it **cannot run a real agent sandbox** — gVisor (`runsc`) is Linux-only and the Docker
+fallback dials a Unix socket that native Windows Docker Desktop doesn't expose. To run agents on
+Windows, install the Linux build inside **WSL2** (`wsl --install -d Ubuntu`, then run `install.sh`
+inside the distro). See the [platform-support section in the README](https://github.com/IronSecCo/ironclaw#windows-via-wsl2).
+</Note>
+
 A fresh release is published on every push to `main`, with prebuilt archives for macOS (Intel + Apple
 Silicon), Linux (`amd64` + `arm64`), and Windows (`amd64`). Useful environment variables (pass them on the
 `sh` side of the pipe):
