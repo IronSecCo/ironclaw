@@ -100,6 +100,38 @@ artifacts are:
 The [Release runbook](release-runbook.md) is the operational reference for cutting,
 verifying, and yanking a release.
 
+## Fuzzing the trust boundary
+
+The parsers that sit on the trust boundary — skill/MCP **manifest** YAML, the
+minisign **signature** and **public-key** blobs, and the name/version/asset-**path**
+validators that compose filesystem paths — all consume attacker-influenced bytes.
+Every one of them must *fail closed*: malformed input returns an error, never a
+panic (a crash in the host control-plane is an availability break), and a validator
+must never accept an identifier or path that could escape its mount root.
+
+These properties are enforced by Go [native fuzz](https://go.dev/doc/security/fuzz/)
+targets in `internal/host/skills/fuzz_test.go`. Each target ships an inline seed
+corpus (valid inputs plus hostile ones — traversal paths, NUL bytes, YAML
+pathologies, junk base64) so coverage starts meaningful. Run one locally with:
+
+```bash
+# 30s is enough for a quick regression check; raise -fuzztime for a deeper run.
+CGO_ENABLED=1 go test ./internal/host/skills/ -run='^$' -fuzz='^FuzzParse$' -fuzztime=30s
+```
+
+Available targets: `FuzzParse` (manifest), `FuzzParseSignature`,
+`FuzzParsePublicKey`, `FuzzValidAssetPath`, `FuzzValidIdentifiers`.
+
+Two CI jobs keep this honest, both isolated from the release path so a fuzz failure
+can never gate a release:
+
+- The `fuzz` job in **ci.yml** runs every target for 30s on each push and PR — a
+  fast regression smoke test (and what OpenSSF Scorecard's Fuzzing check detects).
+- **fuzz-nightly.yml** runs each target for several minutes on a nightly schedule
+  (and on demand via *Run workflow*), giving the engine time to walk past the seed
+  corpus. If a target crashes, the reproducer it writes under
+  `internal/host/skills/testdata/fuzz/` is uploaded as a build artifact for triage.
+
 ## Reporting a vulnerability
 
 Disclosure policy lives in
