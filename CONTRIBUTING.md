@@ -12,6 +12,37 @@ bug reports, fixes, new channel adapters, docs, and tests.
 New here? The [**documentation site**](https://ironsecco.github.io/ironclaw/) is the best
 starting point — architecture, threat model, quickstart, channels, and skills in one place.
 
+## Quickstart — your first PR in 5 minutes
+
+From a clean checkout (Go 1.23+, with `CGO_ENABLED=1` for the SQLCipher binding):
+
+```bash
+# 1. Fork on GitHub, then clone your fork
+git clone https://github.com/<you>/ironclaw && cd ironclaw
+
+# 2. Build and run the checks (this is exactly what CI runs)
+export CGO_ENABLED=1
+make build vet test      # or: go build ./... && go vet ./... && go test ./...
+
+# 3. Branch, make your change, and verify formatting
+git checkout -b my-change
+gofmt -l .               # must print nothing
+
+# 4. Commit and push to your fork, then open a PR against `main`
+git commit -am "docs: fix a typo"
+git push -u origin my-change
+```
+
+Then open the pull request, fill in the template, and link the issue it closes.
+The **CLA Assistant** bot comments on your first PR with a one-click signing link —
+that's all the setup there is. A maintainer reviews and merges.
+
+**Looking for something to work on?** Grab a
+[**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+(comment to claim it first), or ask in
+[**Discussions**](https://github.com/IronSecCo/ironclaw/discussions). The rest of this
+guide covers the ground rules, the frozen contract, and the code layout in detail.
+
 ## Ground rules
 
 - **Open an issue first** for anything non-trivial, so we can agree on the approach

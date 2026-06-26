@@ -836,8 +836,10 @@ To report a vulnerability, please open a private security advisory rather than a
 > [Road to 1.0](https://ironsecco.github.io/ironclaw/roadmap/)** — the single source
 > of truth. It tracks the *product* road to 1.0 (public launch, web UI, channels, and
 > supply-chain trust) with a status-at-a-glance table and a comparison against the
-> category. The checklist below is the **engineering build-log** for the security
-> backend (Waves 0–5) and the hardening that followed.
+> category. For the short, contributor-facing view — direction, what 1.0 means, and
+> **help-wanted themes** — see [`ROADMAP.md`](ROADMAP.md). The checklist below is the
+> **engineering build-log** for the security backend (Waves 0–5) and the hardening
+> that followed.
 
 - [x] Architecture and threat model
 - [x] Compiling skeleton: frozen contract, control-plane and sandbox stubs, CI
