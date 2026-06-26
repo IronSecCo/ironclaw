@@ -610,9 +610,29 @@ jobs:
           # Formula/ironclaw.rb in place. Pinned to the exact tag we just cut.
           scripts/update-homebrew-formula.sh "${TAG}"
 
+      # Mint a short-lived, least-privilege token for the existing reviewer App so
+      # the bump PR opens itself. The default GITHUB_TOKEN cannot create PRs while
+      # the repo setting "Allow GitHub Actions to create and approve pull requests"
+      # stays OFF (IRO-203 chose to keep it off and use a scoped App token instead).
+      # Scoped to pull-requests:write (+ contents:read to resolve the branch); NO
+      # other App permission is requested, and the token is used ONLY to open the PR
+      # — never to approve or merge it (a human/reviewer still does that).
+      # continue-on-error so a missing/rotated App secret degrades to the loud manual
+      # fallback below instead of aborting before the signed branch is even pushed.
+      - name: Mint a scoped reviewer-App token to open the formula PR
+        id: pr-app-token
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.REVIEWER_APP_ID }}
+          private-key: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
+          permission-pull-requests: write
+          permission-contents: read
+
       - name: Open a PR if the formula changed
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_TOKEN: ${{ steps.pr-app-token.outputs.token }}
           TAG: ${{ needs.version.outputs.tag }}
           REPO: ${{ github.repository }}
         run: |
@@ -644,16 +664,48 @@ jobs:
             -f "sha=${file_sha}" \
             -f "branch=${branch}"
 
-          # Open the tracking PR. The signed branch above is already pushed; the only
-          # thing left is the PR. The default GITHUB_TOKEN can only open PRs when the
-          # repo setting "Allow GitHub Actions to create and approve pull requests" is
-          # enabled — if it is OFF, gh fails with "GitHub Actions is not permitted to
-          # create or approve pull requests". Do NOT swallow that: a silently-skipped
-          # PR strands `brew install` on a stale release (it pinned v0.1.90 across
-          # v0.1.94/95/96 before IRO-202 caught it). Fail LOUD and leave a one-click
-          # manual fallback in the job summary, but treat an already-open PR as success.
-          body="Automated by the Release workflow: regenerates \`Formula/ironclaw.rb\` from the signed \`SHA256SUMS\` of \`${TAG}\` so \`brew install ironsecco/ironclaw/ironclaw\` tracks the latest release. Merge to publish; the push trigger ignores this file so the merge does not cut another release."
-          if out="$(gh pr create \
+          # Open the tracking PR with the scoped reviewer-App token (PR_TOKEN), NOT the
+          # default GITHUB_TOKEN — the latter cannot create PRs while the repo setting
+          # "Allow GitHub Actions to create and approve pull requests" stays OFF
+          # (IRO-203 keeps it off; we ship branch-protection as a feature). The signed
+          # branch above is already pushed via GITHUB_TOKEN; only the PR remains.
+          #
+          # Do NOT swallow a failure: a silently-skipped PR strands `brew install` on a
+          # stale release (it pinned v0.1.90 across v0.1.94/95/96 before IRO-202 caught
+          # it). Fail LOUD with a one-click manual fallback in the job summary, but treat
+          # an already-open PR as success.
+          #
+          # emit_manual_fallback writes the human runbook to the job summary and exits 1.
+          emit_manual_fallback() {
+            echo "::error title=Homebrew formula bump PR not opened::${1}"
+            {
+              echo "### ⚠️ Homebrew formula bump for \`${TAG}\` needs a manual PR"
+              echo
+              echo "The GitHub-signed branch [\`${branch}\`](https://github.com/${REPO}/tree/${branch}) was pushed, but the workflow could not open its PR:"
+              echo
+              echo '```'
+              printf '%s\n' "${1}"
+              echo '```'
+              echo
+              echo "Usual cause: the scoped **reviewer-App** token could not be minted — check that the \`REVIEWER_APP_ID\` / \`REVIEWER_APP_PRIVATE_KEY\` secrets are present and the App still has \`pull-requests: write\` on this repo (board owns org-secret provisioning). Then re-run, or open the PR manually from the already-signed branch:"
+              echo
+              echo '```'
+              echo "gh pr create --repo ${REPO} --base main --head ${branch} \\"
+              echo "  --title 'chore(brew): track ${TAG} in the Homebrew formula'"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+
+          # No token => the App-token mint step (continue-on-error) failed. Don't try
+          # GITHUB_TOKEN as a fallback — it can't create the PR either and would just
+          # emit a confusing error. Go straight to the loud manual fallback.
+          if [ -z "${PR_TOKEN:-}" ]; then
+            emit_manual_fallback "scoped reviewer-App token was not minted for ${branch} (actions/create-github-app-token failed — see the 'Mint a scoped reviewer-App token' step)."
+          fi
+
+          body="Automated by the Release workflow: regenerates \`Formula/ironclaw.rb\` from the signed \`SHA256SUMS\` of \`${TAG}\` so \`brew install ironsecco/ironclaw/ironclaw\` tracks the latest release. Opened by the reviewer App (PR creation only — a human still approves+merges). Merge to publish; the push trigger ignores this file so the merge does not cut another release."
+          if out="$(GH_TOKEN="${PR_TOKEN}" gh pr create \
             --repo "${REPO}" \
             --base main \
             --head "${branch}" \
@@ -663,22 +715,5 @@ jobs:
           elif printf '%s' "$out" | grep -qi 'already exists'; then
             echo "A tracking PR for ${TAG} already exists — left it in place."
           else
-            echo "::error title=Homebrew formula bump PR not opened::gh pr create failed for ${branch}: ${out}"
-            {
-              echo "### ⚠️ Homebrew formula bump for \`${TAG}\` needs a manual PR"
-              echo
-              echo "The GitHub-signed branch [\`${branch}\`](https://github.com/${REPO}/tree/${branch}) was pushed, but the workflow could not open its PR:"
-              echo
-              echo '```'
-              printf '%s\n' "$out"
-              echo '```'
-              echo
-              echo "Usual cause: **Settings → Actions → General → \"Allow GitHub Actions to create and approve pull requests\"** is disabled. Enable it so future releases self-bump, or open the PR manually from the already-signed branch:"
-              echo
-              echo '```'
-              echo "gh pr create --repo ${REPO} --base main --head ${branch} \\"
-              echo "  --title 'chore(brew): track ${TAG} in the Homebrew formula'"
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 1
+            emit_manual_fallback "gh pr create failed for ${branch}: ${out}"
           fi
