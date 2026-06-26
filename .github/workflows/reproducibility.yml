@@ -55,8 +55,19 @@ jobs:
           # from an earlier *parallel* build, which would contaminate the comparison.
           cache: false
 
+      # The Linux release archives are statically linked with musl (CC=musl-gcc), so the
+      # reproducibility check must rebuild with the SAME toolchain — a glibc rebuild would
+      # verify a binary that is no longer shipped. musl-tools provides musl-gcc. (IRO-192)
+      - name: Install musl toolchain (matches the release Linux build)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
       - name: Build twice and compare checksums
         shell: bash
+        env:
+          # Match release.yml: fully static musl link for the Linux artifacts.
+          CC: musl-gcc
         run: |
           set -euo pipefail
           # Pre-fetch modules so neither build races a module download/extract on its first
@@ -69,11 +80,13 @@ jobs:
           # (external-linked) binary:
           #   -buildid=                  empties Go's build ID (a content hash that can
           #                              shift when the action graph is recompiled cold)
-          #   -extldflags=-Wl,--build-id=none  drops the GNU .note.gnu.build-id the
-          #                              external linker (ld) stamps in. This is the
-          #                              standard reproducible-build fix for cgo binaries
-          #                              and is valid here because the runner is Linux.
-          ldflags="-s -w -buildid= -X github.com/IronSecCo/ironclaw/internal/version.Version=repro-check -extldflags=-Wl,--build-id=none"
+          #   -extldflags '-static -Wl,--build-id=none'  static musl link (the shipped
+          #                              form, IRO-192) plus dropping the GNU
+          #                              .note.gnu.build-id the external linker stamps in.
+          #                              This is the standard reproducible-build fix for
+          #                              cgo binaries and is valid here because the runner
+          #                              is Linux.
+          ldflags="-s -w -buildid= -X github.com/IronSecCo/ironclaw/internal/version.Version=repro-check -linkmode external -extldflags '-static -Wl,--build-id=none'"
           build() {
             local dest="$1"
             mkdir -p "${dest}"

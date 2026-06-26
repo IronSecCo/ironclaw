@@ -116,8 +116,8 @@ If the supplied/derived tag already exists, the run is a safe no-op (see §2).
 |-----------|--------|-------------|
 | `darwin/amd64` | `macos-14` | clang, cross via `CGO_CFLAGS/LDFLAGS=-arch x86_64` on the universal SDK |
 | `darwin/arm64` | `macos-14` | native clang |
-| `linux/amd64` | `ubuntu-latest` | native gcc |
-| `linux/arm64` | `ubuntu-latest` | cross `aarch64-linux-gnu-gcc` (`apt: gcc-aarch64-linux-gnu`) |
+| `linux/amd64` | `ubuntu-latest` | native `musl-gcc` (`apt: musl-tools`), **fully static** (`-extldflags=-static`) |
+| `linux/arm64` | `ubuntu-24.04-arm` | native `musl-gcc` (`apt: musl-tools`), **fully static** (`-extldflags=-static`) |
 | `windows/amd64` | `windows-latest` | native mingw-w64 gcc |
 
 Every target builds with **`CGO_ENABLED=1`, Go 1.23** — CGO is mandatory because the
@@ -125,6 +125,18 @@ encrypted-SQLite (SQLCipher) binding compiles a vendored C amalgamation. A pure-
 will break the build. If you change the matrix, confirm each target still compiles with cgo,
 and update the README's Platform support / Installation tables to match — a platform that
 silently drops out of the matrix is a release defect.
+
+The Linux archives are **statically linked against musl**, not glibc. A dynamically linked
+glibc cgo binary inherits the *build host's* GLIBC symbol versions, so building on a current
+`ubuntu-latest` made the binary demand a glibc newer than mainstream server LTS distros ship
+— it failed to even print `--version` on Ubuntu 22.04 / Debian 12 / RHEL 9 / Amazon Linux
+2023 (**IRO-192**). `go-sqlcipher` uses the vendored libtomcrypt crypto backend, so the only
+external link is libc itself; a static musl link drops the glibc floor entirely and runs on
+any Linux / any libc. The **`smoke_linux_compat`** job re-runs the install on those old-glibc
+distros every release, so a regression back to a dynamic glibc link reds the release instead
+of shipping a binary that won't start. If you change the Linux build, keep it static (verify
+with `ldd ironctl` → "not a dynamic executable") and update `reproducibility.yml`'s toolchain
+to match, or the reproducible-build check verifies an artifact that is no longer shipped.
 
 ### 3.4 What a successful release contains
 
