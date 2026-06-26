@@ -109,6 +109,7 @@ nav:
       - Quickstart: quickstart.md
       - Building from source: building.md
       - Production deployment: deployment.md
+      - Observability (metrics): observability.md
       - Troubleshooting: troubleshooting.md
       - FAQ: faq.md
   - Tutorials:
