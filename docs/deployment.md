@@ -332,10 +332,12 @@ or re-installing the previous tag, then restoring the pre-upgrade backup if stat
 - **Liveness / readiness:** `GET /healthz` and `GET /readyz` are **unauthenticated** by
   design (so probes need no credential) and exempt from rate limiting. The Compose
   healthcheck uses `/healthz`.
-- **Metrics:** `GET /metrics` exposes Prometheus counters and histograms (gateway
-  decisions, model-proxy egress + redactions, queue activity). It is served on the API
-  address and is **bearer-gated** — scrape it with the admin token, ideally over the
-  private network:
+- **Metrics:** `GET /metrics` exposes Prometheus counters and histograms — model-proxy
+  egress volume/errors/latency and sandbox kills today, with gateway-decision and delivery
+  counters registered for later. It is served on the API address and is **bearer-gated** —
+  scrape it with the admin token, ideally over the private network. See the dedicated
+  **[Observability guide](observability.md)** for the full series list, the `ironctl metrics`
+  CLI, and an importable Grafana dashboard.
 
   ```yaml
   scrape_configs:
