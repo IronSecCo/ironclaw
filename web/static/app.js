@@ -330,6 +330,9 @@ function refreshPanel(name) {
   if (name === "channels") refreshMgGroups();
 }
 
+// Sections reachable only via the mobile "More" overflow sheet.
+const MORE_PANELS = ["channels", "skills", "mcp", "setup", "audit", "about"];
+
 function showPanel(name) {
   for (const tab of document.querySelectorAll(".nav-item")) {
     const on = tab.dataset.panel === name;
@@ -339,12 +342,41 @@ function showPanel(name) {
     if (on) tab.setAttribute("aria-current", "page");
     else tab.removeAttribute("aria-current");
   }
+  // On mobile the current section may live in the More sheet; mirror its active
+  // highlight onto the More tab so the bar still shows where you are.
+  const more = document.getElementById("nav-more");
+  if (more) more.classList.toggle("has-active", MORE_PANELS.includes(name));
+  closeMoreSheet();
   for (const panel of document.querySelectorAll(".panel")) {
     const on = panel.id === name;
     panel.classList.toggle("active", on);
     panel.hidden = !on;
   }
   refreshPanel(name);
+}
+
+// Mobile overflow sheet (the "More" bottom-nav tab).
+function openMoreSheet() {
+  const sheet = document.getElementById("nav-more-sheet");
+  const more = document.getElementById("nav-more");
+  if (!sheet || !more) return;
+  sheet.hidden = false;
+  more.setAttribute("aria-expanded", "true");
+  const first = sheet.querySelector(".nav-item");
+  if (first) first.focus();
+}
+function closeMoreSheet(restoreFocus) {
+  const sheet = document.getElementById("nav-more-sheet");
+  const more = document.getElementById("nav-more");
+  if (!sheet || !more || sheet.hidden) return;
+  sheet.hidden = true;
+  more.setAttribute("aria-expanded", "false");
+  if (restoreFocus) more.focus();
+}
+function toggleMoreSheet() {
+  const sheet = document.getElementById("nav-more-sheet");
+  if (!sheet) return;
+  if (sheet.hidden) openMoreSheet(); else closeMoreSheet(true);
 }
 
 // goPanel switches tabs programmatically (used by cross-page CTAs).
@@ -389,7 +421,8 @@ function init() {
   if (rs) rs.addEventListener("click", () => Sessions.load());
 
   for (const tab of document.querySelectorAll(".nav-item")) {
-    tab.addEventListener("click", () => showPanel(tab.dataset.panel));
+    // The "More" tab opens the overflow sheet rather than switching a panel.
+    if (tab.dataset.panel) tab.addEventListener("click", () => showPanel(tab.dataset.panel));
     // Mark the section that loads active on first paint so the state is exposed
     // before the first navigation, not only after a click.
     if (tab.classList.contains("active")) tab.setAttribute("aria-current", "page");
@@ -402,6 +435,19 @@ function init() {
   for (const b of document.querySelectorAll("[data-go]")) {
     b.addEventListener("click", () => goPanel(b.dataset.go));
   }
+
+  // Mobile "More" overflow sheet: toggle, plus Escape / outside-click to close.
+  const moreBtn = document.getElementById("nav-more");
+  if (moreBtn) moreBtn.addEventListener("click", toggleMoreSheet);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMoreSheet(true);
+  });
+  document.addEventListener("click", (e) => {
+    const sheet = document.getElementById("nav-more-sheet");
+    if (!sheet || sheet.hidden) return;
+    if (e.target.closest("#nav-more-sheet") || e.target.closest("#nav-more")) return;
+    closeMoreSheet();
+  });
 
   // Associate static field labels now and keep lazily-rendered forms covered.
   linkFieldLabels();
