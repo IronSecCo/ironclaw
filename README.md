@@ -46,7 +46,7 @@ read, write, schedule, and reply.
 > - **It's an alpha.** Flags, the on-disk format, and the HTTP/contract surfaces can still change without notice or a migration path. Don't point it at anything you can't afford to lose.
 > - **Not every feature is tested end-to-end.** The control-plane, gateway, and encrypted-queue core have real coverage (800+ Go tests plus a black-box parity suite); channel adapters, some tools, multi-provider routing, and a live sandbox launch are exercised more lightly. Treat anything outside the [tested core](#project-status) as experimental.
 >
-> macOS/Windows get a weaker sandbox boundary than Linux+gVisor — see [Platform support](#platform-support).
+> macOS gets a weaker sandbox boundary than Linux+gVisor, and **native Windows can't run the agent sandbox at all** (use WSL2) — see [Platform support](#platform-support).
 
 > **Want to see it work first — no API key, no signup?**
 > One offline demo runs the full chat → per-session sandbox → reply loop on a stock
@@ -82,7 +82,9 @@ ironctl change pending                       # see it waiting
 ironctl change approve <change-id> --by you   # apply it
 ```
 
-On Windows, install with `irm https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/install.ps1 | iex`.
+On Windows, `irm https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/install.ps1 | iex`
+installs the host binaries (`ironclaw-controlplane.exe` + `ironctl.exe`) and `--dev` runs, but the
+**agent sandbox needs WSL2 or Linux** — see [Windows via WSL2](#windows-via-wsl2).
 Version pinning, system-wide installs, and building from source are all in [Installation](#installation).
 
 ## CLI-first and API-first
@@ -263,8 +265,8 @@ that one fact drives the whole platform story:
 
 | Capability | Linux + gVisor (production target) | macOS / Windows |
 |---|---|---|
-| Host side — control-plane, gateway, API, `ironctl`, web console | ✅ native | ✅ native |
-| Real agent sandbox | ✅ gVisor (`runsc`) | ⚠️ `--runtime docker` only — runc in Docker Desktop's Linux VM |
+| Host side — control-plane, gateway, API, `ironctl`, web console | ✅ native | ✅ native (incl. native Windows) |
+| Real agent sandbox | ✅ gVisor (`runsc`) | ⚠️ `--runtime docker` only — runc in Docker Desktop's Linux VM. **macOS:** Docker Desktop. **Windows:** WSL2 (native Windows can't reach it — see below) |
 | Per-sandbox syscall interception | ✅ | ❌ not available |
 | Seccomp syscall allowlist | ✅ enforced | ❌ not applied on the Docker path |
 | `network=none` | ✅ enforced by the OCI spec | ⚠️ **not auto-enforced** — you must point `IRONCLAW_DOCKER_NETWORK` at a no-egress network |
@@ -276,12 +278,39 @@ can even run agents through Docker Desktop — but understand that the sandbox b
 interception, the curated seccomp profile is not applied, and `network=none` is not enforced for you
 (the Docker isolator passes whatever network you configure straight through — set
 `IRONCLAW_DOCKER_NETWORK` to a no-egress bridge yourself). That is **weaker than the posture the
-[threat model](docs/threat-model.md) assumes.** Windows is in the same position — gVisor can't run
-there either.
+[threat model](docs/threat-model.md) assumes.**
 
-**For anything past local development, run the sandbox host on Linux with gVisor.** The control
-plane can live wherever you like; it's the agent sandbox that needs the Linux + gVisor substrate to
-give you the boundary IronClaw is built around.
+### Windows via WSL2
+
+The `install.ps1` PowerShell installer gives you the **host plane** natively on Windows:
+`ironclaw-controlplane.exe` and `ironctl.exe` run, the encrypted SQLCipher queue works, and `--dev`
+mode (no real sandbox) runs end-to-end. **A real agent sandbox does not run on native Windows** —
+gVisor (`runsc`) is Linux-only, and the Docker fallback talks to the Docker Engine over a **Unix**
+socket (`/var/run/docker.sock`), which native Windows Docker Desktop does not expose (it serves a
+Windows named pipe instead). So on native Windows you get the control plane and `ironctl`, but the
+agent runtime has nowhere to launch.
+
+**To actually run agents on Windows, use WSL2:**
+
+```powershell
+wsl --install -d Ubuntu          # one-time: install WSL2 + Ubuntu, then reboot
+```
+
+Then, **inside the WSL2 Ubuntu shell**, install the Linux build and run it exactly as on Linux:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/install.sh | sh
+```
+
+Inside WSL2, `/var/run/docker.sock` is present (Docker Desktop's WSL integration, or Docker installed
+in the distro), so `IRONCLAW_RUNTIME=docker` launches real Linux sandbox containers. For the full
+gVisor posture, install `runsc` inside the WSL2 distro just as you would on bare-metal Linux. Treat a
+WSL2 host the same as the Linux row above.
+
+**For anything past local development, run the sandbox host on Linux with gVisor** (bare-metal,
+a VM, or WSL2). The control plane can live wherever you like — including native Windows — but it's
+the agent sandbox that needs the Linux + gVisor substrate to give you the boundary IronClaw is built
+around.
 
 ## Project status
 
@@ -362,6 +391,10 @@ curl -fsSL https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/ins
 ```powershell
 irm https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/install.ps1 | iex
 ```
+
+> This installs the **host binaries** (`ironclaw-controlplane.exe` + `ironctl.exe`) and runs `--dev`
+> natively, but it **cannot run a real agent sandbox** — that needs Linux. To run agents on Windows,
+> install inside **WSL2**; see [Windows via WSL2](#windows-via-wsl2).
 
 A fresh release is published on every push to `main`, with prebuilt archives for:
 

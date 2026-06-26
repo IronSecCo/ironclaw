@@ -20,7 +20,9 @@ The fastest way to see IronClaw *work*: the offline **`mock-agent`** runs the fu
 reply path with **no model key** and **no gVisor**, launching its per-conversation sandbox as a Docker
 (runc) container. Good for a laptop demo; not the sealed production posture (see the security note below).
 
-**Requires:** Docker (Docker Desktop on macOS/Windows is fine) and a clone of the repo.
+**Requires:** Docker (Docker Desktop on macOS is fine; on **Windows run this inside WSL2** — the
+sandbox launches Linux containers over `/var/run/docker.sock`, which native Windows doesn't expose)
+and a clone of the repo.
 
 ```sh
 git clone https://github.com/IronSecCo/ironclaw.git && cd ironclaw

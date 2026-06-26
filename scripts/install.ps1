@@ -85,3 +85,9 @@ if (($userPath -split ';') -notcontains $bindir) {
   Write-Host "==> Added $bindir to your user PATH (restart the terminal to pick it up)"
 }
 Write-Host "==> Done. Run: ironctl --version"
+Write-Host ""
+Write-Host "==> Note: this installs the host binaries (control plane + ironctl) and runs --dev"
+Write-Host "    natively. A real agent sandbox needs Linux: gVisor (runsc) is Linux-only and the"
+Write-Host "    Docker fallback uses a Unix socket native Windows does not expose. To run agents,"
+Write-Host "    install inside WSL2 (wsl --install -d Ubuntu, then run install.sh in the distro)."
+Write-Host "    See https://github.com/IronSecCo/ironclaw#windows-via-wsl2"
