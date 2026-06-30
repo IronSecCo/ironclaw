@@ -19,6 +19,8 @@
 #   IRONCLAW_API_TOKEN   API bearer token         (default ironclaw-demo)
 #   IRONCLAW_DEMO_AGENT  agent group id           (default mock-agent)
 #   SKIP_BUILD=1         skip the sandbox image build (assume it exists)
+#   IRONCLAW_HEALTH_TIMEOUT  seconds to wait for /healthz   (default 90)
+#   IRONCLAW_REPLY_TIMEOUT   seconds to wait for the reply  (default 180)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -28,6 +30,17 @@ ADDR="${IRONCLAW_ADDR:-http://127.0.0.1:8787}"
 TOKEN="${IRONCLAW_API_TOKEN:-ironclaw-demo}"
 AGENT="${IRONCLAW_DEMO_AGENT:-mock-agent}"
 COMPOSE_FILE="$REPO_ROOT/docker-compose.demo.yml"
+
+# Cold-start budgets, in seconds. A warm laptop replies in ~2-3s, but the FIRST
+# per-session sandbox launch on a fresh CI runner — container boot off a
+# just-built image + the SQLCipher queue handshake + the mock-agent process
+# starting to poll its inbound queue — is far slower and is what a fixed 45s
+# window was missing. These are deliberately generous and env-overridable; the
+# job timeout (20 min in CI) is the real backstop. Note the reply itself rides
+# the 2s delivery poll, NOT the 60s sweep, so the budget covers the launch, not
+# the delivery cadence.
+HEALTH_TIMEOUT="${IRONCLAW_HEALTH_TIMEOUT:-90}"
+REPLY_TIMEOUT="${IRONCLAW_REPLY_TIMEOUT:-180}"
 
 KEEP=0        # --keep: don't tear the demo down on exit
 ATTACH=0      # --attach: talk to an already-running control-plane, manage nothing
@@ -68,14 +81,14 @@ if [ "$ATTACH" = 0 ]; then
 fi
 
 # --- wait for /healthz -----------------------------------------------------
-echo -n "==> waiting for the control-plane to be ready"
+echo -n "==> waiting for the control-plane to be ready (up to ${HEALTH_TIMEOUT}s)"
 ready=0
-for _ in $(seq 1 60); do
+for _ in $(seq 1 "$HEALTH_TIMEOUT"); do
   if curl -fsS "$ADDR/healthz" >/dev/null 2>&1; then ready=1; break; fi
   echo -n "."; sleep 1
 done
 echo
-[ "$ready" = 1 ] || { echo "FAIL: control-plane never became healthy at $ADDR" >&2; \
+[ "$ready" = 1 ] || { echo "FAIL: control-plane never became healthy at $ADDR within ${HEALTH_TIMEOUT}s" >&2; \
                       [ "$ATTACH" = 0 ] && compose logs --no-color 2>&1 | tail -40 >&2; exit 1; }
 
 # --- send a message and assert the reply -----------------------------------
@@ -85,10 +98,10 @@ curl -fsS -X POST "$ADDR/v1/ui/chat/send" \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d "$(jq -nc --arg a "$AGENT" --arg t "$MARKER" '{agentGroupID:$a, text:$t}')" >/dev/null
 
-echo -n "==> waiting for the agent's reply (real sandbox launch + encrypted queue round-trip)"
+echo -n "==> waiting for the agent's reply, up to ${REPLY_TIMEOUT}s (real sandbox launch + encrypted queue round-trip)"
 WANT="mock-agent received: $MARKER"
 reply=""
-for _ in $(seq 1 45); do
+for _ in $(seq 1 "$REPLY_TIMEOUT"); do
   # /messages is drain-on-read: each reply is returned exactly once, so capture it.
   got="$(curl -fsS "$ADDR/v1/ui/chat/$AGENT/messages" \
           -H "Authorization: Bearer $TOKEN" | jq -r '.messages[]?.text // empty')"
@@ -98,8 +111,26 @@ done
 echo
 
 if [ -z "$reply" ]; then
-  echo "FAIL: no reply within 45s — the engage -> sandbox -> reply path is broken" >&2
-  [ "$ATTACH" = 0 ] && compose logs --no-color 2>&1 | tail -60 >&2
+  echo "FAIL: no reply within ${REPLY_TIMEOUT}s — the engage -> sandbox -> reply path is broken" >&2
+  if [ "$ATTACH" = 0 ]; then
+    echo "--- control-plane logs (tail) ---------------------------------------" >&2
+    compose logs --no-color 2>&1 | tail -80 >&2
+    # The reply is produced inside the per-session sandbox sibling (ic-sbx-*).
+    # If the control-plane launched it but no reply came back, its logs are where
+    # a genuine round-trip break shows up — surface them so CI failures are
+    # diagnosable without re-running with --keep.
+    sbx="$(docker ps -a --filter 'name=ic-sbx-' --format '{{.Names}}' 2>/dev/null || true)"
+    if [ -n "$sbx" ]; then
+      echo "--- per-session sandbox containers ----------------------------------" >&2
+      docker ps -a --filter 'name=ic-sbx-' 2>&1 >&2 || true
+      for c in $sbx; do
+        echo "--- docker logs $c (tail) -------------------------------------------" >&2
+        docker logs "$c" 2>&1 | tail -60 >&2 || true
+      done
+    else
+      echo "(no ic-sbx-* sandbox container found — the per-session sandbox never launched)" >&2
+    fi
+  fi
   exit 1
 fi
 
