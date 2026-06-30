@@ -63,6 +63,16 @@ read, write, schedule, and reply.
 > demo's fixed loopback token). Production seals each sandbox with gVisor and `network=none`.
 > [Zero-credential quickstart →](docs/quickstart.md)
 
+### The whole journey, end to end
+
+<div align="center">
+
+<img src="docs/assets/walkthrough.svg" width="820" height="595" alt="End-to-end IronClaw walkthrough terminal session in three acts. Act 1: one command starts the offline mock-agent and it replies with no API key. Act 2: connect a real provider by exporting a host-side, redacted ANTHROPIC_API_KEY and starting the real control-plane (each session sealed with gVisor and network=none). Act 3: the agent submits a persona change that is HELD at the human-approval gateway, a human approves it, and the submit-approve-apply trail lands on the append-only audit log.">
+
+<sub><b>Zero-cred demo → connect a real provider → first approved task.</b> The one credential step keeps the key host-side; every agent change is held at the gateway for a human, then written to the append-only audit log. Animation freezes on the final frame under <code>prefers-reduced-motion</code>. <a href="docs/quickstart.md">Quickstart</a></sub>
+
+</div>
+
 ## Get running in under two minutes
 
 One command installs the two host binaries (`ironctl` + `ironclaw-controlplane`); in dev mode the

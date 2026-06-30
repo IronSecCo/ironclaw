@@ -237,6 +237,20 @@ docker compose -f docker-compose.demo.yml up --build -d    <span class="iro-code
         credential custody are unchanged. The production <code>docker compose up</code> is the
         hardened, gVisor posture.
       </p>
+
+      {# Full end-to-end walkthrough — zero-cred demo → real provider → first approved task (scripts/demo/build-walkthrough.sh). #}
+      <h3 class="iro-h3" id="walkthrough-title">…and the whole journey, end to end</h3>
+      <p class="iro-lead">
+        Where the clip above stops at "it replies," this one keeps going: the one credential step
+        (the key stays host-side), then a first real agent task — <strong>held at the approval
+        gateway</strong>, approved by a human, and written to the append-only audit log.
+      </p>
+      <figure class="iro-cast">
+        <img src="{{ base_url }}/assets/walkthrough.svg" loading="lazy" decoding="async" width="900" height="653"
+             alt="End-to-end IronClaw walkthrough in three acts. Act 1: one command starts the offline mock-agent and it replies with no API key. Act 2: connect a real provider by exporting a host-side, redacted ANTHROPIC_API_KEY and starting the real control-plane (each session sealed with gVisor and network=none). Act 3: the agent submits a persona change that is HELD at the human-approval gateway, a human approves it, and the submit, approve, apply trail lands on the append-only audit log.">
+        <figcaption class="iro-cast__cap">Zero-cred demo → connect a real provider → first approved task. Faithful re-enactment; the animation freezes on the final frame under <code>prefers-reduced-motion</code>.</figcaption>
+      </figure>
+
       <div class="iro-center-cta">
         <a class="iro-btn iro-btn--primary" href="https://ironsecco.github.io/ironclaw/quickstart/">Full quickstart &amp; your first approved action →</a>
       </div>
