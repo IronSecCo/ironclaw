@@ -204,8 +204,8 @@
     },
     {
       "type": "timeseries",
-      "title": "Sandbox launches (per minute) — instrumentation pending",
-      "description": "ironclaw_sandbox_launches_total is registered but not yet incremented; this panel reads 0 until that instrumentation lands.",
+      "title": "Sandbox launches (per minute)",
+      "description": "Rate of sandboxes that actually started, from ironclaw_sandbox_launches_total. Compare against the kills panel to spot crash-loops.",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
       "id": 8,

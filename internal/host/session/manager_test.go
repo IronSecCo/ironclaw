@@ -416,3 +416,51 @@ func (b *syncBuffer) String() string {
 	defer b.mu.Unlock()
 	return b.buf.String()
 }
+
+// TestManagerWakeFiresOnLaunch asserts the OnLaunch hook fires exactly once per
+// sandbox that actually starts — once on the first Wake, not on the idempotent
+// no-op second Wake, and again on a relaunch after the sandbox dies. This backs
+// the ironclaw_sandbox_launches_total metric wiring (IRO-217).
+func TestManagerWakeFiresOnLaunch(t *testing.T) {
+	iso := &fakeIsolator{}
+	cust, err := keys.New([32]byte{})
+	if err != nil {
+		t.Fatalf("keys.New: %v", err)
+	}
+	var launches int32
+	m, err := New(Config{
+		Factory:       queue.NewFactory(t.TempDir()),
+		Keys:          cust,
+		Isolator:      iso,
+		Registry:      registry.NewMemRegistry(),
+		KeyDir:        t.TempDir(),
+		WorkspaceRoot: t.TempDir(),
+		OnLaunch:      func() { atomic.AddInt32(&launches, 1) },
+	})
+	if err != nil {
+		t.Fatalf("session.New: %v", err)
+	}
+	const id contract.SessionID = "ses_metric"
+
+	if err := m.Wake(id); err != nil {
+		t.Fatalf("Wake: %v", err)
+	}
+	if got := atomic.LoadInt32(&launches); got != 1 {
+		t.Fatalf("OnLaunch fired %d times after first Wake, want 1", got)
+	}
+	// Idempotent second Wake (sandbox alive) must not fire OnLaunch.
+	if err := m.Wake(id); err != nil {
+		t.Fatalf("second Wake: %v", err)
+	}
+	if got := atomic.LoadInt32(&launches); got != 1 {
+		t.Fatalf("OnLaunch fired %d times after no-op Wake, want 1", got)
+	}
+	// The sandbox dies out-of-band; the next Wake relaunches and fires again.
+	atomic.StoreInt32(&iso.last.dead, 1)
+	if err := m.Wake(id); err != nil {
+		t.Fatalf("Wake after death: %v", err)
+	}
+	if got := atomic.LoadInt32(&launches); got != 2 {
+		t.Fatalf("OnLaunch fired %d times after relaunch, want 2", got)
+	}
+}

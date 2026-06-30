@@ -47,18 +47,27 @@ type SkillInstallResolver func(skill, version string, group contract.AgentGroupI
 // in that case schedule_task actions are refused rather than executed.
 type InboundWriterFactory func(contract.SessionID) (contract.InboundWriter, error)
 
+// Counter is the minimal metrics sink for the outbound-delivery counter. The
+// daemon passes the ironclaw_deliveries_total counter; *metrics.Counter satisfies
+// it. A tiny interface so delivery does not import the metrics package and tests
+// can assert against a fake.
+type Counter interface {
+	Inc()
+}
+
 // Delivery polls outbound queues and delivers via channel adapters. It dedups
 // delivered messages in memory (mirrored in the inbound `delivered` table once
 // persistence lands) and re-authorizes any privilege-bearing system action the
 // sandbox emits through the gateway.
 type Delivery struct {
-	registry  *channels.Registry
-	gw        *gateway.Gateway
-	reg       registry.Registry
-	newReader OutboundReaderFactory
-	newWriter InboundWriterFactory // optional; enables schedule_task
-	questions *questions.Store     // optional; enables ask_user_question tracking
-	skillProp SkillInstallResolver // optional; enables the in-session skill_install proposal
+	registry   *channels.Registry
+	gw         *gateway.Gateway
+	reg        registry.Registry
+	newReader  OutboundReaderFactory
+	newWriter  InboundWriterFactory // optional; enables schedule_task
+	questions  *questions.Store     // optional; enables ask_user_question tracking
+	skillProp  SkillInstallResolver // optional; enables the in-session skill_install proposal
+	deliveries Counter              // optional; counts each successful channel send
 
 	mu        sync.Mutex
 	delivered map[contract.MessageID]struct{}
@@ -133,6 +142,15 @@ func (d *Delivery) WithQuestions(s *questions.Store) *Delivery {
 // provisioned can ever be proposed, and a human still approves it.
 func (d *Delivery) WithSkillResolver(f SkillInstallResolver) *Delivery {
 	d.skillProp = f
+	return d
+}
+
+// WithMetrics wires the counter incremented once per outbound message that is
+// successfully handed to a channel adapter (ironclaw_deliveries_total). Returns d
+// for chaining. When unset, delivery records no metric. Agent-to-agent routing and
+// gateway-routed system actions are not channel sends and are not counted.
+func (d *Delivery) WithMetrics(deliveries Counter) *Delivery {
+	d.deliveries = deliveries
 	return d
 }
 
@@ -412,6 +430,9 @@ func (d *Delivery) deliver(ctx context.Context, sess registry.Session, msg contr
 	}
 	if _, err := adapter.Deliver(ctx, msg); err != nil {
 		return fmt.Errorf("host/delivery: adapter %q deliver: %w", channel, err)
+	}
+	if d.deliveries != nil {
+		d.deliveries.Inc()
 	}
 	return nil
 }

@@ -264,13 +264,23 @@ func (a *LogApplier) Applied() []contract.ChangeID {
 	return out
 }
 
+// DecisionRecorder is the metrics sink for gateway decisions. The daemon passes
+// *metrics.Metrics, which records ironclaw_gateway_decisions_total by outcome via
+// GatewayDecision. A tiny interface so the gateway does not import the metrics
+// package and tests can assert against a fake.
+type DecisionRecorder interface {
+	// GatewayDecision records one terminal decision; approved selects the series.
+	GatewayDecision(approved bool)
+}
+
 // Gateway implements the mandatory-mutation protocol over the contract types.
 type Gateway struct {
 	chain    VerifierChain
 	approver contract.Approver
 	applier  contract.Applier
 	store    contract.ChangeStore
-	audit    *AuditLog // nil = audit disabled (Append is a safe no-op)
+	audit    *AuditLog        // nil = audit disabled (Append is a safe no-op)
+	metrics  DecisionRecorder // nil = decisions not metered
 }
 
 // New constructs a Gateway from its collaborators. The chain runs first
@@ -284,6 +294,21 @@ func New(chain VerifierChain, approver contract.Approver, applier contract.Appli
 func (g *Gateway) SetAudit(a *AuditLog) *Gateway {
 	g.audit = a
 	return g
+}
+
+// SetMetrics attaches the decision recorder. A nil recorder leaves decisions
+// unmetered. It returns the gateway for chaining. Every terminal decision —
+// verifier reject, human approve/reject, and auto-approve — is recorded by outcome.
+func (g *Gateway) SetMetrics(r DecisionRecorder) *Gateway {
+	g.metrics = r
+	return g
+}
+
+// recordDecision meters one terminal decision. Nil-safe.
+func (g *Gateway) recordDecision(approved bool) {
+	if g.metrics != nil {
+		g.metrics.GatewayDecision(approved)
+	}
 }
 
 // Submit runs the full mandatory-mutation flow for req:
@@ -320,6 +345,7 @@ func (g *Gateway) Submit(ctx context.Context, req contract.ChangeRequest) (contr
 		// A verifier errored; treat as reject and record it.
 		d := contract.Decision{Outcome: OutcomeReject, DecidedBy: "verifier", DecidedAt: time.Now().UTC()}
 		_ = g.store.SetDecision(req.ID, d)
+		g.recordDecision(false)
 		_ = g.audit.Append(AuditEntry{Stage: AuditVerdict, ChangeID: req.ID, Kind: req.Kind, Detail: "error: " + err.Error()})
 		return req.ID, err
 	}
@@ -328,6 +354,7 @@ func (g *Gateway) Submit(ctx context.Context, req contract.ChangeRequest) (contr
 	switch verdict {
 	case contract.VerdictReject:
 		d := contract.Decision{Outcome: OutcomeReject, DecidedBy: "verifier", DecidedAt: time.Now().UTC()}
+		g.recordDecision(false)
 		_ = g.audit.Append(AuditEntry{Stage: AuditDecision, ChangeID: req.ID, Kind: req.Kind, Detail: "reject (verifier): " + reason})
 		return req.ID, g.store.SetDecision(req.ID, d)
 
@@ -339,6 +366,7 @@ func (g *Gateway) Submit(ctx context.Context, req contract.ChangeRequest) (contr
 		if err := g.store.SetDecision(req.ID, d); err != nil {
 			return req.ID, err
 		}
+		g.recordDecision(d.Outcome == OutcomeApprove)
 		_ = g.audit.Append(AuditEntry{Stage: AuditDecision, ChangeID: req.ID, Kind: req.Kind, Detail: d.Outcome + " by " + string(d.DecidedBy)})
 		if d.Outcome != OutcomeApprove {
 			return req.ID, nil
@@ -354,6 +382,7 @@ func (g *Gateway) Submit(ctx context.Context, req contract.ChangeRequest) (contr
 		if err := g.store.SetDecision(req.ID, d); err != nil {
 			return req.ID, err
 		}
+		g.recordDecision(true)
 		_ = g.audit.Append(AuditEntry{Stage: AuditDecision, ChangeID: req.ID, Kind: req.Kind, Detail: "auto-approve (all verifiers passed)"})
 		if err := g.applier.Apply(ctx, req, d); err != nil {
 			return req.ID, err
