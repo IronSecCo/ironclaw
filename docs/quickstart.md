@@ -155,10 +155,10 @@ Confirm connectivity by reading the (empty) audit log:
 
 ## 4. Submit a change — watch it get *held*
 
-`--dev` seeds a `default` agent group. Submit a persona change for it:
+`--dev` seeds a `dev-agent` agent group. Submit a persona change for it:
 
 ```sh
-./bin/ironctl change submit --kind persona --group default --by alice
+./bin/ironctl change submit --kind persona --group dev-agent --by alice
 ```
 
 The CLI prints a **change id**. The change is **not applied** — it is parked at the gateway awaiting a
