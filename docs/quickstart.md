@@ -62,6 +62,10 @@ You'll get `mock-agent received: …` echoed back — proof that a real sandbox 
 reply flowed back through the encrypted queues. Tear it down with
 `docker compose -f docker-compose.demo.yml down`.
 
+> **Prefer one command that checks itself?** [`examples/hello-ironclaw/run.sh`](https://github.com/IronSecCo/ironclaw/tree/main/examples/hello-ironclaw)
+> does all of the above — build, up, send, **assert the reply**, tear down — and exits non-zero if the
+> round-trip ever breaks. It's the same script IronClaw runs in CI as a smoke test.
+
 > **Security — what this demo relaxes.** The demo compose file runs the control-plane as root, mounts the
 > host Docker socket, uses **runc (shared host kernel), not gVisor**, and pins a well-known API token. The
 > mandatory approval gateway, the encrypted per-session queues, and host-side model-credential custody are

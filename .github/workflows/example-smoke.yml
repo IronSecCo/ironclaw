@@ -1,0 +1,56 @@
+name: Example smoke (zero-cred chat)
+
+# Hermetic, user-facing smoke test of the zero-credential demo path: it runs the
+# exact command a first-timer runs — examples/hello-ironclaw/run.sh — which builds
+# the sandbox image, brings up docker-compose.demo.yml, sends a chat through the
+# real HTTP route into a per-session Docker sandbox, and asserts the offline
+# mock-agent's reply comes back. The offline `mock` provider makes no network call,
+# so no credential is needed; ubuntu-latest ships Docker, jq, and curl.
+#
+# This complements the Go-level hermetic test (internal/smoke/demo_smoke_test.go,
+# run by CI's `go test`): that guards the queue<->loop<->mock contract; this guards
+# the published user path (compose file, demo entrypoint seeding, HTTP routes, the
+# Docker/runc sandbox runtime) that the unit test cannot reach.
+#
+# Additive and non-gating: it is NOT a required status check, so it can never block
+# a release — it surfaces a broken first-five-minutes before it reaches a user.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "examples/hello-ironclaw/**"
+      - "docker-compose.demo.yml"
+      - "container/**"
+      - "cmd/sandbox/**"
+      - "cmd/controlplane/**"
+      - "internal/host/api/ui_chat.go"
+      - ".github/workflows/example-smoke.yml"
+  pull_request:
+    paths:
+      - "examples/hello-ironclaw/**"
+      - "docker-compose.demo.yml"
+      - "container/**"
+      - "cmd/sandbox/**"
+      - "cmd/controlplane/**"
+      - "internal/host/api/ui_chat.go"
+      - ".github/workflows/example-smoke.yml"
+  workflow_dispatch:
+
+# Least-privilege default (Scorecard Token-Permissions): the job only reads the repo.
+permissions:
+  contents: read
+
+jobs:
+  hello-ironclaw:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Pinned to a commit SHA (tag in trailing comment) so a moved tag cannot change
+      # what runs in CI — matches ci.yml. Dependabot bumps these.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Run the zero-credential end-to-end check
+        # The script builds ironclaw-sandbox:latest, brings the demo control-plane up,
+        # asserts the round-trip reply, and tears the demo down. A missing/mismatched
+        # reply exits non-zero and dumps the control-plane logs.
+        run: examples/hello-ironclaw/run.sh
