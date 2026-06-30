@@ -199,7 +199,7 @@ func (d Deps) Run(ctx context.Context, opts Options) (Result, error) {
 		res.Steps = append(res.Steps, Step{"verify", StatusOK, "control-plane API is reachable"})
 	}
 
-	res.FirstMessage = fmt.Sprintf("ironctl --addr %s change submit --kind persona --group default --by you", opts.Addr)
+	res.FirstMessage = fmt.Sprintf("ironctl --addr %s change submit --kind persona --group dev-agent --by you", opts.Addr)
 	return res, nil
 }
 
