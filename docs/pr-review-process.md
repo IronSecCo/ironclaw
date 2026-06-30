@@ -98,11 +98,51 @@ The mechanics live in
   (SHA-pinned). The App private key is read from `secrets.REVIEWER_APP_PRIVATE_KEY`
   and masked by the action — it is never logged.
 - **Safety:** the workflow refuses to approve if the App secret is absent, if
-  the PR is not open, or if the PR author is the App itself.
+  the PR is not open, or if the PR author is the App itself — except the one
+  recognised formula-bump case below, where it exits cleanly with an
+  admin-merge runbook rather than a red run.
 
 Until the App is installed and the two secrets exist, the workflow is **inert**
 (a manual dispatch fails fast with a clear message). Nothing in CI or the
 release path depends on it, so landing the scaffold changes no current behaviour.
+
+## Homebrew formula bump PRs (the one self-authored case)
+
+The Release workflow's `formula` job (IRO-204) opens the `brew/track-<tag>` PR
+that points `brew install ironsecco/ironclaw/ironclaw` at each new release. Per
+[IRO-203](https://github.com/IronSecCo/ironclaw/issues) the repo keeps *"Allow
+GitHub Actions to create and approve pull requests"* **off**, so the default
+`GITHUB_TOKEN` cannot open that PR; the job opens it with a scoped reviewer-App
+token instead. That makes the **reviewer App the PR author**.
+
+GitHub will not let an actor approve its own PR, so the reviewer App can never
+approve its own bump PR — and it should not need to. The bump PR is:
+
+- **generated** (machine-written by `scripts/update-homebrew-formula.sh`),
+- **formula-only** (it touches `Formula/ironclaw.rb` and nothing else), and
+- **pinned to the release's signed `SHA256SUMS`** — the cosign-signed checksum
+  set IS the review of record; the formula merely transcribes those hashes.
+
+The board therefore accepts **admin-merge** for these bumps (IRO-206). To avoid
+a misleading red `reviewer-approve` run, the workflow recognises this narrow
+case — PR author == reviewer App **and** head branch `brew/track-*` **and** the
+diff is exactly `Formula/ironclaw.rb` — and exits cleanly with the admin-merge
+runbook in its job summary instead of failing. **Every other self-authored PR
+still hard-fails:** the gate is unchanged for product code.
+
+Merge a bump PR with:
+
+```
+gh pr merge <pr> --repo IronSecCo/ironclaw --squash --admin
+```
+
+> **Fully hands-off is a separate decision.** Removing this last admin click
+> needs either a *second* identity (a distinct bot App / fine-grained PAT to
+> author the PR so the reviewer App can approve it) or adding an App to the
+> ruleset `bypass_actors` so the workflow can self-merge. Both widen the trust
+> model (a new long-lived credential, or a bypass that applies to more than
+> bump PRs), so they are a board/CEO call — tracked on IRO-206, not shipped
+> here.
 
 ## Branch protection: no change required
 
