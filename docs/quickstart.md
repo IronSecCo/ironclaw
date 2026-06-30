@@ -15,7 +15,9 @@ The fastest way to see IronClaw *work*: the offline **`mock-agent`** runs the fu
 reply path with **no model key** and **no gVisor**, launching its per-conversation sandbox as a Docker
 (runc) container. Good for a laptop demo; not the sealed production posture (see the security note below).
 
-**Requires:** Docker (Docker Desktop on macOS/Windows is fine) and a clone of the repo.
+**Requires:** Docker (Docker Desktop on macOS/Windows is fine) and a clone of the repo. **Make sure
+the Docker daemon is running first** — start Docker Desktop (macOS/Windows) or `sudo systemctl start
+docker` (Linux) before the commands below.
 
 ```sh
 git clone https://github.com/IronSecCo/ironclaw.git && cd ironclaw
@@ -76,8 +78,9 @@ and reading the audit log** — entirely on your machine, in `--dev` mode (loopb
 
 - **Go 1.23+** and a **C toolchain** — IronClaw builds with `CGO_ENABLED=1` (the encrypted-queue
   binding, SQLCipher, is unconditional). macOS: `xcode-select --install`. Debian/Ubuntu: `sudo apt-get install build-essential`.
-- **An Anthropic API key** (`ANTHROPIC_API_KEY`) — held host-side; it never enters a sandbox. For this
-  `--dev` walkthrough you won't actually call the model, but the daemon expects the variable to be set.
+- **An Anthropic API key** (`ANTHROPIC_API_KEY`) — held host-side; it never enters a sandbox. *Optional
+  for this `--dev` walkthrough:* the gateway flow never calls a model, so `--dev` boots and serves
+  `/healthz` with no key set. You'll want one once you wire a real agent to a provider.
 - **`openssl`** (almost always preinstalled) — used to mint a local API token.
 
 Check Go:
@@ -102,15 +105,17 @@ If the build fails with an SQLite/cgo error, your C toolchain isn't set up — s
 ## 2. Start the control-plane (Terminal 1)
 
 ```sh
-export ANTHROPIC_API_KEY=sk-ant-...                 # held host-side; never enters the sandbox
+export ANTHROPIC_API_KEY=sk-ant-...                 # optional in --dev (the gateway flow never calls a model)
 export IRONCLAW_API_TOKEN=$(openssl rand -hex 32)   # bearer token for the admin API
 echo "API token: $IRONCLAW_API_TOKEN"               # copy this — you need it in Terminal 2
 
 ./bin/controlplane --dev --api-addr 127.0.0.1:8787
 ```
 
-`--dev` binds to loopback and uses in-memory backends — **no gVisor, no containerd, no root**. Leave this
-running. You should see the daemon log that it has started and is serving on `127.0.0.1:8787`.
+`--dev` binds to loopback with an in-memory registry — **no gVisor, no containerd, no root**. The gateway
+change store and audit log are still durable files on disk (under the state dir, e.g.
+`~/Library/Caches/ironclaw/state/{changes,audit.jsonl}` on macOS), so the trail you build below survives a
+restart. Leave this running. You should see the daemon log that it has started and is serving on `127.0.0.1:8787`.
 
 ## 3. Point `ironctl` at it (Terminal 2)
 
@@ -128,10 +133,10 @@ Confirm connectivity by reading the (empty) audit log:
 
 ## 4. Submit a change — watch it get *held*
 
-`--dev` seeds a `default` agent group. Submit a persona change for it:
+`--dev` seeds a `dev-agent` agent group. Submit a persona change for it:
 
 ```sh
-./bin/ironctl change submit --kind persona --group default --by alice
+./bin/ironctl change submit --kind persona --group dev-agent --by alice
 ```
 
 The CLI prints a **change id**. The change is **not applied** — it is parked at the gateway awaiting a
