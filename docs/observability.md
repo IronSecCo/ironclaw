@@ -50,23 +50,16 @@ These are recorded by the running control plane:
 | `ironclaw_model_calls_total` | counter | Model-host requests forwarded by the egress proxy. |
 | `ironclaw_model_call_errors_total` | counter | Forwarded requests that errored (HTTP ≥ 400 or denied by the egress policy). |
 | `ironclaw_model_call_duration_seconds` | histogram | Model-host request latency. Emits `_bucket{le=...}`, `_sum`, `_count`. |
+| `ironclaw_sandbox_launches_total` | counter | Sandboxes launched (incremented per sandbox that actually starts). |
 | `ironclaw_sandbox_kills_total` | counter | Sandboxes killed/stopped by the stuck-session sweeper. |
+| `ironclaw_gateway_decisions_total{decision="approved"\|"rejected"}` | counter | Gateway change decisions by outcome — verifier rejects, human approve/reject, and auto-approve. |
+| `ironclaw_deliveries_total` | counter | Outbound messages successfully delivered to a channel adapter. |
 
 The model-call series come from the **model-proxy audit** — every egress request the proxy
 forwards (the sandbox's only network path) is counted and timed at the host, so the numbers
-reflect real, host-observed traffic rather than anything the sandbox self-reports.
-
-### Registered, not yet emitting
-
-These series are declared in the registry (so the metric names are stable) but are **not yet
-incremented** by any call site — they currently read `0`. Instrumentation is tracked as a
-follow-up; do not build alerts on them until they go live:
-
-| Series | Type | Intended meaning |
-| --- | --- | --- |
-| `ironclaw_gateway_decisions_total{decision="approved"\|"rejected"}` | counter | Gateway change decisions by outcome. |
-| `ironclaw_deliveries_total` | counter | Outbound messages delivered to a channel. |
-| `ironclaw_sandbox_launches_total` | counter | Sandboxes launched. |
+reflect real, host-observed traffic rather than anything the sandbox self-reports. The
+gateway-decision, delivery, and sandbox-launch counters are likewise recorded host-side, at
+the gateway decision path, the outbound delivery loop, and the session launcher respectively.
 
 ## Prometheus scrape config
 
@@ -115,8 +108,15 @@ histogram_quantile(0.99, sum(rate(ironclaw_model_call_duration_seconds_bucket[5m
 # Average latency (s)
 rate(ironclaw_model_call_duration_seconds_sum[5m]) / rate(ironclaw_model_call_duration_seconds_count[5m])
 
-# Sandbox kills (per minute)
+# Sandbox launches / kills (per minute)
+60 * rate(ironclaw_sandbox_launches_total[5m])
 60 * rate(ironclaw_sandbox_kills_total[5m])
+
+# Gateway decisions (per minute), split by outcome
+60 * rate(ironclaw_gateway_decisions_total[5m])
+
+# Outbound deliveries (per minute)
+60 * rate(ironclaw_deliveries_total[5m])
 ```
 
 ## Security notes

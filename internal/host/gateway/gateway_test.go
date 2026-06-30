@@ -223,3 +223,79 @@ func waitPending(t *testing.T, store *MemoryStore, id contract.ChangeID) {
 	}
 	t.Fatalf("change %q never became pending", id)
 }
+
+// recordingRecorder is a DecisionRecorder that counts approve/reject calls.
+type recordingRecorder struct {
+	mu                 sync.Mutex
+	approved, rejected int
+}
+
+func (r *recordingRecorder) GatewayDecision(approved bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if approved {
+		r.approved++
+		return
+	}
+	r.rejected++
+}
+
+func (r *recordingRecorder) counts() (int, int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.approved, r.rejected
+}
+
+// TestSubmitMetricsAutoApprove asserts an all-pass (no human) submit records one
+// approve decision.
+func TestSubmitMetricsAutoApprove(t *testing.T) {
+	rec := &recordingRecorder{}
+	gw := New(VerifierChain{fixedVerifier{name: "ok", verdict: contract.VerdictPass}},
+		NewManualApprover(), NewLogApplier(), NewMemoryStore()).SetMetrics(rec)
+	if _, err := gw.Submit(context.Background(), contract.ChangeRequest{ID: "m1", Kind: contract.ChangePersona}); err != nil {
+		t.Fatal(err)
+	}
+	if a, r := rec.counts(); a != 1 || r != 0 {
+		t.Fatalf("auto-approve: approved=%d rejected=%d, want 1/0", a, r)
+	}
+}
+
+// TestSubmitMetricsVerifierReject asserts a verifier reject records one reject.
+func TestSubmitMetricsVerifierReject(t *testing.T) {
+	rec := &recordingRecorder{}
+	gw := New(VerifierChain{fixedVerifier{name: "deny", verdict: contract.VerdictReject, reason: "no"}},
+		NewManualApprover(), NewLogApplier(), NewMemoryStore()).SetMetrics(rec)
+	if _, err := gw.Submit(context.Background(), contract.ChangeRequest{ID: "m2"}); err != nil {
+		t.Fatal(err)
+	}
+	if a, r := rec.counts(); a != 0 || r != 1 {
+		t.Fatalf("verifier reject: approved=%d rejected=%d, want 0/1", a, r)
+	}
+}
+
+// TestSubmitMetricsHumanDecisions asserts a human approve and a human reject each
+// record the matching series.
+func TestSubmitMetricsHumanDecisions(t *testing.T) {
+	rec := &recordingRecorder{}
+	store := NewMemoryStore()
+	gw := New(VerifierChain{AlwaysRequireHuman{}}, NewManualApprover(), NewLogApplier(), store).SetMetrics(rec)
+
+	for id, outcome := range map[contract.ChangeID]string{"ha": OutcomeApprove, "hr": OutcomeReject} {
+		cid, out := id, outcome
+		done := make(chan error, 1)
+		go func() {
+			_, err := gw.Submit(context.Background(), contract.ChangeRequest{ID: cid})
+			done <- err
+		}()
+		waitPending(t, store, cid)
+		if err := gw.Decide(cid, contract.Decision{Outcome: out, DecidedBy: "admin", DecidedAt: time.Now()}); err != nil {
+			t.Fatal(err)
+		}
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if a, r := rec.counts(); a != 1 || r != 1 {
+		t.Fatalf("human decisions: approved=%d rejected=%d, want 1/1", a, r)
+	}
+}

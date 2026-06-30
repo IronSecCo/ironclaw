@@ -601,7 +601,7 @@ func main() {
 		gateway.NewManualApprover(),
 		respawnApplier,
 		store,
-	).SetAudit(audit)
+	).SetAudit(audit).SetMetrics(m)
 
 	// WithRegistry attaches the control-plane registry so the /v1/registry admin
 	// endpoints are live and the approvals read-model (/v1/ui/approvals) can
@@ -681,6 +681,7 @@ func main() {
 		Image:            *sandboxImage,
 		KeyDir:           filepath.Join(*stateDir, "keys"),
 		WorkspaceRoot:    filepath.Join(*stateDir, "workspaces"),
+		OnLaunch:         m.SandboxLaunches.Inc,
 	})
 	if err != nil {
 		logger.Error("session manager", "error", err)
@@ -740,7 +741,8 @@ func main() {
 	pendingQuestions := questions.NewStore()
 	deliverer := delivery.New(channelReg, gw, reg, manager.OutboundReader).
 		WithInboundWriter(manager.InboundWriter).
-		WithQuestions(pendingQuestions)
+		WithQuestions(pendingQuestions).
+		WithMetrics(m.Deliveries)
 	// In-session skill install (RFC-0006): when skills are enabled, let an agent PROPOSE
 	// a curated, signed skill from chat. Delivery resolves+signature-verifies the named
 	// skill through the SAME resolver the operator `ironctl skill add` path uses, then
