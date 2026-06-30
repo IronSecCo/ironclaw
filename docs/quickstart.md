@@ -171,6 +171,16 @@ human decision. That's the whole point.
 ./bin/ironctl change approve <change-id> --by alice  # paste the id
 ```
 
+`change pending` prints a table; pass `--json` to any read command (`change pending`, `change history`,
+`audit`) for machine-readable output:
+
+```
+ID                            KIND     GROUP      REQUESTED-BY  AGE
+chg_20260617135058.557304000  persona  dev-agent  cli:dev       2m
+
+Approve with: ironctl change approve <id> --by <you>
+```
+
 Only now is the change applied. (Try `./bin/ironctl change reject <id> --by alice` next time to see the
 other outcome.)
 

@@ -20,6 +20,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/IronSecCo/ironclaw/internal/version"
@@ -160,9 +162,9 @@ parse:
 	case "submit":
 		return cmdSubmit(addr, rest)
 	case "pending":
-		return cmdPending(addr)
+		return cmdPending(addr, rest)
 	case "history":
-		return cmdHistory(addr)
+		return cmdHistory(addr, rest)
 	case "approve":
 		return cmdDecision(addr, "approve", rest)
 	case "reject":
@@ -193,36 +195,142 @@ func cmdSubmit(addr string, args []string) error {
 	return postJSON(addr+"/v1/changes", body)
 }
 
-func cmdPending(addr string) error {
-	resp, err := httpGet(addr + "/v1/changes/pending")
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	return printBody(resp)
+// changeRow decodes one /v1/changes/{pending,history} entry. The control-plane
+// serializes contract.ChangeRequest with capitalized, untagged keys (ID, Kind,
+// AgentGroupID, …); Go's JSON decoder matches them case-insensitively.
+type changeRow struct {
+	ID           string          `json:"id"`
+	Kind         string          `json:"kind"`
+	AgentGroupID string          `json:"agentGroupID"`
+	RequestedBy  string          `json:"requestedBy"`
+	CreatedAt    time.Time       `json:"createdAt"`
+	Before       json.RawMessage `json:"before"`
+	After        json.RawMessage `json:"after"`
 }
 
-func cmdHistory(addr string) error {
-	resp, err := httpGet(addr + "/v1/changes/history")
+// historyRow decodes one /v1/changes/history entry (a request plus its outcome).
+type historyRow struct {
+	Request  changeRow `json:"request"`
+	Status   string    `json:"status"`
+	Decision *struct {
+		Outcome   string    `json:"outcome"`
+		DecidedBy string    `json:"decidedBy"`
+		DecidedAt time.Time `json:"decidedAt"`
+	} `json:"decision,omitempty"`
+}
+
+// auditRow decodes one /v1/audit entry.
+type auditRow struct {
+	Time     time.Time `json:"time"`
+	Stage    string    `json:"stage"`
+	ChangeID string    `json:"changeId"`
+	Kind     string    `json:"kind"`
+	Detail   string    `json:"detail"`
+}
+
+func cmdPending(addr string, args []string) error {
+	asJSON, err := parseReadFlags("pending", args)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	return printBody(resp)
+	body, err := getRawJSON(addr + "/v1/changes/pending")
+	if err != nil {
+		return err
+	}
+	if asJSON {
+		return printJSON(body)
+	}
+	var rows []changeRow
+	if err := json.Unmarshal(body, &rows); err != nil {
+		return fmt.Errorf("decode changes: %w", err)
+	}
+	if len(rows) == 0 {
+		fmt.Println("No changes awaiting approval.")
+		return nil
+	}
+	tw := newTable("ID", "KIND", "GROUP", "REQUESTED-BY", "AGE")
+	for _, r := range rows {
+		tw.row(r.ID, r.Kind, r.AgentGroupID, r.RequestedBy, humanAge(r.CreatedAt))
+	}
+	tw.flush()
+	fmt.Println(dim("\nApprove with: ironctl change approve <id> --by <you>"))
+	return nil
+}
+
+func cmdHistory(addr string, args []string) error {
+	asJSON, err := parseReadFlags("history", args)
+	if err != nil {
+		return err
+	}
+	body, err := getRawJSON(addr + "/v1/changes/history")
+	if err != nil {
+		return err
+	}
+	if asJSON {
+		return printJSON(body)
+	}
+	var rows []historyRow
+	if err := json.Unmarshal(body, &rows); err != nil {
+		return fmt.Errorf("decode history: %w", err)
+	}
+	if len(rows) == 0 {
+		fmt.Println("No change history yet.")
+		return nil
+	}
+	tw := newTable("ID", "KIND", "GROUP", "STATUS", "DECIDED-BY", "AGE")
+	for _, r := range rows {
+		decidedBy := "—"
+		if r.Decision != nil && r.Decision.DecidedBy != "" {
+			decidedBy = r.Decision.DecidedBy
+		}
+		tw.row(r.Request.ID, r.Request.Kind, r.Request.AgentGroupID, r.Status, decidedBy, humanAge(r.Request.CreatedAt))
+	}
+	tw.flush()
+	return nil
 }
 
 func cmdAudit(addr string, args []string) error {
 	fs := flag.NewFlagSet("audit", flag.ContinueOnError)
 	limit := fs.Int("limit", 100, "max recent audit entries to return")
+	asJSON := fs.Bool("json", false, "emit raw JSON instead of a table")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	resp, err := httpGet(fmt.Sprintf("%s/v1/audit?limit=%d", addr, *limit))
+	body, err := getRawJSON(fmt.Sprintf("%s/v1/audit?limit=%d", addr, *limit))
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	return printBody(resp)
+	if *asJSON {
+		return printJSON(body)
+	}
+	var rows []auditRow
+	if err := json.Unmarshal(body, &rows); err != nil {
+		return fmt.Errorf("decode audit: %w", err)
+	}
+	if len(rows) == 0 {
+		fmt.Println("No audit entries yet.")
+		return nil
+	}
+	tw := newTable("TIME", "STAGE", "CHANGE-ID", "KIND", "DETAIL")
+	for _, r := range rows {
+		ts := "—"
+		if !r.Time.IsZero() {
+			ts = r.Time.Local().Format("2006-01-02 15:04:05")
+		}
+		tw.row(ts, dash(r.Stage), dash(r.ChangeID), dash(r.Kind), dash(r.Detail))
+	}
+	tw.flush()
+	return nil
+}
+
+// parseReadFlags parses the shared --json flag for the simple read commands.
+func parseReadFlags(name string, args []string) (bool, error) {
+	fs := flag.NewFlagSet(name, flag.ContinueOnError)
+	asJSON := fs.Bool("json", false, "emit raw JSON instead of a table")
+	if err := fs.Parse(args); err != nil {
+		return false, err
+	}
+	return *asJSON, nil
 }
 
 func cmdDecision(addr, outcome string, args []string) error {
@@ -302,6 +410,85 @@ func mustReadAll(r io.Reader) []byte {
 	return b
 }
 
+// getRawJSON issues an authenticated GET and returns the response body. On a
+// non-2xx status it prints the diagnostic to stderr and returns an error, so the
+// primary stdout stream stays clean for the success path.
+func getRawJSON(url string) ([]byte, error) {
+	resp, err := httpGet(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body := bytes.TrimSpace(mustReadAll(resp.Body))
+	if resp.StatusCode >= 400 {
+		fmt.Fprintf(os.Stderr, "HTTP %d %s\n", resp.StatusCode, http.StatusText(resp.StatusCode))
+		if len(body) > 0 {
+			fmt.Fprintln(os.Stderr, string(body))
+		}
+		return nil, fmt.Errorf("request failed with status %d", resp.StatusCode)
+	}
+	return body, nil
+}
+
+// printJSON re-indents a JSON body for the --json path. If the payload is not
+// valid JSON it is printed verbatim.
+func printJSON(body []byte) error {
+	var buf bytes.Buffer
+	if err := json.Indent(&buf, bytes.TrimSpace(body), "", "  "); err != nil {
+		fmt.Println(string(bytes.TrimSpace(body)))
+		return nil
+	}
+	fmt.Println(buf.String())
+	return nil
+}
+
+// humanAge renders a coarse "3m"/"2h"/"5d" age for a timestamp.
+func humanAge(t time.Time) string {
+	if t.IsZero() {
+		return "—"
+	}
+	d := time.Since(t)
+	if d < 0 {
+		d = 0
+	}
+	switch {
+	case d < time.Minute:
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	case d < time.Hour:
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%dh", int(d.Hours()))
+	default:
+		return fmt.Sprintf("%dd", int(d.Hours()/24))
+	}
+}
+
+// dash returns "—" for an empty string so columns never look truncated.
+func dash(s string) string {
+	if s == "" {
+		return "—"
+	}
+	return s
+}
+
+// table is a thin tabwriter wrapper that prints a dimmed header row followed by
+// tab-aligned data rows.
+type table struct {
+	w *tabwriter.Writer
+}
+
+func newTable(headers ...string) *table {
+	tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
+	fmt.Fprintln(tw, dim(strings.Join(headers, "\t")))
+	return &table{w: tw}
+}
+
+func (t *table) row(cells ...string) {
+	fmt.Fprintln(t.w, strings.Join(cells, "\t"))
+}
+
+func (t *table) flush() { _ = t.w.Flush() }
+
 // firstRunHelp prints a short, friendly banner for `ironctl` with no command and
 // for `ironctl help`. It curates a first-run path (onboard → doctor → status)
 // ahead of the full reference so newcomers are not met with the dense `usage`
@@ -338,11 +525,11 @@ func printReference(w io.Writer) {
   ironctl [--addr URL] [--token T] agent list | show <id> | templates
   ironctl [--addr URL] [--token T] tools [list]
   ironctl [--addr URL] [--token T] change submit --kind <k> --group <g> --by <user>
-  ironctl [--addr URL] [--token T] change pending
-  ironctl [--addr URL] [--token T] change history
+  ironctl [--addr URL] [--token T] change pending [--json]
+  ironctl [--addr URL] [--token T] change history [--json]
   ironctl [--addr URL] [--token T] change approve <id> --by <user>
   ironctl [--addr URL] [--token T] change reject  <id> --by <user>
-  ironctl [--addr URL] [--token T] audit [--limit N]
+  ironctl [--addr URL] [--token T] audit [--limit N] [--json]
   ironctl [--addr URL] [--token T] registry <resource> <verb> ...   (see: registry --help)
   ironctl [--addr URL] onboard [--yes] [--dry-run] [--force] [--config PATH]
   ironctl [--addr URL] [--token T] status [--json]
