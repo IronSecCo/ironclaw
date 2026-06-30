@@ -91,6 +91,16 @@ parse:
 		return nil
 	}
 
+	// A `-h`/`--help` flag *after* the subcommand (e.g. `change pending --help`)
+	// prints the relevant usage block to stdout and exits 0, before the action
+	// runs. Top-level `help`/`--help`/`-h` is already handled above; without this
+	// guard a subcommand that takes no flags silently ignores the flag and
+	// executes, so a user merely probing for options would run the command.
+	if wantsHelp(args) {
+		helpFor(args, os.Stdout)
+		return nil
+	}
+
 	// Top-level "audit" command.
 	if args[0] == "audit" {
 		return cmdAudit(addr, args[1:])
@@ -171,6 +181,34 @@ parse:
 		usage()
 		return fmt.Errorf("unknown change verb %q", verb)
 	}
+}
+
+// wantsHelp reports whether a `-h`/`--help` flag appears anywhere in args. It is
+// used to intercept subcommand-level help before the action runs.
+func wantsHelp(args []string) bool {
+	for _, a := range args {
+		if a == "-h" || a == "--help" {
+			return true
+		}
+	}
+	return false
+}
+
+// helpFor writes the usage block most relevant to the requested command. Commands
+// with their own reference (registry, agent) get it; everything else falls back to
+// the full top-level reference.
+func helpFor(args []string, w io.Writer) {
+	if len(args) > 0 {
+		switch args[0] {
+		case "registry":
+			registryUsage(w)
+			return
+		case "agent":
+			agentUsage(w)
+			return
+		}
+	}
+	printReference(w)
 }
 
 func cmdSubmit(addr string, args []string) error {

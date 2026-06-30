@@ -24,7 +24,7 @@ import (
 // from the built-in catalog package so the CLI and console can never disagree.
 func cmdAgent(addr string, args []string) error {
 	if len(args) < 1 {
-		agentUsage()
+		agentUsage(os.Stderr)
 		return fmt.Errorf("expected: agent <create|list|show|templates>")
 	}
 	switch args[0] {
@@ -37,7 +37,7 @@ func cmdAgent(addr string, args []string) error {
 	case "templates":
 		return cmdAgentTemplates()
 	default:
-		agentUsage()
+		agentUsage(os.Stderr)
 		return fmt.Errorf("unknown agent subcommand %q (want create|list|show|templates)", args[0])
 	}
 }
@@ -665,8 +665,8 @@ func stdoutIsTerminal() bool {
 	return fi.Mode()&os.ModeCharDevice != 0
 }
 
-func agentUsage() {
-	fmt.Fprintln(os.Stderr, `agent subcommands:
+func agentUsage(w io.Writer) {
+	fmt.Fprintln(w, `agent subcommands:
   agent create [--name N] [--template T] [--model M] [--persona TEXT] [--tool X ...] [--all-tools] [--yes]
                run with no flags in a terminal for a guided wizard
   agent list
