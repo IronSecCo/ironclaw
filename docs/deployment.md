@@ -9,8 +9,10 @@ exist. This page is the *how*.
 
 ## Pick a deployment path
 
-There are three supported ways to run the control-plane in production. They differ in
-**how much sandbox isolation you get**, because that depends on the host kernel.
+There are three supported ways to run the control-plane in production, plus a
+zero-tooling **one-click PaaS** path ([Path D](#path-d-one-click-paas-flyio-render-railway)).
+They differ in **how much sandbox isolation you get**, because that depends on the host
+kernel.
 
 | | Bare-host (systemd / launchd) | Hardened Docker Compose | Kubernetes (Helm) |
 |---|---|---|---|
@@ -233,6 +235,72 @@ Full value reference and validation commands are in the chart
 [README](https://github.com/IronSecCo/ironclaw/blob/main/deploy/helm/ironclaw/README.md).
 The chart is validated with `helm lint` and `helm template` rendering against the
 Kubernetes schema; a live-cluster apply is left to the operator.
+
+---
+
+## Path D — One-click PaaS (Fly.io / Render / Railway)
+
+The fastest way to a running, hardened control-plane with **zero local tooling**: click a
+Deploy button (or run one CLI command) and a managed platform pulls the published image,
+provisions a persistent volume, and fronts it with TLS.
+
+| Provider | Template | One-click |
+|---|---|---|
+| Fly.io | [`deploy/fly/fly.toml`](https://github.com/IronSecCo/ironclaw/blob/main/deploy/fly/fly.toml) | `fly launch --copy-config` |
+| Render | [`deploy/render/render.yaml`](https://github.com/IronSecCo/ironclaw/blob/main/deploy/render/render.yaml) | [Deploy to Render](https://render.com/deploy?repo=https://github.com/IronSecCo/ironclaw) |
+| Railway | [`deploy/railway/`](https://github.com/IronSecCo/ironclaw/tree/main/deploy/railway) | [Deploy on Railway](https://railway.com/new) |
+
+!!! warning "What the PaaS path runs — and what it doesn't"
+    These templates run the **trusted control-plane only**: the mandatory approval
+    gateway, the encrypted SQLCipher per-session queues, host-side model-credential
+    custody, and the API + web console. A single PaaS container has **no gVisor (`runsc`)
+    and no Docker socket**, so the **agent execution sandbox does not launch here** —
+    exactly the boundary as [Path B (Compose)](#path-b-hardened-docker-compose). For
+    **full agent isolation** use [Path A (gVisor host)](#path-a-bare-host-install-full-gvisor-isolation)
+    or [Path C (runsc k8s node)](#path-c-kubernetes-helm). A PaaS deploy gets you to the
+    console first-run screen; running agents that execute tool calls under isolation is a
+    gVisor-host concern.
+
+Each template defaults to the **hardened image posture**: the published
+`ghcr.io/ironsecco/ironclaw-controlplane` image runs as the non-root uid `65532`, holds
+no secrets (the model credential and admin token arrive at runtime), and exposes only the
+unauthenticated `/healthz` for platform checks. Pin the image by `@sha256:<digest>` for a
+reproducible, cosign-verifiable deploy.
+
+### Required environment
+
+The same env names as [Path B](#1-configure-secrets) — set them through each provider's
+secrets UI, never in a committed file:
+
+| Variable | Required | Notes |
+|---|---|---|
+| `IRONCLAW_API_TOKEN` | recommended | admin/console bearer. Leave unset and the entrypoint mints one and prints it **once** to the deploy logs — claim it from the log stream. |
+| `ANTHROPIC_API_KEY` | for live models | (or `OPENAI_API_KEY` / `OPENROUTER_API_KEY`) held host-side, never enters a sandbox. |
+| `IRONCLAW_API_ADDR` | yes | bind address — `0.0.0.0:8787` (the platform proxies `443 → 8787`). |
+| `IRONCLAW_STATE_DIR` | yes | `/var/lib/ironclaw/state` — mount the persistent volume here. |
+| `IRONCLAW_DEV` | no | `0` (default, production). Set `1` only on a throwaway demo box. |
+
+### Persistence
+
+Each template mounts a **1 GB volume at `/var/lib/ironclaw/state`** — the encrypted
+SQLCipher queues, the gateway change store, the audit log, sealed per-session keys, and
+the minted admin token. Losing this loses the token and all state; back it up.
+
+!!! note "First-boot volume ownership"
+    The image runs as the non-root uid `65532`, but a brand-new PaaS volume mounts
+    root-owned, so the first boot can fail to initialise the state dir. If the deploy
+    logs show a permission error writing `/var/lib/ironclaw/state`, run a one-time
+    `chown -R 65532:65532 /var/lib/ironclaw/state` on the instance (`fly ssh console`,
+    the Render/Railway shell), then restart. The per-provider READMEs
+    ([fly](https://github.com/IronSecCo/ironclaw/blob/main/deploy/fly/README.md),
+    [render](https://github.com/IronSecCo/ironclaw/blob/main/deploy/render/README.md),
+    [railway](https://github.com/IronSecCo/ironclaw/blob/main/deploy/railway/README.md))
+    carry the exact command.
+
+### Verify
+
+Open the deployed URL at `/ui/` — you land on the IronClaw web console first-run screen.
+`GET /healthz` returns `ok` once the control-plane is up.
 
 ---
 

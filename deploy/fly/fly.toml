@@ -1,0 +1,70 @@
+# IronClaw control-plane — Fly.io one-click / CLI deploy.
+#
+#   fly launch --copy-config --no-deploy            # create the app from this file
+#   fly volume create ironclaw_state --size 1       # 1 GB persistent SQLCipher state
+#   fly secrets set IRONCLAW_API_TOKEN=$(openssl rand -hex 32) \
+#                   ANTHROPIC_API_KEY=sk-ant-...     # secrets — never in this file
+#   fly deploy
+#   fly open /ui/                                    # the web console first-run screen
+#
+# WHAT THIS RUNS — read before you trust it. This deploys the trusted IronClaw
+# CONTROL-PLANE (the mandatory approval gateway, the encrypted SQLCipher per-session
+# queues, host-side model-credential custody, the API + web console). It does NOT run
+# agent sandboxes: a single Fly Machine has no gVisor (runsc) and no Docker socket, so
+# the agent execution sandbox cannot launch here — exactly like the hardened Docker
+# Compose path (deploy/docker-compose.prod.yml). For FULL agent isolation you need a
+# gVisor-capable host (deploy/install.sh) or a runsc-capable k8s node (deploy/helm).
+# This PaaS path gets you a running, hardened control-plane and the console first-run
+# screen with zero local tooling. See docs/deployment.md "Path D".
+
+app = "ironclaw-controlplane"
+primary_region = "iad"
+
+[build]
+  # Pin by digest in production for reproducible, cosign-verifiable deploys:
+  #   docker buildx imagetools inspect ghcr.io/ironsecco/ironclaw-controlplane:v0.1.112
+  #   image = "ghcr.io/ironsecco/ironclaw-controlplane@sha256:<digest>"
+  image = "ghcr.io/ironsecco/ironclaw-controlplane:latest"
+
+[env]
+  # Bind inside the Machine; Fly's edge terminates TLS and proxies 443 -> 8787.
+  IRONCLAW_API_ADDR = "0.0.0.0:8787"
+  IRONCLAW_LOG_FORMAT = "json"
+  IRONCLAW_STATE_DIR = "/var/lib/ironclaw/state"
+  # Production posture: 0 keeps the unauthenticated dev owner/agent-group OUT. Set to
+  # "1" ONLY for a throwaway demo box (seeds the offline mock-agent + a dev owner).
+  IRONCLAW_DEV = "0"
+
+# Secrets are set with `fly secrets set` and injected at runtime — NEVER committed here:
+#   IRONCLAW_API_TOKEN   bearer for the admin API + console (else minted+printed in logs)
+#   ANTHROPIC_API_KEY    (or OPENAI_API_KEY / OPENROUTER_API_KEY) — held host-side only
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"        # unauthenticated by design
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "10s"
+
+# Durable, encrypted (SQLCipher) per-session state: queues, the gateway change store,
+# the append-only audit log, sealed per-session keys, and the minted admin token.
+# Losing this loses the token and all state — keep a backup.
+[mounts]
+  source = "ironclaw_state"
+  destination = "/var/lib/ironclaw/state"
+  # NOTE (first-boot ownership): the image runs as the non-root uid 65532. A brand-new
+  # Fly volume mounts root-owned, so the first boot may fail to initialise the token
+  # file. If `fly logs` shows a permission error writing the state dir, run once:
+  #   fly ssh console -C "chown -R 65532:65532 /var/lib/ironclaw/state"
+  # then restart the Machine. See docs/deployment.md "Path D" troubleshooting.
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

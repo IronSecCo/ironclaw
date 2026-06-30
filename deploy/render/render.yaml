@@ -1,0 +1,60 @@
+# IronClaw control-plane — Render Blueprint (one-click "Deploy to Render").
+#
+# Deploy: push this repo to your Git host and click the README "Deploy to Render"
+# button, or in the Render dashboard: New > Blueprint > point at this repo. Render reads
+# this file, provisions the service + disk, and prompts for the secret env vars below.
+#
+# WHAT THIS RUNS — read before you trust it. This deploys the trusted IronClaw
+# CONTROL-PLANE (approval gateway, encrypted SQLCipher per-session queues, host-side
+# model-credential custody, API + web console). It does NOT run agent sandboxes: a
+# single Render instance has no gVisor (runsc) and no Docker socket, so the agent
+# execution sandbox cannot launch here — same boundary as the hardened Docker Compose
+# path. For FULL agent isolation use a gVisor host (deploy/install.sh) or a runsc k8s
+# node (deploy/helm). This path gets you a hardened control-plane + the console
+# first-run screen with zero local tooling. See docs/deployment.md "Path D".
+#
+# Persistent disks require a paid instance type (not available on the free tier).
+
+services:
+  - type: web
+    name: ironclaw-controlplane
+    runtime: image
+    image:
+      # Pin by digest in production for reproducible, cosign-verifiable deploys:
+      #   ghcr.io/ironsecco/ironclaw-controlplane@sha256:<digest>
+      url: ghcr.io/ironsecco/ironclaw-controlplane:latest
+    region: oregon
+    plan: starter            # disks need a paid plan; "starter" is the smallest paid tier
+    healthCheckPath: /healthz # unauthenticated by design
+    autoDeploy: false        # don't redeploy on a floating :latest moving under you
+    envVars:
+      # Render injects PORT and routes 443 -> PORT. Bind the control-plane to it.
+      - key: PORT
+        value: "8787"
+      - key: IRONCLAW_API_ADDR
+        value: 0.0.0.0:8787
+      - key: IRONCLAW_LOG_FORMAT
+        value: json
+      - key: IRONCLAW_STATE_DIR
+        value: /var/lib/ironclaw/state
+      # Production posture: 0 keeps the unauthenticated dev owner/agent-group OUT.
+      # Set to "1" ONLY for a throwaway demo box (seeds the offline mock-agent).
+      - key: IRONCLAW_DEV
+        value: "0"
+      # Secrets — Render prompts for these at deploy time (sync:false = not in Git).
+      # Bearer for the admin API + console. Leave unset to have the entrypoint mint one
+      # and print it ONCE to the logs (claim it from the Render log stream).
+      - key: IRONCLAW_API_TOKEN
+        sync: false
+      # Model credential — held host-side, never enters a sandbox. Set at least one.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+    # Durable, encrypted (SQLCipher) state. NOTE (first-boot ownership): the image runs
+    # as the non-root uid 65532; a fresh Render disk mounts root-owned. If the first
+    # boot logs a permission error writing the state dir, open a shell on the instance
+    # and `chown -R 65532:65532 /var/lib/ironclaw/state`, then redeploy. See
+    # docs/deployment.md "Path D" troubleshooting.
+    disk:
+      name: ironclaw-state
+      mountPath: /var/lib/ironclaw/state
+      sizeGB: 1
