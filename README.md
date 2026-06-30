@@ -50,7 +50,9 @@ read, write, schedule, and reply.
 
 > **Want to see it work first — no API key, no signup?**
 > One offline demo runs the full chat → per-session sandbox → reply loop on a stock
-> laptop, where a mock agent actually replies — no credentials, no gVisor required:
+> laptop, where a mock agent actually replies — no credentials, no gVisor required.
+> Make sure the **Docker daemon is running first** (start Docker Desktop, or
+> `sudo systemctl start docker` on Linux):
 >
 > ```sh
 > git clone https://github.com/IronSecCo/ironclaw.git && cd ironclaw

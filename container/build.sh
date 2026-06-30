@@ -32,6 +32,17 @@ pick_engine() {
 ENGINE="$(pick_engine)"
 [ -n "${ENGINE}" ] || { printf 'error: no container engine found (docker/podman/nerdctl/buildah)\n' >&2; exit 1; }
 
+# Preflight: for daemon-based engines, fail early with a friendly message if the
+# daemon is not reachable, rather than letting the build print a raw socket error.
+# buildah is daemonless, so it has nothing to check.
+if [ "${ENGINE}" != "buildah" ]; then
+  if ! "${ENGINE}" info >/dev/null 2>&1; then
+    printf 'error: %s is installed but its daemon is not reachable.\n' "${ENGINE}" >&2
+    printf '       Start the container runtime and retry (e.g. open Docker Desktop, or run `sudo systemctl start docker`).\n' >&2
+    exit 1
+  fi
+fi
+
 printf '==> Building %s with %s (context: %s)\n' "${IMAGE}" "${ENGINE}" "${REPO_ROOT}"
 if [ "${ENGINE}" = "buildah" ]; then
   buildah bud -t "${IMAGE}" -f "${REPO_ROOT}/container/Dockerfile" "${REPO_ROOT}"
