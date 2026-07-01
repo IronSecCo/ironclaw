@@ -1,0 +1,107 @@
+name: Sandbox containment gate
+
+# Continuous proof of isolation (IRO-261). IronClaw's positioning is "isolation you
+# can prove, not just promise" — this gate makes that claim self-verifying on every
+# push instead of a harness someone remembers to run by hand.
+#
+# It runs the red-team escape harness (examples/red-team-escape, IRO-257) against the
+# offline, zero-credential demo control-plane and asserts every CORE containment
+# assertion holds. As of IRO-259 all SIX rows are core assertions on the demo runc
+# path — network egress, Docker-socket/host escape, sibling breakout, host filesystem,
+# self-modification held at the gateway, and cross-session key custody (host master
+# key + sibling session keys unreachable). A real regression that weakens the sandbox
+# turns this job RED.
+#
+# Two phases, one job (so the sandbox image is built once and reused):
+#   1. prove-contained    — run the harness; the sandbox MUST contain a fully
+#                           compromised agent (run.sh exits 0).
+#   2. regression-guard   — a NEGATIVE control. Bring the demo up with a deliberately
+#                           WEAKENED sandbox (every sibling gets the default bridge NIC
+#                           instead of network=none) and assert the harness CATCHES it
+#                           (run.sh exits non-zero). If the harness stays green against
+#                           a sandbox with a NIC, the gate is blind and cannot be
+#                           trusted — so THAT fails this job. This is how we prove the
+#                           gate actually catches regressions, not just that it is green.
+#
+# Posture, mirroring the WS-G no-secret harness (.github/workflows/wsg-verify.yml):
+#   - Additive and NOT a required status check — it must never be able to break a
+#     release; it surfaces a containment regression, it does not gate the merge queue.
+#   - No secrets: the offline `mock` provider makes no network call, so no model key or
+#     channel token is needed. ubuntu-latest ships Docker, jq, and curl.
+#   - Self-skips cleanly on a runner without a working Docker Engine.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least-privilege default (Scorecard Token-Permissions): the job only reads the repo.
+permissions:
+  contents: read
+
+jobs:
+  sandbox-containment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      # Pinned to a commit SHA (tag in trailing comment) so a moved tag cannot change
+      # what runs in CI — matches ci.yml. Dependabot bumps these.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Docker preflight (self-skip if unavailable)
+        id: docker
+        # Mirror the WS-G harness's "never block a release on an env we cannot run"
+        # posture: if the runner has no working Docker Engine, skip the containment
+        # phases instead of failing. Hosted ubuntu-latest always has Docker, so on the
+        # published runner this is always 'true'.
+        run: |
+          set -euo pipefail
+          if docker info >/dev/null 2>&1; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Docker Engine available — running the containment gate."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Sandbox containment gate skipped::No working Docker Engine on this runner; the escape harness needs one. Skipping (non-fatal)."
+          fi
+
+      - name: Prove containment holds (every CORE assertion PASSES)
+        if: steps.docker.outputs.available == 'true'
+        # Builds ironclaw-sandbox:latest, brings the demo control-plane up, engages a
+        # real per-session sandbox, attacks it from the inside assuming a fully
+        # compromised agent, and exits non-zero if any CORE containment assertion
+        # failed. Tears the demo down on exit.
+        run: examples/red-team-escape/run.sh
+
+      - name: Regression guard — prove the gate catches a weakened sandbox
+        if: steps.docker.outputs.available == 'true'
+        # NEGATIVE control. We deliberately break containment (hand every sandbox the
+        # default bridge NIC instead of network=none via the committed override) and
+        # assert the harness turns RED. A weakened sandbox that the harness reports as
+        # contained means the gate is blind — that is the failure this step exists to
+        # surface, and it fails the job.
+        env:
+          OVERRIDE: examples/red-team-escape/ci/weaken-network.override.yml
+        run: |
+          set -euo pipefail
+          echo "==> bringing the demo up with a DELIBERATELY WEAKENED sandbox (bridge NIC, not network=none)"
+          # The sandbox image was already built by the previous step; reuse it.
+          docker compose -f docker-compose.demo.yml -f "$OVERRIDE" up --build -d
+
+          # run.sh --attach waits for /healthz itself, engages a sandbox against the
+          # already-running (weakened) control-plane, attacks it, and manages no
+          # lifecycle of its own — so we own teardown. SKIP_BUILD=1 keeps it from
+          # rebuilding the (already-present) sandbox image.
+          set +e
+          SKIP_BUILD=1 examples/red-team-escape/run.sh --attach
+          rc=$?
+          set -e
+
+          echo "==> tearing the weakened demo down"
+          docker compose -f docker-compose.demo.yml -f "$OVERRIDE" down -v >/dev/null 2>&1 || true
+
+          if [ "$rc" -eq 0 ]; then
+            echo "::error title=Containment gate is blind::The escape harness reported PASS against a sandbox with a bridge NIC (network egress possible). The gate cannot catch a real regression and must not be trusted."
+            exit 1
+          fi
+          echo "==> regression guard OK: the harness correctly went RED (exit $rc) on the weakened sandbox."

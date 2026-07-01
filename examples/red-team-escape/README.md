@@ -16,6 +16,10 @@ examples/red-team-escape/run.sh
 It prints a PASS/FAIL table and exits non-zero if any **core** containment assertion
 fails, so it works as a CI check as well as a demo.
 
+This harness runs on **every push** as the [Sandbox containment gate](../../.github/workflows/sandbox-containment.yml)
+(IRO-261): CI re-proves all six core assertions and, as a negative control, weakens the
+sandbox on purpose to confirm the gate actually turns red on a regression.
+
 ## The threat model (read this first)
 
 We assume the **worst realistic case**: the agent has been fully jailbroken and can
