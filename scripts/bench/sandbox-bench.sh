@@ -348,23 +348,32 @@ sum_tree_rss() {
 	echo "$total"
 }
 
-# rss_of_comm <pattern> [debug-file] — sum VmRSS (KiB) of every process whose comm
-# matches <pattern>. gVisor runs its supervisor as detached host processes
-# (comm "runsc-sandbox" / "runsc-gofer") that are outside the launcher's process
-# tree, so a tree walk misses them; matching on comm is the honest way to attribute
-# their resident memory. Optionally appends "<pid> <comm> <kb>" lines to debug-file.
+# rss_of_comm <space-separated-patterns> [debug-file] — sum VmRSS (KiB) of every
+# process whose comm contains ANY of the given substrings (each pid counted once).
+# gVisor runs its supervisor as detached host processes (comm "runsc-sandbox" /
+# "runsc-gofer", and depending on build "sentry"/"gofer") outside the launcher's
+# process tree, so a tree walk misses them; matching on comm is the honest way to
+# attribute their resident memory. Optionally appends "<pid> <comm> <kb>" to
+# debug-file.
 rss_of_comm() {
-	local pat="$1" dbg="${2:-}" total=0 pid kb comm
+	local patterns="$1" dbg="${2:-}" total=0 pid kb comm pat matched
 	for pid in /proc/[0-9]*; do
 		pid="${pid#/proc/}"
 		comm="$(cat "/proc/$pid/comm" 2>/dev/null || echo)"
-		case "$comm" in
-		*"$pat"*)
+		matched=0
+		for pat in $patterns; do
+			case "$comm" in
+			*"$pat"*)
+				matched=1
+				break
+				;;
+			esac
+		done
+		if [ "$matched" -eq 1 ]; then
 			kb="$(awk '/^VmRSS:/{print $2}' "/proc/$pid/status" 2>/dev/null || echo 0)"
 			total=$((total + ${kb:-0}))
 			[ -n "$dbg" ] && printf '%s %s %s\n' "$pid" "$comm" "${kb:-0}" >>"$dbg"
-			;;
-		esac
+		fi
 	done
 	echo "$total"
 }
@@ -381,7 +390,7 @@ sandbox_footprint_kb() {
 	local runtime="$1" launcher="$2" dbg="${3:-}" v
 	v="$(sum_tree_rss "$launcher")"
 	if [ "$runtime" = "runsc" ]; then
-		v="$(max2 "$v" "$(rss_of_comm runsc "$dbg")")"
+		v="$(max2 "$v" "$(rss_of_comm "runsc gofer sentry" "$dbg")")"
 	fi
 	echo "$v"
 }
@@ -389,11 +398,12 @@ sandbox_footprint_kb() {
 # bench_memory <runtime> — median resident KiB of the whole sandbox footprint while
 # a trivial long-lived workload sleeps inside. Printed to stdout.
 #
-# Preferred source is the container's cgroup memory.current (cgroup v2): it accounts
-# every process in the sandbox cgroup, including runsc's sentry+gofer which detach
-# from the launcher and so are invisible to a process-tree walk. We pin the cgroup
-# via cgroupsPath. If the cgroup file is unreadable (cgroup v1, rootless, or the
-# runtime placed it elsewhere), we fall back to summing the launcher's process tree.
+# For runc the container process is a descendant of the launcher, so a process-tree
+# walk captures it. For runsc the sentry+gofer detach from the launcher, so we also
+# sum the RSS of the supervisor processes matched by comm. Some locked-down hosted
+# runners expose neither (the supervisor is not attributable there); the metric then
+# reports ~0 and is labelled as not-capturable in that environment, and a
+# mem-snapshot-<runtime>.txt is emitted so the naming can be audited.
 bench_memory() {
 	local runtime="$1"
 	local bundle="$WORKDIR/bundle-$runtime-mem"
