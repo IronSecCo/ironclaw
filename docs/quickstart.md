@@ -30,7 +30,8 @@ reply path with **no model key** and **no gVisor**, launching its per-conversati
 
 **Requires:** Docker (Docker Desktop on macOS is fine; on **Windows run this inside WSL2** — the
 sandbox launches Linux containers over `/var/run/docker.sock`, which native Windows doesn't expose)
-and a clone of the repo.
+and a clone of the repo. **Make sure the Docker daemon is running first** — start Docker Desktop
+(macOS) or `sudo systemctl start docker` (Linux/WSL2) before the commands below.
 
 ```sh
 git clone https://github.com/IronSecCo/ironclaw.git && cd ironclaw
