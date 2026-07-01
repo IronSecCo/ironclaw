@@ -177,19 +177,13 @@ HOST_GID="$(id -g)"
 CPU_QUOTA="$((BENCH_CPUS * 100000))"
 MEM_BYTES="$((BENCH_MEM_MB * 1024 * 1024))"
 
-# write_bundle <dir> <json-args-array> [cgroups-path]
+# write_bundle <dir> <json-args-array>
 # Emits <dir>/config.json with the given process args. network namespace is
 # deliberately omitted (network=none). No capabilities, no_new_privs, read-only
 # rootfs, userns, cgroup mem/cpu/pids limits, deny-by-default is enforced by the
 # runtime defaults plus the empty capability sets below.
-# An optional cgroups-path pins the container's cgroup to a known location so its
-# memory footprint can be read from memory.current — the honest way to include the
-# sandbox supervisor (runsc's sentry+gofer detach and are NOT descendants of the
-# launcher, so a process-tree walk misses them). Omitted when empty (default).
 write_config() {
-	local dir="$1" args_json="$2" cgroups_path="${3:-}"
-	local cgroups_line=""
-	[ -n "$cgroups_path" ] && cgroups_line="\"cgroupsPath\": \"$cgroups_path\","
+	local dir="$1" args_json="$2"
 	cat >"$dir/config.json" <<JSON
 {
   "ociVersion": "1.0.2",
@@ -212,7 +206,6 @@ write_config() {
       "options": ["nosuid", "nodev", "noexec", "size=16m"] }
   ],
   "linux": {
-    ${cgroups_line}
     "namespaces": [
       { "type": "pid" }, { "type": "ipc" }, { "type": "uts" },
       { "type": "mount" }, { "type": "user" }
@@ -355,27 +348,13 @@ sum_tree_rss() {
 	echo "$total"
 }
 
-# rss_of_cgroup <cgname> — sum VmRSS (KiB) of every process whose cgroup line names
-# <cgname>. Catches the sandbox supervisor even when it detaches from the launcher,
-# as long as the runtime placed it in our pinned cgroup (cgroup v2).
-rss_of_cgroup() {
-	local cg="$1" total=0 pid kb
-	for pid in /proc/[0-9]*; do
-		pid="${pid#/proc/}"
-		if grep -q "/$cg\(/\|\$\)" "/proc/$pid/cgroup" 2>/dev/null; then
-			kb="$(awk '/^VmRSS:/{print $2}' "/proc/$pid/status" 2>/dev/null || echo 0)"
-			total=$((total + ${kb:-0}))
-		fi
-	done
-	echo "$total"
-}
-
-# rss_of_comm <pattern> — sum VmRSS (KiB) of every process whose comm matches
-# <pattern>. Used to attribute gVisor's supervisor (runsc-sandbox / runsc-gofer),
-# which runs as a detached host process outside the launcher's tree and, under some
-# platforms, outside the OCI cgroup.
+# rss_of_comm <pattern> [debug-file] — sum VmRSS (KiB) of every process whose comm
+# matches <pattern>. gVisor runs its supervisor as detached host processes
+# (comm "runsc-sandbox" / "runsc-gofer") that are outside the launcher's process
+# tree, so a tree walk misses them; matching on comm is the honest way to attribute
+# their resident memory. Optionally appends "<pid> <comm> <kb>" lines to debug-file.
 rss_of_comm() {
-	local pat="$1" total=0 pid kb comm
+	local pat="$1" dbg="${2:-}" total=0 pid kb comm
 	for pid in /proc/[0-9]*; do
 		pid="${pid#/proc/}"
 		comm="$(cat "/proc/$pid/comm" 2>/dev/null || echo)"
@@ -383,6 +362,7 @@ rss_of_comm() {
 		*"$pat"*)
 			kb="$(awk '/^VmRSS:/{print $2}' "/proc/$pid/status" 2>/dev/null || echo 0)"
 			total=$((total + ${kb:-0}))
+			[ -n "$dbg" ] && printf '%s %s %s\n' "$pid" "$comm" "${kb:-0}" >>"$dbg"
 			;;
 		esac
 	done
@@ -392,17 +372,16 @@ rss_of_comm() {
 # max2 <a> <b>
 max2() { [ "${1:-0}" -ge "${2:-0}" ] && echo "${1:-0}" || echo "${2:-0}"; }
 
-# sandbox_footprint_kb <runtime> <cgname> <launcher-pid> — best available estimate of
-# the whole sandbox footprint in KiB, as the max of three independent signals:
-# the cgroup membership scan, the launcher process tree, and (for runsc) the detached
-# supervisor processes. Whichever signal actually observes the sandbox wins; if none
-# do, the result is ~0 and the metric is reported as not-capturable in this env.
+# sandbox_footprint_kb <runtime> <launcher-pid> [debug-file] — best estimate of the
+# whole sandbox footprint in KiB. For runc the container process is a descendant of
+# the launcher, so the process-tree walk captures it. For runsc the sentry+gofer
+# detach, so we also add the runsc-named supervisor processes. The max across both
+# signals is taken so whichever observes the sandbox wins.
 sandbox_footprint_kb() {
-	local runtime="$1" cgname="$2" launcher="$3" v
-	v="$(rss_of_cgroup "$cgname")"
-	v="$(max2 "$v" "$(sum_tree_rss "$launcher")")"
+	local runtime="$1" launcher="$2" dbg="${3:-}" v
+	v="$(sum_tree_rss "$launcher")"
 	if [ "$runtime" = "runsc" ]; then
-		v="$(max2 "$v" "$(rss_of_comm runsc)")"
+		v="$(max2 "$v" "$(rss_of_comm runsc "$dbg")")"
 	fi
 	echo "$v"
 }
@@ -420,13 +399,15 @@ bench_memory() {
 	local bundle="$WORKDIR/bundle-$runtime-mem"
 	mkdir -p "$bundle"
 	stage_fresh_rootfs "$bundle"
-
-	local cgname="ironclaw-bench-mem-$runtime"
-	write_config "$bundle" "$(sh_args_json 'sleep 6')" "/$cgname"
-	local cgfile="/sys/fs/cgroup/$cgname/memory.current"
+	# No cgroupsPath here: pinning a top-level cgroup is refused on locked-down
+	# hosted runners and would fail only this launch. The workload (sleep) keeps the
+	# sandbox — and, for runsc, its sentry+gofer — alive across the sampling window.
+	write_config "$bundle" "$(sh_args_json 'sleep 6')"
 
 	local samples="$WORKDIR/mem-$runtime.samples"
+	local dbg="$OUT_DIR/mem-debug-$runtime.txt"
 	: >"$samples"
+	: >"$dbg"
 
 	local id="mem-$runtime"
 	# shellcheck disable=SC2046
@@ -434,17 +415,7 @@ bench_memory() {
 	local launcher=$!
 	sleep 1 # let the runtime spin up its supervisor/sentry+gofer
 	for _ in 1 2 3 4; do
-		local kb kb_cg=0
-		# Prefer the cgroup's own accounting when it is readable and non-trivial;
-		# otherwise fall back to the multi-signal process scan (handles detached
-		# supervisors / platforms where the sentry is outside the OCI cgroup).
-		if [ -r "$cgfile" ]; then
-			local bytes
-			bytes="$(cat "$cgfile" 2>/dev/null || echo 0)"
-			kb_cg=$((${bytes:-0} / 1024))
-		fi
-		kb="$(max2 "$kb_cg" "$(sandbox_footprint_kb "$runtime" "$cgname" "$launcher")")"
-		echo "$kb" >>"$samples"
+		sandbox_footprint_kb "$runtime" "$launcher" "$dbg" >>"$samples"
 		sleep 1
 	done
 	wait "$launcher" 2>/dev/null || true
