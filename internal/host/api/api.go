@@ -9,6 +9,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -247,6 +248,20 @@ func (s *Server) handleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.CreatedAt.IsZero() {
 		req.CreatedAt = time.Now().UTC()
+	}
+	// Reject a change aimed at an agent group the registry does not know about.
+	// Parking a change against a non-existent group returns 202 but produces an
+	// orphaned approval that can never meaningfully apply, and it silently masks
+	// operator typos (IRO-246). create_agent is exempt: it PROVISIONS a new group,
+	// so its target is not expected to exist yet. The check is skipped when no
+	// registry is attached (there is nothing to validate against). This is input
+	// validation at the API boundary — the gateway's human-approval floor is
+	// untouched.
+	if s.reg != nil && req.Kind != contract.ChangeCreateAgent && req.AgentGroupID != "" {
+		if _, ok := s.reg.GetAgentGroup(req.AgentGroupID); !ok {
+			http.Error(w, fmt.Sprintf("unknown agent group %q: no such group is registered; see `ironctl registry` for known groups", req.AgentGroupID), http.StatusBadRequest)
+			return
+		}
 	}
 	go func() {
 		// Background context: the submit outlives this HTTP request and lives until

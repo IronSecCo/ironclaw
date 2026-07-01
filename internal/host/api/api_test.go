@@ -10,6 +10,7 @@ import (
 
 	"github.com/IronSecCo/ironclaw/internal/contract"
 	"github.com/IronSecCo/ironclaw/internal/host/gateway"
+	"github.com/IronSecCo/ironclaw/internal/host/registry"
 )
 
 func newTestServer() (*httptest.Server, *gateway.MemoryStore) {
@@ -116,6 +117,61 @@ func TestSubmitPendingApproveFlow(t *testing.T) {
 	}
 	st, _ := store.Status(sr.ID)
 	t.Fatalf("status = %q, want applied", st)
+}
+
+// TestSubmitRejectsUnknownGroup verifies the API-boundary input validation from
+// IRO-246: when a registry is attached, a change aimed at an agent group that is
+// not registered is rejected with 400 instead of silently parked at 202. A change
+// aimed at a known group still succeeds, and create_agent (which provisions a new
+// group) is exempt.
+func TestSubmitRejectsUnknownGroup(t *testing.T) {
+	store := gateway.NewMemoryStore()
+	gw := gateway.New(
+		gateway.VerifierChain{gateway.AlwaysRequireHuman{}},
+		gateway.NewManualApprover(),
+		gateway.NewLogApplier(),
+		store,
+	)
+	reg := registry.NewMemRegistry()
+	if err := reg.PutAgentGroup(registry.AgentGroup{ID: "dev-agent", Name: "Dev Agent", Folder: "dev-agent"}); err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(New(gw).WithRegistry(reg).Handler())
+	defer srv.Close()
+
+	// Unknown group -> 400.
+	body, _ := json.Marshal(contract.ChangeRequest{Kind: contract.ChangePersona, AgentGroupID: "nope", RequestedBy: "cli:you"})
+	resp, err := http.Post(srv.URL+"/v1/changes", "application/json", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("unknown-group submit status = %d, want 400", resp.StatusCode)
+	}
+
+	// Known group -> 202.
+	body, _ = json.Marshal(contract.ChangeRequest{Kind: contract.ChangePersona, AgentGroupID: "dev-agent", RequestedBy: "cli:you"})
+	resp, err = http.Post(srv.URL+"/v1/changes", "application/json", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("known-group submit status = %d, want 202", resp.StatusCode)
+	}
+
+	// create_agent is exempt: it provisions a NEW group, so an as-yet-unknown
+	// target must not be rejected here.
+	body, _ = json.Marshal(contract.ChangeRequest{Kind: contract.ChangeCreateAgent, AgentGroupID: "brand-new", RequestedBy: "cli:you"})
+	resp, err = http.Post(srv.URL+"/v1/changes", "application/json", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("create_agent submit status = %d, want 202 (exempt from group check)", resp.StatusCode)
+	}
 }
 
 func TestHistoryEndpoint(t *testing.T) {
