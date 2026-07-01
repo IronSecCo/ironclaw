@@ -1,0 +1,23 @@
+# Deliberately WEAKENED sandbox posture — the negative control for the containment
+# gate (.github/workflows/sandbox-containment.yml, IRO-261).
+#
+# docker-compose.demo.yml pins IRONCLAW_DOCKER_NETWORK: "none", so every per-session
+# sandbox sibling launches with NO network interface but `lo`. This override flips
+# that single knob to the default bridge network, handing each sandbox a real NIC and
+# thus network egress — exactly the regression the red-team harness's first CORE
+# assertion ("network egress: enumerate NICs / resolve DNS") exists to catch.
+#
+# Compose merges this on top of the demo file (`-f docker-compose.demo.yml -f this`),
+# replacing only the one environment value. The gate brings the demo up with this
+# override and asserts examples/red-team-escape/run.sh turns RED (exits non-zero). If
+# the harness stayed green against a sandbox that can reach the network, the gate would
+# be blind — so this override is how we prove the gate actually catches a weakened
+# sandbox, not just that it is green on a healthy one.
+#
+# This file is ONLY ever used by the regression-guard phase. It must never be wired
+# into the real demo path (docker-compose.demo.yml) or any deployment.
+services:
+  controlplane:
+    environment:
+      # bridge NIC instead of network=none — a real containment regression.
+      IRONCLAW_DOCKER_NETWORK: "bridge"
