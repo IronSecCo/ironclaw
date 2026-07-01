@@ -99,12 +99,15 @@ curl -fsS -X POST "$ADDR/v1/ui/chat/send" \
   -d "$(jq -nc --arg a "$AGENT" --arg t "$MARKER" '{agentGroupID:$a, text:$t}')" >/dev/null
 
 echo -n "==> waiting for the agent's reply, up to ${REPLY_TIMEOUT}s (real sandbox launch + encrypted queue round-trip)"
-WANT="mock-agent received: $MARKER"
 reply=""
 for _ in $(seq 1 "$REPLY_TIMEOUT"); do
-  # /messages is drain-on-read: each reply is returned exactly once, so capture it.
+  # /messages is drain-on-read: each reply is returned exactly once, so it MUST be
+  # read from the right field the first time — the buffered reply is discarded on
+  # read. The webchat reply text is `.messages[].content` (NOT `.text`, which is the
+  # /chat/send REQUEST field); reading the wrong key silently drains the reply and
+  # every later poll then sees an empty buffer, so the round-trip looks broken.
   got="$(curl -fsS "$ADDR/v1/ui/chat/$AGENT/messages" \
-          -H "Authorization: Bearer $TOKEN" | jq -r '.messages[]?.text // empty')"
+          -H "Authorization: Bearer $TOKEN" | jq -r '.messages[]?.content // empty')"
   if [ -n "$got" ]; then reply="$got"; break; fi
   echo -n "."; sleep 1
 done
@@ -135,12 +138,19 @@ if [ -z "$reply" ]; then
 fi
 
 echo "    agent replied: $reply"
-if [ "$reply" != "$WANT" ]; then
-  echo "FAIL: reply did not match expected echo" >&2
-  echo "  want: $WANT" >&2
-  echo "  got:  $reply" >&2
-  exit 1
-fi
+# The offline mock agent echoes "mock-agent received: " + the formatted prompt,
+# which carries a "[chat via webchat mock-agent]" source header before the text —
+# so assert the reply is the mock echo (prefix) AND contains THIS run's unique
+# marker (the $$ pid), rather than an exact string that the header would break.
+case "$reply" in
+  "mock-agent received: "*"$MARKER")
+    : ;;  # matched: mock echo carrying our exact marker
+  *)
+    echo "FAIL: reply did not match the expected mock echo of our message" >&2
+    echo "  want: starts with \"mock-agent received: \" and ends with \"$MARKER\"" >&2
+    echo "  got:  $reply" >&2
+    exit 1 ;;
+esac
 
 echo
 echo "PASS ✅  IronClaw is working end-to-end with zero credentials."
