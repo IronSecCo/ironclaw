@@ -108,8 +108,10 @@ release path depends on it, so landing the scaffold changes no current behaviour
 
 ## Homebrew formula bump PRs (the one self-authored case)
 
-The Release workflow's `formula` job (IRO-204) opens the `brew/track-<tag>` PR
-that points `brew install ironsecco/ironclaw/ironclaw` at each new release. Per
+The Release workflow's `formula` job (IRO-204) opens the rolling `brew/track` PR
+(one long-lived branch, force-reset to the release tip each cut — IRO-270; older
+releases used a per-tag `brew/track-<tag>` branch) that points
+`brew install ironsecco/ironclaw/ironclaw` at each new release. Per
 [IRO-203](https://github.com/IronSecCo/ironclaw/issues) the repo keeps *"Allow
 GitHub Actions to create and approve pull requests"* **off**, so the default
 `GITHUB_TOKEN` cannot open that PR; the job opens it with a scoped reviewer-App
@@ -125,8 +127,9 @@ approve its own bump PR — and it should not need to. The bump PR is:
 
 The board therefore accepts **admin-merge** for these bumps (IRO-206). To avoid
 a misleading red `reviewer-approve` run, the workflow recognises this narrow
-case — PR author == reviewer App **and** head branch `brew/track-*` **and** the
-diff is exactly `Formula/ironclaw.rb` — and exits cleanly with the admin-merge
+case — PR author == reviewer App **and** head branch `brew/track` (or a legacy
+`brew/track-*`) **and** the diff is exactly `Formula/ironclaw.rb` — and exits
+cleanly with the admin-merge
 runbook in its job summary instead of failing. **Every other self-authored PR
 still hard-fails:** the gate is unchanged for product code.
 

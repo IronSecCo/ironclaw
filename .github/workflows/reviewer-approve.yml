@@ -107,12 +107,14 @@ jobs:
           PR_AUTHOR=$(printf '%s' "$PR_JSON" | jq -r '.user.login')
           PR_HEAD=$(printf '%s' "$PR_JSON" | jq -r '.head.ref')
           if [ "$PR_AUTHOR" = "$APP_LOGIN" ]; then
-            # Is this the recognised formula bump? Branch brew/track-* AND the diff
-            # touches ONLY Formula/ironclaw.rb. Both must hold — a self-authored PR
-            # that merely renames its branch must not slip the gate.
+            # Is this the recognised formula bump? Head branch is the rolling
+            # `brew/track` (IRO-270) — or a legacy per-tag `brew/track-<tag>` from
+            # before the rolling switch — AND the diff touches ONLY
+            # Formula/ironclaw.rb. Both must hold — a self-authored PR that merely
+            # renames its branch must not slip the gate.
             CHANGED=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR}/files" --jq '.[].filename')
             case "$PR_HEAD" in
-              brew/track-*)
+              brew/track|brew/track-*)
                 if [ "$CHANGED" = "Formula/ironclaw.rb" ]; then
                   echo "::notice::PR #${PR} is the generated Homebrew formula bump (${PR_HEAD}); the reviewer App authored it, so it cannot self-approve. No approval posted — admin-merge is the recorded path for signed formula bumps (IRO-206)."
                   {
@@ -130,7 +132,7 @@ jobs:
                   } >> "$GITHUB_STEP_SUMMARY"
                   exit 0
                 fi
-                echo "::error::PR #${PR} is on a brew/track-* branch but changes more than Formula/ironclaw.rb (${CHANGED}); refusing to treat it as a generated bump." >&2
+                echo "::error::PR #${PR} is on a brew/track branch but changes more than Formula/ironclaw.rb (${CHANGED}); refusing to treat it as a generated bump." >&2
                 exit 1
                 ;;
             esac
