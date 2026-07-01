@@ -965,6 +965,11 @@ func registerChannelAdapters(reg *channels.Registry, logger *obs.Logger) {
 	}
 	teamsURL := os.Getenv("IRONCLAW_TEAMS_WEBHOOK_URL")
 	reqExtra("teams", teamsURL != "", func() channels.Adapter { return channels.NewTeamsAdapter("teams", teamsURL) })
+	mattermostURL := os.Getenv("IRONCLAW_MATTERMOST_WEBHOOK_URL")
+	reqExtra("mattermost", mattermostURL != "", func() channels.Adapter {
+		return channels.NewMattermostAdapter("mattermost", mattermostURL)
+	})
+
 	signalURL := os.Getenv("IRONCLAW_SIGNAL_CLI_URL")
 	reqExtra("signal", signalURL != "", func() channels.Adapter {
 		return channels.NewSignalAdapter("signal", signalURL, os.Getenv("IRONCLAW_SIGNAL_NUMBER"))
