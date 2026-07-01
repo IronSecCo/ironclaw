@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -68,6 +69,7 @@ type Delivery struct {
 	questions  *questions.Store     // optional; enables ask_user_question tracking
 	skillProp  SkillInstallResolver // optional; enables the in-session skill_install proposal
 	deliveries Counter              // optional; counts each successful channel send
+	logger     *slog.Logger         // optional; enables per-poll delivery observability
 
 	mu        sync.Mutex
 	delivered map[contract.MessageID]struct{}
@@ -154,6 +156,19 @@ func (d *Delivery) WithMetrics(deliveries Counter) *Delivery {
 	return d
 }
 
+// WithLogger wires a structured logger for delivery observability. Per poll it
+// records, per session, the number of due outbound rows read, and for each
+// handled message its channel and platform id — COUNTS AND COORDINATES ONLY,
+// never message content (mirroring the sandbox loop's "wrote reply (N bytes)"
+// discipline for a security product). This is the host-side counterpart that
+// makes the delivery path auditable: a reply a sandbox writes but that never
+// surfaces at its destination is now visible here instead of silently lost.
+// Returns d for chaining; when unset delivery logs nothing.
+func (d *Delivery) WithLogger(l *slog.Logger) *Delivery {
+	d.logger = l
+	return d
+}
+
 // Poll reads due outbound messages for every active session and delivers them.
 //
 //   - DEDUP: a message already in the in-memory delivered set is skipped (no
@@ -168,8 +183,12 @@ func (d *Delivery) WithMetrics(deliveries Counter) *Delivery {
 //     origin chat is always allowed; any other destination must be a known
 //     destination of the agent group).
 //
-// Poll returns the first error it hits; partial progress (already-delivered
-// messages) is retained in the dedup set.
+// Poll returns the first message-handling error it hits, but keeps sweeping the
+// remaining sessions so one stuck or denied session cannot starve delivery for
+// the rest. Infrastructure faults for a single session (opening its outbound
+// view, reading its due rows) are non-fatal: they are logged and that session is
+// skipped for the cycle. Partial progress (already-delivered messages) is
+// retained in the dedup set.
 func (d *Delivery) Poll(ctx context.Context) error {
 	if d.reg == nil || d.newReader == nil {
 		return fmt.Errorf("host/delivery: Poll requires a registry and an outbound-reader factory")
@@ -178,25 +197,44 @@ func (d *Delivery) Poll(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("host/delivery: list sessions: %w", err)
 	}
+	var firstErr error
 	for _, sess := range sessions {
-		if err := d.pollSession(ctx, sess); err != nil {
-			return err
+		if err := d.pollSession(ctx, sess); err != nil && firstErr == nil {
+			firstErr = err
 		}
 	}
-	return nil
+	return firstErr
 }
 
-// pollSession delivers the due messages for one session.
+// pollSession delivers the due messages for one session. A failure to open the
+// outbound reader or read its due rows is an infrastructure fault (a
+// missing/locked queue file, a key-custody miss, a cross-boundary read gap), not
+// a delivery decision: it is logged and the session is skipped for this cycle
+// (returns nil) rather than aborting the whole poll. Only a message-handling
+// error is returned to Poll.
 func (d *Delivery) pollSession(ctx context.Context, sess registry.Session) error {
 	reader, err := d.newReader(sess.ID)
 	if err != nil {
-		return fmt.Errorf("host/delivery: open outbound reader for %s: %w", sess.ID, err)
+		if d.logger != nil {
+			d.logger.Warn("delivery: open outbound reader failed", "session", sess.ID, "error", err)
+		}
+		return nil
 	}
 	defer reader.Close()
 
 	due, err := reader.DueMessages()
 	if err != nil {
-		return fmt.Errorf("host/delivery: due messages for %s: %w", sess.ID, err)
+		if d.logger != nil {
+			d.logger.Warn("delivery: read due outbound failed", "session", sess.ID, "error", err)
+		}
+		return nil
+	}
+	if d.logger != nil {
+		// COUNTS ONLY — never message content. This is the decisive signal for a
+		// "reply written by the sandbox but never delivered" report: a nonzero
+		// sandbox write with a zero due-count here localizes the loss to the
+		// cross-boundary outbound read, not the adapter.
+		d.logger.Info("delivery: due outbound read", "session", sess.ID, "due", len(due))
 	}
 	for _, msg := range due {
 		if d.isDelivered(msg.ID) {
@@ -204,6 +242,14 @@ func (d *Delivery) pollSession(ctx context.Context, sess registry.Session) error
 		}
 		if err := d.handle(ctx, sess, msg); err != nil {
 			return err
+		}
+		if d.logger != nil {
+			// Coordinates only (channel + platform), never content: a reply whose
+			// channel/platform is empty (silently dropped by the webchat adapter) is
+			// now visible here, distinguishing that loss from a read-side gap.
+			d.logger.Info("delivery: handled outbound",
+				"session", sess.ID, "message", msg.ID, "kind", string(msg.Kind),
+				"channel", deref(msg.ChannelType), "platform", deref(msg.PlatformID))
 		}
 		d.markDelivered(msg.ID)
 	}

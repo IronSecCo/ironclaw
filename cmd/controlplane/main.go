@@ -742,7 +742,8 @@ func main() {
 	deliverer := delivery.New(channelReg, gw, reg, manager.OutboundReader).
 		WithInboundWriter(manager.InboundWriter).
 		WithQuestions(pendingQuestions).
-		WithMetrics(m.Deliveries)
+		WithMetrics(m.Deliveries).
+		WithLogger(logger.Logger)
 	// In-session skill install (RFC-0006): when skills are enabled, let an agent PROPOSE
 	// a curated, signed skill from chat. Delivery resolves+signature-verifies the named
 	// skill through the SAME resolver the operator `ironctl skill add` path uses, then
