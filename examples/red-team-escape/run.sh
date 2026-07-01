@@ -265,6 +265,45 @@ for row in "${RESULTS[@]}"; do
 done
 echo "=============================================================================="
 
+# --- versioned containment report (IRO-267) ---------------------------------
+# When IRONCLAW_REPORT_DIR is set, freeze this run into a durable, machine-verifiable
+# artifact: a JSON + human-readable report listing every invariant, the assertion that
+# proved it, and pass/fail, bound to the commit and the runtime actually tested. The
+# schema and rendering live in emit-report.sh, a pure transform unit-tested separately
+# (report_test.sh). release.yml sets IRONCLAW_REPORT_DIR to sign and attach this report
+# to every GitHub Release. Runs BEFORE the final verdict below, so a FAILED run still
+# emits a report that records the failure.
+if [ -n "${IRONCLAW_REPORT_DIR:-}" ]; then
+  echo
+  echo "==> writing containment report to ${IRONCLAW_REPORT_DIR}"
+  # Record the runtime actually tested, read from the live sandbox container.
+  runtime="$(docker inspect --format '{{.HostConfig.Runtime}}' "$SBX" 2>/dev/null || echo unknown)"
+  gvisor_ver=""
+  if [ "$runtime" = "runsc" ] && command -v runsc >/dev/null 2>&1; then
+    gvisor_ver="$(runsc --version 2>/dev/null | head -n1 || true)"
+  fi
+  docker_ver="$(docker version --format '{{.Server.Version}}' 2>/dev/null || echo unknown)"
+  # An immutable image reference: the tag plus the content-addressed image id.
+  image_ref="$(docker inspect --format '{{.Config.Image}}' "$SBX" 2>/dev/null || echo unknown)"
+  image_id="$(docker inspect --format '{{.Image}}' "$SBX" 2>/dev/null || echo '')"
+  sbx_image="$image_ref"
+  [ -n "$image_id" ] && sbx_image="$image_ref@$image_id"
+  # Commit + version: explicit env wins (release.yml passes the tag it is cutting),
+  # else the CI-provided SHA, else the local checkout.
+  report_commit="${IRONCLAW_REPORT_COMMIT:-${GITHUB_SHA:-$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)}}"
+  report_version="${IRONCLAW_REPORT_VERSION:-dev}"
+  printf '%s\n' "${RESULTS[@]}" | \
+    REPORT_DIR="$IRONCLAW_REPORT_DIR" \
+    COMMIT="$report_commit" \
+    VERSION="$report_version" \
+    SANDBOX_RUNTIME="$runtime" \
+    GVISOR_VERSION="$gvisor_ver" \
+    DOCKER_VERSION="$docker_ver" \
+    KERNEL="$(uname -sr)" \
+    SANDBOX_IMAGE="$sbx_image" \
+    bash "$SCRIPT_DIR/emit-report.sh"
+fi
+
 if [ "$GAP_FOUND" = 1 ]; then
   echo
   echo "NOTE: one or more GAP rows above are KNOWN, TRACKED relaxations of the laptop"
