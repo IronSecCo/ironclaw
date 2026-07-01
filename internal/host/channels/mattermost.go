@@ -12,6 +12,7 @@ import (
 
 	"github.com/IronSecCo/ironclaw/internal/contract"
 )
+
 // MattermostAdapter delivers an outbound message to Mattermost via an Incoming
 // Webhook URL. It is stdlib-only and follows the TeamsAdapter shape.
 //
@@ -108,7 +109,6 @@ func (a *MattermostAdapter) Deliver(ctx context.Context, msg contract.MessageOut
 
 // redact removes the webhook URL from a string so its secret token can never
 // reach a log or error.
-
 func (a *MattermostAdapter) redact(s string) string {
 	if a.WebhookURL == "" {
 		return s
