@@ -131,6 +131,7 @@ nav:
   - Security & Trust:
       - Overview: security.md
       - Isolation, proven: security-isolation.md
+      - Breaking our own sandbox: breaking-our-own-sandbox.md
       - Threat model: threat-model.md
       - Performance & footprint: benchmarks.md
   - Reference:
