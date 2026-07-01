@@ -60,13 +60,13 @@ actually launches (macOS cannot host gVisor's gofer, see IRO-116). It uploads
 the table to the run's job summary, so every number is inspectable and reproducible.
 
 **Runner spec (representative run
-[28513723746](https://github.com/IronSecCo/ironclaw/actions/runs/28513723746)):**
+[28514817897](https://github.com/IronSecCo/ironclaw/actions/runs/28514817897)):**
 
 | | |
 | --- | --- |
 | Runner | GitHub-hosted `ubuntu-24.04` |
 | Kernel | Linux 6.17.0-1018-azure x86_64 |
-| CPU | AMD EPYC 7763 (4 vCPU on the runner) |
+| CPU | Intel Xeon Platinum 8370C (4 vCPU on the runner) |
 | Memory | 15.6 GiB |
 | Isolation runtime | `runsc` release-20260622.0, platform `systrap`, `--network=none` |
 | Baseline runtime | `runc` 1.3.6 |
@@ -76,22 +76,24 @@ the table to the run's job summary, so every number is inspectable and reproduci
 
 | Metric | gVisor (runsc) | Host baseline (runc) | Added by gVisor |
 | --- | --- | --- | --- |
-| Cold start (ms, median) | 102 | 47 | +55 ms (2.2x) |
-| Warm start (ms, median) | 22 | 7 | +15 ms (3.1x) |
-| CPU-bound short task (ms, median) | 24 | 7 | +17 ms |
-| Syscall-bound short task (ms, median) | 23 | 7 | +16 ms |
+| Cold start (ms, median) | 77 | 38 | +39 ms (2.0x) |
+| Warm start (ms, median) | 18 | 5 | +13 ms (3.6x) |
+| CPU-bound short task (ms, median) | 21 | 5 | +16 ms |
+| Syscall-bound short task (ms, median) | 21 | 5 | +16 ms |
 | Per-sandbox memory (MiB) | not captured in CI (see note) | not captured in CI | see note |
 
 **How to read this run:**
 
-- **The gVisor cost is a fixed, one-time launch overhead:** about **+15 ms** on a
-  warm respawn and **+55 ms** on a cold new-agent launch. It is paid once per sandbox
-  launch, not per request.
-- **The CPU and syscall micro-workloads land within 1 to 2 ms of the warm-start
-  time** (24 and 23 ms versus 22 ms). At this workload size they are dominated by the
-  launch itself, so they confirm that light in-sandbox work adds very little on top of
-  the launch, but they do **not** isolate steady-state syscall overhead. The apparent
-  ~3x ratio there is a ratio of two small launch-dominated numbers, not a 3x tax on
+- **The gVisor cost is a fixed, one-time launch overhead:** about **+13 ms** on a
+  warm respawn and **+39 ms** on a cold new-agent launch. It is paid once per sandbox
+  launch, not per request. (The GitHub-hosted runner is a shared VM whose CPU model
+  varies between runs, so absolute figures move a few milliseconds each time; the
+  additive launch cost is the stable signal.)
+- **The CPU and syscall micro-workloads land within 3 ms of the warm-start time**
+  (21 and 21 ms versus 18 ms). At this workload size they are dominated by the launch
+  itself, so they confirm that light in-sandbox work adds very little on top of the
+  launch, but they do **not** isolate steady-state syscall overhead. The apparent
+  ~4x ratio there is a ratio of two small launch-dominated numbers, not a 4x tax on
   compute. To measure the steady-state syscall gap, run a heavier, longer workload on
   a real host with the same harness.
 - **Absolute values are small and the runner is shared,** so expect run-to-run
