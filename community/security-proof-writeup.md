@@ -381,10 +381,12 @@ confirm before sign-off.
 | Master + sibling keys unreachable, only own session key | row 7, `only own session key visible (1)`; per-session binds (IRO-259) | IRO-259 / IRO-262 |
 | Found and fixed our own master-key mount bug | IRO-259 (per-session Docker binds), fix merged | IRO-259 |
 | Production = gVisor (runsc): seccomp, caps dropped, ro rootfs, no_new_privs, non-root userns | `docs/security-isolation.md`, `docs/threat-model.md` | IRO-268 / IRO-84 |
-| Runs in CI on every push with a negative control | `.github/workflows/sandbox-containment.yml` (IRO-261) | IRO-261 (in_review) |
+| Runs in CI on every push with a negative control | `.github/workflows/sandbox-containment.yml` (IRO-261) | IRO-261 (merged, PR #287); gate green on this PR |
 | Local models via OpenAI-compatible path (Ollama/LM Studio/vLLM) | IRO-188 (merged) | IRO-188 |
 | AGPLv3 + commercial | `LICENSE`, repo metadata | shipped |
 
-**Open item for QA/CEO before publish:** IRO-261 (the CI containment gate) is still
-in_review at time of drafting. The "runs in CI on every push" line should be confirmed
-green, or softened to "ships as a CI gate," before the post goes public.
+**Ledger status:** all claims are backed by shipped, merged source. IRO-261 (the CI
+containment gate) merged in PR #287, and the `sandbox-containment` gate runs green on
+this PR itself, so the "runs in CI on every push" line is confirmed, not aspirational.
+No open ledger items remain. Copy is cleared for QA sign-off and CEO/board review; the
+only remaining gate is the launch fire-gate (IRO-40), not an accuracy question.
