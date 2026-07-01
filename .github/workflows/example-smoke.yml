@@ -20,20 +20,24 @@ on:
     branches: [main]
     paths:
       - "examples/hello-ironclaw/**"
+      - "examples/red-team-escape/**"
       - "docker-compose.demo.yml"
       - "container/**"
       - "cmd/sandbox/**"
       - "cmd/controlplane/**"
       - "internal/host/api/ui_chat.go"
+      - "internal/host/isolation/**"
       - ".github/workflows/example-smoke.yml"
   pull_request:
     paths:
       - "examples/hello-ironclaw/**"
+      - "examples/red-team-escape/**"
       - "docker-compose.demo.yml"
       - "container/**"
       - "cmd/sandbox/**"
       - "cmd/controlplane/**"
       - "internal/host/api/ui_chat.go"
+      - "internal/host/isolation/**"
       - ".github/workflows/example-smoke.yml"
   workflow_dispatch:
 
@@ -54,3 +58,16 @@ jobs:
         # asserts the round-trip reply, and tears the demo down. A missing/mismatched
         # reply exits non-zero and dumps the control-plane logs.
         run: examples/hello-ironclaw/run.sh
+
+  red-team-escape:
+    # The adversarial counterpart: engage a real sandbox, attack it from the inside
+    # (assuming a fully-compromised agent), and assert the isolation boundary holds.
+    # Same additive/non-gating posture as hello-ironclaw above — NOT a required check,
+    # so a GAP row (a tracked demo-path relaxation) never blocks a release, but a real
+    # CORE containment regression exits non-zero and turns this job red.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Try to break the sandbox and prove it holds
+        run: examples/red-team-escape/run.sh
