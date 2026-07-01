@@ -87,10 +87,18 @@ func TestDockerLaunchAndStop(t *testing.T) {
 	go srv.Serve(ln)
 	t.Cleanup(func() { srv.Close() })
 
-	d := NewDocker(sock, "none", []string{"vol:/p"}, "0:0")
+	// Base mapping: host ./state <-> container /var/lib/ironclaw/state. The spec's
+	// per-session paths live under the container view; Launch must bind ONLY those,
+	// translated to host paths — never the whole state dir.
+	d := NewDocker(sock, "none", []string{"/host/state:/var/lib/ironclaw/state"}, "0:0")
 	h, err := d.Launch(context.Background(), SandboxSpec{
-		SessionID: "ses_x", Image: "img",
-		ReadOnlyInboundPath: "/i", ReadWriteOutboundPath: "/o", ModelProxySocket: "/m",
+		SessionID:             "ses_x",
+		Image:                 "img",
+		ReadOnlyInboundPath:   "/var/lib/ironclaw/state/sessions/ses_x/inbound.db",
+		ReadWriteOutboundPath: "/var/lib/ironclaw/state/sessions/ses_x/outbound.db",
+		KeyPath:               "/var/lib/ironclaw/state/keys/ses_x/session.key",
+		// A socket outside the mapped subtree must be LEFT UNBOUND (as before).
+		ModelProxySocket: "/run/ironclaw/modelproxy.sock",
 	})
 	if err != nil {
 		t.Fatalf("Launch: %v", err)
@@ -111,14 +119,101 @@ func TestDockerLaunchAndStop(t *testing.T) {
 	if cb.HostConfig.NetworkMode != "none" {
 		t.Errorf("NetworkMode = %q, want none", cb.HostConfig.NetworkMode)
 	}
-	if len(cb.HostConfig.Binds) != 1 || cb.HostConfig.Binds[0] != "vol:/p" {
-		t.Errorf("Binds = %v, want [vol:/p]", cb.HostConfig.Binds)
+	got := strings.Join(cb.HostConfig.Binds, "\n")
+	wantBinds := []string{
+		"/host/state/sessions/ses_x/inbound.db:/var/lib/ironclaw/state/sessions/ses_x/inbound.db:ro",
+		"/host/state/sessions/ses_x/outbound.db:/var/lib/ironclaw/state/sessions/ses_x/outbound.db",
+		"/host/state/keys/ses_x/session.key:/var/lib/ironclaw/state/keys/ses_x/session.key:ro",
+	}
+	for _, w := range wantBinds {
+		if !strings.Contains(got, w) {
+			t.Errorf("Binds missing %q\n  got: %v", w, cb.HostConfig.Binds)
+		}
+	}
+	// The whole state dir, the host master key, sibling keys, and the unmapped socket
+	// must NOT appear as binds — that is the IRO-259 isolation guarantee.
+	for _, forbidden := range []string{
+		"/host/state:/var/lib/ironclaw/state", // whole state dir
+		"host-master.key",
+		"sealed-keys.json",
+		"modelproxy.sock", // unmapped: left unbound
+	} {
+		if strings.Contains(got, forbidden) {
+			t.Errorf("Binds must not contain %q\n  got: %v", forbidden, cb.HostConfig.Binds)
+		}
 	}
 	if err := h.Stop(context.Background()); err != nil {
 		t.Fatalf("Stop: %v", err)
 	}
 	if !removed {
 		t.Error("container was not removed on Stop")
+	}
+}
+
+// TestDockerSessionBinds asserts the per-session bind scoping (IRO-259): a base
+// host<->container mapping over the whole state dir must yield binds ONLY for the
+// session's own queue files, key, and mapped sockets/skills — never the state dir
+// itself, the host master key, the sealed-key store, or any sibling session's key.
+func TestDockerSessionBinds(t *testing.T) {
+	const state = "/var/lib/ironclaw/state"
+	d := NewDocker("/x.sock", "none", []string{
+		"/host/state:" + state,
+		"/host/run:/run/ironclaw", // a second mapping covers the sockets
+	}, "0:0")
+	spec := SandboxSpec{
+		SessionID:             "ses_a",
+		ReadOnlyInboundPath:   state + "/sessions/ses_a/inbound.db",
+		ReadWriteOutboundPath: state + "/sessions/ses_a/outbound.db",
+		KeyPath:               state + "/keys/ses_a/session.key",
+		WorkspacePath:         state + "/workspaces/ses_a",
+		ModelProxySocket:      "/run/ironclaw/modelproxy.sock",
+		EgressSocket:          "/run/ironclaw/egress/ses_a.sock",
+		SkillMounts:           []SkillMount{{Name: "demo", HostPath: state + "/skills/demo/1.0.0"}},
+	}
+	binds := d.sessionBinds(spec)
+	joined := strings.Join(binds, "\n")
+
+	wantContains := map[string]bool{
+		"/host/state/sessions/ses_a/inbound.db:" + state + "/sessions/ses_a/inbound.db:ro": true,
+		"/host/state/sessions/ses_a/outbound.db:" + state + "/sessions/ses_a/outbound.db":  true,
+		"/host/state/keys/ses_a/session.key:" + state + "/keys/ses_a/session.key:ro":       true,
+		"/host/state/workspaces/ses_a:" + state + "/workspaces/ses_a":                      true,
+		"/host/run/modelproxy.sock:/run/ironclaw/modelproxy.sock":                          true,
+		"/host/run/egress/ses_a.sock:/run/ironclaw/egress/ses_a.sock":                      true,
+		"/host/state/skills/demo/1.0.0:" + state + "/skills/demo/1.0.0:ro":                 true,
+	}
+	for w := range wantContains {
+		if !strings.Contains(joined, w) {
+			t.Errorf("sessionBinds missing %q\n  got: %v", w, binds)
+		}
+	}
+	// Never expose the trust root or any sibling's key material.
+	for _, forbidden := range []string{
+		"/host/state:" + state, // whole state dir
+		"host-master.key",
+		"sealed-keys.json",
+		"keys/ses_b",     // a sibling session's key dir
+		"sessions/ses_b", // a sibling session's queues
+	} {
+		if strings.Contains(joined, forbidden) {
+			t.Errorf("sessionBinds must not contain %q\n  got: %v", forbidden, binds)
+		}
+	}
+
+	// A path outside every base mapping is left unbound (skipped), not identity-bound.
+	unmapped := d.sessionBinds(SandboxSpec{ReadWriteOutboundPath: "/some/host/only/out.db"})
+	if len(unmapped) != 0 {
+		t.Errorf("unmapped spec path should yield no binds, got %v", unmapped)
+	}
+
+	// Longest-prefix wins: a nested mapping overrides a broader one.
+	d2 := NewDocker("/x.sock", "none", []string{
+		"/broad:" + state,
+		"/narrow:" + state + "/sessions",
+	}, "0:0")
+	nb := d2.sessionBinds(SandboxSpec{ReadWriteOutboundPath: state + "/sessions/ses_a/outbound.db"})
+	if len(nb) != 1 || !strings.HasPrefix(nb[0], "/narrow/ses_a/outbound.db:") {
+		t.Errorf("longest-prefix mapping not preferred, got %v", nb)
 	}
 }
 

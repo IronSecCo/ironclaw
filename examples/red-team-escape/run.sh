@@ -223,20 +223,32 @@ else
   fail "self-modification: enable a new tool" "held at gateway (pending human approval)" "change did NOT reach the gateway pending queue"
 fi
 
-# 6) CROSS-SESSION / KEY CUSTODY — defence in depth. On the sealed production posture
-#    (gVisor) each sandbox binds ONLY its own /queue files and gets its key via a
-#    per-session tmpfs, so sibling sessions and the host master key are invisible. The
-#    laptop demo runs the runc fallback, which binds the WHOLE control-plane state dir
-#    read-write into every sandbox (docker-compose.demo.yml) — a documented, tracked
-#    relaxation (see README + the linked defect). We probe it honestly: this is a GAP
-#    on the demo path, NOT a core-containment failure that fails the run.
+# 6) CROSS-SESSION / KEY CUSTODY — the host trust root. Each sandbox must bind ONLY
+#    its own per-session subtree, never the control-plane state dir. Both postures now
+#    enforce this: the sealed gVisor path binds only its /queue files + a per-session
+#    tmpfs key, and the runc fallback (this demo) scopes its binds per session too
+#    (IRO-259: the Docker isolator translates only the session's own queue/key paths,
+#    so the host master key and sibling session keys are never mounted in). This is a
+#    CORE containment assertion: if a future change re-widens the bind to the whole
+#    state dir, the master key / sibling keys become reachable and this row FAILS.
 statedir="/var/lib/ironclaw/state"
-keys_seen="$(sbx "ls $statedir/host-master.key $statedir/keys 2>/dev/null | wc -l | tr -d ' '")"
-if [ "${keys_seen:-0}" = "0" ]; then
-  pass "cross-session: read the host master key / sibling session keys" "state dir not visible" "no key material reachable"
+# Probe the crown jewels directly. The host master key (the trust root that seals every
+# session key) and the sealed-key store (which holds ALL sessions' sealed keys) must be
+# unreadable. And the sandbox must see at most its OWN plaintext session key — never a
+# sibling's: per-session binds expose exactly one keys/<id>/session.key (the Docker
+# daemon creates only that scaffold), whereas a whole-state-dir re-widening would expose
+# host-master.key, sealed-keys.json, AND every sibling keys/<other>/session.key at once.
+master_seen="$(sbx "[ -r $statedir/host-master.key ] && echo YES || echo NO")"
+sealed_seen="$(sbx "[ -r $statedir/sealed-keys.json ] && echo YES || echo NO")"
+keyfiles="$(sbx "ls $statedir/keys/*/session.key 2>/dev/null | wc -l | tr -d ' '")"; keyfiles="${keyfiles:-0}"
+if [ "$master_seen" = "NO" ] && [ "$sealed_seen" = "NO" ] && [ "$keyfiles" -le 1 ]; then
+  pass "cross-session: read the host master key / sibling session keys" \
+       "trust root not mounted (per-session binds only)" \
+       "master key + sealed store unreachable; only own session key visible ($keyfiles)"
 else
-  gap "cross-session: read the host master key / sibling session keys" "state dir not visible (prod gVisor)" \
-      "demo runc binds whole state dir RW -> key material reachable"
+  fail "cross-session: read the host master key / sibling session keys" \
+       "trust root not mounted (per-session binds only)" \
+       "leaked -> master:$master_seen sealed:$sealed_seen session-keys-visible:$keyfiles (want <=1)"
 fi
 
 # --- results table ----------------------------------------------------------
@@ -256,9 +268,8 @@ echo "==========================================================================
 if [ "$GAP_FOUND" = 1 ]; then
   echo
   echo "NOTE: one or more GAP rows above are KNOWN, TRACKED relaxations of the laptop"
-  echo "      demo (runc fallback), not the sealed gVisor posture. The cross-session"
-  echo "      key-custody gap is tracked as IRO-259 (fix: per-session binds in the Docker"
-  echo "      isolator). See this example's README for what production gVisor closes."
+  echo "      demo (runc fallback), not the sealed gVisor posture. See this example's"
+  echo "      README for what the production gVisor posture closes."
 fi
 
 echo

@@ -41,11 +41,14 @@ services:
       IRONCLAW_DEV: "1"
       # Launch each sandbox as a sibling Docker container (runc) — no gVisor needed.
       IRONCLAW_RUNTIME: "docker"
-      # Carry the per-session queues/key into each sandbox at the SAME absolute path the
-      # control-plane uses. The control-plane writes them under /var/lib/ironclaw/state
-      # (the host bind below); the sandbox sibling must bind that HOST path at the same
-      # container target, or the queue handshake won't line up. ${PWD} is the host
-      # compose-project dir, so this resolves to a real host path the Docker daemon sees.
+      # BASE host<->container mapping the Docker isolator uses to scope each sandbox's
+      # binds PER SESSION. It is NOT a whole-dir share: the isolator translates only the
+      # session's own queue files + key file from the control-plane's container view
+      # (/var/lib/ironclaw/state/...) to the host path below, and binds ONLY those at the
+      # SAME absolute path the sandbox reads (the queue handshake needs the paths to line
+      # up). The host master key and sibling session keys under this dir are NEVER mounted
+      # into a sandbox (IRO-259). ${PWD} is the host compose-project dir, so this resolves
+      # to a real host path the Docker daemon sees.
       IRONCLAW_DOCKER_BINDS: "${PWD}/.ironclaw-demo-state:/var/lib/ironclaw/state"
       # network=none for every sandbox sibling, exactly as the production gVisor posture
       # enforces (internal/host/isolation/oci.go REFUSES to launch with a network stack).
