@@ -70,26 +70,31 @@ If in doubt about whether an action is authorized, ask us first at the contact a
 
 ## Scope
 
-**In scope** — anything that breaks IronClaw's intended trust boundaries, including:
+The **authoritative** definition of what does and does not count as a vulnerability lives in the
+[threat model](docs/threat-model.md) — **§8 "What counts as a vulnerability"** and **§9 "Non-goals"**.
+That document is the single source of truth for the threat model; this policy defers to it rather than
+keeping a second copy that could drift. In brief:
 
-- Sandbox escape (gVisor/Kata) or any path that lets a sandboxed agent reach the host beyond the
-  sanctioned unix sockets.
-- Bypassing the **mandatory human-approval gateway** (applying a capability change without approval).
-- Reading another session's encrypted queues, or recovering session/master keys.
-- Egress-broker or model-proxy allowlist bypass; agent-to-agent (a2a) hop/quota/permission bypass.
-- Control-plane API authentication, authorization, or RBAC bypass.
-- Secret/credential leakage in logs, audit records, or forwarded responses.
-- Supply-chain weaknesses in our release/build pipeline.
+**In scope** — anything that crosses one of the threat model's trust boundaries (§3, §5): sandbox→host
+escape, bypassing the mandatory human-approval gateway, reading another session's encrypted queues or
+recovering session/master keys, egress-broker / model-proxy / agent-to-agent allowlist bypass,
+control-plane authentication/authorization/RBAC bypass, secret leakage in logs or forwarded responses,
+and supply-chain weaknesses in the release/build pipeline. The exact list is
+[§8](docs/threat-model.md#8-what-counts-as-a-vulnerability).
 
-**Out of scope** — intentional non-goals of the sealed / `network=none` design (see
-[`docs/threat-model.md`](docs/threat-model.md)), plus the usual exclusions:
+**Out of scope** — the intentional non-goals of the sealed / `network=none` design (in-sandbox
+browser/network access, `install_packages`/self-modification, an in-broker credential vault), plus
+findings that require a malicious operator/maintainer, a compromised host, or physical access;
+volumetric DoS; best-practice nitpicks without demonstrated impact; scanner output without a working
+proof-of-concept; and social engineering. See [§8–§9](docs/threat-model.md#8-what-counts-as-a-vulnerability)
+for the reasoning.
 
-- Requests to add in-sandbox browser/network access, `install_packages`/self-modification, or a general
-  arbitrary-API credential vault — these are deliberate design decisions, not vulnerabilities.
-- Findings that require a malicious operator/maintainer, physical access, or a compromised host OS
-  (IronClaw's threat model assumes a trusted host and a potentially-hostile agent).
-- Volumetric DoS, rate-limiting nitpicks, missing best-practice headers without demonstrated impact,
-  and automated-scanner output without a working proof-of-concept.
-- Social engineering of maintainers or users.
+## Verifying a release you received
+
+Every release is checksummed, keyless-signed with cosign, and carries build-provenance attestations —
+and also ships a **signed containment report** (`ironclaw_<version>.containment.json` / `.txt`) that
+machine-verifies the core sandbox invariants (§5/§8) held for that exact commit and the runtime tested.
+The step-by-step verification (checksums, signature, provenance, and the containment report) is in the
+[release runbook](docs/release-runbook.md#4-how-to-verify-a-release-user-facing).
 
 Thank you for helping keep IronClaw and its users safe.

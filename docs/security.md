@@ -96,9 +96,23 @@ artifacts are:
   source commit and the workflow that built it. Both the release archives and the
   individual binaries inside them carry provenance, so `gh attestation verify`
   works against either.
+- **Proven contained** — every release also ships a signed **containment report**
+  (`ironclaw_<version>.containment.json` and `.txt`). The
+  [red-team escape harness](https://github.com/IronSecCo/ironclaw/tree/main/examples/red-team-escape)
+  runs against the offline demo at the released commit and freezes the result into a
+  machine-verifiable artifact: every isolation invariant, the assertion that proved
+  it, and pass/fail, bound to the commit and the runtime tested. The two files are
+  checksummed into `CONTAINMENT-SHA256SUMS`, which is cosign-signed and attested the
+  same way `SHA256SUMS` is — so you can confirm the [threat model](threat-model.md)'s
+  core §5/§8 invariants held for the *exact* version you run, without re-running
+  anything. If a core assertion had failed, the release would have been yanked, not
+  shipped.
 
 The [Release runbook](release-runbook.md) is the operational reference for cutting,
-verifying, and yanking a release.
+verifying, and yanking a release. The threat model — the single source of truth for
+what IronClaw defends against — is [`threat-model.md`](threat-model.md); this page and
+[SECURITY.md](https://github.com/IronSecCo/ironclaw/blob/main/SECURITY.md) summarize
+and point there rather than restating it.
 
 ## Fuzzing the trust boundary
 
