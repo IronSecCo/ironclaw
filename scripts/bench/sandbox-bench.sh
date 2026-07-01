@@ -413,7 +413,21 @@ bench_memory() {
 	# shellcheck disable=SC2046
 	( cd "$bundle" && "$runtime" $(runtime_flags "$runtime") run --bundle "$bundle" "$id" >/dev/null 2>&1 ) &
 	local launcher=$!
-	sleep 1 # let the runtime spin up its supervisor/sentry+gofer
+	sleep 2 # let the runtime spin up its supervisor/sentry+gofer
+	# One-time full-system RSS snapshot during the run, so the artifact reveals what
+	# the sandbox processes are actually named on this host (diagnostic; DIAG_* is
+	# never a fatal path).
+	local snap="$OUT_DIR/mem-snapshot-$runtime.txt"
+	{
+		printf 'pid\tcomm\tVmRSS_kB\n'
+		for p in /proc/[0-9]*; do
+			p="${p#/proc/}"
+			local c k
+			c="$(cat "/proc/$p/comm" 2>/dev/null || echo '?')"
+			k="$(awk '/^VmRSS:/{print $2}' "/proc/$p/status" 2>/dev/null || echo 0)"
+			printf '%s\t%s\t%s\n' "$p" "$c" "${k:-0}"
+		done | sort -t$'\t' -k3 -n -r | head -30
+	} >"$snap" 2>/dev/null || true
 	for _ in 1 2 3 4; do
 		sandbox_footprint_kb "$runtime" "$launcher" "$dbg" >>"$samples"
 		sleep 1
