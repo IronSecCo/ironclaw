@@ -9,10 +9,11 @@ judge the trade honestly.
 !!! note "What this page is — and isn't"
     The overhead of gVisor is **workload-dependent**, so the only numbers worth
     trusting are the ones you measure on *your* hardware with *your* runtime
-    version. This page ships a reproducible harness that does exactly that, plus
-    a conservative expectation profile drawn from gVisor's own published
-    performance guidance. We do **not** quote hero numbers from a machine you
-    can't inspect.
+    version. This page ships a reproducible harness that does exactly that, the
+    [numbers it produced on a public CI runner](#measured-on-ci) (every one of them
+    inspectable and re-runnable), and a conservative expectation profile drawn from
+    gVisor's own published performance guidance. We do **not** quote hero numbers
+    from a machine you can't inspect.
 
 ## Reproduce it yourself
 
@@ -50,7 +51,68 @@ It prints a Markdown results table and writes `results.json` plus a
 | **CPU-bound** | a fixed integer loop, no syscalls in the hot path | compute overhead (gVisor's best case) |
 | **Syscall-bound** | a stat-heavy filesystem walk | I/O overhead (gVisor's worst case) |
 
+## Measured on CI
+
+The [`Sandbox benchmarks`](https://github.com/IronSecCo/ironclaw/blob/main/.github/workflows/sandbox-bench.yml)
+workflow runs this harness on a GitHub-hosted `ubuntu-24.04` runner, where `runsc`
+actually launches (macOS cannot host gVisor's gofer, see IRO-116). It uploads
+`results.md`, `results.json`, and `methodology.txt` as a build artifact and prints
+the table to the run's job summary, so every number is inspectable and reproducible.
+
+**Runner spec (representative run
+[28513723746](https://github.com/IronSecCo/ironclaw/actions/runs/28513723746)):**
+
+| | |
+| --- | --- |
+| Runner | GitHub-hosted `ubuntu-24.04` |
+| Kernel | Linux 6.17.0-1018-azure x86_64 |
+| CPU | AMD EPYC 7763 (4 vCPU on the runner) |
+| Memory | 15.6 GiB |
+| Isolation runtime | `runsc` release-20260622.0, platform `systrap`, `--network=none` |
+| Baseline runtime | `runc` 1.3.6 |
+| Sampling | median of 25 iterations, cgroup limit 1 vCPU / 512 MiB |
+
+**Measured numbers:**
+
+| Metric | gVisor (runsc) | Host baseline (runc) | Added by gVisor |
+| --- | --- | --- | --- |
+| Cold start (ms, median) | 102 | 47 | +55 ms (2.2x) |
+| Warm start (ms, median) | 22 | 7 | +15 ms (3.1x) |
+| CPU-bound short task (ms, median) | 24 | 7 | +17 ms |
+| Syscall-bound short task (ms, median) | 23 | 7 | +16 ms |
+| Per-sandbox memory (MiB) | not captured in CI (see note) | not captured in CI | see note |
+
+**How to read this run:**
+
+- **The gVisor cost is a fixed, one-time launch overhead:** about **+15 ms** on a
+  warm respawn and **+55 ms** on a cold new-agent launch. It is paid once per sandbox
+  launch, not per request.
+- **The CPU and syscall micro-workloads land within 1 to 2 ms of the warm-start
+  time** (24 and 23 ms versus 22 ms). At this workload size they are dominated by the
+  launch itself, so they confirm that light in-sandbox work adds very little on top of
+  the launch, but they do **not** isolate steady-state syscall overhead. The apparent
+  ~3x ratio there is a ratio of two small launch-dominated numbers, not a 3x tax on
+  compute. To measure the steady-state syscall gap, run a heavier, longer workload on
+  a real host with the same harness.
+- **Absolute values are small and the runner is shared,** so expect run-to-run
+  variation. The durable signal is the additive launch cost and the reproducible
+  method, not any single millisecond figure.
+
+!!! note "Why per-sandbox memory reads as not-captured here"
+    gVisor's Sentry and Gofer run as **detached host processes**. On this locked-down
+    hosted runner they are not attributable through the container cgroup, the launcher
+    process tree, or process names, so the sampler reports 0. That is an environment
+    limitation, **not** a measurement of zero overhead. On a real host the same harness
+    attributes the supervisor RSS (expect **tens of MiB** per sandbox, consistent with
+    gVisor's guidance below), and it emits a `mem-snapshot-<runtime>.txt` artifact to
+    help you attribute it on your own hardware.
+
 ## What to expect
+
+The expectation profile below is drawn from gVisor's published guidance. The CI run
+above is consistent with it: near-zero marginal cost for light in-sandbox work, a
+bounded additive launch cost, and a memory footprint that only a real host, not a
+locked-down CI runner, can attribute.
 
 gVisor implements the Linux syscall surface in a user-space kernel (the
 *Sentry*) and proxies filesystem I/O through a *Gofer*. The cost of that
