@@ -99,8 +99,12 @@ Two things the demo genuinely relaxes, which **production gVisor closes**:
    material to a compromised sandbox. On the gVisor posture each sandbox binds **only
    its own** `/queue` files (read-only inbound, read-write outbound) and receives its
    key via a per-session tmpfs, so nothing cross-session is reachable. This is a real
-   defect on the demo path, filed and tracked — the harness surfaces it as a `GAP`
-   rather than pretending it is contained.
+   defect on the demo path, filed and tracked as **IRO-259** — the harness surfaces it
+   as a `GAP` rather than pretending it is contained. Reproduced: a compromised sandbox
+   can `head -c 40 /var/lib/ironclaw/state/host-master.key` (the host master key) and
+   read sibling `keys/<session>/session.key` files. The fix is per-session binds in the
+   Docker isolator instead of the whole-state-dir bind; once it lands this row becomes a
+   core PASS assertion.
 
 We would rather ship a harness that tells the truth — "here is what held, and here is
 the one gap we are closing" — than one that only ever prints green.

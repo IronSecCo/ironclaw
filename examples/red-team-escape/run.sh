@@ -256,8 +256,9 @@ echo "==========================================================================
 if [ "$GAP_FOUND" = 1 ]; then
   echo
   echo "NOTE: one or more GAP rows above are KNOWN, TRACKED relaxations of the laptop"
-  echo "      demo (runc fallback), not the sealed gVisor posture. See this example's"
-  echo "      README for what production closes and the linked defect issue."
+  echo "      demo (runc fallback), not the sealed gVisor posture. The cross-session"
+  echo "      key-custody gap is tracked as IRO-259 (fix: per-session binds in the Docker"
+  echo "      isolator). See this example's README for what production gVisor closes."
 fi
 
 echo
