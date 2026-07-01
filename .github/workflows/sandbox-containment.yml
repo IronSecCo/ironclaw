@@ -85,8 +85,15 @@ jobs:
         run: |
           set -euo pipefail
           echo "==> bringing the demo up with a DELIBERATELY WEAKENED sandbox (bridge NIC, not network=none)"
-          # The sandbox image was already built by the previous step; reuse it.
-          docker compose -f docker-compose.demo.yml -f "$OVERRIDE" up --build -d
+          # Phase 1 already built both images (ironclaw-controlplane:demo and
+          # ironclaw-sandbox:latest), so bring the weakened demo up with --no-build:
+          # reuse those images and never re-load the repo as a build context. A rebuild
+          # here would choke loading the context on the root-owned .ironclaw-demo-state/
+          # runtime state phase 1 left behind (the state dir is a host bind the
+          # control-plane writes as root; the runner user cannot read it). Clear that
+          # leftover state with sudo first so this phase starts clean.
+          sudo rm -rf ./.ironclaw-demo-state
+          docker compose -f docker-compose.demo.yml -f "$OVERRIDE" up --no-build -d
 
           # run.sh --attach waits for /healthz itself, engages a sandbox against the
           # already-running (weakened) control-plane, attacks it, and manages no
