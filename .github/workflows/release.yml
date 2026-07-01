@@ -384,6 +384,104 @@ jobs:
           subject-path: "dist/*.tar.gz, dist/*.zip"
 
   # ---------------------------------------------------------------------------
+  # Ship a versioned, signed CONTAINMENT REPORT with the release (IRO-267).
+  #
+  # IronClaw's promise is "isolation you can prove, not just promise." This job runs
+  # the red-team escape harness (examples/red-team-escape, IRO-257) against the offline
+  # demo control-plane at the EXACT released commit, then freezes the result into a
+  # machine-verifiable report (JSON + human-readable text) that lists every isolation
+  # invariant, the assertion that proved it, and pass/fail — bound to the commit and
+  # the runtime tested. An adopter can then independently confirm the sandbox held for
+  # the exact version they run, without re-running anything.
+  #
+  # Trust anchoring (same model as SHA256SUMS): the two report files are checksummed
+  # into CONTAINMENT-SHA256SUMS, which is keyless-signed with cosign, and both files
+  # carry build-provenance attestations. So the report is signed AND attested, tied to
+  # this workflow's OIDC identity — not a bare file a mirror could swap.
+  #
+  # Fail-closed: run.sh exits non-zero if a CORE containment assertion failed, which
+  # reds this job. Like `smoke`, that turns the whole Release run red and (via
+  # image.yml's workflow_run success gate) blocks the GHCR image — a release whose
+  # sandbox cannot be proven contained is the signal to yank (see the release runbook).
+  # The binaries + SHA256SUMS are already published by this point (this runs alongside
+  # `smoke`, after `release`), so this never publishes a half-cut set.
+  #
+  # No secrets: the offline `mock` provider makes no network call. ubuntu-latest ships
+  # Docker + jq + curl, which is all the harness needs.
+  # ---------------------------------------------------------------------------
+  containment-report:
+    needs: [version, release]
+    if: needs.version.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write # attach the report + its signature to the release
+      id-token: write # keyless cosign + provenance signing (Sigstore OIDC)
+      attestations: write # actions/attest-build-provenance over the report files
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # Prove containment for the exact commit that was released, not a moving ref.
+          ref: ${{ github.sha }}
+
+      # Same 2.x cosign the release job signed SHA256SUMS with, so the report signature
+      # is produced (and verifiable) with the identical detached .sig/.pem tooling. IRO-195.
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.6.3
+
+      - name: Prove containment and emit the report
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p report
+          # Run the escape harness with report output on. It builds the sandbox image,
+          # brings the offline demo up, attacks a live per-session sandbox from the
+          # inside, writes the report, and exits non-zero if any CORE assertion failed
+          # (which reds this job — the yank signal). IRONCLAW_REPORT_COMMIT pins the
+          # report to the released commit; IRONCLAW_REPORT_VERSION pins it to the tag.
+          IRONCLAW_REPORT_DIR="$PWD/report" \
+          IRONCLAW_REPORT_VERSION="$TAG" \
+          IRONCLAW_REPORT_COMMIT="$GITHUB_SHA" \
+            examples/red-team-escape/run.sh
+          echo "==> report contents:"
+          cat report/containment-report.json
+
+      - name: Checksum, keyless-sign, and attach the report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd report
+          # Versioned names so the report is unambiguous per release, mirroring the
+          # SBOM naming (ironclaw_<version>.spdx.json etc).
+          mv containment-report.json "ironclaw_${VERSION}.containment.json"
+          mv containment-report.txt  "ironclaw_${VERSION}.containment.txt"
+          # Checksum both files and keyless-sign the checksum file — the same trust
+          # anchor pattern as the release's SHA256SUMS. A user verifies the report by
+          # checking CONTAINMENT-SHA256SUMS against the files, then cosign-verifying the
+          # signature over CONTAINMENT-SHA256SUMS against this repo's Release identity.
+          sha256sum "ironclaw_${VERSION}.containment.json" "ironclaw_${VERSION}.containment.txt" \
+            > CONTAINMENT-SHA256SUMS
+          cosign sign-blob --yes CONTAINMENT-SHA256SUMS \
+            --output-signature CONTAINMENT-SHA256SUMS.sig \
+            --output-certificate CONTAINMENT-SHA256SUMS.pem
+          gh release upload "${TAG}" \
+            "ironclaw_${VERSION}.containment.json" \
+            "ironclaw_${VERSION}.containment.txt" \
+            CONTAINMENT-SHA256SUMS CONTAINMENT-SHA256SUMS.sig CONTAINMENT-SHA256SUMS.pem \
+            --clobber
+          echo "Attached signed containment report to ${TAG}."
+
+      - name: Attest build provenance for the containment report
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4
+        with:
+          subject-path: "report/ironclaw_*.containment.json, report/ironclaw_*.containment.txt"
+
+  # ---------------------------------------------------------------------------
   # Post-release smoke test. Install the release we just cut through the real,
   # checksum-verifying scripts/install.sh — the normal user path, NOT --dev — and
   # assert `ironctl version` reports the exact tag. This proves the published

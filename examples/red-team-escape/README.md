@@ -111,6 +111,30 @@ We would rather ship a harness that tells the truth — "here is exactly what he
 here is the single seal only production gVisor adds" — than one that only ever prints
 green.
 
+## The containment report (a signed, versioned trust artifact)
+
+Set `IRONCLAW_REPORT_DIR` and the harness also freezes the run into a durable,
+machine-verifiable report — every invariant, the assertion that proved it, and
+pass/fail, bound to the commit and the runtime tested:
+
+```bash
+IRONCLAW_REPORT_DIR=./report \
+IRONCLAW_REPORT_VERSION=v0.1.267 \
+IRONCLAW_REPORT_COMMIT=$(git rev-parse HEAD) \
+  examples/red-team-escape/run.sh
+# -> ./report/containment-report.json   (schemaVersion 1.0, machine-verifiable)
+#    ./report/containment-report.txt    (the same, human-readable)
+```
+
+The rendering and schema live in [`emit-report.sh`](emit-report.sh), a pure transform
+(no Docker/network) that reads the harness's result rows on stdin and is unit-tested by
+[`report_test.sh`](report_test.sh). The **Release** workflow sets `IRONCLAW_REPORT_DIR`
+on every release, checksums the two files into `CONTAINMENT-SHA256SUMS`, keyless-signs
+that with cosign, attests build provenance over the files, and attaches them to the
+GitHub Release — so an adopter can independently confirm the sandbox invariants held for
+the *exact* version they run (IRO-267). Verifying it is
+[Step 4 of the release runbook](../../docs/release-runbook.md#4-how-to-verify-a-release-user-facing).
+
 ## Flags
 
 ```
@@ -120,4 +144,5 @@ run.sh --attach   # attack an already-running demo control-plane, manage nothing
 ```
 
 Useful env overrides: `IRONCLAW_ADDR`, `IRONCLAW_API_TOKEN`, `IRONCLAW_DEMO_AGENT`,
-`SKIP_BUILD=1`, `IRONCLAW_HEALTH_TIMEOUT`, `IRONCLAW_ENGAGE_TIMEOUT`.
+`SKIP_BUILD=1`, `IRONCLAW_HEALTH_TIMEOUT`, `IRONCLAW_ENGAGE_TIMEOUT`,
+`IRONCLAW_REPORT_DIR`, `IRONCLAW_REPORT_VERSION`, `IRONCLAW_REPORT_COMMIT`.

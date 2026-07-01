@@ -5,9 +5,14 @@ description: IronClaw's threat model assumes the agent is compromised. A zero-cr
 
 # Threat model
 
-> Versioned with the code. Linked from the [README](https://github.com/IronSecCo/ironclaw/blob/main/README.md) and
-> [SECURITY.md](https://github.com/IronSecCo/ironclaw/blob/main/SECURITY.md). The scope in §8 ("what counts as a
-> vulnerability") is the reference the disclosure policy points back to.
+> **This document is the single source of truth for IronClaw's threat model.**
+> Versioned with the code and linked from the [README](https://github.com/IronSecCo/ironclaw/blob/main/README.md),
+> [SECURITY.md](https://github.com/IronSecCo/ironclaw/blob/main/SECURITY.md) (the disclosure policy), and
+> [docs/security.md](security.md) (the trust-story map). Those pages summarize and point
+> here; they do not restate the model. The scope in §8 ("what counts as a vulnerability")
+> and the non-goals in §9 are the authoritative reference the disclosure policy defers to.
+> Every release also ships a signed **containment report** that machine-verifies the core
+> §5/§8 invariants held for that exact version — see [docs/security.md](security.md#the-supply-chain-is-part-of-the-promise).
 
 IronClaw assumes the agent inside the sandbox is **potentially compromised** — by
 prompt injection, a poisoned tool result, or a hostile model output — and designs
