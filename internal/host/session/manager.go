@@ -116,6 +116,13 @@ type Config struct {
 	// hiding it behind "launched sandbox". Zero applies a small default; a negative
 	// value disables the probe.
 	EarlyExitGrace time.Duration
+
+	// OnLaunch is an optional hook fired once per sandbox that actually starts
+	// (not on the already-running no-op, nor on a launch that lost the race and is
+	// torn down). The daemon wires it to the ironclaw_sandbox_launches_total
+	// counter, mirroring the SandboxKills increment on the kill path. Nil is a
+	// no-op. It must not block — it runs inline on the Wake path.
+	OnLaunch func()
 }
 
 // defaultEarlyExitGrace is the post-launch wait before probing for an early exit.
@@ -467,6 +474,9 @@ func (m *Manager) Wake(id contract.SessionID) error {
 	}
 	m.running[id] = &tracked{handle: handle, launchedAt: m.cfg.Clock().UTC()}
 	m.mu.Unlock()
+	if m.cfg.OnLaunch != nil {
+		m.cfg.OnLaunch()
+	}
 	m.cfg.Logger.Printf("host/session: launched sandbox for %s", id)
 	// If the isolator can report an early exit (the Docker fallback), watch for a
 	// container that dies on startup so a silent failure surfaces in the host log

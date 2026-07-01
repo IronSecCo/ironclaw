@@ -1,0 +1,14 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "//": "IronClaw control-plane — Railway deploy config. Point a Railway service's 'Config as code' path at deploy/railway/railway.json with the repo root as the service root. Builds the control-plane image from the in-repo Dockerfile (CGO + SQLCipher), or skip the build and deploy the prebuilt GHCR image (ghcr.io/ironsecco/ironclaw-controlplane) from the dashboard. See deploy/railway/README.md.",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "container/controlplane.Dockerfile"
+  },
+  "deploy": {
+    "healthcheckPath": "/healthz",
+    "healthcheckTimeout": 300,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}

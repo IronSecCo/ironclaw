@@ -15,7 +15,7 @@ import (
 // of the control-plane registry admin API (/v1/registry/*, see internal/host/api).
 func cmdRegistry(addr string, args []string) error {
 	if len(args) < 1 {
-		registryUsage()
+		registryUsage(os.Stderr)
 		return fmt.Errorf("expected a registry resource (agent-group|messaging-group|wiring|user|role|member|destination|session|access)")
 	}
 	resource, rest := args[0], args[1:]
@@ -39,7 +39,7 @@ func cmdRegistry(addr string, args []string) error {
 	case "access":
 		return cmdRegAccess(addr, rest)
 	default:
-		registryUsage()
+		registryUsage(os.Stderr)
 		return fmt.Errorf("unknown registry resource %q", resource)
 	}
 }
@@ -320,8 +320,8 @@ func cmdRegAccess(addr string, args []string) error {
 	return reqJSON(http.MethodGet, addr+"/v1/registry/access?"+q.Encode(), nil)
 }
 
-func registryUsage() {
-	fmt.Fprintln(os.Stderr, `registry subcommands (thin clients of /v1/registry/*):
+func registryUsage(w io.Writer) {
+	fmt.Fprintln(w, `registry subcommands (thin clients of /v1/registry/*):
   registry agent-group     put --id <id> [--name N] [--folder F] | get --id <id>
   registry messaging-group create --channel C --platform P [--instance I] [--group] [--policy strict|public]
   registry messaging-group get --id <id> | wirings --id <id>

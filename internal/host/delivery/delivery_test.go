@@ -437,3 +437,36 @@ func TestSkillInstallRejectsBadPayload(t *testing.T) {
 		t.Fatal("expected a skill_install missing its version to be refused")
 	}
 }
+
+// fakeCounter is a delivery.Counter that tallies Inc calls.
+type fakeCounter struct{ n int }
+
+func (c *fakeCounter) Inc() { c.n++ }
+
+// TestDeliveryMetricCounts asserts the deliveries counter moves once per
+// successful channel send and not on a deduped re-poll.
+func TestDeliveryMetricCounts(t *testing.T) {
+	d, adapter, _, _, w := newTestDelivery(t)
+	c := &fakeCounter{}
+	d = d.WithMetrics(c)
+	ct, pid := "fake", "C1"
+	if err := w.WriteMessageOut(contract.MessageOut{ID: "o1", Seq: 1, Kind: contract.KindChat, ChannelType: &ct, PlatformID: &pid, Content: "hi"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Poll(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if c.n != 1 {
+		t.Fatalf("deliveries counter = %d after one send, want 1", c.n)
+	}
+	if len(adapter.Delivered()) != 1 {
+		t.Fatalf("adapter delivered %d, want 1", len(adapter.Delivered()))
+	}
+	// A second poll dedups: no further channel send, no further increment.
+	if err := d.Poll(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if c.n != 1 {
+		t.Fatalf("deliveries counter = %d after dedup re-poll, want 1", c.n)
+	}
+}

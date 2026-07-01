@@ -143,3 +143,34 @@ func TestMattermostAdapterRedactsWebhookURL(t *testing.T) {
 		t.Fatalf("expected webhook url to be redacted, got %v", err)
 	}
 }
+
+//test for empty content + empty body fallback
+
+func TestMattermostAdapterRequiresContent(t *testing.T) {
+	a := NewMattermostAdapter("mattermost", "https://mattermost.example/hooks/test")
+
+	if _, err := a.Deliver(context.Background(), contract.MessageOut{
+		Content: " ",
+	}); err == nil {
+		t.Fatal("expected an error with empty content")
+	}
+}
+
+func TestMattermostAdapterUsesFallbackIDOnEmptyBody(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	a := NewMattermostAdapter("mattermost", srv.URL)
+
+	id, err := a.Deliver(context.Background(), contract.MessageOut{
+		Content: "hello",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if id != "delivered" {
+		t.Fatalf("id = %q, want delivered", id)
+	}
+}

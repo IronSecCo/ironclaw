@@ -63,6 +63,16 @@ read, write, schedule, and reply.
 > demo's fixed loopback token). Production seals each sandbox with gVisor and `network=none`.
 > [Zero-credential quickstart →](docs/quickstart.md)
 
+### The whole journey, end to end
+
+<div align="center">
+
+<img src="docs/assets/walkthrough.svg" width="820" height="595" alt="End-to-end IronClaw walkthrough terminal session in three acts. Act 1: one command starts the offline mock-agent and it replies with no API key. Act 2: connect a real provider by exporting a host-side, redacted ANTHROPIC_API_KEY and starting the real control-plane (each session sealed with gVisor and network=none). Act 3: the agent submits a persona change that is HELD at the human-approval gateway, a human approves it, and the submit-approve-apply trail lands on the append-only audit log.">
+
+<sub><b>Zero-cred demo → connect a real provider → first approved task.</b> The one credential step keeps the key host-side; every agent change is held at the gateway for a human, then written to the append-only audit log. Animation freezes on the final frame under <code>prefers-reduced-motion</code>. <a href="docs/quickstart.md">Quickstart</a></sub>
+
+</div>
+
 ## Get running in under two minutes
 
 One command installs the two host binaries (`ironctl` + `ironclaw-controlplane`); in dev mode the
@@ -87,6 +97,22 @@ On Windows, `irm https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scrip
 installs the host binaries (`ironclaw-controlplane.exe` + `ironctl.exe`) and `--dev` runs, but the
 **agent sandbox needs WSL2 or Linux** — see [Windows via WSL2](#windows-via-wsl2).
 Version pinning, system-wide installs, and building from source are all in [Installation](#installation).
+
+### One-click cloud deploy
+
+Run the **hardened control-plane** on a PaaS in ~2 minutes with zero local tooling — the
+approval gateway, encrypted per-session queues, host-side credential custody, and the web
+console:
+
+[![Deploy to Fly.io](https://img.shields.io/badge/Deploy-Fly.io-8B5CF6?logo=flydotio&logoColor=white)](deploy/fly/)
+[![Deploy to Render](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=000)](https://render.com/deploy?repo=https://github.com/IronSecCo/ironclaw)
+[![Deploy on Railway](https://img.shields.io/badge/Deploy-Railway-0B0D0E?logo=railway&logoColor=white)](deploy/railway/)
+
+> These PaaS paths run the **control-plane only** — a single container has no gVisor and
+> no Docker socket, so **agent sandboxes don't launch there** (same boundary as the
+> [hardened Compose path](deploy/docker-compose.prod.yml)). For full agent isolation use
+> a gVisor host or k8s node. Details + env in the
+> [deployment guide](docs/deployment.md) (**Path D**).
 
 ## CLI-first and API-first
 
