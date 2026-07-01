@@ -58,6 +58,24 @@ BENCH_ROOTFS="${BENCH_ROOTFS:-}"
 BENCH_MEM_MB="${BENCH_MEM_MB:-512}"
 BENCH_CPUS="${BENCH_CPUS:-1}"
 
+# Global flags passed to `runsc` *before* the subcommand (e.g. "--platform=systrap
+# --network=none"). On a real host with /dev/kvm the defaults are best, so this is
+# empty; on a locked-down/hosted CI runner (no /dev/kvm) the KVM platform is
+# unavailable and systrap is required for the sentry to come up. --network=none
+# matches IronClaw's posture and is the honest thing to measure. runc takes no such
+# flags, so BENCH_RUNC_FLAGS defaults empty and is only here for symmetry.
+BENCH_RUNSC_FLAGS="${BENCH_RUNSC_FLAGS:-}"
+BENCH_RUNC_FLAGS="${BENCH_RUNC_FLAGS:-}"
+
+# runtime_flags <runtime> — echo the global flags for a given runtime.
+runtime_flags() {
+	case "$1" in
+	runsc) printf '%s' "$BENCH_RUNSC_FLAGS" ;;
+	runc) printf '%s' "$BENCH_RUNC_FLAGS" ;;
+	*) : ;;
+	esac
+}
+
 # A fixed, modest CPU-bound loop: pure integer arithmetic, no syscalls in the hot
 # path. Demonstrates the near-native CPU characteristic of gVisor. The $i must NOT
 # expand here — it runs inside the sandbox's /bin/sh, not this parent shell.
@@ -232,9 +250,12 @@ median() {
 }
 
 # run_once <runtime> <bundle> <id> — run a prepared bundle, returns exit status.
+# Global runtime flags (runtime_flags) are word-split on purpose: they are a small
+# controlled set of runsc global flags (e.g. --platform=systrap --network=none).
 run_once() {
 	local runtime="$1" bundle="$2" id="$3"
-	( cd "$bundle" && "$runtime" run --bundle "$bundle" "$id" >/dev/null 2>&1 )
+	# shellcheck disable=SC2046
+	( cd "$bundle" && "$runtime" $(runtime_flags "$runtime") run --bundle "$bundle" "$id" >/dev/null 2>&1 )
 }
 
 # stage_fresh_rootfs <bundle> — copy a pristine rootfs into a bundle (cold path).
@@ -327,24 +348,74 @@ sum_tree_rss() {
 	echo "$total"
 }
 
-# bench_memory <runtime> — median resident KiB of the whole sandbox process tree
-# while a trivial long-lived workload sleeps inside. Printed to stdout.
+# rss_of_comm <pattern> [debug-file] — sum VmRSS (KiB) of every process whose comm
+# matches <pattern>. gVisor runs its supervisor as detached host processes
+# (comm "runsc-sandbox" / "runsc-gofer") that are outside the launcher's process
+# tree, so a tree walk misses them; matching on comm is the honest way to attribute
+# their resident memory. Optionally appends "<pid> <comm> <kb>" lines to debug-file.
+rss_of_comm() {
+	local pat="$1" dbg="${2:-}" total=0 pid kb comm
+	for pid in /proc/[0-9]*; do
+		pid="${pid#/proc/}"
+		comm="$(cat "/proc/$pid/comm" 2>/dev/null || echo)"
+		case "$comm" in
+		*"$pat"*)
+			kb="$(awk '/^VmRSS:/{print $2}' "/proc/$pid/status" 2>/dev/null || echo 0)"
+			total=$((total + ${kb:-0}))
+			[ -n "$dbg" ] && printf '%s %s %s\n' "$pid" "$comm" "${kb:-0}" >>"$dbg"
+			;;
+		esac
+	done
+	echo "$total"
+}
+
+# max2 <a> <b>
+max2() { [ "${1:-0}" -ge "${2:-0}" ] && echo "${1:-0}" || echo "${2:-0}"; }
+
+# sandbox_footprint_kb <runtime> <launcher-pid> [debug-file] — best estimate of the
+# whole sandbox footprint in KiB. For runc the container process is a descendant of
+# the launcher, so the process-tree walk captures it. For runsc the sentry+gofer
+# detach, so we also add the runsc-named supervisor processes. The max across both
+# signals is taken so whichever observes the sandbox wins.
+sandbox_footprint_kb() {
+	local runtime="$1" launcher="$2" dbg="${3:-}" v
+	v="$(sum_tree_rss "$launcher")"
+	if [ "$runtime" = "runsc" ]; then
+		v="$(max2 "$v" "$(rss_of_comm runsc "$dbg")")"
+	fi
+	echo "$v"
+}
+
+# bench_memory <runtime> — median resident KiB of the whole sandbox footprint while
+# a trivial long-lived workload sleeps inside. Printed to stdout.
+#
+# Preferred source is the container's cgroup memory.current (cgroup v2): it accounts
+# every process in the sandbox cgroup, including runsc's sentry+gofer which detach
+# from the launcher and so are invisible to a process-tree walk. We pin the cgroup
+# via cgroupsPath. If the cgroup file is unreadable (cgroup v1, rootless, or the
+# runtime placed it elsewhere), we fall back to summing the launcher's process tree.
 bench_memory() {
 	local runtime="$1"
 	local bundle="$WORKDIR/bundle-$runtime-mem"
 	mkdir -p "$bundle"
 	stage_fresh_rootfs "$bundle"
+	# No cgroupsPath here: pinning a top-level cgroup is refused on locked-down
+	# hosted runners and would fail only this launch. The workload (sleep) keeps the
+	# sandbox — and, for runsc, its sentry+gofer — alive across the sampling window.
 	write_config "$bundle" "$(sh_args_json 'sleep 6')"
 
 	local samples="$WORKDIR/mem-$runtime.samples"
+	local dbg="$OUT_DIR/mem-debug-$runtime.txt"
 	: >"$samples"
+	: >"$dbg"
 
 	local id="mem-$runtime"
-	( cd "$bundle" && "$runtime" run --bundle "$bundle" "$id" >/dev/null 2>&1 ) &
+	# shellcheck disable=SC2046
+	( cd "$bundle" && "$runtime" $(runtime_flags "$runtime") run --bundle "$bundle" "$id" >/dev/null 2>&1 ) &
 	local launcher=$!
 	sleep 1 # let the runtime spin up its supervisor/sentry+gofer
 	for _ in 1 2 3 4; do
-		sum_tree_rss "$launcher" >>"$samples"
+		sandbox_footprint_kb "$runtime" "$launcher" "$dbg" >>"$samples"
 		sleep 1
 	done
 	wait "$launcher" 2>/dev/null || true
@@ -381,9 +452,16 @@ bench_workload() {
 # Capture methodology / environment
 # --------------------------------------------------------------------------- #
 
-RUNSC_VERSION="$(runsc --version 2>/dev/null | head -1 || echo 'unknown')"
+# sed -n '1p' (not `head -1`) so the reader consumes the whole stream: under
+# `set -o pipefail`, head closing the pipe early makes the version command take
+# SIGPIPE, which would append a spurious "unknown" line to the captured version.
+RUNSC_VERSION="$(runsc --version 2>/dev/null | sed -n '1p')"
+[ -n "$RUNSC_VERSION" ] || RUNSC_VERSION="unknown"
 RUNC_VERSION="n/a"
-[ "$HAVE_RUNC" -eq 1 ] && RUNC_VERSION="$(runc --version 2>/dev/null | head -1 || echo unknown)"
+if [ "$HAVE_RUNC" -eq 1 ]; then
+	RUNC_VERSION="$(runc --version 2>/dev/null | sed -n '1p')"
+	[ -n "$RUNC_VERSION" ] || RUNC_VERSION="unknown"
+fi
 KERNEL="$(uname -srm)"
 CPU_MODEL="$(awk -F: '/model name/{print $2; exit}' /proc/cpuinfo 2>/dev/null | sed 's/^ //' || echo unknown)"
 CPU_CORES="$(nproc 2>/dev/null || echo unknown)"
@@ -399,6 +477,8 @@ MEM_TOTAL_GB="$(awk -v k="$MEM_TOTAL_KB" 'BEGIN{ if (k>0) printf "%.1f", k/1024/
 	echo "image:         ${BENCH_ROOTFS:-$BENCH_IMAGE}"
 	echo "iterations:    $ITERATIONS"
 	echo "cgroup limits: ${BENCH_CPUS} vCPU / ${BENCH_MEM_MB} MiB / 256 pids"
+	echo "runsc flags:   ${BENCH_RUNSC_FLAGS:-(none)}"
+	echo "runc flags:    ${BENCH_RUNC_FLAGS:-(none)}"
 } >"$OUT_DIR/methodology.txt"
 
 # --------------------------------------------------------------------------- #
@@ -478,7 +558,9 @@ cat >"$OUT_DIR/results.json" <<JSON
     "image": "${BENCH_ROOTFS:-$BENCH_IMAGE}",
     "iterations": $ITERATIONS,
     "cgroup_cpus": $BENCH_CPUS,
-    "cgroup_mem_mb": $BENCH_MEM_MB
+    "cgroup_mem_mb": $BENCH_MEM_MB,
+    "runsc_flags": "$BENCH_RUNSC_FLAGS",
+    "runc_flags": "$BENCH_RUNC_FLAGS"
   },
   "runsc": {
     "cold_start_ms": "$RUNSC_COLD",
