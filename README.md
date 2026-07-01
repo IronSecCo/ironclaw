@@ -88,7 +88,7 @@ export IRONCLAW_API_TOKEN=$(openssl rand -hex 32)
 ironclaw-controlplane --dev --api-addr 127.0.0.1:8787 &
 
 # 3. Your first command — submit a change; it is HELD at the gateway for a human decision
-ironctl change submit --kind persona --group default --by you
+ironctl change submit --kind persona --group dev-agent --by you
 ironctl change pending                       # see it waiting
 ironctl change approve <change-id> --by you   # apply it
 ```
@@ -573,7 +573,7 @@ go run ./cmd/controlplane --dev --api-addr 127.0.0.1:8787
 export IRONCLAW_API_TOKEN=<same token as above>
 
 # Submit a capability change — it is HELD pending a human decision (the gateway choke point)
-ironctl change submit --kind persona --group default --by alice
+ironctl change submit --kind persona --group dev-agent --by alice
 
 # See what's waiting for approval, then approve or reject by id
 ironctl change pending
