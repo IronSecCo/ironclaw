@@ -177,13 +177,19 @@ HOST_GID="$(id -g)"
 CPU_QUOTA="$((BENCH_CPUS * 100000))"
 MEM_BYTES="$((BENCH_MEM_MB * 1024 * 1024))"
 
-# write_bundle <dir> <json-args-array>
+# write_bundle <dir> <json-args-array> [cgroups-path]
 # Emits <dir>/config.json with the given process args. network namespace is
 # deliberately omitted (network=none). No capabilities, no_new_privs, read-only
 # rootfs, userns, cgroup mem/cpu/pids limits, deny-by-default is enforced by the
 # runtime defaults plus the empty capability sets below.
+# An optional cgroups-path pins the container's cgroup to a known location so its
+# memory footprint can be read from memory.current — the honest way to include the
+# sandbox supervisor (runsc's sentry+gofer detach and are NOT descendants of the
+# launcher, so a process-tree walk misses them). Omitted when empty (default).
 write_config() {
-	local dir="$1" args_json="$2"
+	local dir="$1" args_json="$2" cgroups_path="${3:-}"
+	local cgroups_line=""
+	[ -n "$cgroups_path" ] && cgroups_line="\"cgroupsPath\": \"$cgroups_path\","
 	cat >"$dir/config.json" <<JSON
 {
   "ociVersion": "1.0.2",
@@ -206,6 +212,7 @@ write_config() {
       "options": ["nosuid", "nodev", "noexec", "size=16m"] }
   ],
   "linux": {
+    ${cgroups_line}
     "namespaces": [
       { "type": "pid" }, { "type": "ipc" }, { "type": "uts" },
       { "type": "mount" }, { "type": "user" }
@@ -348,14 +355,23 @@ sum_tree_rss() {
 	echo "$total"
 }
 
-# bench_memory <runtime> — median resident KiB of the whole sandbox process tree
-# while a trivial long-lived workload sleeps inside. Printed to stdout.
+# bench_memory <runtime> — median resident KiB of the whole sandbox footprint while
+# a trivial long-lived workload sleeps inside. Printed to stdout.
+#
+# Preferred source is the container's cgroup memory.current (cgroup v2): it accounts
+# every process in the sandbox cgroup, including runsc's sentry+gofer which detach
+# from the launcher and so are invisible to a process-tree walk. We pin the cgroup
+# via cgroupsPath. If the cgroup file is unreadable (cgroup v1, rootless, or the
+# runtime placed it elsewhere), we fall back to summing the launcher's process tree.
 bench_memory() {
 	local runtime="$1"
 	local bundle="$WORKDIR/bundle-$runtime-mem"
 	mkdir -p "$bundle"
 	stage_fresh_rootfs "$bundle"
-	write_config "$bundle" "$(sh_args_json 'sleep 6')"
+
+	local cgname="ironclaw-bench-mem-$runtime"
+	write_config "$bundle" "$(sh_args_json 'sleep 6')" "/$cgname"
+	local cgfile="/sys/fs/cgroup/$cgname/memory.current"
 
 	local samples="$WORKDIR/mem-$runtime.samples"
 	: >"$samples"
@@ -366,7 +382,15 @@ bench_memory() {
 	local launcher=$!
 	sleep 1 # let the runtime spin up its supervisor/sentry+gofer
 	for _ in 1 2 3 4; do
-		sum_tree_rss "$launcher" >>"$samples"
+		local kb
+		if [ -r "$cgfile" ]; then
+			local bytes
+			bytes="$(cat "$cgfile" 2>/dev/null || echo 0)"
+			kb=$((${bytes:-0} / 1024))
+		else
+			kb="$(sum_tree_rss "$launcher")"
+		fi
+		echo "$kb" >>"$samples"
 		sleep 1
 	done
 	wait "$launcher" 2>/dev/null || true
