@@ -66,6 +66,22 @@ noting is that `reddit.com` and `goodfirstissues.com` already appear as referrer
 good-first-issue seeding (IRO-209) and early directory submissions are pulling a trickle of
 real humans before any announcement. Discussions are seeded but have no organic threads yet.
 
+## Contributor on-ramp surface (evergreen)
+
+The pieces a prospective contributor lands on, kept alive independently of the launch gate:
+
+- **Good first issues:** 13 open and scoped, with labels + acceptance criteria + file pointers.
+  IRO-209 seeded 8 (#108, #109, #113, #191, #192, #193, #223, #224); IRO-263 added 5 more
+  (#281 seccomp tests, #282 contract-enum tests, #283 `cmd/ironctl` `doc.go`, #284 stale-comment
+  fix, #285 tabwriter constants). Spread across sandbox / control-plane / cli / docs.
+- **Discussions:** the 3 seeds (#116, #225, #226) plus 3 evergreen technical Q&A entries added by
+  IRO-263, sourced from the threat model + red-team harness (#270 how isolation works, #271 what
+  the red-team harness proves, #272 where keys live). These are contributor/technical content,
+  distinct from the launch-gated announcement copy (IRO-186).
+
+`goodfirstissues.com` already shows up as a referrer in the snapshot below, so the GFI surface is
+the honest early on-ramp worth growing pre-launch.
+
 ## Related
 
 - Launch engagement playbook: [launch-engagement-playbook.md](launch-engagement-playbook.md)
