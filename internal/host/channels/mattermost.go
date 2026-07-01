@@ -47,6 +47,9 @@ func (a *MattermostAdapter) Deliver(ctx context.Context, msg contract.MessageOut
 	if strings.TrimSpace(a.WebhookURL) == "" {
 		return "", fmt.Errorf("host/channels: mattermost %q has no webhook url", a.AdapterName)
 	}
+	if strings.TrimSpace(msg.Content) == "" {
+		return "", fmt.Errorf("host/channels: mattermost %q message has empty content", a.AdapterName)
+	}
 
 	payload := mattermostMessage{
 		Text: msg.Content,
@@ -102,6 +105,9 @@ func (a *MattermostAdapter) Deliver(ctx context.Context, msg contract.MessageOut
 	}
 	return id, nil
 }
+
+// redact removes the webhook URL from a string so its secret token can never
+// reach a log or error.
 
 func (a *MattermostAdapter) redact(s string) string {
 	if a.WebhookURL == "" {
