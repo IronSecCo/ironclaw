@@ -47,6 +47,15 @@ services:
       # container target, or the queue handshake won't line up. ${PWD} is the host
       # compose-project dir, so this resolves to a real host path the Docker daemon sees.
       IRONCLAW_DOCKER_BINDS: "${PWD}/.ironclaw-demo-state:/var/lib/ironclaw/state"
+      # network=none for every sandbox sibling, exactly as the production gVisor posture
+      # enforces (internal/host/isolation/oci.go REFUSES to launch with a network stack).
+      # The runc fallback shares the host KERNEL, but there is no reason to also hand the
+      # sandbox a NIC: the mock provider makes no network call, and the queues + model-proxy
+      # socket reach it through file/socket binds, never a network. Without this the docker
+      # runtime would attach the default bridge and the sandbox WOULD have egress — so this
+      # is what makes "network=none holds" true on the demo path too (see
+      # examples/red-team-escape, which asserts it).
+      IRONCLAW_DOCKER_NETWORK: "none"
     volumes:
       # The Docker Engine socket: the control-plane launches sandbox siblings through it.
       - /var/run/docker.sock:/var/run/docker.sock

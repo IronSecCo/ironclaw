@@ -19,6 +19,21 @@ IronClaw's user-facing CI smoke test
 examples/hello-ironclaw/run.sh        # build → up → assert reply → tear down
 ```
 
+### Prove the sandbox holds (adversarial harness)
+
+[**`red-team-escape/`**](red-team-escape/) is the other side of the coin: instead of
+proving the happy path *works*, it tries to **break** the sandbox and proves the
+attacks are contained. It engages a real per-session sandbox and then, assuming a
+fully-jailbroken agent with arbitrary code execution inside the box (simulated with
+`docker exec`), runs a battery of escape / exfiltration / self-modification attempts —
+network egress, host escape via the Docker socket, sibling breakout, and gateway-held
+self-modification — and emits a PASS/FAIL table, exiting non-zero if any core
+containment assertion fails. Same zero-credential path, no model key:
+
+```sh
+examples/red-team-escape/run.sh       # build → up → attack → assert contained → tear down
+```
+
 ### Run a scenario end-to-end credential-free (mock provider)
 
 Three recipes ship a `run-mock.sh` that exercises the **whole** inbound → agent →
@@ -37,6 +52,7 @@ docker compose -f docker-compose.demo.yml down            # tear down
 | Recipe | What it shows | Credential-free demo |
 |--------|---------------|:--------------------:|
 | [`hello-ironclaw/`](hello-ironclaw/) | The full path working end-to-end, asserted — the smoke test + first "it works". | ✅ `run.sh` (self-contained) |
+| [`red-team-escape/`](red-team-escape/) | The sandbox **holding** under attack — network egress, host/socket escape, sibling breakout, and gateway-held self-modification, all asserted contained. | ✅ `run.sh` (self-contained) |
 | [`scheduled-report/`](scheduled-report/) | An agent that wakes itself on a schedule (`schedule_task`), summarizes, and posts to a channel. | ✅ `run-mock.sh` |
 | [`webhook-responder/`](webhook-responder/) | An inbound HTTP webhook routed to an agent that replies (poll or push-back via a `webhook` destination). | ✅ `run-mock.sh` |
 | [`slack-triage/`](slack-triage/) | A bot that classifies/labels **every** incoming Slack message. | ✅ `run-mock.sh` |
