@@ -12,6 +12,7 @@ import (
 
 	"github.com/IronSecCo/ironclaw/internal/contract"
 )
+
 // MattermostAdapter delivers an outbound message to Mattermost via an Incoming
 // Webhook URL. It is stdlib-only and follows the TeamsAdapter shape.
 //
