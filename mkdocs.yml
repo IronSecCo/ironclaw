@@ -130,6 +130,7 @@ nav:
   - Skills: skills.md
   - Security & Trust:
       - Overview: security.md
+      - Isolation, proven: security-isolation.md
       - Threat model: threat-model.md
       - Performance & footprint: benchmarks.md
   - Reference:
