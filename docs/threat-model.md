@@ -47,6 +47,17 @@ stays sane.
 
 ## 3. Trust boundaries and data flow
 
+The static diagram below is the visual companion to this section: the untrusted
+sandbox on the left, the trusted host on the right, the only crossings between them
+(host-owned unix sockets and the per-session encrypted queues), and a legend that maps
+each red-team escape attempt from the
+[escape harness](https://github.com/IronSecCo/ironclaw/tree/main/examples/red-team-escape)
+to the boundary control that contains it. The [security and isolation](security-isolation.md)
+page walks through the same picture in prose; the Mermaid source that follows is these
+same boundaries in text form.
+
+[![IronClaw isolation architecture: an untrusted gVisor sandbox on the left, separated by the B1 gVisor wall from the trusted host on the right. The only crossings are host-owned unix sockets and per-session encrypted queues. A legend maps each of six red-team escape attempts to the control that contains it.](assets/isolation-architecture.svg){ width="100%" }](assets/isolation-architecture.svg)
+
 ```mermaid
 flowchart TB
   U["User / external sender"]
