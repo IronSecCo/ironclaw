@@ -355,6 +355,58 @@ sum_tree_rss() {
 	echo "$total"
 }
 
+# rss_of_cgroup <cgname> — sum VmRSS (KiB) of every process whose cgroup line names
+# <cgname>. Catches the sandbox supervisor even when it detaches from the launcher,
+# as long as the runtime placed it in our pinned cgroup (cgroup v2).
+rss_of_cgroup() {
+	local cg="$1" total=0 pid kb
+	for pid in /proc/[0-9]*; do
+		pid="${pid#/proc/}"
+		if grep -q "/$cg\(/\|\$\)" "/proc/$pid/cgroup" 2>/dev/null; then
+			kb="$(awk '/^VmRSS:/{print $2}' "/proc/$pid/status" 2>/dev/null || echo 0)"
+			total=$((total + ${kb:-0}))
+		fi
+	done
+	echo "$total"
+}
+
+# rss_of_comm <pattern> — sum VmRSS (KiB) of every process whose comm matches
+# <pattern>. Used to attribute gVisor's supervisor (runsc-sandbox / runsc-gofer),
+# which runs as a detached host process outside the launcher's tree and, under some
+# platforms, outside the OCI cgroup.
+rss_of_comm() {
+	local pat="$1" total=0 pid kb comm
+	for pid in /proc/[0-9]*; do
+		pid="${pid#/proc/}"
+		comm="$(cat "/proc/$pid/comm" 2>/dev/null || echo)"
+		case "$comm" in
+		*"$pat"*)
+			kb="$(awk '/^VmRSS:/{print $2}' "/proc/$pid/status" 2>/dev/null || echo 0)"
+			total=$((total + ${kb:-0}))
+			;;
+		esac
+	done
+	echo "$total"
+}
+
+# max2 <a> <b>
+max2() { [ "${1:-0}" -ge "${2:-0}" ] && echo "${1:-0}" || echo "${2:-0}"; }
+
+# sandbox_footprint_kb <runtime> <cgname> <launcher-pid> — best available estimate of
+# the whole sandbox footprint in KiB, as the max of three independent signals:
+# the cgroup membership scan, the launcher process tree, and (for runsc) the detached
+# supervisor processes. Whichever signal actually observes the sandbox wins; if none
+# do, the result is ~0 and the metric is reported as not-capturable in this env.
+sandbox_footprint_kb() {
+	local runtime="$1" cgname="$2" launcher="$3" v
+	v="$(rss_of_cgroup "$cgname")"
+	v="$(max2 "$v" "$(sum_tree_rss "$launcher")")"
+	if [ "$runtime" = "runsc" ]; then
+		v="$(max2 "$v" "$(rss_of_comm runsc)")"
+	fi
+	echo "$v"
+}
+
 # bench_memory <runtime> — median resident KiB of the whole sandbox footprint while
 # a trivial long-lived workload sleeps inside. Printed to stdout.
 #
@@ -382,14 +434,16 @@ bench_memory() {
 	local launcher=$!
 	sleep 1 # let the runtime spin up its supervisor/sentry+gofer
 	for _ in 1 2 3 4; do
-		local kb
+		local kb kb_cg=0
+		# Prefer the cgroup's own accounting when it is readable and non-trivial;
+		# otherwise fall back to the multi-signal process scan (handles detached
+		# supervisors / platforms where the sentry is outside the OCI cgroup).
 		if [ -r "$cgfile" ]; then
 			local bytes
 			bytes="$(cat "$cgfile" 2>/dev/null || echo 0)"
-			kb=$((${bytes:-0} / 1024))
-		else
-			kb="$(sum_tree_rss "$launcher")"
+			kb_cg=$((${bytes:-0} / 1024))
 		fi
+		kb="$(max2 "$kb_cg" "$(sandbox_footprint_kb "$runtime" "$cgname" "$launcher")")"
 		echo "$kb" >>"$samples"
 		sleep 1
 	done
@@ -427,9 +481,16 @@ bench_workload() {
 # Capture methodology / environment
 # --------------------------------------------------------------------------- #
 
-RUNSC_VERSION="$(runsc --version 2>/dev/null | head -1 || echo 'unknown')"
+# sed -n '1p' (not `head -1`) so the reader consumes the whole stream: under
+# `set -o pipefail`, head closing the pipe early makes the version command take
+# SIGPIPE, which would append a spurious "unknown" line to the captured version.
+RUNSC_VERSION="$(runsc --version 2>/dev/null | sed -n '1p')"
+[ -n "$RUNSC_VERSION" ] || RUNSC_VERSION="unknown"
 RUNC_VERSION="n/a"
-[ "$HAVE_RUNC" -eq 1 ] && RUNC_VERSION="$(runc --version 2>/dev/null | head -1 || echo unknown)"
+if [ "$HAVE_RUNC" -eq 1 ]; then
+	RUNC_VERSION="$(runc --version 2>/dev/null | sed -n '1p')"
+	[ -n "$RUNC_VERSION" ] || RUNC_VERSION="unknown"
+fi
 KERNEL="$(uname -srm)"
 CPU_MODEL="$(awk -F: '/model name/{print $2; exit}' /proc/cpuinfo 2>/dev/null | sed 's/^ //' || echo unknown)"
 CPU_CORES="$(nproc 2>/dev/null || echo unknown)"
