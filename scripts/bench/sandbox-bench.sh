@@ -58,6 +58,24 @@ BENCH_ROOTFS="${BENCH_ROOTFS:-}"
 BENCH_MEM_MB="${BENCH_MEM_MB:-512}"
 BENCH_CPUS="${BENCH_CPUS:-1}"
 
+# Global flags passed to `runsc` *before* the subcommand (e.g. "--platform=systrap
+# --network=none"). On a real host with /dev/kvm the defaults are best, so this is
+# empty; on a locked-down/hosted CI runner (no /dev/kvm) the KVM platform is
+# unavailable and systrap is required for the sentry to come up. --network=none
+# matches IronClaw's posture and is the honest thing to measure. runc takes no such
+# flags, so BENCH_RUNC_FLAGS defaults empty and is only here for symmetry.
+BENCH_RUNSC_FLAGS="${BENCH_RUNSC_FLAGS:-}"
+BENCH_RUNC_FLAGS="${BENCH_RUNC_FLAGS:-}"
+
+# runtime_flags <runtime> — echo the global flags for a given runtime.
+runtime_flags() {
+	case "$1" in
+	runsc) printf '%s' "$BENCH_RUNSC_FLAGS" ;;
+	runc) printf '%s' "$BENCH_RUNC_FLAGS" ;;
+	*) : ;;
+	esac
+}
+
 # A fixed, modest CPU-bound loop: pure integer arithmetic, no syscalls in the hot
 # path. Demonstrates the near-native CPU characteristic of gVisor. The $i must NOT
 # expand here — it runs inside the sandbox's /bin/sh, not this parent shell.
@@ -232,9 +250,12 @@ median() {
 }
 
 # run_once <runtime> <bundle> <id> — run a prepared bundle, returns exit status.
+# Global runtime flags (runtime_flags) are word-split on purpose: they are a small
+# controlled set of runsc global flags (e.g. --platform=systrap --network=none).
 run_once() {
 	local runtime="$1" bundle="$2" id="$3"
-	( cd "$bundle" && "$runtime" run --bundle "$bundle" "$id" >/dev/null 2>&1 )
+	# shellcheck disable=SC2046
+	( cd "$bundle" && "$runtime" $(runtime_flags "$runtime") run --bundle "$bundle" "$id" >/dev/null 2>&1 )
 }
 
 # stage_fresh_rootfs <bundle> — copy a pristine rootfs into a bundle (cold path).
@@ -340,7 +361,8 @@ bench_memory() {
 	: >"$samples"
 
 	local id="mem-$runtime"
-	( cd "$bundle" && "$runtime" run --bundle "$bundle" "$id" >/dev/null 2>&1 ) &
+	# shellcheck disable=SC2046
+	( cd "$bundle" && "$runtime" $(runtime_flags "$runtime") run --bundle "$bundle" "$id" >/dev/null 2>&1 ) &
 	local launcher=$!
 	sleep 1 # let the runtime spin up its supervisor/sentry+gofer
 	for _ in 1 2 3 4; do
@@ -399,6 +421,8 @@ MEM_TOTAL_GB="$(awk -v k="$MEM_TOTAL_KB" 'BEGIN{ if (k>0) printf "%.1f", k/1024/
 	echo "image:         ${BENCH_ROOTFS:-$BENCH_IMAGE}"
 	echo "iterations:    $ITERATIONS"
 	echo "cgroup limits: ${BENCH_CPUS} vCPU / ${BENCH_MEM_MB} MiB / 256 pids"
+	echo "runsc flags:   ${BENCH_RUNSC_FLAGS:-(none)}"
+	echo "runc flags:    ${BENCH_RUNC_FLAGS:-(none)}"
 } >"$OUT_DIR/methodology.txt"
 
 # --------------------------------------------------------------------------- #
@@ -478,7 +502,9 @@ cat >"$OUT_DIR/results.json" <<JSON
     "image": "${BENCH_ROOTFS:-$BENCH_IMAGE}",
     "iterations": $ITERATIONS,
     "cgroup_cpus": $BENCH_CPUS,
-    "cgroup_mem_mb": $BENCH_MEM_MB
+    "cgroup_mem_mb": $BENCH_MEM_MB,
+    "runsc_flags": "$BENCH_RUNSC_FLAGS",
+    "runc_flags": "$BENCH_RUNC_FLAGS"
   },
   "runsc": {
     "cold_start_ms": "$RUNSC_COLD",

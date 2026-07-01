@@ -1,0 +1,125 @@
+name: Sandbox benchmarks
+
+# Reproducible gVisor-vs-host sandbox overhead numbers (IRO-266). Runs the committed
+# harness (scripts/bench/sandbox-bench.sh) on a GitHub-hosted ubuntu runner, where
+# `runsc` actually launches (macOS cannot host gVisor's gofer — see IRO-116), and
+# uploads the results table + JSON + methodology as an artifact.
+#
+# This is DELIBERATELY separate from the required CI gate (.github/workflows/ci.yml):
+# a slow, host-dependent benchmark must never be able to block a release. It runs on
+# demand, on a weekly schedule, and on PRs that touch the harness or the docs page so
+# the published numbers can be regenerated and reviewed with the change that alters
+# them.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, Monday 06:00 UTC — keeps the published numbers from drifting stale
+    # against new runsc releases without adding load to every push.
+    - cron: "0 6 * * 1"
+  pull_request:
+    paths:
+      - "scripts/bench/**"
+      - "docs/benchmarks.md"
+      - ".github/workflows/sandbox-bench.yml"
+
+# Least-privilege default (Scorecard Token-Permissions).
+permissions:
+  contents: read
+
+jobs:
+  sandbox-bench:
+    # Pin the runner series so the published "runner spec" in docs/benchmarks.md stays
+    # honest: the numbers were captured on this exact hosted-runner class.
+    runs-on: ubuntu-24.04
+    steps:
+      # Third-party actions pinned to a commit SHA (tag in trailing comment), matching
+      # the rest of our workflows — see OpenSSF Scorecard Pinned-Dependencies.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install gVisor (runsc)
+        run: |
+          set -euo pipefail
+          ARCH=$(uname -m)
+          URL="https://storage.googleapis.com/gvisor/releases/release/latest/${ARCH}"
+          sudo curl -fsSL -o /usr/local/bin/runsc "${URL}/runsc"
+          sudo chmod 0755 /usr/local/bin/runsc
+          runsc --version
+
+      - name: Ensure runc baseline is present
+        # runc ships with the runner's Docker/containerd install; install the distro
+        # package only if it is somehow absent so the harness always has a baseline
+        # (the acceptance criteria requires the runc column, not just runsc).
+        run: |
+          set -euo pipefail
+          if command -v runc >/dev/null 2>&1; then
+            echo "runc already on PATH: $(command -v runc)"
+          else
+            sudo apt-get update && sudo apt-get install -y runc
+          fi
+          runc --version
+
+      - name: Relax unprivileged-userns AppArmor gate
+        # ubuntu-24.04 ships kernel.apparmor_restrict_unprivileged_userns=1, which blocks
+        # the gVisor gofer (and rootless-style userns setup) from creating its user
+        # namespace and surfaces as
+        # `cannot create gofer process: fork/exec /proc/self/exe: invalid argument`
+        # (see the WS-G verify harness / IRO-103). Relaxing the knob lets the gofer start;
+        # it does not weaken the sandbox's own isolation (gVisor still wraps it). Non-fatal
+        # on kernels without the knob.
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+
+      - name: gVisor runnability smoke (diagnostic, non-fatal)
+        # Establishes up front whether runsc can launch on this runner (no /dev/kvm, so
+        # systrap is the platform). Captured for triage if the harness later reports
+        # runsc as unavailable; never fails the job.
+        continue-on-error: true
+        run: |
+          set -x
+          sudo runsc --platform=systrap --network=none do echo runsc-systrap-ok \
+            || echo "runsc do (systrap) failed on this runner"
+
+      - name: Run sandbox benchmark harness
+        # Root so `runsc run`/`runc run` can create their state dirs and cgroups
+        # (rootless is not configured on the hosted runner). XDG_RUNTIME_DIR is cleared
+        # so the runtimes use their true-root state dirs. --platform=systrap is required
+        # because hosted runners have no /dev/kvm; --network=none is exactly IronClaw's
+        # posture (no NIC), so it is also the honest thing to measure.
+        env:
+          BENCH_RUNSC_FLAGS: "--platform=systrap --network=none"
+        run: |
+          set -euo pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/bench-results"
+          sudo -E env -u XDG_RUNTIME_DIR \
+            "PATH=$PATH" \
+            "BENCH_RUNSC_FLAGS=${BENCH_RUNSC_FLAGS}" \
+            scripts/bench/sandbox-bench.sh \
+              --iterations 25 \
+              --out "${GITHUB_WORKSPACE}/bench-results"
+
+      - name: Publish results to the job summary
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="${GITHUB_WORKSPACE}/bench-results"
+          {
+            echo "## Sandbox benchmark — gVisor (runsc) vs host (runc)"
+            echo
+            echo '### Methodology'
+            echo
+            echo '```'
+            cat "${OUT}/methodology.txt" 2>/dev/null || echo "(methodology not captured)"
+            echo '```'
+            echo
+            echo '### Results'
+            echo
+            cat "${OUT}/results.md" 2>/dev/null || echo "(no results — harness did not complete)"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload benchmark artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sandbox-bench-results
+          path: bench-results/
+          if-no-files-found: warn
