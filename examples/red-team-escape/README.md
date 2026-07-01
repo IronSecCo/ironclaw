@@ -40,7 +40,7 @@ normal tool API proves the tools are polite; it does not prove the *box* is a bo
 | **Sibling breakout** — inspect / spawn / kill siblings   | No Docker client **and** no Engine socket to reach    | Isolation |
 | **Host filesystem** — read arbitrary host paths          | Host root fs is outside the sandbox mount namespace   | Isolation |
 | **Self-modification** — enable a new tool / capability   | Mandatory gateway holds it for a human decision       | Mandatory gateway |
-| **Cross-session / key custody** — read the master key    | Per-session binds; key via per-session tmpfs (gVisor) | Encryption at rest |
+| **Cross-session / key custody** — read the master key    | Per-session binds only; trust root never mounted in   | Encryption at rest |
 
 ### Network egress — `network=none`
 
@@ -76,38 +76,40 @@ silently made.
   This is a real security regression: do not ship until it is fixed.
 - **GAP** — a **known, tracked** relaxation of the *laptop demo* (the runc fallback),
   not the sealed production posture. Printed loudly and honestly; does **not** fail the
-  run. See below.
+  run. The harness supports this verdict for honesty; with the cross-session key-custody
+  gap now closed (see below), no attack currently reports `GAP`.
 
 ## Honest scope: demo (runc) vs production (gVisor)
 
 The demo trades the *kernel* seal for laptop-friendliness. `docker-compose.demo.yml`
 says so out loud: it runs the runc runtime (**shared host kernel**, not gVisor), the
 control-plane as root, and mounts the Docker socket **into the control-plane** (not the
-sandbox). The **network egress**, **Docker-socket / sibling breakout**, and
-**gateway self-modification** boundaries this harness asserts hold **identically** on
-both paths — that is why they are core PASS assertions.
+sandbox). The **network egress**, **Docker-socket / sibling breakout**, **gateway
+self-modification**, and **cross-session key custody** boundaries this harness asserts
+hold **identically** on both paths — that is why they are core PASS assertions.
 
-Two things the demo genuinely relaxes, which **production gVisor closes**:
+The one thing the demo genuinely relaxes, which **production gVisor closes**:
 
-1. **Shared kernel.** runc shares the host kernel; gVisor (`runsc`) interposes a
-   user-space kernel with a seccomp-bounded host surface, all caps dropped,
-   `no_new_privs`, and a read-only rootfs. The demo cannot demonstrate this on a stock
-   laptop without gVisor installed — so the harness does not claim to.
-2. **Whole-state-dir bind (`GAP` row).** The runc fallback binds the **entire**
-   control-plane state directory read-write into every sandbox so the per-session queue
-   paths line up. That also exposes the host master key and sibling sessions' key
-   material to a compromised sandbox. On the gVisor posture each sandbox binds **only
-   its own** `/queue` files (read-only inbound, read-write outbound) and receives its
-   key via a per-session tmpfs, so nothing cross-session is reachable. This is a real
-   defect on the demo path, filed and tracked as **IRO-259** — the harness surfaces it
-   as a `GAP` rather than pretending it is contained. Reproduced: a compromised sandbox
-   can `head -c 40 /var/lib/ironclaw/state/host-master.key` (the host master key) and
-   read sibling `keys/<session>/session.key` files. The fix is per-session binds in the
-   Docker isolator instead of the whole-state-dir bind; once it lands this row becomes a
-   core PASS assertion.
+- **Shared kernel.** runc shares the host kernel; gVisor (`runsc`) interposes a
+  user-space kernel with a seccomp-bounded host surface, all caps dropped,
+  `no_new_privs`, and a read-only rootfs. The demo cannot demonstrate this on a stock
+  laptop without gVisor installed — so the harness does not claim to.
 
-We would rather ship a harness that tells the truth — "here is what held, and here is
-the one gap we are closing" — than one that only ever prints green.
+**Cross-session key custody used to be a gap on the demo path (IRO-259) — it is now
+closed.** The runc fallback originally bind-mounted the **entire** control-plane state
+directory into every sandbox so the per-session queue paths lined up, which also
+exposed the host master key and sibling sessions' key material to a compromised
+sandbox. The Docker isolator now scopes its binds **per session** — it translates and
+mounts only that session's own `sessions/<id>` queue files (read-only inbound,
+read-write outbound) and its `keys/<id>/session.key` (read-only), exactly as the
+gVisor/OCI posture does — so `host-master.key`, `sealed-keys.json`, and every sibling
+`keys/<session>/session.key` are never mounted in and are unreachable from inside the
+box. The harness asserts this directly as a **core PASS** row (probing all three), so a
+future change that re-widens the bind to the whole state dir would fail the run.
+
+We would rather ship a harness that tells the truth — "here is exactly what held, and
+here is the single seal only production gVisor adds" — than one that only ever prints
+green.
 
 ## Flags
 

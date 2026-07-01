@@ -29,16 +29,30 @@ import (
 // the Docker Engine API over a unix socket (no docker CLI dependency).
 type DockerIsolator struct {
 	client  *http.Client
-	network string   // docker network to attach (e.g. a private bridge)
-	binds   []string // volume binds replicated into every sandbox, "name:/mount[:ro]"
-	user    string   // container user, e.g. "0:0"
+	network string            // docker network to attach (e.g. a private bridge)
+	mounts  []dockerBaseMount // host<->container base mappings for per-session bind scoping
+	user    string            // container user, e.g. "0:0"
+}
+
+// dockerBaseMount is one host<->container path mapping parsed from a
+// "hostPath:containerPath[:ro]" bind string. It is NOT replicated wholesale into
+// every sandbox; it is the translation table Launch uses to remap the per-session
+// paths a spec references (queue files, key file, sockets) from the control-plane's
+// container-view (e.g. /var/lib/ironclaw/state/...) to the host path the Docker
+// daemon must bind, then binds ONLY those precise paths. This is what keeps the host
+// master key and sibling session keys — which no spec references — out of every
+// sandbox (IRO-259), matching the hardened gVisor/OCI granularity.
+type dockerBaseMount struct {
+	host      string // host-side path the Docker daemon sees
+	container string // path the control-plane + sandbox see (spec paths are in this view)
 }
 
 // NewDocker constructs a DockerIsolator. socket is the Docker Engine API socket
 // (e.g. /var/run/docker.sock); network is the docker network to attach; binds are
-// the volume mounts ("vol:/path") that carry the per-session queues/key and the
-// model-proxy socket into the sandbox at the SAME paths the control plane uses; and
-// user is the container uid:gid.
+// the BASE host<->container mappings ("hostPath:containerPath[:ro]") used to
+// translate the per-session paths in each SandboxSpec (queues/key/sockets) into the
+// host paths the sandbox binds — the isolator then mounts ONLY those per-session
+// paths, never the whole shared subtree; and user is the container uid:gid.
 func NewDocker(socket, network string, binds []string, user string) *DockerIsolator {
 	return &DockerIsolator{
 		client: &http.Client{
@@ -50,9 +64,30 @@ func NewDocker(socket, network string, binds []string, user string) *DockerIsola
 			},
 		},
 		network: network,
-		binds:   binds,
+		mounts:  parseDockerBaseMounts(binds),
 		user:    user,
 	}
+}
+
+// parseDockerBaseMounts turns "hostPath:containerPath[:ro]" strings into base
+// mappings. The optional trailing ":ro" (a mount mode from the legacy bind syntax)
+// is dropped — per-session read-only/read-write is decided per path in sessionBinds,
+// not by the base mapping. Malformed entries (missing the host<->container colon)
+// are skipped.
+func parseDockerBaseMounts(binds []string) []dockerBaseMount {
+	var out []dockerBaseMount
+	for _, b := range binds {
+		b = strings.TrimSpace(b)
+		if b == "" {
+			continue
+		}
+		parts := strings.Split(b, ":")
+		if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
+			continue
+		}
+		out = append(out, dockerBaseMount{host: parts[0], container: parts[1]})
+	}
+	return out
 }
 
 type dockerCreateReq struct {
@@ -87,7 +122,7 @@ func (d *DockerIsolator) Launch(ctx context.Context, spec SandboxSpec) (Handle, 
 		User:   d.user,
 		Labels: map[string]string{"ironclaw.session": string(spec.SessionID)},
 		HostConfig: dockerHostConfig{
-			Binds:       d.binds,
+			Binds:       d.sessionBinds(spec),
 			NetworkMode: d.network,
 			AutoRemove:  false,
 		},
@@ -101,6 +136,90 @@ func (d *DockerIsolator) Launch(ctx context.Context, spec SandboxSpec) (Handle, 
 		return nil, fmt.Errorf("host/isolation: docker start %s: %w", name, err)
 	}
 	return &dockerHandle{iso: d, id: created.ID}, nil
+}
+
+// sessionBinds computes the PER-SESSION bind list for spec: only the precise paths
+// the sandbox needs (its own queue files, key file, workspace, and host-mediated
+// sockets), each translated from the control-plane's container-view to the host path
+// the Docker daemon binds. It deliberately mirrors the hardened gVisor/OCI mount
+// granularity (internal/host/isolation/oci.go) — inbound read-only, outbound
+// read-write, key read-only, sockets read-write — so a runc-fallback sandbox is
+// scoped to exactly its own session subtree. The host master key, the sealed-key
+// store, and sibling sessions/keys are NEVER referenced by a spec, so they are never
+// bound: no sandbox can read another session's key or the host trust root (IRO-259).
+//
+// A spec path that falls under no base mapping is left UNBOUND (it was never part of
+// the shared subtree), preserving the prior behavior for paths outside the mapped
+// state dir (e.g. a model-proxy socket the operator did not map in for the offline
+// mock demo, which makes no model call).
+func (d *DockerIsolator) sessionBinds(spec SandboxSpec) []string {
+	type want struct {
+		path string
+		ro   bool
+	}
+	wants := []want{
+		{spec.ReadOnlyInboundPath, true},    // inbound queue: sandbox reads only
+		{spec.ReadWriteOutboundPath, false}, // outbound queue: sandbox is sole writer
+		{spec.KeyPath, true},                // per-session key file: read only
+		{spec.WorkspacePath, false},         // durable workspace (when set): rw
+		{spec.MemoryPath, false},            // durable per-group memory (when set): rw
+		{spec.SharedReadOnlyPath, true},     // global shared assets (when set): ro
+		{spec.ModelProxySocket, false},      // host model-proxy socket: rw (needs connect)
+		{spec.EgressSocket, false},          // optional egress-broker socket: rw
+		{spec.MCPSocket, false},             // optional per-session MCP socket: rw
+	}
+	for _, sm := range spec.SkillMounts {
+		wants = append(wants, want{sm.HostPath, true}) // installed-skill bundles: ro
+	}
+
+	seen := make(map[string]struct{})
+	var binds []string
+	for _, w := range wants {
+		if w.path == "" {
+			continue
+		}
+		hostPath, ok := d.hostPathFor(w.path)
+		if !ok {
+			// Not under any mapped subtree: leave it unbound, as before.
+			continue
+		}
+		bind := hostPath + ":" + w.path
+		if w.ro {
+			bind += ":ro"
+		}
+		if _, dup := seen[bind]; dup {
+			continue
+		}
+		seen[bind] = struct{}{}
+		binds = append(binds, bind)
+	}
+	return binds
+}
+
+// hostPathFor translates a control-plane container-view path to the host path the
+// Docker daemon must bind, using the longest-matching base mapping. ok is false when
+// no base mapping covers the path (the caller then skips the bind). The longest match
+// wins so a nested mapping is preferred over a broader one.
+func (d *DockerIsolator) hostPathFor(containerPath string) (string, bool) {
+	best := -1
+	var host string
+	for _, m := range d.mounts {
+		if containerPath == m.container {
+			if len(m.container) > best {
+				best, host = len(m.container), m.host
+			}
+			continue
+		}
+		if strings.HasPrefix(containerPath, m.container+"/") {
+			if len(m.container) > best {
+				best, host = len(m.container), m.host+containerPath[len(m.container):]
+			}
+		}
+	}
+	if best < 0 {
+		return "", false
+	}
+	return host, true
 }
 
 type dockerHandle struct {
