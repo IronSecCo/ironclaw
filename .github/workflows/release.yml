@@ -740,46 +740,54 @@ jobs:
             exit 0
           fi
 
-          branch="brew/track-${TAG}"
+          # ONE rolling bump branch (fixed name, no tag suffix). Every release reuses
+          # this single branch and its single open PR instead of stacking a fresh
+          # per-tag PR each time. The old per-tag flow (brew/track-vX.Y.Z) left an
+          # open PR behind on every release; once two were open they went
+          # DIRTY/CONFLICTING against main and each other, and the formula sat three
+          # releases stale (IRO-270). A rolling branch that is force-reset to the
+          # current main tip every release is always cleanly rebased onto main, so the
+          # tracking PR can never conflict, and there is never more than one open.
+          branch="brew/track"
           base_sha="$(git rev-parse HEAD)"
           # Blob OID of the formula already on main == the Contents API `sha` we must
           # pass to replace it. Git's blob hash and GitHub's content sha are the same.
+          # After the reset below the rolling branch == main, so this is the blob to
+          # replace on the branch too.
           file_sha="$(git rev-parse "HEAD:Formula/ironclaw.rb")"
           content_b64="$(base64 -w0 < Formula/ironclaw.rb)"
 
-          # Idempotent: drop a leftover branch from a re-run, then recreate it at the
-          # current main tip.
-          gh api -X DELETE "repos/${REPO}/git/refs/heads/${branch}" 2>/dev/null || true
-          gh api -X POST "repos/${REPO}/git/refs" \
-            -f "ref=refs/heads/${branch}" \
-            -f "sha=${base_sha}"
+          # Create the rolling branch at the current main tip, or force-reset it there
+          # if it already exists (leftover from a prior release whose PR is still open,
+          # or was merged without deleting the branch). Force-reset is what keeps the
+          # PR rebased and conflict-free — never a plain create-if-missing.
+          if gh api "repos/${REPO}/git/refs/heads/${branch}" >/dev/null 2>&1; then
+            gh api -X PATCH "repos/${REPO}/git/refs/heads/${branch}" \
+              -f "sha=${base_sha}" -F "force=true"
+          else
+            gh api -X POST "repos/${REPO}/git/refs" \
+              -f "ref=refs/heads/${branch}" \
+              -f "sha=${base_sha}"
+          fi
 
-          # Commit the regenerated formula onto that branch via the Contents API so
-          # the commit is signed by GitHub (required_signatures on main).
+          # Commit the regenerated formula onto the rolling branch via the Contents API
+          # so the commit is signed by GitHub (required_signatures on main).
           gh api -X PUT "repos/${REPO}/contents/Formula/ironclaw.rb" \
             -f "message=chore(brew): track ${TAG} in the Homebrew formula" \
             -f "content=${content_b64}" \
             -f "sha=${file_sha}" \
             -f "branch=${branch}"
 
-          # Open the tracking PR with the scoped reviewer-App token (PR_TOKEN), NOT the
-          # default GITHUB_TOKEN — the latter cannot create PRs while the repo setting
-          # "Allow GitHub Actions to create and approve pull requests" stays OFF
-          # (IRO-203 keeps it off; we ship branch-protection as a feature). The signed
-          # branch above is already pushed via GITHUB_TOKEN; only the PR remains.
-          #
+          # emit_manual_fallback writes the human runbook to the job summary and exits 1.
           # Do NOT swallow a failure: a silently-skipped PR strands `brew install` on a
           # stale release (it pinned v0.1.90 across v0.1.94/95/96 before IRO-202 caught
-          # it). Fail LOUD with a one-click manual fallback in the job summary, but treat
-          # an already-open PR as success.
-          #
-          # emit_manual_fallback writes the human runbook to the job summary and exits 1.
+          # it). Fail LOUD with a one-click manual fallback in the job summary.
           emit_manual_fallback() {
             echo "::error title=Homebrew formula bump PR not opened::${1}"
             {
               echo "### ⚠️ Homebrew formula bump for \`${TAG}\` needs a manual PR"
               echo
-              echo "The GitHub-signed branch [\`${branch}\`](https://github.com/${REPO}/tree/${branch}) was pushed, but the workflow could not open its PR:"
+              echo "The GitHub-signed rolling branch [\`${branch}\`](https://github.com/${REPO}/tree/${branch}) was updated to \`${TAG}\`, but the workflow could not open its PR:"
               echo
               echo '```'
               printf '%s\n' "${1}"
@@ -795,23 +803,52 @@ jobs:
             exit 1
           }
 
-          # No token => the App-token mint step (continue-on-error) failed. Don't try
-          # GITHUB_TOKEN as a fallback — it can't create the PR either and would just
-          # emit a confusing error. Go straight to the loud manual fallback.
-          if [ -z "${PR_TOKEN:-}" ]; then
-            emit_manual_fallback "scoped reviewer-App token was not minted for ${branch} (actions/create-github-app-token failed — see the 'Mint a scoped reviewer-App token' step)."
+          title="chore(brew): track ${TAG} in the Homebrew formula"
+          body="Automated by the Release workflow: regenerates \`Formula/ironclaw.rb\` from the signed \`SHA256SUMS\` of \`${TAG}\` so \`brew install ironsecco/ironclaw/ironclaw\` tracks the latest release. This is the single **rolling** bump PR — it is force-reset onto the current main tip every release, so it never conflicts and supersedes any prior bump. Opened by the reviewer App (PR creation only — a human still approves+merges). Merge to publish; the push trigger ignores this file so the merge does not cut another release."
+
+          # Is the rolling PR already open? The force-reset + signed commit above have
+          # already refreshed its diff to ${TAG}; we only need to refresh its metadata.
+          existing="$(gh pr list --repo "${REPO}" --head "${branch}" --state open \
+            --json number -q '.[0].number' 2>/dev/null || true)"
+
+          if [ -n "${existing:-}" ]; then
+            # Refresh title/body. gh pr edit works with the default GITHUB_TOKEN — the
+            # OFF repo setting only blocks PR *creation/approval*, not edits.
+            if gh pr edit "${existing}" --repo "${REPO}" --title "${title}" --body "${body}"; then
+              echo "Refreshed rolling tracking PR #${existing} to ${TAG}."
+            else
+              echo "::warning title=Rolling bump PR not refreshed::could not update PR #${existing} metadata (non-fatal; its diff already tracks ${TAG})."
+            fi
+          else
+            # No open rolling PR — create one. Creation needs the scoped reviewer-App
+            # token (PR_TOKEN); the default GITHUB_TOKEN cannot create PRs while the
+            # repo setting "Allow GitHub Actions to create and approve pull requests"
+            # stays OFF (IRO-203 keeps it off; we ship branch-protection as a feature).
+            if [ -z "${PR_TOKEN:-}" ]; then
+              emit_manual_fallback "scoped reviewer-App token was not minted for ${branch} (actions/create-github-app-token failed — see the 'Mint a scoped reviewer-App token' step)."
+            fi
+            if out="$(GH_TOKEN="${PR_TOKEN}" gh pr create \
+              --repo "${REPO}" \
+              --base main \
+              --head "${branch}" \
+              --title "${title}" \
+              --body "${body}" 2>&1)"; then
+              echo "Opened rolling tracking PR: ${out}"
+            elif printf '%s' "$out" | grep -qi 'already exists'; then
+              echo "A rolling tracking PR for ${branch} already exists — left it in place."
+            else
+              emit_manual_fallback "gh pr create failed for ${branch}: ${out}"
+            fi
           fi
 
-          body="Automated by the Release workflow: regenerates \`Formula/ironclaw.rb\` from the signed \`SHA256SUMS\` of \`${TAG}\` so \`brew install ironsecco/ironclaw/ironclaw\` tracks the latest release. Opened by the reviewer App (PR creation only — a human still approves+merges). Merge to publish; the push trigger ignores this file so the merge does not cut another release."
-          if out="$(GH_TOKEN="${PR_TOKEN}" gh pr create \
-            --repo "${REPO}" \
-            --base main \
-            --head "${branch}" \
-            --title "chore(brew): track ${TAG} in the Homebrew formula" \
-            --body "${body}" 2>&1)"; then
-            echo "Opened tracking PR: ${out}"
-          elif printf '%s' "$out" | grep -qi 'already exists'; then
-            echo "A tracking PR for ${TAG} already exists — left it in place."
-          else
-            emit_manual_fallback "gh pr create failed for ${branch}: ${out}"
-          fi
+          # Housekeeping: close any legacy per-tag bump PRs the pre-IRO-270 flow left
+          # open (brew/track-vX.Y.Z). They are superseded by the rolling PR and would
+          # otherwise sit CONFLICTING forever. Non-fatal — never block the release on
+          # cleanup of an old PR.
+          for stale in $(gh pr list --repo "${REPO}" --state open --json number,headRefName \
+              -q '.[] | select(.headRefName | startswith("brew/track-")) | .number' 2>/dev/null || true); do
+            gh pr close "${stale}" --repo "${REPO}" --delete-branch \
+              --comment "Superseded by the single rolling Homebrew bump PR tracking ${TAG} (IRO-270)." \
+              && echo "Closed superseded per-tag bump PR #${stale}." \
+              || echo "::warning::could not close superseded per-tag PR #${stale} (non-fatal)."
+          done
