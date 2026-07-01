@@ -5,7 +5,21 @@ control-plane. Each one is a directory with a `README.md` (what it does and how
 to try it) and a `setup.sh` (the exact `ironctl` commands, idempotent where the
 API allows).
 
-### Run end-to-end credential-free (mock provider)
+### Start here: prove it works in one command
+
+[**`hello-ironclaw/`**](hello-ironclaw/) is the canonical zero-credential
+end-to-end check. One command builds the sandbox image, brings up the offline demo
+control-plane, sends a chat through the **real** secured path (engage → per-session
+Docker sandbox → encrypted queue → delivery), and **asserts** the reply comes back —
+then tears it down. It exits non-zero if the round-trip breaks, so it also doubles as
+IronClaw's user-facing CI smoke test
+([`example-smoke.yml`](../.github/workflows/example-smoke.yml)):
+
+```sh
+examples/hello-ironclaw/run.sh        # build → up → assert reply → tear down
+```
+
+### Run a scenario end-to-end credential-free (mock provider)
 
 Three recipes ship a `run-mock.sh` that exercises the **whole** inbound → agent →
 reply pipeline against the offline `mock` provider — **no model key, no channel
@@ -22,6 +36,7 @@ docker compose -f docker-compose.demo.yml down            # tear down
 
 | Recipe | What it shows | Credential-free demo |
 |--------|---------------|:--------------------:|
+| [`hello-ironclaw/`](hello-ironclaw/) | The full path working end-to-end, asserted — the smoke test + first "it works". | ✅ `run.sh` (self-contained) |
 | [`scheduled-report/`](scheduled-report/) | An agent that wakes itself on a schedule (`schedule_task`), summarizes, and posts to a channel. | ✅ `run-mock.sh` |
 | [`webhook-responder/`](webhook-responder/) | An inbound HTTP webhook routed to an agent that replies (poll or push-back via a `webhook` destination). | ✅ `run-mock.sh` |
 | [`slack-triage/`](slack-triage/) | A bot that classifies/labels **every** incoming Slack message. | ✅ `run-mock.sh` |
