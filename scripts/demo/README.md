@@ -14,6 +14,18 @@ the reply flows back through the encrypted per-session queue.
 | `gen-profile.mjs` | Emits an iTerm2 `.itermcolors` profile in the IronClaw steel-blue palette (kept for reference / other renderers). |
 | `ironclaw-steel.itermcolors` | The generated brand profile. |
 | `build.sh` | Full pipeline: cast → `svg-term-cli` → brand recolor → `docs/assets/demo.svg`. |
+| `gen-walkthrough.mjs` | Deterministically emits `docs/assets/walkthrough.cast` — the **end-to-end** product walkthrough in three acts (zero-cred demo → connect a real provider → first approved task). Same honesty + determinism rules as `gen-cast.mjs`; ids/flags match the real CLI, secrets are synthetic and redacted. |
+| `build-walkthrough.sh` | Full pipeline for the walkthrough: cast → `svg-term-cli` → brand recolor → **prefers-reduced-motion guard** → `docs/assets/walkthrough.svg`. |
+
+### Walkthrough asset (`docs/assets/walkthrough.{cast,svg}`)
+
+A longer, narrated re-enactment for users who want the whole arc, not just the first reply.
+It is embedded below the README hero, in the landing `#demo` section, and as a docs
+quickstart callout. `build-walkthrough.sh` adds one step over `build.sh`: it injects a
+`@media (prefers-reduced-motion: reduce)` rule **into the SVG** so the scroll freezes on
+its final frame (the approved-change audit trail). Because the guard travels inside the
+asset, it is honored everywhere the SVG is embedded as `<img>` — GitHub and the landing
+alike — with no separate poster file.
 
 ## Regenerate
 

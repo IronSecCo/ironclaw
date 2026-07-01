@@ -12,6 +12,14 @@ Two short paths, pick one:
 - **[Your first approved action](#your-first-approved-action)** — exercise the human-approval gateway,
   the core security invariant, from a clean clone.
 
+Here is the whole arc both paths add up to — zero-credential demo, connecting a real provider, and a
+first agent task held for approval — in about half a minute:
+
+<figure markdown="span">
+![End-to-end IronClaw walkthrough in three acts. Act 1: one command starts the offline mock-agent and it replies with no API key. Act 2: connect a real provider by exporting a host-side, redacted ANTHROPIC_API_KEY and starting the real control-plane, with each session sealed by gVisor and network=none. Act 3: the agent submits a persona change that is HELD at the human-approval gateway, a human approves it, and the submit, approve, apply trail lands on the append-only audit log.](assets/walkthrough.svg){ width="900" loading=lazy decoding=async }
+<figcaption>Zero-cred demo → connect a real provider → first approved task. A faithful re-enactment of the commands below; the animation freezes on the final frame under <code>prefers-reduced-motion</code>.</figcaption>
+</figure>
+
 ---
 
 ## A working chat in ~5 minutes (no credentials)
