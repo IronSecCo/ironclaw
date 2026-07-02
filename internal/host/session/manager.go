@@ -157,9 +157,9 @@ type EgressProvisioner interface {
 // ModelSelection is an optional per-session model backend override. The zero value
 // (empty Provider) keeps the default Anthropic backend and its default host/model.
 type ModelSelection struct {
-	Provider string // "anthropic" (default), "openai", "openrouter", "codex", "gemini", or "vertex"
+	Provider string // "anthropic" (default), "openai", "openrouter", "codex", "gemini", "vertex", "bedrock", or "local"
 	Model    string // model id override; empty = the provider's default
-	Host     string // upstream host override; empty = the provider's default
+	Host     string // upstream host override; empty = the provider's default (required for "bedrock": the regional bedrock-runtime host)
 	// Project and Location are the Google Cloud project id and region for the
 	// "vertex" provider; both ride in the request URL path. Ignored by every other
 	// provider. Empty Location uses the Vertex default region.

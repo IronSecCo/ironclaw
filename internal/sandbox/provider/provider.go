@@ -86,6 +86,14 @@ const (
 	// "100% local, zero cloud credential" path: the model runs on the same box, so no
 	// data leaves it. See New (requires UpstreamHost) and modelproxy.WithInsecureUpstreams.
 	KindLocal = "local"
+	// KindBedrock routes to the AWS Bedrock Runtime
+	// (bedrock-runtime.{region}.amazonaws.com) for orgs that consume models only
+	// through Bedrock. The primary target is Claude on Bedrock, which speaks the
+	// Anthropic Messages wire format — only the envelope differs: the model id rides
+	// in the URL path, the body carries anthropic_version:"bedrock-2023-05-31" and no
+	// model field, and auth is AWS SigV4 signed host-side by modelproxy.BedrockInjector
+	// (never a static header the sandbox could hold). See NewBedrock.
+	KindBedrock = "bedrock"
 	// KindMock is a deterministic, offline backend (no network, no credential)
 	// for local demos and end-to-end tests. See MockProvider.
 	KindMock = "mock"
@@ -147,6 +155,11 @@ func New(cfg Config) (Provider, error) {
 			return nil, fmt.Errorf("sandbox/provider: local provider requires an upstream host (set --model-host, e.g. localhost:11434)")
 		}
 		return NewOpenAI(cfg), nil
+	case KindBedrock:
+		// AWS Bedrock Runtime (Claude on Bedrock). NewBedrock requires an explicit
+		// upstream host — the SigV4 signature is region-bound, so there is no safe
+		// default. The control-plane backfills the deployment's regional host.
+		return NewBedrock(cfg)
 	case KindMock:
 		// Deterministic offline backend; ignores host/model/socket entirely.
 		return NewMock(cfg), nil
