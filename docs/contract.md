@@ -1,3 +1,8 @@
+---
+title: "The frozen contract: the control-plane and sandbox seam"
+description: internal/contract is the single frozen seam shared by the IronClaw control-plane and the sandbox. Learn the freeze rule, the RFC process, and why a stable wire boundary keeps isolation trustworthy.
+---
+
 # The frozen contract
 
 `internal/contract` is the single seam shared by the control-plane and

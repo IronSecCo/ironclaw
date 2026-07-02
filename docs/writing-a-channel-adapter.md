@@ -1,3 +1,8 @@
+---
+title: Writing a custom channel adapter
+description: Build a custom IronClaw channel adapter to deliver agent messages to Slack, Discord, a webhook, or any platform. Learn the interface, the house pattern, and how adapters stay small and isolated.
+---
+
 # Writing a channel adapter
 
 A **channel adapter** delivers an agent's outbound messages to one platform (Slack,

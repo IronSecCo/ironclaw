@@ -1,3 +1,8 @@
+---
+title: IronClaw public roadmap (road to 1.0)
+description: A living view of where IronClaw is and where it is going. The security backend is complete; this page tracks the road to a 1.0 product, including a web UI, product parity, and public-launch readiness.
+---
+
 # IronClaw — public roadmap (Road to 1.0)
 
 A living view of where IronClaw is and where it's going. The **security backend

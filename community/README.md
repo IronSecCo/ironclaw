@@ -9,6 +9,7 @@ version-controlled here but intentionally **not** published to the docs site
 | --- | --- | --- |
 | [adoption-metrics.md](adoption-metrics.md) | Tracked snapshot of stars, traffic, clones, downloads, discussions. Baseline + targets. | Weekly refresh |
 | [launch-engagement-playbook.md](launch-engagement-playbook.md) | Where we post, monitoring cadence, reusable response templates. | Updated per launch |
+| [seo-audit.md](seo-audit.md) | On-site SEO / discoverability audit + directory target list (now vs launch-gated). | Per audit (IRO-277) |
 | [amplification-submissions-queue.md](amplification-submissions-queue.md) | Staged newsletter / directory submissions, held for the IRO-40 launch gate. | Per launch wave |
 | [security-proof-writeup.md](security-proof-writeup.md) | "We tried to break our own sandbox" proof piece (blog + Show HN + social), built on the real red-team harness output. Gated draft, needs CEO/board sign-off. | Per launch |
 | [social-proof.md](social-proof.md) | Collection process, sourcing guardrails, and raw-capture ledger behind the public [social-proof wall](../docs/social-proof.md). | 24h / 72h / 1wk, then weekly |

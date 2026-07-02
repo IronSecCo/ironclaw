@@ -1,3 +1,8 @@
+---
+title: "Credential vault: request-time secret injection"
+description: IronClaw's credential vault lets an agent reach a secret by logical name (vault://) while never holding the key. Secrets are injected host-side per session over isolated sockets, deny-by-default.
+---
+
 # Credential vault (request-time injection)
 
 Long-running agents often need credentials for the third-party APIs they call. IronClaw

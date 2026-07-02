@@ -1,3 +1,8 @@
+---
+title: "API reference: the IronClaw control-plane HTTP API"
+description: The machine-readable HTTP API for the IronClaw control-plane, consumed by ironctl and the web console. Covers the /v1 gateway, registry, and health surfaces, bound only to the private mesh.
+---
+
 # API reference
 
 The control-plane exposes a small HTTP API consumed by `ironctl` and the web

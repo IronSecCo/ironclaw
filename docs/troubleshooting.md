@@ -1,3 +1,8 @@
+---
+title: Troubleshooting IronClaw and ironctl doctor
+description: Fix common IronClaw setup problems. ironctl doctor runs read-only preflight checks against your environment and control-plane and explains every pass, warn, and fail result.
+---
+
 # Troubleshooting
 
 > _"I followed the steps, it didn't work, and I don't know why."_

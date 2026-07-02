@@ -1,3 +1,8 @@
+---
+title: "Performance and footprint: gVisor sandbox overhead, measured"
+description: Measured cold-start, warm-start, CPU, and syscall overhead of running each AI agent in its own gVisor (runsc) sandbox, with a reproducible runc baseline you can run yourself.
+---
+
 # Sandbox performance & footprint
 
 IronClaw runs every agent inside its own **gVisor (`runsc`) sandbox** —
