@@ -44,18 +44,38 @@ func OpenInbound(path string, k contract.SessionKey) (contract.InboundWriter, er
 
 // WriteMessageIn inserts a row into messages_in. Times are stored RFC3339Nano in
 // UTC; pointer fields map to SQL NULL when nil.
+//
+// Seq allocation is authoritative HERE, not in the caller. Host-side inbound
+// writers (router, delivery, sweep) pass Seq==0 and this writer assigns the next
+// EVEN seq inside the same INSERT statement, computed from the persisted MAX(seq).
+// Because SQLite serializes writers (busy_timeout blocks a concurrent connection
+// until the first commits), the SELECT MAX(seq)+2 and the INSERT are one atomic
+// step — so two independent host writers to the same session queue can never mint
+// the same seq and collide on UNIQUE(seq) (IRO-278). A non-zero Seq is honored
+// verbatim (explicit seqs in tests / fixtures) but must not be minted by more than
+// one uncoordinated writer.
 func (h *hostInbound) WriteMessageIn(m contract.MessageIn) error {
-	_, err := h.db.Exec(`
-        INSERT INTO messages_in
-            (id, seq, kind, timestamp, status, process_after, recurrence, series_id,
-             tries, trigger, platform_id, channel_type, thread_id, content,
-             source_session_id, on_wake)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		string(m.ID), m.Seq, string(m.Kind), tsString(m.Timestamp), m.Status,
+	seqPlaceholder := "?"
+	args := []any{string(m.ID)}
+	if m.Seq == 0 {
+		// Next even seq, atomic within this write statement.
+		seqPlaceholder = "COALESCE((SELECT MAX(seq) FROM messages_in), 0) + 2"
+	} else {
+		args = append(args, m.Seq)
+	}
+	args = append(args,
+		string(m.Kind), tsString(m.Timestamp), m.Status,
 		tsPtr(m.ProcessAfter), strPtr(m.Recurrence), strPtr(m.SeriesID),
 		m.Tries, m.Trigger, strPtr(m.PlatformID), strPtr(m.ChannelType),
 		strPtr(m.ThreadID), m.Content, strPtr(m.SourceSessionID), boolInt(m.OnWake),
 	)
+	query := fmt.Sprintf(`
+        INSERT INTO messages_in
+            (id, seq, kind, timestamp, status, process_after, recurrence, series_id,
+             tries, trigger, platform_id, channel_type, thread_id, content,
+             source_session_id, on_wake)
+        VALUES (?,%s,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, seqPlaceholder)
+	_, err := h.db.Exec(query, args...)
 	return err
 }
 

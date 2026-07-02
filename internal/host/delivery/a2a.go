@@ -101,8 +101,10 @@ func (d *Delivery) writeA2AInbound(target, from registry.Session, msg contract.M
 
 	src := string(from.ID)
 	in := contract.MessageIn{
-		ID:              d.nextA2AID(target.ID),
-		Seq:             d.nextEvenSeq(),
+		ID: d.nextA2AID(target.ID),
+		// Seq==0: the inbound writer allocates the next EVEN seq atomically against the
+		// persisted target queue (IRO-278); do not mint seqs here.
+		Seq:             0,
 		Kind:            contract.KindChat,
 		Timestamp:       time.Now().UTC(),
 		Status:          contract.StatusQueued,
