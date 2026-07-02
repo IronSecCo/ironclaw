@@ -1,3 +1,8 @@
+---
+title: "Release runbook: cutting, verifying, and yanking a release"
+description: Operational guide for cutting, verifying, and yanking an IronClaw release. Covers the signed, attested release pipeline, container image publishing, and install scripts.
+---
+
 # IronClaw Release Runbook
 
 Operational guide for cutting, verifying, and yanking an IronClaw release.

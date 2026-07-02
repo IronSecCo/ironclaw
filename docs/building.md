@@ -1,3 +1,8 @@
+---
+title: Building IronClaw from source
+description: Build, vet, and test IronClaw from source with CGO_ENABLED=1 and a C toolchain. The encrypted-SQLite (SQLCipher) binding is vendored, so no system libsqlcipher is required.
+---
+
 # Building
 
 IronClaw builds, vets, and tests with **`CGO_ENABLED=1`** and a C toolchain — the

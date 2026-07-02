@@ -1,3 +1,8 @@
+---
+title: Production deployment and self-hosting guide
+description: Deploy a durable, hardened, self-hosted IronClaw for real traffic and real credentials. Covers deployment paths, Docker Compose, Caddy TLS, and production hardening.
+---
+
 # Production deployment & self-hosting
 
 The [quickstart](quickstart.md) gets you a working agent in minutes. This guide takes

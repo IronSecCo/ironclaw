@@ -1,3 +1,8 @@
+---
+title: "Social proof: who is building on and starring IronClaw"
+description: Verifiable public signals about IronClaw, from stars and notable adopters to quotable comments on public threads and press, newsletter, and directory mentions. Every entry links back to a source you can check.
+---
+
 # Social proof
 
 What people are building, saying, and starring. This wall collects verifiable public
