@@ -64,8 +64,8 @@ const Setup = (() => {
         "export OPENAI_API_KEY=sk-…",
         "export OPENROUTER_API_KEY=sk-or-…",
       ],
-      docLabel: "Model setup",
-      docHref: DOCS + "quickstart/",
+      docLabel: "Choose a provider",
+      docHref: DOCS + "providers/",
     },
     channel: {
       intro: "Arm a channel by exporting its bot token host-side, then restart:",

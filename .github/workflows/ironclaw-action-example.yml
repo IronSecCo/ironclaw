@@ -1,0 +1,91 @@
+name: IronClaw action example (zero-cred)
+
+# Green-run proof for the reusable `IronClaw` action (.github/actions/ironclaw).
+# It runs the exact thing an external adopter would run — `uses: <the action>` with
+# a prompt — against the offline `mock` provider, so it needs NO secrets: ubuntu
+# ships Docker, jq, and curl. This is the "green run of the example workflow in this
+# repo proves it works" acceptance gate for IRO-274, and the copy-paste template that
+# examples/ci-action/ documents.
+#
+# Additive and non-gating: NOT a required status check, so it can never block a
+# release — it surfaces a broken action before an adopter hits it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/actions/ironclaw/**"
+      - ".github/workflows/ironclaw-action-example.yml"
+      - "docker-compose.demo.yml"
+      - "container/**"
+      - "cmd/sandbox/**"
+      - "cmd/controlplane/**"
+      - "internal/host/api/ui_chat.go"
+      - "internal/host/isolation/**"
+      - "examples/red-team-escape/**"
+  pull_request:
+    paths:
+      - ".github/actions/ironclaw/**"
+      - ".github/workflows/ironclaw-action-example.yml"
+      - "docker-compose.demo.yml"
+      - "container/**"
+      - "cmd/sandbox/**"
+      - "cmd/controlplane/**"
+      - "internal/host/api/ui_chat.go"
+      - "internal/host/isolation/**"
+      - "examples/red-team-escape/**"
+  workflow_dispatch:
+
+# Least-privilege default (Scorecard Token-Permissions): the jobs only read the repo.
+permissions:
+  contents: read
+
+jobs:
+  run-agent:
+    # Prove the core wrapper: run an agent against a prompt and get the reply back.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Pinned to a commit SHA (tag in trailing comment) so a moved tag cannot change
+      # what runs in CI. Dependabot bumps these.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Run a sandboxed IronClaw agent against a prompt
+        id: agent
+        uses: ./.github/actions/ironclaw
+        with:
+          prompt: "hello from the IronClaw action example"
+          provider: mock
+      - name: Show the reply and assert it came back
+        env:
+          REPLY: ${{ steps.agent.outputs.reply }}
+        run: |
+          echo "agent reply: $REPLY"
+          case "$REPLY" in
+            "mock-agent received: "*) echo "ok: mock echo returned" ;;
+            *) echo "FAIL: unexpected reply" >&2; exit 1 ;;
+          esac
+      - name: Upload the run report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ironclaw-run-report
+          path: ${{ steps.agent.outputs.report-path }}
+
+  containment-report:
+    # Prove the opt-in proof artifact: run the agent AND freeze the containment report
+    # for this exact build, then publish it as a downloadable, auditable artifact.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Run a sandboxed agent and emit the containment report
+        id: agent
+        uses: ./.github/actions/ironclaw
+        with:
+          prompt: "prove the sandbox holds"
+          provider: mock
+          containment-report: "true"
+      - name: Upload the containment report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ironclaw-containment-report
+          path: ${{ steps.agent.outputs.report-path }}

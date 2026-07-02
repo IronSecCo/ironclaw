@@ -1,6 +1,6 @@
 ---
 title: "Choose your model provider"
-description: One page to pick the right model backend for IronClaw. Compare auth, streaming, and credential handling across mock, local, Anthropic, OpenAI, OpenRouter, Codex, Gemini, Vertex, and Azure OpenAI, with a short decision guide and copy-paste setup.
+description: One page to pick the right model backend for IronClaw. Compare auth, streaming, and credential handling across mock, local, Anthropic, OpenAI, OpenRouter, Codex, Gemini, Vertex, Bedrock, and Azure, with a short decision guide and copy-paste setup.
 ---
 
 # Choose your model provider
@@ -13,7 +13,7 @@ not change. This page helps you choose one, then links you straight to setup.
     Every provider credential is held **host-side** and injected by the host
     model-proxy on the way out. **No key ever enters a sandbox.** The agent sees a
     model reply, never the secret that paid for it. That is true for a static API
-    key, an OAuth bearer, or an Azure api-key alike — the difference between
+    key, an OAuth bearer, or AWS SigV4 credentials alike — the difference between
     providers is *where the credential comes from*, not *whether it stays host-side*.
     See [Security and isolation](../security-isolation.md).
 
@@ -38,7 +38,7 @@ not change. This page helps you choose one, then links you straight to setup.
 
     Billing, IAM, and data boundary must live in your cloud account.
 
-    → **`azure`** (Azure OpenAI), **`vertex`** (Google Cloud), or **`bedrock`** (AWS).
+    → **`azure`** (Azure OpenAI), **`bedrock`** (AWS), or **`vertex`** (Google Cloud).
 
 -   :material-account-key-outline: __Reuse an existing subscription__
 
@@ -52,22 +52,23 @@ not change. This page helps you choose one, then links you straight to setup.
 
 | Provider | Kind | Auth method | Credential source (host-side) | Streaming | Best for | Setup |
 |---|---|---|---|---|---|---|
-| **Mock** | `mock` | none | none — offline, deterministic | n/a | Demos, e2e tests, first run | [Quickstart](../quickstart.md) |
+| **Mock** | `mock` | none | none — offline, deterministic | n/a | Demos, e2e tests, first run | [Quickstart](../quickstart.md#a-working-chat-in-5-minutes-no-credentials) |
 | **Local / self-hosted** | `local` | none (optional key) | `IRONCLAW_LOCAL_MODEL_KEY` only if your server requires one | server-dependent | 100% local model, no data egress | [Ollama tutorial](../tutorials/local-model-ollama.md) |
-| **Anthropic** _(default)_ | `anthropic` | API key | `ANTHROPIC_API_KEY` | yes (SSE) | Strongest default, tool use | [Quickstart](../quickstart.md) |
+| **Anthropic** _(default)_ | `anthropic` | API key | `ANTHROPIC_API_KEY` | yes (SSE) | Strongest default, tool use | [Quickstart](../quickstart.md#a-working-chat-in-5-minutes-no-credentials) |
 | **OpenAI** | `openai` | API key | `OPENAI_API_KEY` | yes (SSE) | GPT-class models | [Setup](#anthropic-openai-openrouter) |
 | **OpenRouter** | `openrouter` | API key | `OPENROUTER_API_KEY` | yes (SSE) | One key, many models | [Setup](#anthropic-openai-openrouter) |
 | **Google Gemini** | `gemini` | API key | `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) | yes (SSE) | Hosted Google models, generous free tier | [Setup](#gemini-google-ai-studio) |
 | **Google Vertex AI** | `vertex` | OAuth2 bearer | gcloud ADC (`GOOGLE_VERTEX_USE_GCLOUD=1`) or `GOOGLE_VERTEX_ACCESS_TOKEN`; `GOOGLE_VERTEX_PROJECT` required | yes (SSE) | Gemini under GCP billing / IAM | [Setup](#vertex-ai-google-cloud) |
-| **Azure OpenAI** | `azure` | api-key or Entra token | `AZURE_OPENAI_API_KEY` (or `AZURE_OPENAI_ACCESS_TOKEN`) + `AZURE_OPENAI_ENDPOINT` | yes (SSE) | GPT-class models under Azure billing / IAM | [Azure OpenAI](azure.md) |
-| **AWS Bedrock** | `bedrock` | AWS SigV4 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (+ `AWS_SESSION_TOKEN`), `AWS_REGION` | no (InvokeModel) | Claude/others under AWS billing / IAM | :material-progress-clock: **in review** ([IRO-273](https://github.com/IronSecCo/ironclaw/issues)) |
+| **AWS Bedrock** | `bedrock` | AWS SigV4 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (+ `AWS_SESSION_TOKEN`), `AWS_REGION` | no (InvokeModel) | Claude/others under AWS billing / IAM | [Setup](#aws-bedrock-beta) |
 | **ChatGPT / Codex** | `codex` | OAuth via gateway | credential gateway (`IRONCLAW_MODEL_GATEWAY_URL`, e.g. OneCLI) | yes (SSE) | Reuse a ChatGPT/Codex subscription | [Setup](#codex-chatgpt-via-a-credential-gateway) |
+| **Azure OpenAI** | `azure` | api-key or Entra token | `AZURE_OPENAI_API_KEY` (or `AZURE_OPENAI_ACCESS_TOKEN`) + `AZURE_OPENAI_ENDPOINT` | yes (SSE) | GPT-class models under Azure billing / IAM | [Azure OpenAI](azure.md) |
 
 !!! note "Streaming, and what it means here"
     Where a provider streams, IronClaw consumes the upstream token stream and
     **accumulates the full reply before it returns** — streaming is a transport
-    detail on the host side, not a partial-render feature in the console. Either way
-    you get one complete, audited reply.
+    detail on the host side, not a partial-render feature in the console. Bedrock
+    uses the non-stream `InvokeModel` call today. Either way you get one complete,
+    audited reply.
 
 ## Decision guide
 
@@ -80,9 +81,9 @@ not change. This page helps you choose one, then links you straight to setup.
   default), **`openai`**, **`openrouter`**, or **`gemini`**. One environment
   variable and a restart.
 - **Procurement, billing, and IAM must stay in your cloud?** Use **`azure`** (Azure
-  OpenAI), **`vertex`** (Google Cloud), or **`bedrock`** (AWS). Credentials come from
-  your existing cloud identity — an Azure api-key or Entra token, gcloud ADC, or AWS
-  SigV4 — and stay host-side.
+  OpenAI), **`bedrock`** (AWS), or **`vertex`** (Google Cloud). Credentials come from
+  your existing cloud identity — an Azure api-key or Entra token, AWS SigV4, or gcloud
+  ADC — and stay host-side.
 - **Already paying for ChatGPT?** Front a **`codex`** OAuth credential with a local
   [credential gateway](../mcp.md) and reuse it.
 
@@ -121,17 +122,23 @@ export GOOGLE_VERTEX_USE_GCLOUD=1             # use gcloud Application Default C
 # export GOOGLE_VERTEX_ACCESS_TOKEN=ya29.…
 ```
 
-### Azure OpenAI
+### AWS Bedrock (beta)
 
-For orgs that consume models only through Azure. Azure routes by **deployment name**
-in the URL and authenticates with an `api-key` header or a Microsoft Entra bearer
-token. See the full [Azure OpenAI guide](azure.md).
+For orgs that consume models only through Bedrock. Credentials come from the
+standard AWS environment; the region selects the regional
+`bedrock-runtime.{region}.amazonaws.com` host.
 
 ```bash
-export AZURE_OPENAI_ENDPOINT=https://my-resource.openai.azure.com
-export AZURE_OPENAI_API_KEY=…                 # or AZURE_OPENAI_ACCESS_TOKEN for Entra
-export AZURE_OPENAI_API_VERSION=2024-10-21    # optional; provider default otherwise
+export AWS_ACCESS_KEY_ID=AKIA…
+export AWS_SECRET_ACCESS_KEY=…
+export AWS_SESSION_TOKEN=…                # optional, for temporary credentials
+export AWS_REGION=us-east-1               # or AWS_DEFAULT_REGION
 ```
+
+!!! info "Bedrock is landing"
+    The `bedrock` provider is in review ([IRO-273](https://github.com/IronSecCo/ironclaw/issues)).
+    Host-side SigV4 signing is validated against AWS's reference vectors; requests
+    use the non-stream `InvokeModel` API. This section documents the shipping shape.
 
 ### Codex (ChatGPT) via a credential gateway
 
@@ -144,13 +151,17 @@ export IRONCLAW_MODEL_GATEWAY_URL=http://127.0.0.1:10255
 export IRONCLAW_MODEL_GATEWAY_HOSTS=chatgpt.com
 ```
 
-### AWS Bedrock (in review)
+### Azure OpenAI
 
-For orgs that consume models only through Bedrock. Host-side AWS SigV4 signing is in
-review ([IRO-273](https://github.com/IronSecCo/ironclaw/issues)); credentials come
-from the standard AWS environment and the region selects the regional
-`bedrock-runtime.{region}.amazonaws.com` host. Until it lands, use `azure`, `vertex`,
-or a direct `openai` key.
+For orgs that consume models only through Azure. Azure routes by **deployment name**
+in the URL and authenticates with an `api-key` header or a Microsoft Entra bearer
+token. See the full [Azure OpenAI guide](azure.md).
+
+```bash
+export AZURE_OPENAI_ENDPOINT=https://my-resource.openai.azure.com
+export AZURE_OPENAI_API_KEY=…                 # or AZURE_OPENAI_ACCESS_TOKEN for Entra
+export AZURE_OPENAI_API_VERSION=2024-10-21    # optional; provider default otherwise
+```
 
 ## Point an agent group at a provider
 
@@ -158,12 +169,12 @@ A provider credential being present does not force any group to use it — you o
 group in explicitly. Two surfaces:
 
 - **Web console** → **Agents** → edit a group → **Provider** field (leave blank for
-  the default Anthropic backend; set `openai`, `gemini`, `vertex`, `azure`, `local`,
-  etc. to route that group elsewhere). The group's provider and model show on its
-  card and in the first-run **Setup** checklist.
+  the default Anthropic backend; set `openai`, `gemini`, `vertex`, `bedrock`,
+  `local`, etc. to route that group elsewhere). The group's provider and model show
+  on its card and in the first-run **Setup** checklist.
 - **CLI** — submit a model/persona change with `ironctl` and approve it through the
   human gateway, so the switch lands on the [audit log](../observability.md) like any
-  other change. See the [Quickstart](../quickstart.md).
+  other change. See the [Quickstart](../quickstart.md#4-submit-a-change-watch-it-get-held).
 
 Leaving the field blank keeps the sealed, single-provider default posture: only
 groups that opt in reach another backend.
@@ -173,3 +184,4 @@ groups that opt in reach another backend.
 - [Quickstart](../quickstart.md) — first working chat, then a real provider
 - [Run a 100% local model (Ollama)](../tutorials/local-model-ollama.md)
 - [Security and isolation](../security-isolation.md) — why keys stay host-side
+- [FAQ: which providers are supported?](../faq.md#which-model-providers-are-supported)
