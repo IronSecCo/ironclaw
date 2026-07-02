@@ -118,6 +118,8 @@ nav:
       - Run a 100% local model (Ollama): tutorials/local-model-ollama.md
       - Connect IronClaw to Slack: tutorials/connect-slack.md
       - Write a custom channel adapter: tutorials/custom-channel-adapter.md
+  - Model providers:
+      - AWS Bedrock: providers/bedrock.md
   - Examples: examples.md
   - Concepts:
       - IronClaw, Explained: ironclaw-explained.md
