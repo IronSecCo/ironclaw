@@ -24,6 +24,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -268,6 +269,39 @@ func main() {
 			// static redactKeys set; nothing host-side echoes it into a response body.
 			addProvider(vHost, modelproxy.VertexInjector(ts), "")
 			logger.Info("vertex ai enabled", "host", vHost, "project", proj)
+		}
+	}
+	// Azure OpenAI (Azure AI Foundry). For orgs that can consume models only through
+	// Azure — a common enterprise constraint. Azure speaks the identical OpenAI Chat
+	// Completions wire format, but the model is selected by a DEPLOYMENT name in the URL
+	// path plus an api-version query param, and auth is the `api-key` header or a
+	// Microsoft Entra ID bearer token, so the allowlisted host is the per-resource
+	// {resource}.openai.azure.com derived from AZURE_OPENAI_ENDPOINT. Two auth modes, in
+	// precedence: a static AZURE_OPENAI_API_KEY, else a static Entra bearer token in
+	// AZURE_OPENAI_ACCESS_TOKEN (operator refreshes it out of band). The api-version
+	// defaults to the provider default unless AZURE_OPENAI_API_VERSION is set. The
+	// credential lives only on the host — the injector stamps each forwarded request;
+	// the sandbox never holds it.
+	var (
+		azureDefaultHost       string
+		azureDefaultAPIVersion = os.Getenv("AZURE_OPENAI_API_VERSION")
+	)
+	if ep := strings.TrimSpace(os.Getenv("AZURE_OPENAI_ENDPOINT")); ep != "" {
+		azHost := azureEndpointHost(ep)
+		if azHost == "" {
+			logger.Error("invalid AZURE_OPENAI_ENDPOINT (want e.g. https://my-resource.openai.azure.com)", "value", ep)
+		} else if key := os.Getenv("AZURE_OPENAI_API_KEY"); key != "" {
+			azureDefaultHost = azHost
+			addProvider(azHost, modelproxy.AzureKeyInjector(key), key)
+			logger.Info("azure openai enabled", "host", azHost)
+		} else if tok := os.Getenv("AZURE_OPENAI_ACCESS_TOKEN"); tok != "" {
+			azureDefaultHost = azHost
+			// The Entra bearer is dynamic (refreshed out of band by the operator), so it
+			// is not added to the static redactKeys set; nothing host-side echoes it.
+			addProvider(azHost, modelproxy.AzureTokenInjector(modelproxy.StaticTokenSource(tok)), "")
+			logger.Info("azure openai enabled (entra token)", "host", azHost)
+		} else {
+			logger.Warn("AZURE_OPENAI_ENDPOINT set but no AZURE_OPENAI_API_KEY or AZURE_OPENAI_ACCESS_TOKEN; azure provider not enabled")
 		}
 	}
 	// Local / self-hosted model (Ollama, LM Studio, vLLM, llama.cpp). When
@@ -669,7 +703,7 @@ func main() {
 		Keys:             custodian,
 		Isolator:         isolator,
 		Registry:         reg,
-		SelectModel:      selectModelFromRegistry(reg, localDefaultSel, localModelHost),
+		SelectModel:      selectModelFromRegistry(reg, localDefaultSel, localModelHost, azureDefaultHost, azureDefaultAPIVersion),
 		ModelProxySocket: *socket,
 		EgressSocket:     *egressSocket,
 		EgressBroker:     egressProvisioner,
@@ -1132,6 +1166,37 @@ func vertexAllowHost(location string) string {
 	return location + "-aiplatform.googleapis.com"
 }
 
+// azureEndpointHost extracts the host to allowlist from an AZURE_OPENAI_ENDPOINT. It
+// accepts a full URL (https://my-resource.openai.azure.com[/...]) or a bare host
+// (my-resource.openai.azure.com[:port]) and returns the lowercased host (without
+// scheme/path/port), or "" if it does not look like an Azure OpenAI endpoint. Only
+// *.openai.azure.com is accepted so a misconfigured endpoint cannot silently widen
+// egress to an arbitrary host.
+func azureEndpointHost(endpoint string) string {
+	endpoint = strings.TrimSpace(endpoint)
+	if endpoint == "" {
+		return ""
+	}
+	host := endpoint
+	if strings.Contains(host, "://") {
+		u, err := url.Parse(host)
+		if err != nil || u.Host == "" {
+			return ""
+		}
+		host = u.Host
+	} else if i := strings.IndexByte(host, '/'); i >= 0 {
+		host = host[:i]
+	}
+	host = strings.ToLower(host)
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	if !strings.HasSuffix(host, ".openai.azure.com") {
+		return ""
+	}
+	return host
+}
+
 // selectModelFromRegistry resolves a session's model backend from its agent group
 // : session -> agent group -> {Provider, Model}. A group pinned to an
 // explicit Provider uses it; any group without one inherits the deployment default.
@@ -1147,15 +1212,27 @@ func vertexAllowHost(location string) string {
 // default (set by --local-model-url); it overrides the env-based default so a
 // provider-less agent group runs 100% local. localHost backfills the loopback host
 // for any group pinned to the "local" provider that did not carry one itself.
-func selectModelFromRegistry(reg *registry.MemRegistry, localDefault session.ModelSelection, localHost string) func(contract.SessionID) session.ModelSelection {
+func selectModelFromRegistry(reg *registry.MemRegistry, localDefault session.ModelSelection, localHost, azureHost, azureAPIVersion string) func(contract.SessionID) session.ModelSelection {
 	def := session.ModelSelection{
-		Provider: os.Getenv("IRONCLAW_DEV_PROVIDER"),
-		Model:    os.Getenv("IRONCLAW_DEV_MODEL"),
-		Project:  envOr("IRONCLAW_DEV_VERTEX_PROJECT", os.Getenv("GOOGLE_VERTEX_PROJECT")),
-		Location: envOr("IRONCLAW_DEV_VERTEX_LOCATION", os.Getenv("GOOGLE_VERTEX_LOCATION")),
+		Provider:   os.Getenv("IRONCLAW_DEV_PROVIDER"),
+		Model:      os.Getenv("IRONCLAW_DEV_MODEL"),
+		Project:    envOr("IRONCLAW_DEV_VERTEX_PROJECT", os.Getenv("GOOGLE_VERTEX_PROJECT")),
+		Location:   envOr("IRONCLAW_DEV_VERTEX_LOCATION", os.Getenv("GOOGLE_VERTEX_LOCATION")),
+		APIVersion: os.Getenv("AZURE_OPENAI_API_VERSION"),
 	}
 	if localDefault.Provider != "" {
 		def = localDefault
+	}
+	// A deployment defaulted to azure (IRONCLAW_DEV_PROVIDER=azure) needs the
+	// per-resource host and api-version: the provider has no safe default host, so
+	// backfill the ones the deployment allowlisted/configured.
+	if strings.EqualFold(def.Provider, "azure") {
+		if def.Host == "" {
+			def.Host = azureHost
+		}
+		if def.APIVersion == "" {
+			def.APIVersion = azureAPIVersion
+		}
 	}
 	return func(id contract.SessionID) session.ModelSelection {
 		sess, ok := reg.GetSession(id)
@@ -1169,11 +1246,22 @@ func selectModelFromRegistry(reg *registry.MemRegistry, localDefault session.Mod
 		if g.Provider == "" {
 			return def
 		}
-		sel := session.ModelSelection{Provider: g.Provider, Model: g.Model, Project: g.Project, Location: g.Location}
+		sel := session.ModelSelection{Provider: g.Provider, Model: g.Model, Project: g.Project, Location: g.Location, APIVersion: g.APIVersion}
 		// A group pinned to the local provider but without its own host inherits the
 		// deployment's configured loopback host so it reaches the same local server.
 		if strings.EqualFold(sel.Provider, "local") && sel.Host == "" {
 			sel.Host = localHost
+		}
+		// A group pinned to azure but without its own host / api-version inherits the
+		// deployment's per-resource Azure host and configured api-version (which is what
+		// the proxy allowlisted and the sandbox builds the URL from).
+		if strings.EqualFold(sel.Provider, "azure") {
+			if sel.Host == "" {
+				sel.Host = azureHost
+			}
+			if sel.APIVersion == "" {
+				sel.APIVersion = azureAPIVersion
+			}
 		}
 		return sel
 	}
