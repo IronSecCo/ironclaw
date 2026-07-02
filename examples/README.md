@@ -34,6 +34,16 @@ containment assertion fails. Same zero-credential path, no model key:
 examples/red-team-escape/run.sh       # build → up → attack → assert contained → tear down
 ```
 
+### Run a sandboxed agent in CI (GitHub Action)
+
+[**`ci-action/`**](ci-action/) documents the reusable
+[`IronClaw` action](../.github/actions/ironclaw): a workflow step that runs a
+one-shot sandboxed agent against a `prompt` credential-free (the `mock` provider),
+returns the reply, and — with `containment-report: true` — freezes the signed-able
+isolation proof for the build under test. It is a thin wrapper over the same
+zero-credential path above, proven in this repo by
+[`ironclaw-action-example.yml`](../.github/workflows/ironclaw-action-example.yml).
+
 ### Run a scenario end-to-end credential-free (mock provider)
 
 Three recipes ship a `run-mock.sh` that exercises the **whole** inbound → agent →
