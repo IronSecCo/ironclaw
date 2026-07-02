@@ -73,9 +73,6 @@ type Delivery struct {
 
 	mu        sync.Mutex
 	delivered map[contract.MessageID]struct{}
-	// seqCtr generates EVEN host seq numbers for scheduled inbound messages,
-	// matching the frozen host-parity rule. Process-local and monotonic.
-	seqCtr int64
 	// scheduleCtr disambiguates generated scheduled-message IDs within a process.
 	scheduleCtr int64
 	// a2aCtr disambiguates generated agent-to-agent inbound message IDs.
@@ -356,8 +353,11 @@ func (d *Delivery) handleScheduleTask(sess registry.Session, msg contract.Messag
 	defer writer.Close()
 
 	in := contract.MessageIn{
-		ID:           d.nextScheduledID(sess.ID),
-		Seq:          d.nextEvenSeq(),
+		ID: d.nextScheduledID(sess.ID),
+		// Seq==0: the inbound writer allocates the next EVEN seq atomically against the
+		// persisted queue (IRO-278). Delivery must not mint seqs itself — it shares the
+		// messages_in table with the router and the sweep re-enqueuer.
+		Seq:          0,
 		Kind:         contract.KindTask,
 		Timestamp:    time.Now().UTC(),
 		Status:       contract.StatusScheduled,
@@ -441,14 +441,6 @@ func (d *Delivery) handleSkillInstall(sess registry.Session, msg contract.Messag
 	// the background like every other privileged action). The install is NOT applied here.
 	go func() { _, _ = d.gw.Submit(context.Background(), req) }()
 	return nil
-}
-
-// nextEvenSeq returns the next EVEN host seq (frozen host-parity rule).
-func (d *Delivery) nextEvenSeq() int64 {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	d.seqCtr += 2
-	return d.seqCtr
 }
 
 // nextScheduledID returns a process-unique id for a scheduled inbound message.

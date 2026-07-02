@@ -1,3 +1,8 @@
+---
+title: "IronClaw, explained: a plain-language tour"
+description: A plain-language tour of IronClaw's design, from the big picture to the moving parts. See how a self-hosted AI agent gateway proves isolation instead of asking you to trust it. No security background required.
+---
+
 # IronClaw, Explained
 
 *A plain-language tour of the design — for builders and the curious alike.*

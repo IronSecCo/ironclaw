@@ -166,3 +166,59 @@ func TestFactoryPaths(t *testing.T) {
 		}
 	}
 }
+
+// TestHostInboundSeqAllocationNoCollision reproduces the IRO-278 root cause: two
+// independent host inbound writer handles for the same session (mirroring the
+// router and the delivery/sweep re-enqueuer) each write with Seq==0. The writer
+// must allocate distinct EVEN seqs from the persisted MAX(seq), so neither
+// collides on the schema's UNIQUE(seq) — the bug that broke recurring
+// schedule_task and intermittently 500'd /chat/send.
+func TestHostInboundSeqAllocationNoCollision(t *testing.T) {
+	f := NewFactory(t.TempDir())
+	const sid = "sess-seq"
+	k := testKey(0x44)
+	if err := f.Provision(sid, k); err != nil {
+		t.Fatalf("provision: %v", err)
+	}
+
+	// Two separate writer handles, interleaved — the pre-fix code had each mint its
+	// own seq (router atomic vs delivery SELECT MAX+2) and collide at seq=2.
+	for i, id := range []string{"a", "b", "c", "d"} {
+		w, err := f.OpenHostInbound(sid, k)
+		if err != nil {
+			t.Fatalf("OpenHostInbound %d: %v", i, err)
+		}
+		if err := w.WriteMessageIn(contract.MessageIn{ID: contract.MessageID(id), Seq: 0, Content: id}); err != nil {
+			t.Fatalf("WriteMessageIn %q: %v", id, err)
+		}
+		w.Close()
+	}
+
+	sin, err := f.OpenSandboxInbound(sid, k)
+	if err != nil {
+		t.Fatalf("OpenSandboxInbound: %v", err)
+	}
+	defer sin.Close()
+	rows, err := sin.Query("SELECT seq FROM messages_in ORDER BY seq")
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	defer rows.Close()
+	var seqs []int64
+	for rows.Next() {
+		var s int64
+		if err := rows.Scan(&s); err != nil {
+			t.Fatalf("scan: %v", err)
+		}
+		seqs = append(seqs, s)
+	}
+	want := []int64{2, 4, 6, 8}
+	if len(seqs) != len(want) {
+		t.Fatalf("got %d rows, want %d: %v", len(seqs), len(want), seqs)
+	}
+	for i, s := range seqs {
+		if s != want[i] {
+			t.Fatalf("seqs = %v, want %v (distinct even, no collision)", seqs, want)
+		}
+	}
+}

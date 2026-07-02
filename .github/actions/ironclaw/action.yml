@@ -1,0 +1,78 @@
+# IronClaw — run a sandboxed AI agent in CI.
+#
+# A thin wrapper over IronClaw's own zero-credential demo path: it brings up the
+# offline control-plane, sends your prompt to a seeded agent group through the REAL
+# secured route (engage -> per-session Docker sandbox -> encrypted queue -> reply),
+# and returns the reply plus a JSON run report. With `containment-report: true` it
+# also freezes the signed-able isolation proof for the exact build under test.
+#
+# Credential-free by default: provider `mock` makes no network call, so this runs on
+# a stock runner with nothing but Docker. See docs/integrations/ci.md for real
+# providers (which need model credentials on a self-hosted control-plane).
+#
+# NOTE: not published to the Marketplace yet (owner-manual, launch-gated). The
+# metadata below is ready for that listing.
+name: 'IronClaw — run a sandboxed AI agent in CI'
+description: 'Run a one-shot IronClaw agent against a prompt inside a hardened sandbox and capture the reply + containment report.'
+author: 'IronSec Co.'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  prompt:
+    description: 'The prompt to send to the agent.'
+    required: true
+  provider:
+    description: 'Model provider. Only "mock" is credential-free (the built-in demo path); real providers need credentials on a self-hosted control-plane.'
+    required: false
+    default: 'mock'
+  model:
+    description: 'Model id to use (empty = the provider default). Recorded in the run report.'
+    required: false
+    default: ''
+  agent-group:
+    description: 'The agent group id to engage.'
+    required: false
+    default: 'mock-agent'
+  config:
+    description: 'Optional path to an agent config file (recorded in the run report; the mock demo path ignores it).'
+    required: false
+    default: ''
+  containment-report:
+    description: 'Also run the red-team-escape harness and emit the signed-able containment report for the build under test.'
+    required: false
+    default: 'false'
+  report-dir:
+    description: 'Directory to write artifacts (ironclaw-run.json and, optionally, containment-report.*) into.'
+    required: false
+    default: ''
+
+outputs:
+  reply:
+    description: 'The agent reply text.'
+    value: ${{ steps.run.outputs.reply }}
+  report-path:
+    description: 'Directory holding the run report (and containment report, if requested).'
+    value: ${{ steps.run.outputs.report-path }}
+  run-report:
+    description: 'Path to the JSON run report (prompt, reply, verdict, commit).'
+    value: ${{ steps.run.outputs.run-report }}
+  containment-report:
+    description: 'Path to the JSON containment report (only set when containment-report: true).'
+    value: ${{ steps.run.outputs.containment-report }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: run
+      shell: bash
+      env:
+        IC_PROMPT: ${{ inputs.prompt }}
+        IC_PROVIDER: ${{ inputs.provider }}
+        IC_MODEL: ${{ inputs.model }}
+        IC_AGENT: ${{ inputs.agent-group }}
+        IC_CONFIG: ${{ inputs.config }}
+        IC_CONTAINMENT: ${{ inputs.containment-report }}
+        IC_REPORT_DIR: ${{ inputs.report-dir }}
+      run: bash "${GITHUB_ACTION_PATH}/run-agent.sh"

@@ -112,15 +112,16 @@ nav:
       - Observability (metrics): observability.md
       - Troubleshooting: troubleshooting.md
       - FAQ: faq.md
+  - Model providers:
+      - Choose your model provider: providers/index.md
+      - AWS Bedrock: providers/bedrock.md
   - Tutorials:
       - Overview: tutorials/index.md
       - Your first sandboxed agent in 5 minutes: tutorials/first-agent.md
       - Run a 100% local model (Ollama): tutorials/local-model-ollama.md
       - Connect IronClaw to Slack: tutorials/connect-slack.md
       - Write a custom channel adapter: tutorials/custom-channel-adapter.md
-  - Model providers:
-      - AWS Bedrock: providers/bedrock.md
-  - Examples: examples.md
+  - Examples & use cases: examples.md
   - Concepts:
       - IronClaw, Explained: ironclaw-explained.md
       - Architecture: architecture.md
@@ -130,10 +131,13 @@ nav:
       - Channel adapters: channels.md
       - Writing a channel adapter: writing-a-channel-adapter.md
   - Skills: skills.md
+  - Integrations:
+      - CI (GitHub Action): integrations/ci.md
   - Social proof: social-proof.md
   - Security & Trust:
       - Overview: security.md
       - Isolation, proven: security-isolation.md
+      - Credential vault: vault.md
       - Breaking our own sandbox: breaking-our-own-sandbox.md
       - Threat model: threat-model.md
       - Performance & footprint: benchmarks.md

@@ -19,8 +19,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "examples/hello-ironclaw/**"
-      - "examples/red-team-escape/**"
+      - "examples/**"
       - "docker-compose.demo.yml"
       - "container/**"
       - "cmd/sandbox/**"
@@ -30,8 +29,7 @@ on:
       - ".github/workflows/example-smoke.yml"
   pull_request:
     paths:
-      - "examples/hello-ironclaw/**"
-      - "examples/red-team-escape/**"
+      - "examples/**"
       - "docker-compose.demo.yml"
       - "container/**"
       - "cmd/sandbox/**"
@@ -71,3 +69,67 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Try to break the sandbox and prove it holds
         run: examples/red-team-escape/run.sh
+
+  run-mock-examples:
+    # Credential-free SMOKE MATRIX over every examples/*/run-mock.sh recipe. Each mock
+    # recipe drives the offline mock-agent through the published HTTP chat route and
+    # ASSERTS a NON-EMPTY assistant reply — the exact regression IRO-279 slipped past,
+    # where the scripts polled `.text` (the /chat/send REQUEST field) instead of
+    # `.content` (the reply field) and, because /messages is drain-on-read, silently
+    # drained the reply to empty while still exiting 0. The recipes now fail-closed on
+    # an empty reply, so a wrong-field or broken round-trip turns this job red.
+    #
+    # The sandbox image + demo control-plane are built ONCE and shared across the whole
+    # matrix (build.sh + a single `compose up`), so one cold start covers every recipe
+    # and the per-recipe runtime stays tight — no rebuild per example. Same additive/
+    # non-gating posture as the jobs above: NOT a required check, so it surfaces a broken
+    # first-five-minutes without ever blocking a release.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Build the sandbox image once (ironclaw-sandbox:latest)
+        run: bash container/build.sh
+      - name: Bring the offline demo control-plane up once
+        run: docker compose -f docker-compose.demo.yml up --build -d
+      - name: Wait for the control-plane to be healthy
+        run: |
+          for _ in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8787/healthz >/dev/null 2>&1; then
+              echo "control-plane healthy"; exit 0
+            fi
+            sleep 1
+          done
+          echo "FAIL: control-plane never became healthy within 90s" >&2
+          docker compose -f docker-compose.demo.yml logs --no-color 2>&1 | tail -60 >&2
+          exit 1
+      - name: Run every run-mock.sh and assert a non-empty reply
+        # Fail-closed: iterate all recipes, keep going so every failure is reported, then
+        # exit non-zero if ANY recipe failed. Each script self-asserts a non-empty reply
+        # (drain-on-read means the assertion MUST live inside the script's own poll loop —
+        # a re-read from CI here would see []), so a bare non-zero exit is a real break.
+        run: |
+          set -uo pipefail
+          fail=0
+          shopt -s nullglob
+          scripts=(examples/*/run-mock.sh)
+          if [ ${#scripts[@]} -eq 0 ]; then
+            echo "FAIL: no examples/*/run-mock.sh found — did the recipes move?" >&2
+            exit 1
+          fi
+          for s in "${scripts[@]}"; do
+            echo "::group::$s"
+            if bash "$s"; then
+              echo "PASS: $s"
+            else
+              echo "FAIL: $s (non-empty reply assertion failed)"; fail=1
+            fi
+            echo "::endgroup::"
+          done
+          exit "$fail"
+      - name: Dump control-plane logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.demo.yml logs --no-color 2>&1 | tail -120
+      - name: Tear the demo down
+        if: always()
+        run: docker compose -f docker-compose.demo.yml down >/dev/null 2>&1 || true

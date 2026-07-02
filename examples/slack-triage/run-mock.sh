@@ -28,14 +28,21 @@ send() {
     -d "$(jq -nc --arg a "$AGENT" --arg t "$1" '{agentGroupID:$a, text:$t}')" >/dev/null
 }
 
-wait_reply() {
+wait_reply() { # poll until the agent replies, or FAIL (non-zero) after ~30s
+  # /messages is drain-on-read and the reply text is `.messages[].content` (NOT
+  # `.text`, the /chat/send REQUEST field) — reading the wrong key drains the reply
+  # to empty and every later poll sees []. Asserting a NON-EMPTY reply here is the
+  # exact guard that catches an IRO-279-class regression, so an empty reply must
+  # FAIL the script (set -e propagates the non-zero return), never pass silently.
   for _ in $(seq 1 30); do
     out="$(curl -fsS "$ADDR/v1/ui/chat/$AGENT/messages" \
-      -H "Authorization: Bearer $TOKEN" | jq -r '.messages[]?.text // empty')"
+      -H "Authorization: Bearer $TOKEN" | jq -r '.messages[]?.content // empty')"
     if [ -n "$out" ]; then printf '   -> %s\n' "$out"; return 0; fi
     sleep 1
   done
-  echo "   (no reply within 30s — is the demo control-plane up and the sandbox image built?)" >&2
+  echo "FAIL: no reply within 30s — the .content round-trip returned empty." >&2
+  echo "      is the demo control-plane up and the sandbox image built?" >&2
+  return 1
 }
 
 echo "Feeding sample channel messages to the triage agent."

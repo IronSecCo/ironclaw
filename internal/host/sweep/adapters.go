@@ -195,11 +195,6 @@ func (e *InboundEnqueue) Enqueue(sessionID contract.SessionID, prompt string, ru
 		return fmt.Errorf("host/sweep: enqueue %s: no session key (not provisioned)", sessionID)
 	}
 
-	seq, err := e.nextEvenSeq(sessionID, key)
-	if err != nil {
-		return fmt.Errorf("host/sweep: enqueue %s: next seq: %w", sessionID, err)
-	}
-
 	w, err := e.factory.OpenHostInbound(string(sessionID), key)
 	if err != nil {
 		return fmt.Errorf("host/sweep: enqueue %s: open inbound: %w", sessionID, err)
@@ -207,8 +202,12 @@ func (e *InboundEnqueue) Enqueue(sessionID contract.SessionID, prompt string, ru
 	defer w.Close()
 
 	in := contract.MessageIn{
-		ID:           e.nextID(sessionID),
-		Seq:          seq,
+		ID: e.nextID(sessionID),
+		// Seq==0: the inbound writer allocates the next EVEN seq atomically against the
+		// persisted queue (IRO-278). The old SELECT MAX(seq)+2 here was a non-atomic
+		// read-modify-write that raced the router/delivery writers and broke recurring
+		// schedule_task with "UNIQUE constraint failed: messages_in.seq".
+		Seq:          0,
 		Kind:         contract.KindTask,
 		Timestamp:    time.Now().UTC(),
 		Status:       contract.StatusScheduled,
@@ -227,30 +226,6 @@ func (e *InboundEnqueue) Enqueue(sessionID contract.SessionID, prompt string, ru
 	e.enqueued[dedupKey] = struct{}{}
 	e.mu.Unlock()
 	return nil
-}
-
-// nextEvenSeq returns the next EVEN inbound seq for the session (host parity),
-// strictly greater than the current MAX(seq). Inbound is host-written only, so all
-// existing seqs are even; an empty table starts at 2. Reading the current max
-// keeps the assigned seq unique against the schema's UNIQUE(seq) constraint.
-func (e *InboundEnqueue) nextEvenSeq(id contract.SessionID, key contract.SessionKey) (int64, error) {
-	db, err := e.factory.OpenSandboxInbound(string(id), key)
-	if err != nil {
-		return 0, err
-	}
-	defer db.Close()
-	var maxSeq sql.NullInt64
-	if err := db.QueryRow(`SELECT MAX(seq) FROM messages_in`).Scan(&maxSeq); err != nil {
-		return 0, err
-	}
-	if !maxSeq.Valid {
-		return 2, nil
-	}
-	next := maxSeq.Int64 + 2
-	if next%2 != 0 {
-		next++
-	}
-	return next, nil
 }
 
 // nextID returns a process-unique id for an enqueued scheduled message.

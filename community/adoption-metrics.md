@@ -44,6 +44,32 @@ revise after the first real launch-week data lands.
 > Newest first. Append a new block each Monday by running the refresh command and pasting
 > its output above the previous block.
 
+### Snapshot — 2026-07-02 (pre-launch)
+
+| Metric | Value | Notes |
+| --- | --- | --- |
+| Stars | 13 | +2 vs. 2026-06-30 baseline |
+| Forks | 2 | flat |
+| Watchers / subscribers | 0 | |
+| Open issues | 17 | 16 are scoped good-first-issues (see below) |
+| Views (14d) | 580 | 51 unique visitors (was 44) |
+| Clones (14d) | 8637 | 801 unique — **CI-inflated** (release-per-push) |
+| Release downloads (all-time) | 2042 | across 116 releases |
+| Latest release | v0.1.153 | 23 downloads |
+| Top referrers | — | github.com (19u) · cla-assistant.io (3u) · linkedin.com (3u) · reddit.com (3u) · goodfirstissues.com (2u) · Google (2u) · ironsecco.github.io (1u) |
+
+> Clone counts are dominated by CI runners (a release is cut on every push to main).
+> Treat **unique visitors** and **stars** as the honest adoption signal pre-launch.
+
+**Read:** Still genuinely early/quiet, as expected pre-launch, but the trend is up and
+slightly wider: stars 11 → 13, unique visitors 44 → 51. The referrer mix is the honest
+signal — `goodfirstissues.com` persists (GFI seeding working), and two new organic sources
+appear: `linkedin.com` / `com.linkedin.android` and the docs site itself
+(`ironsecco.github.io`), meaning humans are arriving from the published docs, not just the
+repo. `Google` also shows up, an early sign the SEO work (IRO-277) is getting indexed. No
+announcement has fired (IRO-40 still gated), so every one of these is pre-launch trickle.
+Discussions remain seeded-only: 6 threads, 0 organic external threads, 0 comments.
+
 ### Snapshot — 2026-06-30 (pre-launch baseline)
 
 | Metric | Value | Notes |
@@ -70,14 +96,20 @@ real humans before any announcement. Discussions are seeded but have no organic 
 
 The pieces a prospective contributor lands on, kept alive independently of the launch gate:
 
-- **Good first issues:** 13 open and scoped, with labels + acceptance criteria + file pointers.
-  IRO-209 seeded 8 (#108, #109, #113, #191, #192, #193, #223, #224); IRO-263 added 5 more
+- **Good first issues:** 16 open and scoped, with labels + acceptance criteria + file pointers.
+  IRO-209 seeded 8 (#108, #109, #113, #191, #192, #193, #223, #224); IRO-263 added 5
   (#281 seccomp tests, #282 contract-enum tests, #283 `cmd/ironctl` `doc.go`, #284 stale-comment
-  fix, #285 tabwriter constants). Spread across sandbox / control-plane / cli / docs.
+  fix, #285 tabwriter constants); IRO-286 added 3 more from the fresh surface area
+  (#303 supported-providers reference table, #304 `examples/` capability matrix, #305 CI
+  status badges for the functional smoke workflows). Spread across sandbox / control-plane /
+  cli / docs / ci.
 - **Discussions:** the 3 seeds (#116, #225, #226) plus 3 evergreen technical Q&A entries added by
   IRO-263, sourced from the threat model + red-team harness (#270 how isolation works, #271 what
   the red-team harness proves, #272 where keys live). These are contributor/technical content,
-  distinct from the launch-gated announcement copy (IRO-186).
+  distinct from the launch-gated announcement copy (IRO-186). **Triage (2026-07-02):** all 6
+  threads reviewed — 0 organic/external threads and 0 comments, so nothing to answer or close;
+  the self-authored Q&A entries carry their full answers inline. Nothing actionable until real
+  visitors post.
 
 `goodfirstissues.com` already shows up as a referrer in the snapshot below, so the GFI surface is
 the honest early on-ramp worth growing pre-launch.

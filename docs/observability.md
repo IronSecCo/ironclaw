@@ -1,3 +1,8 @@
+---
+title: "Observability: built-in Prometheus /metrics endpoint"
+description: IronClaw's control plane ships a built-in Prometheus /metrics endpoint, always wired and served on the API address. Scrape gateway decisions, deliveries, and sandbox launches, with a ready Grafana dashboard.
+---
+
 # Observability — Prometheus `/metrics`
 
 IronClaw's control plane ships a built-in Prometheus endpoint at **`GET /metrics`**.

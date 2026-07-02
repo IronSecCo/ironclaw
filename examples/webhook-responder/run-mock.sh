@@ -27,9 +27,10 @@ curl -fsS -X POST "$ADDR/v1/ui/chat/send" \
 echo "==> Agent reply (polled back; a real model would triage the event):"
 for _ in $(seq 1 30); do
   out="$(curl -fsS "$ADDR/v1/ui/chat/$AGENT/messages" \
-    -H "Authorization: Bearer $TOKEN" | jq -r '.messages[]?.text // empty')"
+    -H "Authorization: Bearer $TOKEN" | jq -r '.messages[]?.content // empty')"
   if [ -n "$out" ]; then printf '   %s\n' "$out"; exit 0; fi
   sleep 1
 done
-echo "   (no reply within 30s — is the demo control-plane up and the sandbox image built?)" >&2
+echo "FAIL: no reply within 30s — the .content round-trip returned empty." >&2
+echo "      is the demo control-plane up and the sandbox image built?" >&2
 exit 1

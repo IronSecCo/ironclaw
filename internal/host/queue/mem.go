@@ -67,13 +67,26 @@ var (
 )
 
 // WriteMessageIn inserts a message. The host is the inbound writer, so the seq
-// MUST be even; an odd seq is rejected to preserve seq parity.
+// MUST be even. Seq allocation is authoritative here to mirror the real writer
+// (queue.go): a caller passing Seq==0 gets the next EVEN seq (MAX+2, empty→2)
+// assigned under the store lock, so independent host writers never collide on the
+// unique-seq invariant (IRO-278). A non-zero odd seq is still rejected to preserve
+// host/sandbox seq parity.
 func (m *MemInbound) WriteMessageIn(msg contract.MessageIn) error {
-	if msg.Seq%2 != 0 {
+	if msg.Seq != 0 && msg.Seq%2 != 0 {
 		return fmt.Errorf("host/queue: MemInbound.WriteMessageIn requires an EVEN seq (host parity), got %d", msg.Seq)
 	}
 	m.store.mu.Lock()
 	defer m.store.mu.Unlock()
+	if msg.Seq == 0 {
+		var maxSeq int64
+		for _, e := range m.store.messagesIn {
+			if e.Seq > maxSeq {
+				maxSeq = e.Seq
+			}
+		}
+		msg.Seq = maxSeq + 2
+	}
 	for _, existing := range m.store.messagesIn {
 		if existing.ID == msg.ID {
 			return fmt.Errorf("host/queue: duplicate message_in id %q", msg.ID)

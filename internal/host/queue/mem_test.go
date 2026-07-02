@@ -10,16 +10,31 @@ import (
 func TestMemInboundSeqParity(t *testing.T) {
 	store := NewMemStore()
 	in := NewMemInbound(store)
-	// Even seq accepted (host parity).
-	if err := in.WriteMessageIn(contract.MessageIn{ID: "a", Seq: 0, Content: "hi"}); err != nil {
-		t.Fatalf("even seq should be accepted: %v", err)
-	}
+	// Explicit even seq accepted (host parity).
 	if err := in.WriteMessageIn(contract.MessageIn{ID: "b", Seq: 2}); err != nil {
 		t.Fatal(err)
 	}
 	// Odd seq rejected.
 	if err := in.WriteMessageIn(contract.MessageIn{ID: "c", Seq: 1}); err == nil {
 		t.Fatal("odd seq should be rejected on inbound (host writes even)")
+	}
+}
+
+// TestMemInboundSeqAllocation asserts the writer is the authoritative even-seq
+// allocator: Seq==0 callers each get a distinct even seq (MAX+2), so two
+// independent host writers never collide (the IRO-278 root cause).
+func TestMemInboundSeqAllocation(t *testing.T) {
+	store := NewMemStore()
+	in := NewMemInbound(store)
+	if err := in.WriteMessageIn(contract.MessageIn{ID: "a", Seq: 0}); err != nil {
+		t.Fatal(err)
+	}
+	if err := in.WriteMessageIn(contract.MessageIn{ID: "b", Seq: 0}); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := in.PendingMessages(true)
+	if len(got) != 2 || got[0].Seq != 2 || got[1].Seq != 4 {
+		t.Fatalf("auto-allocated seqs should be 2 then 4, got %+v", got)
 	}
 }
 
@@ -39,15 +54,17 @@ func TestMemOutboundSeqParity(t *testing.T) {
 func TestMemInboundRoundTrip(t *testing.T) {
 	store := NewMemStore()
 	in := NewMemInbound(store)
-	in.WriteMessageIn(contract.MessageIn{ID: "m2", Seq: 2, Content: "second"})
-	in.WriteMessageIn(contract.MessageIn{ID: "m0", Seq: 0, Content: "first"})
+	// Explicit seqs, written out of order: the reader must order by seq, not by
+	// insertion order.
+	in.WriteMessageIn(contract.MessageIn{ID: "m4", Seq: 4, Content: "second"})
+	in.WriteMessageIn(contract.MessageIn{ID: "m2", Seq: 2, Content: "first"})
 
 	// Reader view (same shared store) sees both, ordered by seq.
 	got, err := in.PendingMessages(true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 2 || got[0].ID != "m0" || got[1].ID != "m2" {
+	if len(got) != 2 || got[0].ID != "m2" || got[1].ID != "m4" {
 		t.Fatalf("round-trip order wrong: %+v", got)
 	}
 }
@@ -55,8 +72,8 @@ func TestMemInboundRoundTrip(t *testing.T) {
 func TestMemInboundOnWakeGating(t *testing.T) {
 	store := NewMemStore()
 	in := NewMemInbound(store)
-	in.WriteMessageIn(contract.MessageIn{ID: "normal", Seq: 0})
-	in.WriteMessageIn(contract.MessageIn{ID: "wake", Seq: 2, OnWake: true})
+	in.WriteMessageIn(contract.MessageIn{ID: "normal", Seq: 2})
+	in.WriteMessageIn(contract.MessageIn{ID: "wake", Seq: 4, OnWake: true})
 
 	// Non-first poll hides on_wake messages.
 	got, _ := in.PendingMessages(false)

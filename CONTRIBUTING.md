@@ -78,6 +78,33 @@ go test ./...
 `make build vet test` runs the same checks. See [`docs/building.md`](docs/building.md)
 for the full build notes.
 
+### Examples smoke gate (credential-free)
+
+Changes under `examples/**` (or the demo control-plane / sandbox they exercise) trigger
+the [**Example smoke**](.github/workflows/example-smoke.yml) workflow. It runs
+`hello-ironclaw`, the `red-team-escape` proof, and a **credential-free smoke matrix**
+over every `examples/*/run-mock.sh` recipe against the offline `mock` provider — no model
+key, no channel tokens.
+
+Each `run-mock.sh` **must fail-closed on an empty assistant reply**. The chat
+`/messages` route is drain-on-read and the reply text lives in `.messages[].content`
+(NOT `.text`, which is the `/chat/send` *request* field); reading the wrong key silently
+drains the reply to empty. IRO-279 shipped exactly that regression — the scripts still
+exited 0 while returning nothing. So when you add or edit a mock recipe, keep the
+non-empty assertion (`return 1` / `exit 1` on an empty poll) so a wrong-field or broken
+round-trip turns the check red instead of passing silently. The sandbox image and demo
+control-plane are built once and shared across the matrix, so keep each recipe's own
+runtime tight. The job is additive and non-gating (not a required check).
+
+You can run the whole matrix locally:
+
+```bash
+bash container/build.sh                                # build ironclaw-sandbox:latest once
+docker compose -f docker-compose.demo.yml up --build -d
+for s in examples/*/run-mock.sh; do bash "$s" || echo "BROKE: $s"; done
+docker compose -f docker-compose.demo.yml down
+```
+
 ## The frozen contract
 
 `internal/contract/**` is the single seam shared by the control-plane (host) and the

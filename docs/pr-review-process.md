@@ -1,3 +1,8 @@
+---
+title: PR review and the machine reviewer of record
+description: How IronClaw records pull-request review decisions with a GitHub App reviewer of record, the automatable config that enforces it, and the one-time human setup step.
+---
+
 # PR review & the machine reviewer of record
 
 > **Status:** decision recorded; automatable config landed. One irreducible
