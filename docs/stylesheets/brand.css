@@ -123,6 +123,16 @@
   transform: translateY(-0.1rem);
 }
 
+/* Command blocks inside a card (e.g. the Examples gallery run commands) must
+   stay fully legible: a narrow 2-column card would otherwise clip the tail of a
+   long command behind a silent horizontal scroll, which reads as broken. Wrap
+   instead so the whole "exact run command" is always visible; the copy button
+   still copies the verbatim single line. */
+.md-typeset .grid.cards > ul > li .highlight code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* ---------------------------------------------------------------------------
    Inline code — subtle steel tint so it separates from prose (light only)
    --------------------------------------------------------------------------- */
