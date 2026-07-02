@@ -165,6 +165,10 @@ type ModelSelection struct {
 	// provider. Empty Location uses the Vertex default region.
 	Project  string
 	Location string
+	// APIVersion is the Azure OpenAI api-version for the "azure" provider; it rides in
+	// the request URL query. Ignored by every other provider. Empty uses the provider
+	// default.
+	APIVersion string
 }
 
 // tracked is a launched sandbox the Manager is responsible for.
@@ -399,6 +403,7 @@ func (m *Manager) Wake(id contract.SessionID) error {
 		spec.ModelHost = sel.Host
 		spec.ModelProject = sel.Project
 		spec.ModelLocation = sel.Location
+		spec.ModelAPIVersion = sel.APIVersion
 	}
 	// Bind the egress-broker socket when the daemon configured one (opt-in); the
 	// sandbox then gets the http_fetch tool and can reach approved hosts + vault://

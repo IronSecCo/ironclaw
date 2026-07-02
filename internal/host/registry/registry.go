@@ -35,6 +35,10 @@ type AgentGroup struct {
 	// every other provider. Empty Location uses the Vertex default region.
 	Project  string
 	Location string
+	// APIVersion is the Azure OpenAI api-version for the "azure" provider; it rides in
+	// the request URL query. Ignored by every other provider. Empty uses the provider
+	// default. Consumed at sandbox launch (see internal/host/session.Manager).
+	APIVersion string
 	// Persona is the group's legacy single-blob system-persona text, appended to the
 	// sandbox system prompt at launch. It is set via a gateway-approved
 	// ChangePersona change — never by the sandbox itself — and is read-only to the
