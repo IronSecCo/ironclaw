@@ -14,9 +14,9 @@ reply plus a JSON run report. Ask for the containment report and it also freezes
 signed-able isolation proof for the exact build under test.
 
 It is a thin wrapper over the same zero-credential path
-[`hello-ironclaw`](../../examples/hello-ironclaw/) and
-[`red-team-escape`](../../examples/red-team-escape/) use — no core control-plane
-changes, nothing you cannot also run by hand.
+[`hello-ironclaw`](https://github.com/IronSecCo/ironclaw/tree/main/examples/hello-ironclaw)
+and [`red-team-escape`](https://github.com/IronSecCo/ironclaw/tree/main/examples/red-team-escape)
+use — no core control-plane changes, nothing you cannot also run by hand.
 
 ## Credential-free by default
 
@@ -76,7 +76,7 @@ isolation proof for the build under test, then upload it as a downloadable artif
 ```
 
 The report is the same machine-verifiable JSON (`schemaVersion 1.0`) that
-[release.yml](release-runbook.md) signs and attaches to every GitHub Release — the
+[release.yml](../release-runbook.md) signs and attaches to every GitHub Release — the
 action produces a fresh one from *this* run's real result rows, never a fabricated
 verdict.
 
