@@ -37,6 +37,40 @@ To change the contract:
 Pinned crypto parameters (`CipherScheme`, `CipherPageSize`, `KDFRawKey`) and seq
 parity (host=even, sandbox=odd) are part of the contract and follow the same rule.
 
+## Seq allocation invariant (concurrency)
+
+Both message streams carry a `seq INTEGER UNIQUE` column. The single load-bearing
+rule for allocating it:
+
+> **Mint the next seq atomically inside the INSERT — never with a separate
+> read-modify-write, and never from more than one uncoordinated minter per
+> stream.**
+
+IRO-278 was a violation of this rule: three uncoordinated inbound minters (the
+router used an in-memory counter, while the sweep and delivery re-enqueuers each
+did `SELECT MAX(seq)+2` in Go) raced and picked the same seq, so one INSERT failed
+on `UNIQUE(seq)`. That broke recurring `schedule_task` and intermittently 500'd
+`/chat/send`. IRO-283 audited every seq/sequence write path and generalized the
+fix so the class cannot recur:
+
+| Stream / site | Table | Allocation | Status |
+|---|---|---|---|
+| `hostInbound.WriteMessageIn` (router, sweep, delivery, a2a all pass `Seq==0`) | `messages_in` (even) | `COALESCE((SELECT MAX(seq) FROM messages_in), 0) + 2` inside the INSERT | authoritative (IRO-278) |
+| `sandboxOutbound.WriteMessageOut` (sandbox, sole writer) | `messages_out` (odd) | `(COALESCE((SELECT MAX(seq) FROM messages_out), -1) + 1) \| 1` inside the INSERT | authoritative (IRO-283); no longer depends on the `s.mu` lock or on staying single-writer |
+| `questions.Store.Record` (`s.seq++`) | in-memory map, not persisted, no `UNIQUE` | mutex-guarded counter for question IDs only | benign — not a message-stream seq |
+
+Callers on the inbound path MUST pass `Seq==0` and let the writer mint; the
+outbound writer ignores any caller-supplied `Seq` outright. The odd expression
+forces the result odd (`| 1`) so parity holds even if a stray even seq ever
+appeared, and is provably equivalent to the `nextOddSeq` reference spec.
+
+Regression coverage is deterministic and runs under `-race` in CI (the `race` job
+in `ci.yml`): `TestHostInboundConcurrentWritersNoCollision` fans out independent
+inbound writer handles (router + sweep + delivery contention) and
+`TestSandboxOutboundConcurrentWritersNoCollision` fans out two independent outbound
+handles; both assert N distinct, correctly-parified seqs with zero collisions. A
+reintroduced uncoordinated minter fails that job instead of shipping.
+
 ## RFC log
 
 ### RFC-0001 (applied): add `OpenInboundRW` + wire the encrypted-SQLite binding
