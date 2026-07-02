@@ -312,38 +312,36 @@ func OpenOutbound(path string, k contract.SessionKey) (contract.OutboundWriter, 
 	return &sandboxOutbound{db: db}, nil
 }
 
-// WriteMessageOut appends an outbound message, assigning the next odd seq so the
-// host=even/sandbox=odd parity holds. Any Seq set by the caller is overwritten.
+// WriteMessageOut appends an outbound message. The next odd seq is minted
+// ATOMICALLY inside the INSERT — `(COALESCE(MAX(seq), -1) + 1) | 1` — never by a
+// separate read-modify-write. This generalizes the IRO-278 inbound fix to the
+// outbound stream: correctness no longer depends on the s.mu lock or on the
+// sandbox staying single-writer, so a future refactor that adds a second writer
+// (or drops the mutex) cannot resurrect the UNIQUE(seq) collision. The `| 1`
+// forces the result odd, preserving host=even/sandbox=odd parity even if a
+// legacy even seq ever slipped into the table; the expression is provably
+// equivalent to nextOddSeq (unit-tested in queue_test.go). Any Seq set by the
+// caller is ignored — the sandbox is the sole authority for outbound seqs.
 func (s *sandboxOutbound) WriteMessageOut(m contract.MessageOut) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
 	defer cancel()
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
 
-	var maxSeq sql.NullInt64
-	if err := tx.QueryRowContext(ctx, `SELECT MAX(seq) FROM messages_out`).Scan(&maxSeq); err != nil {
-		return err
-	}
-	m.Seq = nextOddSeq(maxSeq.Int64, maxSeq.Valid)
-
-	if _, err := tx.ExecContext(ctx, `
+	if _, err := s.db.ExecContext(ctx, `
 		INSERT INTO messages_out
 			(id, seq, in_reply_to, timestamp, deliver_after, recurrence, kind,
 			 platform_id, channel_type, thread_id, content)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		string(m.ID), m.Seq, idArg(m.InReplyTo), formatTime(m.Timestamp),
+		VALUES (?, (COALESCE((SELECT MAX(seq) FROM messages_out), -1) + 1) | 1,
+		        ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		string(m.ID), idArg(m.InReplyTo), formatTime(m.Timestamp),
 		deliverAfterArg(m.DeliverAfter), m.Recurrence, string(m.Kind),
 		m.PlatformID, m.ChannelType, m.ThreadID, m.Content,
 	); err != nil {
 		return err
 	}
-	return tx.Commit()
+	return nil
 }
 
 // MarkProcessing records that the given inbound messages are being processed,
@@ -449,6 +447,11 @@ func (s *sandboxOutbound) Close() error {
 // nextOddSeq returns the smallest odd seq strictly greater than the current max.
 // With an empty table it returns 1. The sandbox always writes odd seq values so
 // it never collides with the host's even ones (frozen seq parity).
+//
+// This is the reference spec for the odd-seq math. WriteMessageOut no longer
+// calls it — it mints the seq atomically in SQL as `(COALESCE(MAX(seq),-1)+1)|1`,
+// which is provably equivalent (verified by TestNextOddSeqMatchesSQLExpression in
+// queue_test.go). Keep the two in lockstep if either changes.
 func nextOddSeq(maxSeq int64, present bool) int64 {
 	if !present {
 		return 1

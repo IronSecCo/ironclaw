@@ -33,6 +33,33 @@ jobs:
       - name: test
         run: go test ./...
 
+  # Deterministic concurrency regression gate for the control-plane seq allocators
+  # (IRO-278 / IRO-283). Inbound (messages_in) and outbound (messages_out) seqs are
+  # minted atomically inside the INSERT; these packages own that invariant. Running
+  # their tests under -race on every push/PR means a reintroduced uncoordinated
+  # minter — the UNIQUE(seq) collision that broke recurring schedule_task and 500'd
+  # /chat/send — fails CI instead of shipping. Scoped to the queue-owning packages
+  # so the race build stays fast. -count=1 disables the test cache so the race
+  # detector actually re-executes the concurrent writers every run.
+  race:
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: "1"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: "1.23.12"
+      - name: race (control-plane seq allocators)
+        run: |
+          go test -race -count=1 \
+            ./internal/host/queue/ \
+            ./internal/sandbox/queue/ \
+            ./internal/host/router/ \
+            ./internal/host/sweep/ \
+            ./internal/host/delivery/ \
+            ./test/parity/
+
   # Short bounded native-fuzz run over the highest-risk untrusted-input parsers
   # (skill manifest YAML, minisign signature/key blobs, name/version/asset path
   # validation). This is a regression smoke test, not an exhaustive campaign: each
