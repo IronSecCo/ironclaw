@@ -31,7 +31,7 @@ send() {
 wait_reply() {
   for _ in $(seq 1 30); do
     out="$(curl -fsS "$ADDR/v1/ui/chat/$AGENT/messages" \
-      -H "Authorization: Bearer $TOKEN" | jq -r '.messages[]?.text // empty')"
+      -H "Authorization: Bearer $TOKEN" | jq -r '.messages[]?.content // empty')"
     if [ -n "$out" ]; then printf '   -> %s\n' "$out"; return 0; fi
     sleep 1
   done
