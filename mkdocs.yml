@@ -112,6 +112,8 @@ nav:
       - Observability (metrics): observability.md
       - Troubleshooting: troubleshooting.md
       - FAQ: faq.md
+  - Model providers:
+      - Choose your model provider: providers/index.md
   - Tutorials:
       - Overview: tutorials/index.md
       - Your first sandboxed agent in 5 minutes: tutorials/first-agent.md
