@@ -54,12 +54,13 @@ func seed(dir, task string) {
 	in, err := hq.OpenInbound(dir+"/inbound.db", key)
 	must(err)
 	defer in.Close()
-	// Unique id + even seq per call so re-seeding the same session (to re-test a
-	// running sandbox) never collides on the messages_in primary key / seq parity.
+	// Unique id per call so re-seeding the same session (to re-test a running
+	// sandbox) never collides on the messages_in primary key. Seq==0 lets the inbound
+	// writer allocate the next EVEN seq atomically against the persisted queue.
 	n := time.Now().UnixNano()
 	msg := contract.MessageIn{
 		ID:        contract.MessageID(fmt.Sprintf("msg-%d", n)),
-		Seq:       n &^ 1, // even: host parity
+		Seq:       0,
 		Kind:      contract.KindChat,
 		Timestamp: time.Now().UTC(),
 		Status:    contract.StatusQueued, // a status the sandbox treats as pending

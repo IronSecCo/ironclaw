@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/IronSecCo/ironclaw/internal/contract"
@@ -55,10 +54,6 @@ type Router struct {
 	reg       registry.Registry
 	newWriter InboundWriterFactory
 	waker     Waker
-	// seq generates EVEN host seq numbers (the frozen host-parity rule). It is
-	// process-local and monotonic across sessions; the in-memory queue enforces
-	// per-session uniqueness.
-	seq atomic.Int64
 }
 
 // New constructs a Router over the given registry, inbound-writer factory, and
@@ -67,9 +62,6 @@ type Router struct {
 func New(reg registry.Registry, newWriter InboundWriterFactory, waker Waker) *Router {
 	return &Router{reg: reg, newWriter: newWriter, waker: waker}
 }
-
-// nextSeq returns the next EVEN host sequence number.
-func (r *Router) nextSeq() int64 { return r.seq.Add(2) }
 
 // randSuffix returns a short random hex suffix for message IDs.
 func randSuffix() string {
@@ -256,8 +248,11 @@ func (r *Router) enqueue(ev types.InboundEvent, mg registry.MessagingGroup, w re
 	ct := ev.ChannelType
 	pid := ev.PlatformID
 	msg := contract.MessageIn{
-		ID:          contract.MessageID(fmt.Sprintf("in_%d_%s", time.Now().UnixNano(), randSuffix())),
-		Seq:         r.nextSeq(),
+		ID: contract.MessageID(fmt.Sprintf("in_%d_%s", time.Now().UnixNano(), randSuffix())),
+		// Seq==0: the inbound writer allocates the next EVEN seq atomically within the
+		// INSERT, coordinated with the persisted queue (IRO-278). The router must not
+		// mint seqs itself — it shares the messages_in table with delivery and sweep.
+		Seq:         0,
 		Kind:        contract.KindChat,
 		Timestamp:   time.Now().UTC(),
 		Status:      "queued",
