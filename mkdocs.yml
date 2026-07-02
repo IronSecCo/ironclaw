@@ -118,7 +118,7 @@ nav:
       - Run a 100% local model (Ollama): tutorials/local-model-ollama.md
       - Connect IronClaw to Slack: tutorials/connect-slack.md
       - Write a custom channel adapter: tutorials/custom-channel-adapter.md
-  - Examples: examples.md
+  - Examples & use cases: examples.md
   - Concepts:
       - IronClaw, Explained: ironclaw-explained.md
       - Architecture: architecture.md
