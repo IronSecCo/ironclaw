@@ -6,6 +6,7 @@
 # a nav line shared with other docs PRs, so provider PRs stop colliding.
 nav:
   - Choose your model provider: index.md
+  - Bring your own model (Ollama / Gemini / Vertex): ../bring-your-own-model.md
   - AWS Bedrock: bedrock.md
   - Azure OpenAI: azure.md
   - "*.md"

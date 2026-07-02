@@ -44,6 +44,32 @@ revise after the first real launch-week data lands.
 > Newest first. Append a new block each Monday by running the refresh command and pasting
 > its output above the previous block.
 
+### Snapshot — 2026-07-03 (blog live, external threads not yet posted)
+
+| Metric | Value | Notes |
+| --- | --- | --- |
+| Stars | 13 | flat vs 2026-07-02 (13) and the IRO-286 baseline |
+| Forks | 2 | flat |
+| Watchers / subscribers | 0 | |
+| Open issues | 19 | includes tracked work + open PRs + GFIs |
+| Views (14d) | 580 | 51 unique visitors (flat) |
+| Clones (14d) | 8637 | 801 unique, **CI-inflated** (release-per-push) |
+| Release downloads (all-time) | 2134 | +92 vs 2026-07-02 (across 120 releases, all CI) |
+| Latest release | v0.1.158 | 23 downloads |
+| Top referrers | — | github.com (19u) · cla-assistant.io (3u) · linkedin.com (3u) · reddit.com (3u) |
+
+**Read:** Flat. Stars 13 -> 13, unique visitors 51 -> 51, no movement in the honest
+external signals. This is the expected result: the launch blog is published
+(`breaking-our-own-sandbox`, IRO-271), but the reach levers that actually move these
+numbers, the Show HN / Reddit launch threads and the remaining directory submissions,
+are **owner-manual** and have not been posted yet (external, no in-environment
+credentials; identity guardrails apply). Two follow-up posts shipped this round
+(gVisor deep-dive, bring-your-own-model), which grows the surface a visitor can land
+on but does not by itself drive traffic. The bottleneck for round 2 is distribution
+execution (owner posts the staged threads), not more content. Referrer mix narrowed
+vs 2026-07-02: `goodfirstissues.com`, `google`, and the docs site dropped out of the
+trailing 14-day window, consistent with no fresh inbound push.
+
 ### Snapshot — 2026-07-02 (pre-launch)
 
 | Metric | Value | Notes |
