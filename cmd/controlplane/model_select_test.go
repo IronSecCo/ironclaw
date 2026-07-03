@@ -37,6 +37,21 @@ func TestSelectModel_ExplicitProviderWins(t *testing.T) {
 	}
 }
 
+// A group pinned to the openrouter provider carries its provider and a
+// vendor/model id through selection unchanged. OpenRouter has a single global host
+// (openrouter.ai) that the sandbox provider fills in, so — like openai — no host is
+// threaded here; the pin is all it takes for `agent create --provider openrouter` to
+// route to the OpenRouter backend.
+func TestSelectModel_OpenRouterExplicit(t *testing.T) {
+	reg := registry.NewMemRegistry()
+	id := newSessionFor(t, reg, "openrouter", "anthropic/claude-3.5-sonnet")
+
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "", "")(id)
+	if sel.Provider != "openrouter" || sel.Model != "anthropic/claude-3.5-sonnet" {
+		t.Fatalf("openrouter selection must carry provider+vendor/model: got %+v", sel)
+	}
+}
+
 // Regression for the gateway-only 403: a group with NO provider must inherit the
 // deployment default (IRONCLAW_DEV_PROVIDER) rather than falling back to Anthropic,
 // whose host is not on the gateway-only allowlist.

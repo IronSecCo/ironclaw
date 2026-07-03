@@ -8,4 +8,5 @@ nav:
   - Choose your model provider: index.md
   - AWS Bedrock: bedrock.md
   - Azure OpenAI: azure.md
+  - OpenRouter (100+ models): openrouter.md
   - "*.md"
