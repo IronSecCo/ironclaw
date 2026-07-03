@@ -3,6 +3,8 @@ package queue
 import (
 	"database/sql"
 	"errors"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -32,6 +34,125 @@ func TestNextOddSeq(t *testing.T) {
 				t.Fatalf("nextOddSeq(%d,%v) = %d is even; sandbox must write odd seq", tc.maxSeq, tc.present, got)
 			}
 		})
+	}
+}
+
+// TestNextOddSeqMatchesSQLExpression pins the equivalence between the nextOddSeq
+// reference spec and the SQL expression WriteMessageOut now mints with,
+// `(COALESCE(MAX(seq), -1) + 1) | 1`. If either drifts, the sandbox could mint an
+// even seq (breaking host=even/sandbox=odd parity) or a non-monotonic one.
+func TestNextOddSeqMatchesSQLExpression(t *testing.T) {
+	// sqlOdd mirrors the SQL: -1 stands in for MAX(seq) over an empty table.
+	sqlOdd := func(maxSeq int64, present bool) int64 {
+		base := int64(-1)
+		if present {
+			base = maxSeq
+		}
+		return (base + 1) | 1
+	}
+	for _, present := range []bool{false, true} {
+		for max := int64(0); max <= 64; max++ {
+			got := sqlOdd(max, present)
+			want := nextOddSeq(max, present)
+			if got != want {
+				t.Fatalf("SQL expr(%d,%v) = %d, nextOddSeq = %d", max, present, got, want)
+			}
+			if got%2 == 0 {
+				t.Fatalf("SQL expr(%d,%v) = %d is even; sandbox must write odd", max, present, got)
+			}
+		}
+	}
+}
+
+// TestSandboxOutboundConcurrentWritersNoCollision is the outbound sibling of the
+// IRO-278 inbound regression (IRO-283). It opens TWO independent outbound writer
+// handles to the same encrypted DB — each with its own s.mu — so the only thing
+// coordinating their seq allocation is the atomic `(COALESCE(MAX(seq),-1)+1)|1`
+// minted inside the INSERT, not any shared in-process lock. Many goroutines write
+// concurrently across both handles; the run must yield N distinct ODD seqs with
+// zero UNIQUE(seq) collisions under -race. This proves the hardening holds even
+// if the sandbox ever stops being a single serialized writer.
+func TestSandboxOutboundConcurrentWritersNoCollision(t *testing.T) {
+	path := t.TempDir() + "/outbound.db"
+	key := contract.SessionKey{}
+
+	handleA, err := OpenOutbound(path, key)
+	if err != nil {
+		t.Fatalf("OpenOutbound A: %v", err)
+	}
+	defer handleA.Close()
+	handleB, err := OpenOutbound(path, key)
+	if err != nil {
+		t.Fatalf("OpenOutbound B: %v", err)
+	}
+	defer handleB.Close()
+
+	const writers = 24
+	var wg sync.WaitGroup
+	errs := make([]error, writers)
+	start := make(chan struct{})
+	for i := 0; i < writers; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			w := handleA
+			if i%2 == 1 {
+				w = handleB
+			}
+			<-start
+			errs[i] = w.WriteMessageOut(contract.MessageOut{
+				ID:      contract.MessageID(fmt.Sprintf("out-%d", i)),
+				Kind:    contract.KindChat,
+				Content: fmt.Sprintf("reply-%d", i),
+			})
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("writer %d failed (odd-seq collision regressed?): %v", i, err)
+		}
+	}
+
+	// Read back every persisted seq: exactly N rows, all distinct, all odd.
+	reader, err := OpenOutbound(path, key)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	defer reader.Close()
+	store, ok := reader.(*sandboxOutbound)
+	if !ok {
+		t.Fatalf("OpenOutbound returned %T, want *sandboxOutbound", reader)
+	}
+	rows, err := store.db.Query("SELECT seq FROM messages_out ORDER BY seq")
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	defer rows.Close()
+
+	seen := make(map[int64]struct{}, writers)
+	var count int
+	for rows.Next() {
+		var s int64
+		if err := rows.Scan(&s); err != nil {
+			t.Fatalf("scan: %v", err)
+		}
+		if s%2 == 0 {
+			t.Fatalf("seq %d is even; sandbox must write odd seq", s)
+		}
+		if _, dup := seen[s]; dup {
+			t.Fatalf("duplicate seq %d — outbound allocator is not authoritative", s)
+		}
+		seen[s] = struct{}{}
+		count++
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("rows: %v", err)
+	}
+	if count != writers {
+		t.Fatalf("got %d rows, want %d (a lost write means a swallowed collision)", count, writers)
 	}
 }
 

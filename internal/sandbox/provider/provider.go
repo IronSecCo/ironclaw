@@ -94,6 +94,15 @@ const (
 	// model field, and auth is AWS SigV4 signed host-side by modelproxy.BedrockInjector
 	// (never a static header the sandbox could hold). See NewBedrock.
 	KindBedrock = "bedrock"
+	// KindAzure routes to Azure OpenAI (Azure AI Foundry) at the per-resource
+	// {resource}.openai.azure.com host. It speaks the identical OpenAI Chat
+	// Completions wire format as KindOpenAI, so it reuses OpenAIProvider; only the
+	// transport envelope differs — the model is selected by a DEPLOYMENT NAME in the
+	// URL path (cfg.Model) plus an api-version query param (cfg.APIVersion), and auth
+	// is the `api-key` header or a Microsoft Entra ID bearer token injected host-side
+	// (modelproxy.AzureKeyInjector / AzureTokenInjector), not the Bearer key OpenAI
+	// uses. There is no safe default host or deployment, so both are required. See NewAzure.
+	KindAzure = "azure"
 	// KindMock is a deterministic, offline backend (no network, no credential)
 	// for local demos and end-to-end tests. See MockProvider.
 	KindMock = "mock"
@@ -160,6 +169,12 @@ func New(cfg Config) (Provider, error) {
 		// upstream host — the SigV4 signature is region-bound, so there is no safe
 		// default. The control-plane backfills the deployment's regional host.
 		return NewBedrock(cfg)
+	case KindAzure:
+		// NewAzure reuses OpenAIProvider (identical wire format) but builds the Azure
+		// deployment URL from cfg.UpstreamHost/cfg.Model/cfg.APIVersion. Azure is
+		// per-resource with no global default host and routes by deployment, so both
+		// the host and the deployment (cfg.Model) are required — see NewAzure.
+		return NewAzure(cfg)
 	case KindMock:
 		// Deterministic offline backend; ignores host/model/socket entirely.
 		return NewMock(cfg), nil
@@ -172,8 +187,8 @@ func New(cfg Config) (Provider, error) {
 // given backend ignores (e.g. DisableThinking for OpenAI) are simply unused.
 type Config struct {
 	// Kind selects the backend: "" / "anthropic" (default), "openai",
-	// "openrouter", "codex", "gemini", "vertex", or "local". See New. The kind is
-	// chosen per agent group host-side.
+	// "openrouter", "codex", "gemini", "vertex", "local", or "azure". See New. The
+	// kind is chosen per agent group host-side.
 	Kind string
 	// Project and Location are the Google Cloud project id and region used by the
 	// Vertex AI backend (KindVertex); they ride in the request URL path. They are
@@ -182,6 +197,10 @@ type Config struct {
 	// upstream rejects), so the control-plane only selects vertex when a project is set.
 	Project  string
 	Location string
+	// APIVersion is the Azure OpenAI api-version query parameter (KindAzure only); it
+	// rides in the request URL query. Ignored by every other backend. Empty uses the
+	// provider default (defaultAzureAPIVersion).
+	APIVersion string
 	// SocketPath is the host model-proxy unix socket. Defaults to DefaultSocketPath.
 	SocketPath string
 	// UpstreamHost is the model API host the proxy allowlists and routes to.

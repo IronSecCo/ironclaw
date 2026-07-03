@@ -38,7 +38,7 @@ not change. This page helps you choose one, then links you straight to setup.
 
     Billing, IAM, and data boundary must live in your cloud account.
 
-    → **`bedrock`** (AWS), **`vertex`** (Google Cloud), or **`azure`** (incoming).
+    → **`azure`** (Azure OpenAI), **`bedrock`** (AWS), or **`vertex`** (Google Cloud).
 
 -   :material-account-key-outline: __Reuse an existing subscription__
 
@@ -61,7 +61,7 @@ not change. This page helps you choose one, then links you straight to setup.
 | **Google Vertex AI** | `vertex` | OAuth2 bearer | gcloud ADC (`GOOGLE_VERTEX_USE_GCLOUD=1`) or `GOOGLE_VERTEX_ACCESS_TOKEN`; `GOOGLE_VERTEX_PROJECT` required | yes (SSE) | Gemini under GCP billing / IAM | [Setup](#vertex-ai-google-cloud) |
 | **AWS Bedrock** | `bedrock` | AWS SigV4 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (+ `AWS_SESSION_TOKEN`), `AWS_REGION` | no (InvokeModel) | Claude/others under AWS billing / IAM | [Setup](#aws-bedrock-beta) |
 | **ChatGPT / Codex** | `codex` | OAuth via gateway | credential gateway (`IRONCLAW_MODEL_GATEWAY_URL`, e.g. OneCLI) | yes (SSE) | Reuse a ChatGPT/Codex subscription | [Setup](#codex-chatgpt-via-a-credential-gateway) |
-| **Azure OpenAI** | `azure` | API key | Azure OpenAI key + endpoint | — | Enterprise Azure tenants | :material-progress-clock: **incoming** ([IRO-284](https://github.com/IronSecCo/ironclaw/issues)) |
+| **Azure OpenAI** | `azure` | api-key or Entra token | `AZURE_OPENAI_API_KEY` (or `AZURE_OPENAI_ACCESS_TOKEN`) + `AZURE_OPENAI_ENDPOINT` | yes (SSE) | GPT-class models under Azure billing / IAM | [Azure OpenAI](azure.md) |
 
 !!! note "Streaming, and what it means here"
     Where a provider streams, IronClaw consumes the upstream token stream and
@@ -80,10 +80,10 @@ not change. This page helps you choose one, then links you straight to setup.
 - **You have an API key and want the best answer now?** Use **`anthropic`** (the
   default), **`openai`**, **`openrouter`**, or **`gemini`**. One environment
   variable and a restart.
-- **Procurement, billing, and IAM must stay in your cloud?** Use **`bedrock`**
-  (AWS), **`vertex`** (Google Cloud), or **`azure`** (incoming). Credentials come
-  from your existing cloud identity — SigV4, gcloud ADC, or an Azure key — and are
-  refreshed host-side.
+- **Procurement, billing, and IAM must stay in your cloud?** Use **`azure`** (Azure
+  OpenAI), **`bedrock`** (AWS), or **`vertex`** (Google Cloud). Credentials come from
+  your existing cloud identity — an Azure api-key or Entra token, AWS SigV4, or gcloud
+  ADC — and stay host-side.
 - **Already paying for ChatGPT?** Front a **`codex`** OAuth credential with a local
   [credential gateway](../mcp.md) and reuse it.
 
@@ -151,12 +151,17 @@ export IRONCLAW_MODEL_GATEWAY_URL=http://127.0.0.1:10255
 export IRONCLAW_MODEL_GATEWAY_HOSTS=chatgpt.com
 ```
 
-### Azure OpenAI (incoming)
+### Azure OpenAI
 
-Tracked in [IRO-284](https://github.com/IronSecCo/ironclaw/issues) and coordinated
-with the provider team. When it lands, Azure joins the enterprise row above with an
-API key plus your Azure OpenAI endpoint. Until then, use `bedrock`, `vertex`, or a
-direct `openai` key.
+For orgs that consume models only through Azure. Azure routes by **deployment name**
+in the URL and authenticates with an `api-key` header or a Microsoft Entra bearer
+token. See the full [Azure OpenAI guide](azure.md).
+
+```bash
+export AZURE_OPENAI_ENDPOINT=https://my-resource.openai.azure.com
+export AZURE_OPENAI_API_KEY=…                 # or AZURE_OPENAI_ACCESS_TOKEN for Entra
+export AZURE_OPENAI_API_VERSION=2024-10-21    # optional; provider default otherwise
+```
 
 ## Point an agent group at a provider
 
