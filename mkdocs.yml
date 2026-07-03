@@ -132,6 +132,9 @@ nav:
   - Skills: skills.md
   - Integrations:
       - CI (GitHub Action): integrations/ci.md
+      - LangChain: integrations/langchain.md
+      - OpenAI SDK: integrations/openai-sdk.md
+      - CrewAI: integrations/crewai.md
   - Social proof: social-proof.md
   - Security & Trust:
       - Overview: security.md
