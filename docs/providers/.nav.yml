@@ -1,0 +1,11 @@
+# Navigation for the "Model providers" section.
+#
+# Adding a provider page: drop `providers/<name>.md` with an H1 title. The `*.md`
+# glob below auto-includes it (titled from its H1) with ZERO edit here. Add an
+# explicit line only to control its label or ordering. Either way you never touch
+# a nav line shared with other docs PRs, so provider PRs stop colliding.
+nav:
+  - Choose your model provider: index.md
+  - AWS Bedrock: bedrock.md
+  - Azure OpenAI: azure.md
+  - "*.md"

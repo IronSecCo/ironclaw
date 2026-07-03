@@ -1,0 +1,10 @@
+# Navigation for the "Tutorials" section. New tutorial: drop the file; the `*.md`
+# glob auto-includes it (titled from its H1). List it explicitly only to override
+# the label or ordering.
+nav:
+  - Overview: index.md
+  - Your first sandboxed agent in 5 minutes: first-agent.md
+  - Run a 100% local model (Ollama): local-model-ollama.md
+  - Connect IronClaw to Slack: connect-slack.md
+  - Write a custom channel adapter: custom-channel-adapter.md
+  - "*.md"

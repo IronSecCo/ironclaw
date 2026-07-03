@@ -59,16 +59,12 @@ extra_css:
   - stylesheets/brand.css
   # Landing-page styles, scoped under `.iro-landing` (home template only).
   - stylesheets/landing.css
-  # Interactive provider picker on the model-provider decision page (IRO-311).
-  - stylesheets/provider-picker.css
 
 extra_javascript:
   # Render the bare <div class="mermaid"> blocks (see superfences config below).
   # Loaded as an ES module so it can `import` the pinned Mermaid build.
   - path: javascripts/mermaid-init.js
     type: module
-  # Provider picker: panel switching + copy buttons (progressive enhancement).
-  - javascripts/provider-picker.js
 
 plugins:
   - search
@@ -106,55 +102,9 @@ markdown_extensions:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
-nav:
-  - Home: index.md
-  - Why IronClaw: comparison.md
-  - Get Started:
-      - Quickstart: quickstart.md
-      - Building from source: building.md
-      - Production deployment: deployment.md
-      - Observability (metrics): observability.md
-      - Troubleshooting: troubleshooting.md
-      - FAQ: faq.md
-  - Model providers:
-      - Choose your model provider: providers/index.md
-      - AWS Bedrock: providers/bedrock.md
-      - Azure OpenAI: providers/azure.md
-      - Run Claude in a sandbox (AWS Bedrock): providers/run-claude-sandbox-bedrock.md
-      - Run GPT securely (Azure OpenAI): providers/run-gpt-securely-azure-openai.md
-      - Run Llama locally (Ollama): providers/run-llama-locally-ollama.md
-      - Run any model (OpenRouter): providers/run-any-model-openrouter.md
-  - Tutorials:
-      - Overview: tutorials/index.md
-      - Your first sandboxed agent in 5 minutes: tutorials/first-agent.md
-      - Run a 100% local model (Ollama): tutorials/local-model-ollama.md
-      - Connect IronClaw to Slack: tutorials/connect-slack.md
-      - Write a custom channel adapter: tutorials/custom-channel-adapter.md
-  - Examples & use cases: examples.md
-  - Concepts:
-      - IronClaw, Explained: ironclaw-explained.md
-      - Architecture: architecture.md
-      - The frozen contract: contract.md
-      - MCP servers: mcp.md
-  - Channels:
-      - Channel adapters: channels.md
-      - Writing a channel adapter: writing-a-channel-adapter.md
-  - Skills: skills.md
-  - Integrations:
-      - CI (GitHub Action): integrations/ci.md
-      - LangChain: integrations/langchain.md
-      - OpenAI SDK: integrations/openai-sdk.md
-      - CrewAI: integrations/crewai.md
-  - Social proof: social-proof.md
-  - Security & Trust:
-      - Overview: security.md
-      - Isolation, proven: security-isolation.md
-      - Credential vault: vault.md
-      - Breaking our own sandbox: breaking-our-own-sandbox.md
-      - Threat model: threat-model.md
-      - Performance & footprint: benchmarks.md
-  - Reference:
-      - API (OpenAPI): reference/api.md
-      - Release runbook: release-runbook.md
-      - PR review & reviewer identity: pr-review-process.md
-      - Roadmap: roadmap.md
+# The site navigation is assembled at build time from per-directory `.nav.yml`
+# fragment files by docs/hooks.py (`_assemble_nav`). There is intentionally no
+# `nav:` block here: a single shared nav line is a merge-collision magnet (every
+# docs/provider PR edited it). The canonical nav source is docs/.nav.yml, which
+# delegates churn-heavy sections to providers/.nav.yml, tutorials/.nav.yml, and
+# integrations/.nav.yml. See docs/CONTRIBUTING or the top of docs/hooks.py.

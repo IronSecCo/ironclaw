@@ -1,0 +1,9 @@
+# Navigation for the "Integrations" section. New integration guide: drop the
+# file; the `*.md` glob auto-includes it (titled from its H1). List it explicitly
+# only to override the label or ordering.
+nav:
+  - CI (GitHub Action): ci.md
+  - LangChain: langchain.md
+  - OpenAI SDK: openai-sdk.md
+  - CrewAI: crewai.md
+  - "*.md"

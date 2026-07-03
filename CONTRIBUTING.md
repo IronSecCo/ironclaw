@@ -127,6 +127,29 @@ Changing it requires:
 | Shared frozen seam | `internal/contract/**` (see above) |
 | Behavioral parity suite | `test/parity/**` (shared — add specs, don't rewrite others') |
 
+## Documentation
+
+The docs site (MkDocs Material, under [`docs/`](docs/)) has **no shared `nav:`
+block** in `mkdocs.yml`. The navigation is assembled at build time from
+per-directory `.nav.yml` fragment files, so two docs PRs almost never touch the
+same nav line and no longer conflict on merge.
+
+**To add a page:**
+
+1. Drop the `.md` file in the right directory with a top-level `# H1` (its title).
+2. For the churn-heavy sections — `providers/`, `tutorials/`, `integrations/` —
+   that is **all you need**: the directory's `.nav.yml` ends with a `"*.md"`
+   glob that auto-includes any new page (titled from its H1), appended after the
+   explicitly listed ones. Add an explicit `- My Label: my-page.md` line to that
+   directory's `.nav.yml` only if you want a custom label or a specific position.
+3. For a page in another section, add one line to the matching section in
+   [`docs/.nav.yml`](docs/.nav.yml) (the root fragment).
+
+`mkdocs build --strict` must stay green (`pip install -r docs/requirements.txt`
+then `mkdocs build --strict`). The assembler fails the build loudly if a
+fragment points at a missing page, so a typo can never silently drop a page.
+See the top of [`docs/hooks.py`](docs/hooks.py) for the fragment format.
+
 ## Pull requests
 
 - Branch from `main`, make your change, and open a PR against `main`.

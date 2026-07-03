@@ -1,0 +1,49 @@
+# Root navigation fragment for the IronClaw docs site.
+#
+# This is the canonical source of the site `nav`. It is assembled at build time
+# by docs/hooks.py (there is deliberately NO `nav:` block in mkdocs.yml). Churn-
+# heavy directories (providers/, tutorials/, integrations/) are referenced by
+# name and resolve to their own `.nav.yml` fragment, so adding a page there
+# never edits a line shared with unrelated docs PRs.
+#
+# Item forms (see docs/hooks.py `_resolve_items`):
+#   - "Title: page.md"   a page
+#   - "Title: subdir"    a section pulled from subdir/.nav.yml
+#   - "Title:" + list    an inline nested section
+#   - "*.md"             every remaining page in this dir, auto-titled from its H1
+nav:
+  - Home: index.md
+  - Why IronClaw: comparison.md
+  - Get Started:
+      - Quickstart: quickstart.md
+      - Building from source: building.md
+      - Production deployment: deployment.md
+      - Observability (metrics): observability.md
+      - Troubleshooting: troubleshooting.md
+      - FAQ: faq.md
+  - Model providers: providers
+  - Tutorials: tutorials
+  - Examples & use cases: examples.md
+  - Concepts:
+      - IronClaw, Explained: ironclaw-explained.md
+      - Architecture: architecture.md
+      - The frozen contract: contract.md
+      - MCP servers: mcp.md
+  - Channels:
+      - Channel adapters: channels.md
+      - Writing a channel adapter: writing-a-channel-adapter.md
+  - Skills: skills.md
+  - Integrations: integrations
+  - Social proof: social-proof.md
+  - Security & Trust:
+      - Overview: security.md
+      - Isolation, proven: security-isolation.md
+      - Credential vault: vault.md
+      - Breaking our own sandbox: breaking-our-own-sandbox.md
+      - Threat model: threat-model.md
+      - Performance & footprint: benchmarks.md
+  - Reference:
+      - API (OpenAPI): reference/api.md
+      - Release runbook: release-runbook.md
+      - PR review & reviewer identity: pr-review-process.md
+      - Roadmap: roadmap.md
