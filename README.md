@@ -32,11 +32,19 @@ read, write, schedule, and reply.
 > change is held at a gateway for a human decision. The full design is in the
 > [architecture overview](docs/architecture.md) and the [threat model](docs/threat-model.md).
 
+**If a safer way to run agents is worth having, [star the repo](https://github.com/IronSecCo/ironclaw)** to follow along and help others find it. Then try the zero-credential [quickstart](docs/quickstart.md).
+
 <div align="center">
 
 <img src="docs/assets/demo.svg" width="800" alt="Zero-credential chat demo terminal session: one command (docker compose -f docker-compose.demo.yml up -d) starts the offline mock-agent control-plane with no API key; a chat message engages the agent, which launches a real per-session sandbox container (ic-sbx-…); the reply flows back through the encrypted per-session queue.">
 
 <sub><b>Zero credentials, one command.</b> The offline <code>mock-agent</code> runs the full chat → per-session sandbox → reply path with no API key — production seals each sandbox with gVisor and <code>network=none</code>. <a href="docs/quickstart.md">Quickstart</a></sub>
+
+<br><br>
+
+<img src="docs/assets/containment.svg" width="800" alt="live-containment demo (final frame): one command engages a real per-session sandbox, then a fully-jailbroken agent tries three escapes from inside the box and each is BLOCKED — exfiltrating to the attacker is denied because network=none leaves only the loopback interface and DNS fails; reading the operator's host filesystem is denied because the host root is outside the sandbox mount namespace; seizing the host via the Docker Engine socket is denied because the socket is never mounted in and there is no docker client — ending with a containment summary that 3 of 3 escape attempts were denied and the box held.">
+
+<sub><b>…now watch it catch a real escape.</b> <a href="examples/live-containment/"><code>examples/live-containment/run.sh</code></a> engages a real sandbox and lets a fully-jailbroken agent <b>try to break out</b> — network exfil, host-filesystem breakout, host takeover via the Docker socket — while your terminal shows each attempt <b>denied</b>, then prints a containment summary. Zero credentials; reduced-motion friendly (static final frame).</sub>
 
 </div>
 
@@ -601,9 +609,15 @@ just Docker. Copy one line and watch it work:
 
 <br><br>
 
+<img src="docs/assets/containment.svg" width="760" alt="live-containment terminal demo (final frame): a fully-jailbroken agent tries three escapes from inside the sandbox and each is BLOCKED — network exfil denied by network=none (only loopback), host filesystem read denied by the mount namespace, host takeover via the Docker Engine socket denied because the socket is never mounted in — ending with a containment summary that 3 of 3 escape attempts were denied and the box held.">
+
+<sub><b><a href="examples/live-containment/">live-containment</a> — watch it catch a real escape.</b> The 60-second security aha: one command engages a real sandbox, a fully-jailbroken agent <b>tries to break out</b> (network exfil, host-filesystem breakout, host takeover via the Docker socket), and your terminal shows each attempt <b>denied</b> plus a containment summary. The curated cut of <code>red-team-escape</code>. Zero credentials.</sub>
+
+<br><br>
+
 <img src="docs/assets/redteam.svg" width="760" alt="red-team-escape terminal demo: assuming a fully jailbroken agent, the harness runs an escape battery from inside the sandbox and prints a PASS table — network egress blocked (interfaces: lo), Docker socket absent, no sibling orchestration, host root not mounted, self-modification held at the gateway, host master and sibling keys unreachable — then reports every core containment assertion held.">
 
-<sub><b><a href="examples/red-team-escape/">red-team-escape</a> — isolation you can prove.</b> Assumes a fully jailbroken agent and <b>tries to break out</b> — network egress, host escape via the Docker socket, sibling breakout, self-modification — then asserts every attack is contained. Zero credentials.</sub>
+<sub><b><a href="examples/red-team-escape/">red-team-escape</a> — isolation you can prove.</b> The full six-assertion battery behind <code>live-containment</code>: adds sibling-breakout and cross-session key-custody probes and emits a <b>signed, versioned containment report</b>; runs as the CI containment gate on every push. Zero credentials.</sub>
 
 </div>
 
