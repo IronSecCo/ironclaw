@@ -111,6 +111,10 @@ func main() {
 		"OPT-IN: base URL of a LOCAL OpenAI-compatible model server — Ollama (http://localhost:11434/v1), LM Studio, vLLM, or llama.cpp. Allowlists its host, forwards to a loopback host over plain HTTP, and makes it the deployment-default model — no cloud credential. Empty disables local-model mode")
 	localModel := flag.String("local-model", os.Getenv("IRONCLAW_LOCAL_MODEL"),
 		"model id served by --local-model-url (e.g. llama3.2); required when --local-model-url is set")
+	ollama := flag.Bool("ollama", envBool("IRONCLAW_OLLAMA"),
+		"OPT-IN: enable the zero-credential Ollama provider. Reaches Ollama at OLLAMA_HOST (default localhost:11434) over plain HTTP, allowlists only that host, and makes it the deployment-default model — no cloud key. Ignored when --local-model-url is set")
+	ollamaModel := flag.String("ollama-model", envOr("IRONCLAW_OLLAMA_MODEL", "llama3.2"),
+		"model id served by Ollama when --ollama is set (must be pulled: `ollama pull <model>`)")
 	dev := flag.Bool("dev", false,
 		"seed the registry with a tiny dev owner/agent-group for local testing")
 	showVersion := flag.Bool("version", false, "print version and exit")
@@ -366,6 +370,31 @@ func main() {
 		}
 		localDefaultSel = session.ModelSelection{Provider: "local", Model: *localModel, Host: localModelHost}
 		logger.Info("local model enabled", "host", localModelHost, "model", *localModel, "scheme", parsed.Scheme, "credentialed", localKeyed)
+	}
+	// Ollama: the zero-credential, zero-config local path. Opt in with --ollama (or
+	// IRONCLAW_OLLAMA); the server is located at OLLAMA_HOST (default localhost:11434).
+	// Like the local block above it allowlists only that host, forwards over plain HTTP
+	// (Ollama serves no TLS on loopback), and makes it the deployment-default model so a
+	// provider-less agent group runs fully local with NO API key. A key is injected only
+	// if the operator set OLLAMA_API_KEY (an Ollama behind an authenticating reverse
+	// proxy). --local-model-url wins if both are set — it is the more explicit config.
+	if *ollama && localDefaultSel.Provider == "" {
+		ohost, oInsecure := ollamaHostPort(os.Getenv("OLLAMA_HOST"))
+		localModelHost = ohost
+		allowHosts = append(allowHosts, ohost)
+		if oInsecure {
+			localInsecure = append(localInsecure, ohost)
+		}
+		ollamaKeyed := false
+		if key := os.Getenv("OLLAMA_API_KEY"); key != "" {
+			injectors = append(injectors, modelproxy.OllamaInjector(ohost, key))
+			redactKeys = append(redactKeys, key)
+			ollamaKeyed = true
+		}
+		localDefaultSel = session.ModelSelection{Provider: "ollama", Model: *ollamaModel, Host: ohost}
+		logger.Info("ollama enabled", "host", ohost, "model", *ollamaModel, "insecure", oInsecure, "credentialed", ollamaKeyed)
+	} else if *ollama && *localModelURL != "" {
+		logger.Warn("--ollama ignored because --local-model-url is set (use one local provider at a time)")
 	}
 
 	credInjected := len(injectors) > 0
@@ -1178,6 +1207,49 @@ func envOr(key, def string) string {
 	return def
 }
 
+// envBool reports whether the environment variable key is set to a truthy value
+// ("1", "true", "yes", "on", case-insensitive). Anything else — including unset or
+// an explicit falsey value — is false. Used to default opt-in boolean flags from the
+// environment so a deployment can enable a feature without a command-line flag.
+func envBool(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
+// ollamaHostPort resolves the host:port to allowlist for the Ollama provider from an
+// OLLAMA_HOST value, reporting whether the upstream is plain HTTP (so the proxy
+// forwards without TLS). OLLAMA_HOST follows Ollama's own conventions: a bare
+// host:port ("127.0.0.1:11434"), a bare host ("localhost" — port 11434 assumed), or a
+// full URL ("http://host:11434", "https://ollama.example.com"). An empty value
+// resolves to the loopback default localhost:11434 over HTTP. https:// (a remote
+// Ollama behind TLS) resolves insecure=false; everything else is treated as plain HTTP
+// (loopback Ollama serves no TLS).
+func ollamaHostPort(env string) (hostPort string, insecure bool) {
+	env = strings.TrimSpace(env)
+	if env == "" {
+		return "localhost:11434", true
+	}
+	insecure = true
+	host := env
+	if strings.Contains(host, "://") {
+		u, err := url.Parse(host)
+		if err != nil || u.Host == "" {
+			return "localhost:11434", true
+		}
+		host = u.Host
+		insecure = u.Scheme != "https"
+	}
+	// Append Ollama's default port when the value carries a bare host with no port.
+	if _, _, err := net.SplitHostPort(host); err != nil {
+		host = net.JoinHostPort(host, "11434")
+	}
+	return strings.ToLower(host), insecure
+}
+
 // vertexAllowHost returns the Vertex AI host to allowlist for a region: the global
 // (region-less) endpoint for "global", otherwise the regional
 // {location}-aiplatform.googleapis.com. An unset location resolves to the same
@@ -1281,9 +1353,10 @@ func selectModelFromRegistry(reg *registry.MemRegistry, localDefault session.Mod
 			return def
 		}
 		sel := session.ModelSelection{Provider: g.Provider, Model: g.Model, Project: g.Project, Location: g.Location, APIVersion: g.APIVersion}
-		// A group pinned to the local provider but without its own host inherits the
-		// deployment's configured loopback host so it reaches the same local server.
-		if strings.EqualFold(sel.Provider, "local") && sel.Host == "" {
+		// A group pinned to the local or ollama provider but without its own host
+		// inherits the deployment's configured loopback host so it reaches the same
+		// local server the proxy allowlisted.
+		if (strings.EqualFold(sel.Provider, "local") || strings.EqualFold(sel.Provider, "ollama")) && sel.Host == "" {
 			sel.Host = localHost
 		}
 		// Likewise a bedrock-pinned group without its own host inherits the
