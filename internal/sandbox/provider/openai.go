@@ -22,6 +22,19 @@ import (
 	"strings"
 )
 
+// KindOpenAI selects the OpenAI Chat Completions backend. Its kind constant and
+// default upstream host/model live here (not in provider.go) so this backend is
+// self-contained; it self-registers below.
+const (
+	KindOpenAI         = "openai"
+	openAIUpstreamHost = "api.openai.com"
+	defaultOpenAIModel = "gpt-4o"
+)
+
+func init() {
+	Register(KindOpenAI, func(cfg Config) (Provider, error) { return NewOpenAI(cfg), nil })
+}
+
 // OpenAIProvider talks to an OpenAI-compatible Chat Completions API via the host
 // model-proxy socket. It serves both OpenAI and OpenRouter (an OpenAI-compatible
 // gateway); the only difference is the upstream host, model id, and request path.

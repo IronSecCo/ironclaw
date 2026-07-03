@@ -25,6 +25,14 @@ import (
 // with no credential.
 type MockProvider struct{}
 
+// KindMock is a deterministic, offline backend (no network, no credential) for
+// local demos and end-to-end tests. See MockProvider.
+const KindMock = "mock"
+
+func init() {
+	Register(KindMock, func(cfg Config) (Provider, error) { return NewMock(cfg), nil })
+}
+
 // NewMock constructs a MockProvider. cfg is accepted for signature parity with
 // the other constructors; every field is ignored (the mock has no network,
 // model, or socket to configure).

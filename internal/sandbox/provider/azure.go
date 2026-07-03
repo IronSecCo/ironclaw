@@ -31,6 +31,20 @@ import (
 // deployment requires it.
 const defaultAzureAPIVersion = "2024-10-21"
 
+// KindAzure routes to Azure OpenAI (Azure AI Foundry) at the per-resource
+// {resource}.openai.azure.com host. It reuses OpenAIProvider (identical wire
+// format); only the transport envelope differs — the model is selected by a
+// DEPLOYMENT NAME in the URL path (cfg.Model) plus an api-version query param
+// (cfg.APIVersion), and auth is the `api-key` header or a Microsoft Entra ID bearer
+// token injected host-side (modelproxy.AzureKeyInjector / AzureTokenInjector), not
+// the Bearer key OpenAI uses. There is no safe default host or deployment, so both
+// are required — see NewAzure, which the factory below delegates to.
+const KindAzure = "azure"
+
+func init() {
+	Register(KindAzure, func(cfg Config) (Provider, error) { return NewAzure(cfg) })
+}
+
 // NewAzure constructs an Azure OpenAI backend, reusing OpenAIProvider unchanged (the
 // wire format is identical) and overriding only the request URL so the deployment
 // name and api-version ride in it. Unlike the single-global-host cloud providers,
