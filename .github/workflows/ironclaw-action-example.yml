@@ -16,6 +16,7 @@ on:
     paths:
       - ".github/actions/ironclaw/**"
       - ".github/workflows/ironclaw-action-example.yml"
+      - ".dockerignore"
       - "docker-compose.demo.yml"
       - "container/**"
       - "cmd/sandbox/**"
@@ -27,6 +28,7 @@ on:
     paths:
       - ".github/actions/ironclaw/**"
       - ".github/workflows/ironclaw-action-example.yml"
+      - ".dockerignore"
       - "docker-compose.demo.yml"
       - "container/**"
       - "cmd/sandbox/**"

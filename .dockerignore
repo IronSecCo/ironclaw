@@ -1,0 +1,14 @@
+# Build-context excludes (IRO-316).
+#
+# Both image builds use the repository ROOT as their Docker build context:
+#   - container/build.sh          -> docker build -f container/Dockerfile <repo root>
+#   - docker-compose.demo.yml     -> controlplane: build.context = "."
+# so this .dockerignore governs what the BuildKit context sender transfers for both.
+
+# Runtime state the demo control-plane writes as a HOST bind (docker-compose.demo.yml:
+# IRONCLAW_DOCKER_BINDS / ./.ironclaw-demo-state). In CI the control-plane runs as root
+# and writes .ironclaw-demo-state/changes root-owned; a later `compose up --build` then
+# fails loading the context with "error from sender: open .../.ironclaw-demo-state/changes:
+# permission denied", reddening the containment-report job for reasons unrelated to the
+# build. It is pure runtime state, never a build input, so exclude it from every context.
+.ironclaw-demo-state/
