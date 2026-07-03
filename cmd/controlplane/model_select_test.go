@@ -191,6 +191,66 @@ func TestSelectModel_LocalDefaultOverridesDevDefault(t *testing.T) {
 	}
 }
 
+// A group explicitly pinned to the ollama provider but carrying no host of its own
+// inherits the deployment's configured loopback host, exactly like the local provider
+// — so a provider-only pin reaches the same Ollama the proxy allowlisted.
+func TestSelectModel_OllamaGroupInheritsHost(t *testing.T) {
+	reg := registry.NewMemRegistry()
+	id := newSessionFor(t, reg, "ollama", "llama3.2")
+
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "localhost:11434", "", "", "")(id)
+	if sel.Provider != "ollama" || sel.Host != "localhost:11434" {
+		t.Fatalf("ollama group must inherit the configured loopback host: got %+v", sel)
+	}
+}
+
+// ollamaHostPort resolves OLLAMA_HOST to the host:port the proxy allowlists, reporting
+// whether the upstream is plain HTTP. It must accept Ollama's own conventions: empty
+// (loopback default), bare host, host:port, and full http/https URLs — always matching
+// the host the sandbox provider addresses so the allowlist does not 403.
+func TestOllamaHostPort(t *testing.T) {
+	cases := []struct {
+		in           string
+		wantHost     string
+		wantInsecure bool
+	}{
+		{"", "localhost:11434", true},                                         // loopback default
+		{"127.0.0.1:11434", "127.0.0.1:11434", true},                          // bare host:port
+		{"localhost", "localhost:11434", true},                                // bare host, default port
+		{"http://localhost:11434", "localhost:11434", true},                   // explicit http URL
+		{"https://ollama.example.com", "ollama.example.com:11434", false},     // remote TLS, default port added
+		{"https://ollama.example.com:8443", "ollama.example.com:8443", false}, // remote TLS, explicit port
+		{"  http://192.168.1.9:11434  ", "192.168.1.9:11434", true},           // trimmed
+		{"HTTP://LocalHost:11434", "localhost:11434", true},                   // lowercased
+	}
+	for _, c := range cases {
+		gotHost, gotInsecure := ollamaHostPort(c.in)
+		if gotHost != c.wantHost || gotInsecure != c.wantInsecure {
+			t.Errorf("ollamaHostPort(%q) = (%q, %v), want (%q, %v)",
+				c.in, gotHost, gotInsecure, c.wantHost, c.wantInsecure)
+		}
+	}
+}
+
+// envBool defaults opt-in boolean flags (--ollama) from the environment. Only the
+// canonical truthy tokens enable; unset or anything else stays off.
+func TestEnvBool(t *testing.T) {
+	truthy := []string{"1", "true", "TRUE", "yes", "On", "  true  "}
+	falsy := []string{"", "0", "false", "no", "off", "maybe"}
+	for _, v := range truthy {
+		t.Setenv("IRONCLAW_ENVBOOL_T", v)
+		if !envBool("IRONCLAW_ENVBOOL_T") {
+			t.Errorf("envBool(%q) = false, want true", v)
+		}
+	}
+	for _, v := range falsy {
+		t.Setenv("IRONCLAW_ENVBOOL_F", v)
+		if envBool("IRONCLAW_ENVBOOL_F") {
+			t.Errorf("envBool(%q) = true, want false", v)
+		}
+	}
+}
+
 // A group explicitly pinned to the local provider but carrying no host of its own
 // inherits the deployment's configured loopback host.
 func TestSelectModel_LocalGroupInheritsHost(t *testing.T) {

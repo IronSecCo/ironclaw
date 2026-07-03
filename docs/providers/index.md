@@ -25,8 +25,9 @@ not change. This page helps you choose one, then links you straight to setup.
 
     No cloud, no key, nothing leaves the box.
 
-    → **`mock`** for a demo or CI, **`local`** (Ollama / LM Studio / vLLM) for a
-    real model on your own hardware.
+    → **`mock`** for a demo or CI, **`ollama`** for a real model on your own
+    hardware with zero setup, **`local`** for any other OpenAI-compatible server
+    (LM Studio / vLLM).
 
 -   :material-cloud-outline: __Hosted, fastest to first token__
 
@@ -217,7 +218,8 @@ export IRONCLAW_MODEL_GATEWAY_HOSTS=chatgpt.com</code></pre><button type="button
 | Provider | Kind | Auth method | Credential source (host-side) | Streaming | Best for | Setup |
 |---|---|---|---|---|---|---|
 | **Mock** | `mock` | none | none — offline, deterministic | n/a | Demos, e2e tests, first run | [Quickstart](../quickstart.md#a-working-chat-in-5-minutes-no-credentials) |
-| **Local / self-hosted** | `local` | none (optional key) | `IRONCLAW_LOCAL_MODEL_KEY` only if your server requires one | server-dependent | 100% local model, no data egress | [Ollama tutorial](../tutorials/local-model-ollama.md) |
+| **Ollama** | `ollama` | none (optional key) | none — `OLLAMA_API_KEY` only for an auth-gateway'd Ollama | yes (SSE) | Zero-credential local model, easiest quickstart | [Ollama provider](ollama.md) |
+| **Local / self-hosted** | `local` | none (optional key) | `IRONCLAW_LOCAL_MODEL_KEY` only if your server requires one | server-dependent | Any OpenAI-compatible server (LM Studio, vLLM, llama.cpp) | [Ollama tutorial](../tutorials/local-model-ollama.md) |
 | **Anthropic** _(default)_ | `anthropic` | API key | `ANTHROPIC_API_KEY` | yes (SSE) | Strongest default, tool use | [Quickstart](../quickstart.md#a-working-chat-in-5-minutes-no-credentials) |
 | **OpenAI** | `openai` | API key | `OPENAI_API_KEY` | yes (SSE) | GPT-class models | [Setup](#anthropic-openai-openrouter) |
 | **OpenRouter** | `openrouter` | API key | `OPENROUTER_API_KEY` | yes (SSE) | One key, many models | [Setup](#anthropic-openai-openrouter) |
@@ -238,9 +240,12 @@ export IRONCLAW_MODEL_GATEWAY_HOSTS=chatgpt.com</code></pre><button type="button
 
 - **Just want to see it work?** Start with **`mock`** — no key, no network. The
   [Quickstart](../quickstart.md) zero-credential demo replies in seconds.
-- **Privacy or air-gap is the constraint?** Run **`local`** against Ollama, LM
-  Studio, vLLM, or llama.cpp on your own box. Nothing leaves the machine, and no
-  cloud credential is required. See the [local model tutorial](../tutorials/local-model-ollama.md).
+- **Privacy or air-gap is the constraint?** Run a model on your own box — nothing
+  leaves the machine and no cloud credential is required. Use **`ollama`** for the
+  zero-config path (`--provider ollama` works with nothing else set; see the
+  [Ollama provider](ollama.md)), or **`local`** for any other OpenAI-compatible
+  server (LM Studio, vLLM, llama.cpp; see the
+  [local model tutorial](../tutorials/local-model-ollama.md)).
 - **You have an API key and want the best answer now?** Use **`anthropic`** (the
   default), **`openai`**, **`openrouter`**, or **`gemini`**. One environment
   variable and a restart.

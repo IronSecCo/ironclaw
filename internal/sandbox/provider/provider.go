@@ -58,9 +58,10 @@ const (
 // sealed single-provider posture is unchanged unless a group opts into another
 // backend. Its provider (AnthropicProvider) lives in this file and self-registers
 // in init below. Every OTHER kind is declared and registered in its own backend
-// file (openai.go, azure.go, ...) so adding a provider means adding ONE file that
-// touches no shared line here. Each kind maps to a model-proxy-allowlisted upstream
-// host that the host authenticates with its own credential (see internal/host/modelproxy).
+// file (openai.go, azure.go, ollama.go, ...) so adding a provider means adding ONE
+// file that touches no shared line here. Each kind maps to a model-proxy-allowlisted
+// upstream host that the host authenticates with its own credential (see
+// internal/host/modelproxy).
 const KindAnthropic = "anthropic"
 
 // Factory builds a Provider from cfg. A backend's Factory is responsible for
@@ -126,8 +127,8 @@ func New(cfg Config) (Provider, error) {
 // given backend ignores (e.g. DisableThinking for OpenAI) are simply unused.
 type Config struct {
 	// Kind selects the backend: "" / "anthropic" (default), "openai",
-	// "openrouter", "codex", "gemini", "vertex", "local", or "azure". See New. The
-	// kind is chosen per agent group host-side.
+	// "openrouter", "codex", "gemini", "vertex", "local", "azure", or "ollama". See
+	// New. The kind is chosen per agent group host-side.
 	Kind string
 	// Project and Location are the Google Cloud project id and region used by the
 	// Vertex AI backend (KindVertex); they ride in the request URL path. They are

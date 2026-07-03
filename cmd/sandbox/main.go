@@ -67,7 +67,7 @@ func run() error {
 		mcpSocket     = flag.String("mcp-socket", "", "host MCP-broker unix socket; when set, registers the agent's gateway-approved MCP-server tools (empty = no MCP surface)")
 		modelHost     = flag.String("model-host", "", "upstream model host the proxy allowlists (defaults to the provider's host)")
 		model         = flag.String("model", "", "model id override (defaults to the provider's default)")
-		modelKind     = flag.String("provider", "", "model provider: anthropic (default), openai, openrouter, codex, gemini, vertex, local (self-hosted OpenAI-compatible: Ollama/LM Studio/vLLM), or azure (Azure OpenAI); selected per agent group host-side")
+		modelKind     = flag.String("provider", "", "model provider: anthropic (default), openai, openrouter, codex, gemini, vertex, local (self-hosted OpenAI-compatible: LM Studio/vLLM), ollama (zero-credential local Ollama), or azure (Azure OpenAI); selected per agent group host-side")
 		modelProject  = flag.String("model-project", "", "Google Cloud project id for the vertex provider (rides in the request URL path)")
 		modelLocation = flag.String("model-location", "", "Google Cloud region for the vertex provider (empty = the provider's default region)")
 		modelAPIVer   = flag.String("model-api-version", "", "Azure OpenAI api-version query parameter (azure provider only; empty = the provider's default)")

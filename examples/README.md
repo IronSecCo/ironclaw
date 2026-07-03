@@ -83,6 +83,7 @@ docker compose -f docker-compose.demo.yml down            # tear down
 |--------|---------------|:--------------------:|
 | [`hello-ironclaw/`](hello-ironclaw/) | The full path working end-to-end, asserted — the smoke test + first "it works". | ✅ `run.sh` (self-contained) |
 | [`red-team-escape/`](red-team-escape/) | The sandbox **holding** under attack — network egress, host/socket escape, sibling breakout, and gateway-held self-modification, all asserted contained. | ✅ `run.sh` (self-contained) |
+| [`ollama/`](ollama/) | A real agent on a **local Ollama model** with **zero cloud API key** — the first-class `ollama` provider, create-group + chat + reply. | ✅ `setup.sh` (needs local Ollama) |
 | [`scheduled-report/`](scheduled-report/) | An agent that wakes itself on a schedule (`schedule_task`), summarizes, and posts to a channel. | ✅ `run-mock.sh` |
 | [`webhook-responder/`](webhook-responder/) | An inbound HTTP webhook routed to an agent that replies (poll or push-back via a `webhook` destination). | ✅ `run-mock.sh` |
 | [`slack-triage/`](slack-triage/) | A bot that classifies/labels **every** incoming Slack message. | ✅ `run-mock.sh` |

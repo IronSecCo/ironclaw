@@ -12,3 +12,8 @@
 # permission denied", reddening the containment-report job for reasons unrelated to the
 # build. It is pure runtime state, never a build input, so exclude it from every context.
 .ironclaw-demo-state/
+.ironclaw-*-state/
+
+# Local dev / editor cruft that never belongs in the image either.
+site/
+*.log
