@@ -1,5 +1,5 @@
-{"version":2,"width":92,"height":24,"timestamp":1782182997,"idle_time_limit":2,"title":"IronClaw — hello-ironclaw (zero-credential end-to-end)","env":{"SHELL":"/bin/zsh","TERM":"xterm-256color"},"theme":{"fg":"#eaf2ff","bg":"#0b1124","palette":"#1d2c57:#ff8087:#5ad6a0:#e3b341:#3b82f6:#b9a0ff:#63a0ff:#b9d4ff:#3a4a7a:#ff9aa0:#7ce8bb:#f0c460:#63a0ff:#cdbcff:#93b6ff:#ffffff"}}
-[0.5,"o","\u001b[38;5;67m# hello-ironclaw — the canonical \"it works\", zero credentials. One command.\u001b[0m\r\n"]
+{"version":2,"width":92,"height":24,"timestamp":1782182997,"idle_time_limit":2,"title":"IronClaw: hello-ironclaw (zero-credential end-to-end)","env":{"SHELL":"/bin/zsh","TERM":"xterm-256color"},"theme":{"fg":"#eaf2ff","bg":"#0b1124","palette":"#1d2c57:#ff8087:#5ad6a0:#e3b341:#3b82f6:#b9a0ff:#63a0ff:#b9d4ff:#3a4a7a:#ff9aa0:#7ce8bb:#f0c460:#63a0ff:#cdbcff:#93b6ff:#ffffff"}}
+[0.5,"o","\u001b[38;5;67m# hello-ironclaw: the canonical \"it works\", zero credentials. One command.\u001b[0m\r\n"]
 [0.95,"o","\u001b[92m$\u001b[0m "]
 [0.978,"o","e"]
 [1.006,"o","x"]

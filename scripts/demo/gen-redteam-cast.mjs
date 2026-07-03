@@ -75,7 +75,7 @@ const header = {
   height: ROWS,
   timestamp: 1782182997,
   idle_time_limit: 2.0,
-  title: 'IronClaw — red-team-escape (prove the sandbox holds)',
+  title: 'IronClaw: red-team-escape (prove the sandbox holds)',
   env: { SHELL: '/bin/zsh', TERM: 'xterm-256color' },
   theme: {
     fg: '#eaf2ff',
@@ -93,7 +93,7 @@ const RULE = '='.repeat(78);
 
 // ── scene ──────────────────────────────────────────────────────────────────
 wait(0.5);
-comment('red-team-escape — assume a fully jailbroken agent, then try to break out.');
+comment('red-team-escape: assume a fully jailbroken agent, then try to break out.');
 wait(0.2);
 
 type('examples/red-team-escape/run.sh');
@@ -107,7 +107,7 @@ out([
 ]);
 wait(BEAT);
 
-comment('run the escape battery FROM INSIDE the sandbox — each attack must be contained');
+comment('run the escape battery FROM INSIDE the sandbox; each attack must be contained');
 progress(c.dim('==> running the escape battery from inside ic-sbx-ses_8a36aa548d04fd37'), 3);
 wait(0.2);
 
@@ -129,7 +129,7 @@ emit(c.dim(RULE) + '\r\n');
 wait(BEAT + 0.2);
 
 emit('\r\n');
-emit(c.ok('RESULT: ✅') + ' ' + c.bold('every core containment assertion held — the sandbox contained') + '\r\n');
+emit(c.ok('RESULT: ✅') + ' ' + c.bold('every core containment assertion held; the sandbox contained') + '\r\n');
 emit('           ' + c.bold('a fully jailbroken agent.') + '\r\n');
 wait(0.15);
 emit(c.dim('           isolation you can prove, not just promise.') + '\r\n');

@@ -68,7 +68,7 @@ const header = {
   height: ROWS,
   timestamp: 1782182997,
   idle_time_limit: 2.0,
-  title: 'IronClaw — hello-ironclaw (zero-credential end-to-end)',
+  title: 'IronClaw: hello-ironclaw (zero-credential end-to-end)',
   env: { SHELL: '/bin/zsh', TERM: 'xterm-256color' },
   theme: {
     fg: '#eaf2ff',
@@ -84,7 +84,7 @@ const header = {
 
 // ── scene ──────────────────────────────────────────────────────────────────
 wait(0.5);
-comment('hello-ironclaw — the canonical "it works", zero credentials. One command.');
+comment('hello-ironclaw: the canonical "it works", zero credentials. One command.');
 wait(0.2);
 
 type('examples/hello-ironclaw/run.sh');
