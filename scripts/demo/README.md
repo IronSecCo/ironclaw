@@ -27,10 +27,28 @@ its final frame (the approved-change audit trail). Because the guard travels ins
 asset, it is honored everywhere the SVG is embedded as `<img>` — GitHub and the landing
 alike — with no separate poster file.
 
+### Per-example assets (`docs/assets/{hello,redteam}.{cast,svg}`)
+
+The motion assets for the top two gallery examples (IRO-291) — embedded in the README
+`## Examples` section and the two featured `docs/examples.md` cards. Same honesty +
+determinism + reduced-motion rules as the hero demo:
+
+| File | What it is |
+| --- | --- |
+| `gen-hello-cast.mjs` | Faithful re-enactment of `examples/hello-ironclaw/run.sh` — the zero-credential end-to-end check (also the CI smoke test): one command → real engage → per-session sandbox → encrypted queue → reply → `PASS`. |
+| `gen-redteam-cast.mjs` | Faithful re-enactment of `examples/red-team-escape/run.sh` — the escape battery run from inside a (worst-case) jailbroken sandbox, ending in the `PASS` containment table. The OBSERVED column is condensed for legibility; verdicts, attacks, and semantics match the real script. |
+| `build-examples.sh` | Full pipeline for both: cast → `svg-term-cli` → brand recolor → reduced-motion guard → `docs/assets/{hello,redteam}.svg`. Generalizes `build.sh` over a `(name, width, height)` list; the scroll-animation name is matched structurally (svg-term auto-increments the letter per asset), not hardcoded. |
+
+Each cast ends with a short dwell + a benign trailing no-op event so the final `PASS`
+frame lingers before the loop restarts (the loop length is the last event's timestamp,
+so a trailing wait alone is dropped). That final frame is also the reduced-motion still.
+
 ## Regenerate
 
 ```sh
-bash scripts/demo/build.sh          # needs node + network (npx fetches svg-term-cli)
+bash scripts/demo/build.sh          # hero + walkthrough
+bash scripts/demo/build-examples.sh # hello + redteam example demos
+# both need node + network (npx fetches svg-term-cli)
 ```
 
 `svg-term-cli@2.1.1` ignores `--profile` and the cast `theme`, so `build.sh` patches its

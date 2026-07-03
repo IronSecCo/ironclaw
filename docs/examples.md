@@ -26,6 +26,8 @@ Requires only Docker.
 
     ---
 
+    ![hello-ironclaw terminal demo: one command builds the sandbox image, starts the offline mock-agent, sends a chat through the real engage to per-session sandbox to encrypted queue to reply path, and prints PASS when the reply returns.](assets/hello.svg){ loading=lazy }
+
     The canonical first "it works": sends a chat through the **real** secured path
     (engage → per-session sandbox → encrypted queue → delivery) and **asserts** the
     reply comes back. Doubles as the CI smoke test.
@@ -37,6 +39,8 @@ Requires only Docker.
 -   :material-shield-sword: **[red-team-escape](https://github.com/IronSecCo/ironclaw/tree/main/examples/red-team-escape)** &nbsp;·&nbsp; *zero-cred · self-contained*
 
     ---
+
+    ![red-team-escape terminal demo: assuming a fully jailbroken agent, an escape battery runs from inside the sandbox and prints a PASS table (network egress blocked, Docker socket absent, no sibling orchestration, host root not mounted, self-modification held at the gateway, master and sibling keys unreachable), then reports every core containment assertion held.](assets/redteam.svg){ loading=lazy }
 
     The other side of the coin: assumes a fully jailbroken agent and **tries to break
     out** — network egress, host escape via the Docker socket, sibling breakout,

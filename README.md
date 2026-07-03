@@ -590,6 +590,23 @@ same gateway. There is no file-edit path that bypasses it.
 
 ## Examples
 
+Two of them run **end to end with zero credentials** — no model key, no channel tokens,
+just Docker. Copy one line and watch it work:
+
+<div align="center">
+
+<img src="docs/assets/hello.svg" width="760" alt="hello-ironclaw terminal demo: one command (examples/hello-ironclaw/run.sh) builds the sandbox image, starts the offline mock-agent control-plane with no credentials, sends a chat through the real engage → per-session sandbox → encrypted queue → reply path, and prints PASS when the agent's reply comes back.">
+
+<sub><b><a href="examples/hello-ironclaw/">hello-ironclaw</a> — the canonical "it works."</b> One command sends a chat through the <b>real</b> secured path (engage → per-session sandbox → encrypted queue → reply) and asserts the reply returns. Zero credentials; doubles as the CI smoke test. Animation freezes on the final frame under <code>prefers-reduced-motion</code>.</sub>
+
+<br><br>
+
+<img src="docs/assets/redteam.svg" width="760" alt="red-team-escape terminal demo: assuming a fully jailbroken agent, the harness runs an escape battery from inside the sandbox and prints a PASS table — network egress blocked (interfaces: lo), Docker socket absent, no sibling orchestration, host root not mounted, self-modification held at the gateway, host master and sibling keys unreachable — then reports every core containment assertion held.">
+
+<sub><b><a href="examples/red-team-escape/">red-team-escape</a> — isolation you can prove.</b> Assumes a fully jailbroken agent and <b>tries to break out</b> — network egress, host escape via the Docker socket, sibling breakout, self-modification — then asserts every attack is contained. Zero credentials.</sub>
+
+</div>
+
 Runnable recipes live in [`examples/`](examples/) — each is a directory with a `README.md` and a `setup.sh`.
 Three of them ship a `run-mock.sh` that drives the **whole** inbound → agent → reply pipeline on the
 offline `mock` provider, so a fresh clone runs them with **no model key and no channel tokens**:
