@@ -59,12 +59,16 @@ extra_css:
   - stylesheets/brand.css
   # Landing-page styles, scoped under `.iro-landing` (home template only).
   - stylesheets/landing.css
+  # Interactive provider picker on the model-provider decision page (IRO-311).
+  - stylesheets/provider-picker.css
 
 extra_javascript:
   # Render the bare <div class="mermaid"> blocks (see superfences config below).
   # Loaded as an ES module so it can `import` the pinned Mermaid build.
   - path: javascripts/mermaid-init.js
     type: module
+  # Provider picker: panel switching + copy buttons (progressive enhancement).
+  - javascripts/provider-picker.js
 
 plugins:
   - search
@@ -114,7 +118,12 @@ nav:
       - FAQ: faq.md
   - Model providers:
       - Choose your model provider: providers/index.md
+      - AWS Bedrock: providers/bedrock.md
       - Azure OpenAI: providers/azure.md
+      - Run Claude in a sandbox (AWS Bedrock): providers/run-claude-sandbox-bedrock.md
+      - Run GPT securely (Azure OpenAI): providers/run-gpt-securely-azure-openai.md
+      - Run Llama locally (Ollama): providers/run-llama-locally-ollama.md
+      - Run any model (OpenRouter): providers/run-any-model-openrouter.md
   - Tutorials:
       - Overview: tutorials/index.md
       - Your first sandboxed agent in 5 minutes: tutorials/first-agent.md
@@ -133,6 +142,9 @@ nav:
   - Skills: skills.md
   - Integrations:
       - CI (GitHub Action): integrations/ci.md
+      - LangChain: integrations/langchain.md
+      - OpenAI SDK: integrations/openai-sdk.md
+      - CrewAI: integrations/crewai.md
   - Social proof: social-proof.md
   - Security & Trust:
       - Overview: security.md

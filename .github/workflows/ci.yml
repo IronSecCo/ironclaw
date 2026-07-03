@@ -60,6 +60,30 @@ jobs:
             ./internal/host/delivery/ \
             ./test/parity/
 
+  # Credential-free provider regression guard (IRO-292). We ship model providers
+  # fast (Gemini, Vertex, Bedrock, Azure, OpenRouter, ...); this job stops config
+  # drift from rotting them. scripts/provider-smoke-guard.sh parses the Kind*
+  # constants from internal/sandbox/provider/provider.go (the factory's source of
+  # truth) and fails, by name, if any provider kind lacks a credential-free factory
+  # test — or, for a dedicated-injector provider (vertex/bedrock/azure/local), a
+  # host-injector test — then re-runs those two test packages with EVERY provider
+  # credential scrubbed from the env, proving the credential-free path is green with
+  # no secrets present. Unlike the umbrella `go test ./...` in `build`, this is a
+  # dedicated, visible check: a provider shipped without a credential-free path
+  # turns THIS job red with a clear message, instead of silently having no coverage.
+  # Mirrors the additive posture of example-smoke.yml (IRO-284).
+  provider-smoke:
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: "1"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: "1.23.12"
+      - name: provider smoke guard (credential-free factory + injector coverage)
+        run: scripts/provider-smoke-guard.sh
+
   # Short bounded native-fuzz run over the highest-risk untrusted-input parsers
   # (skill manifest YAML, minisign signature/key blobs, name/version/asset path
   # validation). This is a regression smoke test, not an exhaustive campaign: each

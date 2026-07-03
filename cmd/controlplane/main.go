@@ -271,6 +271,34 @@ func main() {
 			logger.Info("vertex ai enabled", "host", vHost, "project", proj)
 		}
 	}
+	// AWS Bedrock. For orgs that consume models only through Bedrock (no direct
+	// Anthropic/OpenAI keys). The primary target is Claude on Bedrock; it speaks the
+	// Anthropic Messages wire format, but the model id rides in the URL path and auth
+	// is AWS SigV4 signed host-side (not a static header), so the allowlisted host is
+	// the regional bedrock-runtime.{region}.amazonaws.com. Credentials come from the
+	// standard AWS environment (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, optional
+	// AWS_SESSION_TOKEN for temporary creds) and the region from AWS_REGION (else
+	// AWS_DEFAULT_REGION, default us-east-1). The credential lives only on the host —
+	// the injector signs each forwarded request; the sandbox never holds it.
+	var bedrockDefaultHost string
+	if ak := os.Getenv("AWS_ACCESS_KEY_ID"); ak != "" {
+		if sk := os.Getenv("AWS_SECRET_ACCESS_KEY"); sk != "" {
+			region := envOr("AWS_REGION", os.Getenv("AWS_DEFAULT_REGION"))
+			if region == "" {
+				region = "us-east-1"
+			}
+			bedrockDefaultHost = "bedrock-runtime." + region + ".amazonaws.com"
+			creds := modelproxy.StaticCredentials{
+				AccessKeyID:     ak,
+				SecretAccessKey: sk,
+				SessionToken:    os.Getenv("AWS_SESSION_TOKEN"),
+			}
+			// Redact the secret access key from any response body as a defense in
+			// depth; it is never echoed by Bedrock but the guard is cheap.
+			addProvider(bedrockDefaultHost, modelproxy.BedrockInjector(creds), sk)
+			logger.Info("aws bedrock enabled", "host", bedrockDefaultHost, "region", region)
+		}
+	}
 	// Azure OpenAI (Azure AI Foundry). For orgs that can consume models only through
 	// Azure — a common enterprise constraint. Azure speaks the identical OpenAI Chat
 	// Completions wire format, but the model is selected by a DEPLOYMENT name in the URL
@@ -703,7 +731,7 @@ func main() {
 		Keys:             custodian,
 		Isolator:         isolator,
 		Registry:         reg,
-		SelectModel:      selectModelFromRegistry(reg, localDefaultSel, localModelHost, azureDefaultHost, azureDefaultAPIVersion),
+		SelectModel:      selectModelFromRegistry(reg, localDefaultSel, localModelHost, bedrockDefaultHost, azureDefaultHost, azureDefaultAPIVersion),
 		ModelProxySocket: *socket,
 		EgressSocket:     *egressSocket,
 		EgressBroker:     egressProvisioner,
@@ -1212,7 +1240,7 @@ func azureEndpointHost(endpoint string) string {
 // default (set by --local-model-url); it overrides the env-based default so a
 // provider-less agent group runs 100% local. localHost backfills the loopback host
 // for any group pinned to the "local" provider that did not carry one itself.
-func selectModelFromRegistry(reg *registry.MemRegistry, localDefault session.ModelSelection, localHost, azureHost, azureAPIVersion string) func(contract.SessionID) session.ModelSelection {
+func selectModelFromRegistry(reg *registry.MemRegistry, localDefault session.ModelSelection, localHost, bedrockHost, azureHost, azureAPIVersion string) func(contract.SessionID) session.ModelSelection {
 	def := session.ModelSelection{
 		Provider:   os.Getenv("IRONCLAW_DEV_PROVIDER"),
 		Model:      os.Getenv("IRONCLAW_DEV_MODEL"),
@@ -1222,6 +1250,12 @@ func selectModelFromRegistry(reg *registry.MemRegistry, localDefault session.Mod
 	}
 	if localDefault.Provider != "" {
 		def = localDefault
+	}
+	// A deployment defaulted to bedrock (IRONCLAW_DEV_PROVIDER=bedrock) needs the
+	// regional host: the provider has no safe default host, so backfill the one the
+	// deployment allowlisted and signs for.
+	if strings.EqualFold(def.Provider, "bedrock") && def.Host == "" {
+		def.Host = bedrockHost
 	}
 	// A deployment defaulted to azure (IRONCLAW_DEV_PROVIDER=azure) needs the
 	// per-resource host and api-version: the provider has no safe default host, so
@@ -1251,6 +1285,11 @@ func selectModelFromRegistry(reg *registry.MemRegistry, localDefault session.Mod
 		// deployment's configured loopback host so it reaches the same local server.
 		if strings.EqualFold(sel.Provider, "local") && sel.Host == "" {
 			sel.Host = localHost
+		}
+		// Likewise a bedrock-pinned group without its own host inherits the
+		// deployment's regional Bedrock host (which is what the proxy signs for).
+		if strings.EqualFold(sel.Provider, "bedrock") && sel.Host == "" {
+			sel.Host = bedrockHost
 		}
 		// A group pinned to azure but without its own host / api-version inherits the
 		// deployment's per-resource Azure host and configured api-version (which is what
