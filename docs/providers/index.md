@@ -48,6 +48,170 @@ not change. This page helps you choose one, then links you straight to setup.
 
 </div>
 
+## Set up in three steps
+
+Pick a backend below. You get the exact host-side config, the `agent create` command, and a one-line isolation check, each ready to copy. Every provider follows the same shape: **set one credential, point a group at it, verify the seal.**
+
+<div class="pp">
+<div class="pp-live" aria-live="polite" role="status"></div>
+<div class="pp-chips" role="radiogroup" aria-label="Model provider">
+<p class="pp-cat">Local / offline</p>
+<label class="pp-chip"><input type="radio" name="pp-provider" value="mock" data-panel="pp-panel-mock" checked> Mock</label>
+<label class="pp-chip"><input type="radio" name="pp-provider" value="local" data-panel="pp-panel-local"> Local / Ollama</label>
+<p class="pp-cat">Hosted (API key)</p>
+<label class="pp-chip"><input type="radio" name="pp-provider" value="anthropic" data-panel="pp-panel-anthropic"> Anthropic</label>
+<label class="pp-chip"><input type="radio" name="pp-provider" value="openai" data-panel="pp-panel-openai"> OpenAI</label>
+<label class="pp-chip"><input type="radio" name="pp-provider" value="openrouter" data-panel="pp-panel-openrouter"> OpenRouter</label>
+<label class="pp-chip"><input type="radio" name="pp-provider" value="gemini" data-panel="pp-panel-gemini"> Gemini</label>
+<p class="pp-cat">Enterprise cloud (your billing / IAM)</p>
+<label class="pp-chip"><input type="radio" name="pp-provider" value="azure" data-panel="pp-panel-azure"> Azure</label>
+<label class="pp-chip"><input type="radio" name="pp-provider" value="bedrock" data-panel="pp-panel-bedrock"> Bedrock</label>
+<label class="pp-chip"><input type="radio" name="pp-provider" value="vertex" data-panel="pp-panel-vertex"> Vertex AI</label>
+<p class="pp-cat">Reuse a subscription</p>
+<label class="pp-chip"><input type="radio" name="pp-provider" value="codex" data-panel="pp-panel-codex"> ChatGPT / Codex</label>
+</div>
+<div class="pp-panels">
+<section class="pp-panel pp-active" id="pp-panel-mock" aria-label="Mock (offline, zero credential) setup">
+<h4>Mock (offline, zero credential)</h4>
+<p class="pp-panel-sub">Deterministic canned replies. No key, no network — the fastest way to see the full sandbox path.</p>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">1</span><span class="pp-step-title">Set the credential (host-side)</span></div>
+<div class="pp-code"><pre><code># no credential — the mock provider is fully offline</code></pre><button type="button" class="pp-copy" data-copy-label="the mock credential config"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Export in the control-plane's environment and restart it. This value stays host-side and never enters the sandbox.</p></div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">2</span><span class="pp-step-title">Create the agent</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl agent create --name &quot;Mock Bot&quot; --provider mock --model mock-1 --yes</code></pre><button type="button" class="pp-copy" data-copy-label="the mock agent-create command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+</div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">3</span><span class="pp-step-title">Verify the isolation</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl doctor</code></pre><button type="button" class="pp-copy" data-copy-label="the isolation-check command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Read-only preflight: confirms the gVisor sandbox and <code>network=none</code> egress before the first run. Then message the group in the console for a live reply.</p></div>
+</section>
+<section class="pp-panel" id="pp-panel-local" aria-label="Local model (Ollama, LM Studio, vLLM) setup">
+<h4>Local model (Ollama, LM Studio, vLLM)</h4>
+<p class="pp-panel-sub">Run a real model on your own hardware. Nothing leaves the box; most local servers need no key.</p>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">1</span><span class="pp-step-title">Set the credential (host-side)</span></div>
+<div class="pp-code"><pre><code>export IRONCLAW_LOCAL_MODEL_URL=http://localhost:11434/v1<span class="pp-comment">   # Ollama&#x27;s OpenAI-compatible endpoint</span></code></pre><button type="button" class="pp-copy" data-copy-label="the local credential config"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Export in the control-plane's environment and restart it. This value stays host-side and never enters the sandbox.</p></div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">2</span><span class="pp-step-title">Create the agent</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl agent create --name &quot;Local Bot&quot; --provider local --model llama3.2 --yes</code></pre><button type="button" class="pp-copy" data-copy-label="the local agent-create command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+</div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">3</span><span class="pp-step-title">Verify the isolation</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl doctor</code></pre><button type="button" class="pp-copy" data-copy-label="the isolation-check command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Read-only preflight: confirms the gVisor sandbox and <code>network=none</code> egress before the first run. Then message the group in the console for a live reply.</p></div>
+</section>
+<section class="pp-panel" id="pp-panel-anthropic" aria-label="Anthropic (default) setup">
+<h4>Anthropic (default)</h4>
+<p class="pp-panel-sub">The strongest default backend, with first-class tool use. One key and a restart.</p>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">1</span><span class="pp-step-title">Set the credential (host-side)</span></div>
+<div class="pp-code"><pre><code>export ANTHROPIC_API_KEY=sk-ant-...</code></pre><button type="button" class="pp-copy" data-copy-label="the anthropic credential config"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Export in the control-plane's environment and restart it. This value stays host-side and never enters the sandbox.</p></div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">2</span><span class="pp-step-title">Create the agent</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl agent create --name &quot;Research Bot&quot; --provider anthropic --model claude-sonnet-4-5 --yes</code></pre><button type="button" class="pp-copy" data-copy-label="the anthropic agent-create command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+</div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">3</span><span class="pp-step-title">Verify the isolation</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl doctor</code></pre><button type="button" class="pp-copy" data-copy-label="the isolation-check command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Read-only preflight: confirms the gVisor sandbox and <code>network=none</code> egress before the first run. Then message the group in the console for a live reply.</p></div>
+</section>
+<section class="pp-panel" id="pp-panel-openai" aria-label="OpenAI setup">
+<h4>OpenAI</h4>
+<p class="pp-panel-sub">GPT-class models over the OpenAI API.</p>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">1</span><span class="pp-step-title">Set the credential (host-side)</span></div>
+<div class="pp-code"><pre><code>export OPENAI_API_KEY=sk-...</code></pre><button type="button" class="pp-copy" data-copy-label="the openai credential config"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Export in the control-plane's environment and restart it. This value stays host-side and never enters the sandbox.</p></div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">2</span><span class="pp-step-title">Create the agent</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl agent create --name &quot;GPT Bot&quot; --provider openai --model gpt-4o --yes</code></pre><button type="button" class="pp-copy" data-copy-label="the openai agent-create command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+</div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">3</span><span class="pp-step-title">Verify the isolation</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl doctor</code></pre><button type="button" class="pp-copy" data-copy-label="the isolation-check command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Read-only preflight: confirms the gVisor sandbox and <code>network=none</code> egress before the first run. Then message the group in the console for a live reply.</p></div>
+</section>
+<section class="pp-panel" id="pp-panel-openrouter" aria-label="OpenRouter setup">
+<h4>OpenRouter</h4>
+<p class="pp-panel-sub">One key, many models — route to any model OpenRouter fronts.</p>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">1</span><span class="pp-step-title">Set the credential (host-side)</span></div>
+<div class="pp-code"><pre><code>export OPENROUTER_API_KEY=sk-or-...</code></pre><button type="button" class="pp-copy" data-copy-label="the openrouter credential config"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Export in the control-plane's environment and restart it. This value stays host-side and never enters the sandbox.</p></div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">2</span><span class="pp-step-title">Create the agent</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl agent create --name &quot;Router Bot&quot; --provider openrouter --model anthropic/claude-3.5-sonnet --yes</code></pre><button type="button" class="pp-copy" data-copy-label="the openrouter agent-create command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+</div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">3</span><span class="pp-step-title">Verify the isolation</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl doctor</code></pre><button type="button" class="pp-copy" data-copy-label="the isolation-check command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Read-only preflight: confirms the gVisor sandbox and <code>network=none</code> egress before the first run. Then message the group in the console for a live reply.</p></div>
+</section>
+<section class="pp-panel" id="pp-panel-gemini" aria-label="Google Gemini (AI Studio) setup">
+<h4>Google Gemini (AI Studio)</h4>
+<p class="pp-panel-sub">Hosted Google models with a generous free tier.</p>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">1</span><span class="pp-step-title">Set the credential (host-side)</span></div>
+<div class="pp-code"><pre><code>export GOOGLE_API_KEY=...<span class="pp-comment">   # GEMINI_API_KEY is honored as a fallback</span></code></pre><button type="button" class="pp-copy" data-copy-label="the gemini credential config"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Export in the control-plane's environment and restart it. This value stays host-side and never enters the sandbox.</p></div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">2</span><span class="pp-step-title">Create the agent</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl agent create --name &quot;Gemini Bot&quot; --provider gemini --model gemini-1.5-pro --yes</code></pre><button type="button" class="pp-copy" data-copy-label="the gemini agent-create command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+</div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">3</span><span class="pp-step-title">Verify the isolation</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl doctor</code></pre><button type="button" class="pp-copy" data-copy-label="the isolation-check command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Read-only preflight: confirms the gVisor sandbox and <code>network=none</code> egress before the first run. Then message the group in the console for a live reply.</p></div>
+</section>
+<section class="pp-panel" id="pp-panel-azure" aria-label="Azure OpenAI setup">
+<h4>Azure OpenAI</h4>
+<p class="pp-panel-sub">GPT-class models under your Azure billing and identity. Model = your deployment name.</p>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">1</span><span class="pp-step-title">Set the credential (host-side)</span></div>
+<div class="pp-code"><pre><code>export AZURE_OPENAI_ENDPOINT=https://my-resource.openai.azure.com
+export AZURE_OPENAI_API_KEY=...<span class="pp-comment">   # or AZURE_OPENAI_ACCESS_TOKEN for Entra</span></code></pre><button type="button" class="pp-copy" data-copy-label="the azure credential config"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Export in the control-plane's environment and restart it. This value stays host-side and never enters the sandbox.</p></div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">2</span><span class="pp-step-title">Create the agent</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl agent create --name &quot;Azure Bot&quot; --provider azure --model gpt-4o --yes</code></pre><button type="button" class="pp-copy" data-copy-label="the azure agent-create command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+</div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">3</span><span class="pp-step-title">Verify the isolation</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl doctor</code></pre><button type="button" class="pp-copy" data-copy-label="the isolation-check command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Read-only preflight: confirms the gVisor sandbox and <code>network=none</code> egress before the first run. Then message the group in the console for a live reply.</p></div>
+</section>
+<section class="pp-panel" id="pp-panel-bedrock" aria-label="AWS Bedrock setup">
+<h4>AWS Bedrock</h4>
+<p class="pp-panel-sub">Claude and others under your AWS billing and IAM, via host-side SigV4.</p>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">1</span><span class="pp-step-title">Set the credential (host-side)</span></div>
+<div class="pp-code"><pre><code>export AWS_ACCESS_KEY_ID=AKIA...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_REGION=us-east-1<span class="pp-comment">   # selects the bedrock-runtime.{region} host</span></code></pre><button type="button" class="pp-copy" data-copy-label="the bedrock credential config"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Export in the control-plane's environment and restart it. This value stays host-side and never enters the sandbox.</p></div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">2</span><span class="pp-step-title">Create the agent</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl agent create --name &quot;Bedrock Bot&quot; --provider bedrock --model anthropic.claude-3-5-sonnet-20240620-v1:0 --yes</code></pre><button type="button" class="pp-copy" data-copy-label="the bedrock agent-create command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+</div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">3</span><span class="pp-step-title">Verify the isolation</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl doctor</code></pre><button type="button" class="pp-copy" data-copy-label="the isolation-check command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Read-only preflight: confirms the gVisor sandbox and <code>network=none</code> egress before the first run. Then message the group in the console for a live reply.</p></div>
+</section>
+<section class="pp-panel" id="pp-panel-vertex" aria-label="Google Vertex AI setup">
+<h4>Google Vertex AI</h4>
+<p class="pp-panel-sub">Gemini under your GCP project, billing, and IAM. A project is required; region defaults when unset.</p>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">1</span><span class="pp-step-title">Set the credential (host-side)</span></div>
+<div class="pp-code"><pre><code>export GOOGLE_VERTEX_PROJECT=my-gcp-project<span class="pp-comment">   # or GOOGLE_CLOUD_PROJECT</span>
+export GOOGLE_VERTEX_USE_GCLOUD=1<span class="pp-comment">   # use gcloud Application Default Credentials</span></code></pre><button type="button" class="pp-copy" data-copy-label="the vertex credential config"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Export in the control-plane's environment and restart it. This value stays host-side and never enters the sandbox.</p></div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">2</span><span class="pp-step-title">Create the agent</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl agent create --name &quot;Vertex Bot&quot; --provider vertex --model gemini-1.5-pro --yes</code></pre><button type="button" class="pp-copy" data-copy-label="the vertex agent-create command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+</div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">3</span><span class="pp-step-title">Verify the isolation</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl doctor</code></pre><button type="button" class="pp-copy" data-copy-label="the isolation-check command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Read-only preflight: confirms the gVisor sandbox and <code>network=none</code> egress before the first run. Then message the group in the console for a live reply.</p></div>
+</section>
+<section class="pp-panel" id="pp-panel-codex" aria-label="ChatGPT / Codex (via credential gateway) setup">
+<h4>ChatGPT / Codex (via credential gateway)</h4>
+<p class="pp-panel-sub">Reuse a ChatGPT/Codex OAuth subscription fronted by a local gateway (e.g. OneCLI). The control-plane holds no model credential at all.</p>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">1</span><span class="pp-step-title">Set the credential (host-side)</span></div>
+<div class="pp-code"><pre><code>export IRONCLAW_MODEL_GATEWAY_URL=http://127.0.0.1:10255
+export IRONCLAW_MODEL_GATEWAY_HOSTS=chatgpt.com</code></pre><button type="button" class="pp-copy" data-copy-label="the codex credential config"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Export in the control-plane's environment and restart it. This value stays host-side and never enters the sandbox.</p></div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">2</span><span class="pp-step-title">Create the agent</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl agent create --name &quot;Codex Bot&quot; --provider codex --model gpt-4o --yes</code></pre><button type="button" class="pp-copy" data-copy-label="the codex agent-create command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+</div>
+<div class="pp-step"><div class="pp-step-head"><span class="pp-step-num" aria-hidden="true">3</span><span class="pp-step-title">Verify the isolation</span></div>
+<div class="pp-code"><pre><code>./bin/ironctl doctor</code></pre><button type="button" class="pp-copy" data-copy-label="the isolation-check command"><span class="pp-copy-idle">Copy</span><span class="pp-copy-done">Copied ✓</span></button></div>
+<p class="pp-step-note">Read-only preflight: confirms the gVisor sandbox and <code>network=none</code> egress before the first run. Then message the group in the console for a live reply.</p></div>
+</section>
+</div>
+</div>
+
+!!! tip "Prefer the console?"
+    You can also set a group's provider in the web console (**Agents** &rarr; edit a group &rarr; **Provider**), then approve the change through the human gateway so it lands on the [audit log](../observability.md). The commands above are the CLI equivalent.
+
 ## Capability matrix
 
 | Provider | Kind | Auth method | Credential source (host-side) | Streaming | Best for | Setup |
