@@ -198,10 +198,40 @@
 .iro-section .iro-btn--ghost:hover {
   background: var(--md-accent-fg-color--transparent);
 }
+/* GitHub star CTA — first-class secondary action in the hero. Distinct from the
+   ghost button so the star ask reads as its own affordance, not a repeat link. */
+.iro-btn--github {
+  background: rgba(143, 180, 255, 0.10);
+  border-color: rgba(143, 180, 255, 0.55);
+  color: #eaf2ff;
+}
+.iro-btn--github:hover {
+  background: rgba(143, 180, 255, 0.20);
+  border-color: #8fb4ff;
+  transform: translateY(-1px);
+}
+.iro-btn__star { color: #ffd257; font-size: 1.05em; line-height: 1; }
 .iro-btn:focus-visible {
   outline: 3px solid #8fb4ff;
   outline-offset: 2px;
 }
+
+/* Honest, low-key star nudge directly under the hero CTAs. */
+.iro-hero__proof {
+  margin: calc(-1 * var(--s-4)) 0 var(--s-6);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #aebfe0;
+  max-width: 62ch;
+}
+.iro-hero__proof a {
+  color: #8fb4ff;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(143, 180, 255, 0.4);
+}
+.iro-hero__proof a:hover { border-bottom-color: #8fb4ff; }
+.iro-hero__proof a:focus-visible { outline: 3px solid #8fb4ff; outline-offset: 2px; border-radius: 2px; }
 
 /* ----- copyable demo block ----------------------------------------------- */
 .iro-code {

@@ -32,6 +32,8 @@ read, write, schedule, and reply.
 > change is held at a gateway for a human decision. The full design is in the
 > [architecture overview](docs/architecture.md) and the [threat model](docs/threat-model.md).
 
+**If a safer way to run agents is worth having, [star the repo](https://github.com/IronSecCo/ironclaw)** to follow along and help others find it. Then try the zero-credential [quickstart](docs/quickstart.md).
+
 <div align="center">
 
 <img src="docs/assets/demo.svg" width="800" alt="Zero-credential chat demo terminal session: one command (docker compose -f docker-compose.demo.yml up -d) starts the offline mock-agent control-plane with no API key; a chat message engages the agent, which launches a real per-session sandbox container (ic-sbx-…); the reply flows back through the encrypted per-session queue.">
