@@ -179,6 +179,16 @@ group in explicitly. Two surfaces:
 Leaving the field blank keeps the sealed, single-provider default posture: only
 groups that opt in reach another backend.
 
+## Task-focused guides
+
+Prefer to start from what you want to run? These pages lead with the job and give
+you the exact setup:
+
+- [Run Claude in an isolated sandbox (AWS Bedrock)](run-claude-sandbox-bedrock.md)
+- [Run GPT securely (Azure OpenAI)](run-gpt-securely-azure-openai.md)
+- [Run Llama locally (Ollama)](run-llama-locally-ollama.md)
+- [Run any model (OpenRouter)](run-any-model-openrouter.md)
+
 ## See also
 
 - [Quickstart](../quickstart.md) — first working chat, then a real provider
