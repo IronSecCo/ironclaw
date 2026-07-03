@@ -761,7 +761,16 @@ jobs:
           # if it already exists (leftover from a prior release whose PR is still open,
           # or was merged without deleting the branch). Force-reset is what keeps the
           # PR rebased and conflict-free — never a plain create-if-missing.
-          if gh api "repos/${REPO}/git/refs/heads/${branch}" >/dev/null 2>&1; then
+          #
+          # Use the SINGULAR git/ref/heads/<branch> endpoint for the existence probe,
+          # NOT the plural git/refs/heads/<branch>. The plural endpoint does PREFIX
+          # matching and returns a 200 array whenever any ref merely starts with the
+          # query, so a stale per-tag leftover like brew/track-v0.1.143 makes the probe
+          # falsely report that the exact rolling branch brew/track exists. The code
+          # then PATCHes brew/track, which does not exist, and the release job dies with
+          # "gh: Reference does not exist (HTTP 422)" (IRO-318). The singular endpoint
+          # matches the ref exactly and 404s when brew/track is truly absent.
+          if gh api "repos/${REPO}/git/ref/heads/${branch}" >/dev/null 2>&1; then
             gh api -X PATCH "repos/${REPO}/git/refs/heads/${branch}" \
               -f "sha=${base_sha}" -F "force=true"
           else
