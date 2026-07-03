@@ -115,6 +115,10 @@ nav:
   - Model providers:
       - Choose your model provider: providers/index.md
       - Azure OpenAI: providers/azure.md
+      - Run Claude in a sandbox (AWS Bedrock): providers/run-claude-sandbox-bedrock.md
+      - Run GPT securely (Azure OpenAI): providers/run-gpt-securely-azure-openai.md
+      - Run Llama locally (Ollama): providers/run-llama-locally-ollama.md
+      - Run any model (OpenRouter): providers/run-any-model-openrouter.md
   - Tutorials:
       - Overview: tutorials/index.md
       - Your first sandboxed agent in 5 minutes: tutorials/first-agent.md
