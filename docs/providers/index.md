@@ -356,6 +356,7 @@ you the exact setup:
 ## See also
 
 - [Quickstart](../quickstart.md) — first working chat, then a real provider
+- [Bring your own model (Ollama / Gemini / Vertex)](../bring-your-own-model.md) — 5-minute setup per backend
 - [Run a 100% local model (Ollama)](../tutorials/local-model-ollama.md)
 - [Security and isolation](../security-isolation.md) — why keys stay host-side
 - [FAQ: which providers are supported?](../faq.md#which-model-providers-are-supported)

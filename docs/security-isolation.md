@@ -34,6 +34,10 @@ your provider key, and the opt-in egress broker that is deny-by-default) plus th
 per-session encrypted queues (`inbound.db` bound read-only, `outbound.db`
 append-only).
 
+For the design rationale behind this posture, why the host is trusted and the agent
+is not, and what gVisor buys over a plain container, see
+[Why we run AI agents in gVisor](gvisor-deep-dive.md).
+
 ## What a compromised agent still cannot do
 
 We do not just assert the wall holds. We attack it. The
