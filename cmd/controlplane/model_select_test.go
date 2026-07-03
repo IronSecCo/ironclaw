@@ -31,7 +31,7 @@ func TestSelectModel_ExplicitProviderWins(t *testing.T) {
 	reg := registry.NewMemRegistry()
 	id := newSessionFor(t, reg, "openai", "gpt-4o")
 
-	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "")(id)
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "", "")(id)
 	if sel.Provider != "openai" || sel.Model != "gpt-4o" {
 		t.Fatalf("explicit group provider must win: got %+v", sel)
 	}
@@ -46,7 +46,7 @@ func TestSelectModel_GroupWithoutProviderInheritsDevDefault(t *testing.T) {
 	reg := registry.NewMemRegistry()
 	id := newSessionFor(t, reg, "", "")
 
-	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "")(id)
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "", "")(id)
 	if sel.Provider != "codex" || sel.Model != "gpt-5.5" {
 		t.Fatalf("group without provider must inherit dev default: got %+v", sel)
 	}
@@ -59,7 +59,7 @@ func TestSelectModel_UnknownSessionGetsDevDefault(t *testing.T) {
 	t.Setenv("IRONCLAW_DEV_MODEL", "gpt-5.5")
 	reg := registry.NewMemRegistry()
 
-	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "")("ses_does_not_exist")
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "", "")("ses_does_not_exist")
 	if sel.Provider != "codex" || sel.Model != "gpt-5.5" {
 		t.Fatalf("unknown session must get dev default: got %+v", sel)
 	}
@@ -80,7 +80,7 @@ func TestSelectModel_VertexThreadsProjectLocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveSession: %v", err)
 	}
-	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "")(s.ID)
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "", "")(s.ID)
 	if sel.Provider != "vertex" || sel.Project != "my-proj" || sel.Location != "europe-west4" {
 		t.Fatalf("vertex selection must carry project+location: got %+v", sel)
 	}
@@ -93,7 +93,7 @@ func TestSelectModel_AzureInheritsHostAndAPIVersion(t *testing.T) {
 	reg := registry.NewMemRegistry()
 	id := newSessionFor(t, reg, "azure", "gpt-4o")
 
-	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "my-resource.openai.azure.com", "2024-10-21")(id)
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "my-resource.openai.azure.com", "2024-10-21")(id)
 	if sel.Provider != "azure" || sel.Model != "gpt-4o" {
 		t.Fatalf("azure selection must carry provider+deployment: got %+v", sel)
 	}
@@ -117,7 +117,7 @@ func TestSelectModel_AzureGroupOwnValuesWin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveSession: %v", err)
 	}
-	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "deploy-host.openai.azure.com", "2024-10-21")(s.ID)
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "deploy-host.openai.azure.com", "2024-10-21")(s.ID)
 	if sel.APIVersion != "2025-01-01-preview" {
 		t.Fatalf("explicit group api-version must win: got %+v", sel)
 	}
@@ -170,7 +170,7 @@ func TestSelectModel_LocalDefaultOverridesDevDefault(t *testing.T) {
 	id := newSessionFor(t, reg, "", "")
 
 	localDef := session.ModelSelection{Provider: "local", Model: "llama3.2", Host: "localhost:11434"}
-	sel := selectModelFromRegistry(reg, localDef, "localhost:11434", "", "")(id)
+	sel := selectModelFromRegistry(reg, localDef, "localhost:11434", "", "", "")(id)
 	if sel.Provider != "local" || sel.Model != "llama3.2" || sel.Host != "localhost:11434" {
 		t.Fatalf("local default must override dev default with host: got %+v", sel)
 	}
@@ -182,7 +182,7 @@ func TestSelectModel_LocalGroupInheritsHost(t *testing.T) {
 	reg := registry.NewMemRegistry()
 	id := newSessionFor(t, reg, "local", "llama3.2")
 
-	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "127.0.0.1:11434", "", "")(id)
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "127.0.0.1:11434", "", "", "")(id)
 	if sel.Provider != "local" || sel.Host != "127.0.0.1:11434" {
 		t.Fatalf("local group must inherit the configured loopback host: got %+v", sel)
 	}
@@ -196,8 +196,41 @@ func TestSelectModel_NoDevDefaultKeepsAnthropic(t *testing.T) {
 	reg := registry.NewMemRegistry()
 	id := newSessionFor(t, reg, "", "")
 
-	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "")(id)
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", "", "", "")(id)
 	if sel.Provider != "" || sel.Model != "" {
 		t.Fatalf("no dev default must keep the zero selection: got %+v", sel)
+	}
+}
+
+// A group pinned to the bedrock provider without its own host inherits the
+// deployment's regional bedrock-runtime host (which the proxy allowlists and signs
+// for), so the sandbox addresses the same host the SigV4 signature is bound to.
+// Credential-free: exercises selection only, no live AWS call.
+func TestSelectModel_BedrockInheritsDeploymentHost(t *testing.T) {
+	reg := registry.NewMemRegistry()
+	id := newSessionFor(t, reg, "bedrock", "anthropic.claude-3-5-sonnet-20241022-v2:0")
+
+	const bHost = "bedrock-runtime.us-east-1.amazonaws.com"
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", bHost, "", "")(id)
+	if sel.Provider != "bedrock" || sel.Host != bHost {
+		t.Fatalf("bedrock group must inherit the deployment host: got %+v", sel)
+	}
+	if sel.Model != "anthropic.claude-3-5-sonnet-20241022-v2:0" {
+		t.Fatalf("bedrock model must thread through: got %+v", sel)
+	}
+}
+
+// A deployment defaulted to bedrock (IRONCLAW_DEV_PROVIDER=bedrock) backfills the
+// regional host onto the default selection so a provider-less group launches.
+func TestSelectModel_BedrockDevDefaultBackfillsHost(t *testing.T) {
+	t.Setenv("IRONCLAW_DEV_PROVIDER", "bedrock")
+	t.Setenv("IRONCLAW_DEV_MODEL", "anthropic.claude-3-haiku-20240307-v1:0")
+	reg := registry.NewMemRegistry()
+	id := newSessionFor(t, reg, "", "")
+
+	const bHost = "bedrock-runtime.eu-central-1.amazonaws.com"
+	sel := selectModelFromRegistry(reg, session.ModelSelection{}, "", bHost, "", "")(id)
+	if sel.Provider != "bedrock" || sel.Host != bHost {
+		t.Fatalf("bedrock dev default must backfill the host: got %+v", sel)
 	}
 }

@@ -114,6 +114,7 @@ nav:
       - FAQ: faq.md
   - Model providers:
       - Choose your model provider: providers/index.md
+      - AWS Bedrock: providers/bedrock.md
       - Azure OpenAI: providers/azure.md
   - Tutorials:
       - Overview: tutorials/index.md
