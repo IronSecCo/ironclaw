@@ -34,6 +34,26 @@ containment assertion fails. Same zero-credential path, no model key:
 examples/red-team-escape/run.sh       # build → up → attack → assert contained → tear down
 ```
 
+### Run the whole matrix in one command (release-readiness gate)
+
+[**`smoke-matrix.sh`**](smoke-matrix.sh) is the single release-readiness gate: it
+brings up one offline demo control-plane and runs **every** example directory
+end-to-end against it — the `hello-ironclaw` / `red-team-escape` round-trips, the
+three `run-mock.sh` reply recipes (each asserting a non-empty `.content` reply, the
+IRO-279 guard), and the four `setup.sh` config recipes (each asserting a real
+messaging-group id is minted) — then prints a PASS/FAIL/SKIP table and exits
+non-zero if any example produced empty or incorrect output. It rebuilds the demo
+image from the current checkout first, so it also catches control-plane regressions
+a stale image would hide. Zero credentials (mock provider); needs Docker + Go + jq:
+
+```sh
+make smoke                 # build images → up → run every example → assert → tear down
+examples/smoke-matrix.sh --attach   # against an already-running demo control-plane
+```
+
+It runs in CI as the `smoke-matrix` job in
+[`example-smoke.yml`](../.github/workflows/example-smoke.yml).
+
 ### Run a sandboxed agent in CI (GitHub Action)
 
 [**`ci-action/`**](ci-action/) documents the reusable
