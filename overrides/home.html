@@ -20,24 +20,30 @@
   {# ===== 1. HERO ===== #}
   <section class="iro-section iro-hero" aria-labelledby="hero-title">
     <div class="iro-wrap">
-      <span class="iro-eyebrow">Open source · AGPLv3 + commercial · self-hosted</span>
+      <span class="iro-eyebrow">A sandboxed runtime for untrusted AI agents</span>
       <h1 class="iro-hero__title" id="hero-title">Security-first AI agents you actually run yourself.</h1>
       <p class="iro-hero__sub">
-        IronClaw runs autonomous AI assistants on infrastructure you control — reachable from the
-        chat apps you already use. The difference is the threat model: every agent runs sealed off
-        from the network and <strong>cannot change its own configuration without a human approving
-        it.</strong> Isolation you can prove, not just promise.
+        Run autonomous AI assistants on infrastructure you control, reachable from the chat apps you
+        already use. Every agent runs sealed off from the network and <strong>cannot change its own
+        configuration without a human approving it.</strong> Isolation you can prove, not just promise.
       </p>
 
       <div class="iro-cta-row">
         <a class="iro-btn iro-btn--primary" href="https://ironsecco.github.io/ironclaw/quickstart/">Run the quickstart demo
           <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </a>
-        <a class="iro-btn iro-btn--ghost" href="https://ironsecco.github.io/ironclaw/examples/">
-          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          Browse the examples
+        <a class="iro-btn iro-btn--github" href="https://github.com/IronSecCo/ironclaw" rel="noopener">
+          <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.87-.01-1.71-2.78.62-3.37-1.37-3.37-1.37-.46-1.18-1.11-1.5-1.11-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.35 9.35 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.82 0 .27.18.6.69.49A10.26 10.26 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
+          Star on GitHub
+          <span class="iro-btn__star" aria-hidden="true">★</span>
         </a>
       </div>
+
+      <p class="iro-hero__proof">
+        Open source, self-hosted, and built to be verified. If the threat model earns it,
+        <a href="https://github.com/IronSecCo/ironclaw" rel="noopener">give it a star</a> or
+        <a href="https://ironsecco.github.io/ironclaw/examples/">browse the examples</a>.
+      </p>
 
       {# Above-the-fold copyable, zero-credential demo line #}
       <div class="iro-code">
@@ -55,6 +61,7 @@
 
       {# Live trust badges — Best Practices "passing" gets first / priority slot #}
       <div class="iro-badges">
+        <a href="https://github.com/IronSecCo/ironclaw/stargazers" rel="noopener" title="Star IronClaw on GitHub"><img src="https://img.shields.io/github/stars/IronSecCo/ironclaw?style=flat&logo=github&label=stars&color=2563eb" alt="GitHub stars" loading="lazy"></a>
         <a href="https://www.bestpractices.dev/projects/13348" rel="noopener" title="OpenSSF Best Practices (passing)"><img src="https://www.bestpractices.dev/projects/13348/badge" alt="OpenSSF Best Practices: passing" loading="lazy"></a>
         <a href="https://scorecard.dev/viewer/?uri=github.com/IronSecCo/ironclaw" rel="noopener" title="OpenSSF Scorecard"><img src="https://api.securityscorecards.dev/projects/github.com/IronSecCo/ironclaw/badge" alt="OpenSSF Scorecard score" loading="lazy"></a>
         <a href="https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml" rel="noopener" title="CodeQL analysis"><img src="https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml/badge.svg" alt="CodeQL workflow status" loading="lazy"></a>
@@ -120,6 +127,8 @@
       <p class="iro-aside">
         <strong>Talk to it where you already work</strong> — 12 channel adapters
         (<a href="https://ironsecco.github.io/ironclaw/channels/">Slack, Discord, Telegram, and more</a>).
+        <strong>Bring your own model:</strong> Anthropic, OpenAI, Bedrock, Azure, Gemini, Vertex,
+        OpenRouter, and local <a href="https://ironsecco.github.io/ironclaw/providers/">Ollama</a>.
       </p>
     </div>
   </section>

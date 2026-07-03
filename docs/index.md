@@ -17,12 +17,12 @@ hide:
 
 # Security-first AI agents you actually run yourself.
 
-IronClaw runs autonomous AI assistants on infrastructure you control — reachable from the chat
-apps you already use. Every agent runs sealed off from the network (`network=none` in a gVisor
-sandbox) and cannot change its own configuration without a human approving it. Isolation you can
-prove, not just promise.
+A sandboxed runtime for untrusted AI agents. IronClaw runs autonomous AI assistants on
+infrastructure you control, reachable from the chat apps you already use. Every agent runs sealed
+off from the network (`network=none` in a gVisor sandbox) and cannot change its own configuration
+without a human approving it. Isolation you can prove, not just promise.
 
 - **[Run the zero-credential demo](quickstart.md)** — one command, no model key, no account.
+- **[Star it on GitHub](https://github.com/IronSecCo/ironclaw)**, if the threat model earns it.
 - **[Why IronClaw / vs. alternatives](comparison.md)** — how it compares, honestly.
 - **[Security posture](security.md)** and **[threat model](threat-model.md)** — the trust story.
-- **[Star it on GitHub](https://github.com/IronSecCo/ironclaw)**.
