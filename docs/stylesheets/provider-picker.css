@@ -1,0 +1,231 @@
+/* =============================================================================
+   Interactive provider picker (IRO-311).
+
+   A static, keyboard-accessible chooser on the model-provider decision page:
+   pick a backend, get the exact `agent create` command, the host-side config
+   snippet, and a one-line "verify isolation" step, each with a copy button.
+
+   Design notes
+   - Native radios inside a role="radiogroup": arrow-key navigation, focus ring,
+     and label association come free (Recognition over Recall; Jakob's Law).
+   - Progressive enhancement: without JS every panel is visible and its code is
+     selectable, so the page still works. `provider-picker.js` adds the `.pp-js`
+     class, which is the ONLY thing that hides non-selected panels — no JS, no
+     hidden content.
+   - Colors/spacing reuse the brand tokens from brand.css (steel scale).
+   ========================================================================== */
+
+.pp {
+  --pp-gap: 0.75rem;
+  margin: 1.25rem 0 2rem;
+}
+
+/* ---- Chip radiogroup ---------------------------------------------------- */
+
+.pp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Category separators between chip clusters (Chunking / Common Region). */
+.pp-cat {
+  flex: 1 0 100%;
+  margin: 0.6rem 0 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+}
+.pp-cat:first-child { margin-top: 0; }
+
+.pp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  /* Fitts's Law: comfortable target, >=32px tall. */
+  min-height: 2rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--md-default-fg-color);
+  background: var(--md-default-bg-color);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.pp-chip:hover { border-color: var(--iro-steel-500); }
+
+/* Native radio kept visible for a11y; sized to sit inside the chip. */
+.pp-chip input[type="radio"] {
+  width: 0.85rem;
+  height: 0.85rem;
+  margin: 0;
+  accent-color: var(--iro-steel-600);
+  flex: none;
+}
+
+/* Checked chip: filled steel, white text (Von Restorff — the active choice pops). */
+.pp-chip:has(input:checked) {
+  background: var(--iro-steel-600);
+  border-color: var(--iro-steel-600);
+  color: #ffffff;
+}
+[data-md-color-scheme="slate"] .pp-chip:has(input:checked) {
+  background: var(--iro-steel-500);
+  border-color: var(--iro-steel-500);
+  color: #0b1124;
+}
+
+/* Keyboard focus ring on the chip that owns the focused radio. */
+.pp-chip:has(input:focus-visible) {
+  outline: 2px solid var(--iro-steel-500);
+  outline-offset: 2px;
+}
+
+/* ---- Panels ------------------------------------------------------------- */
+
+.pp-panels { margin-top: 1rem; }
+
+.pp-panel {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  padding: 1rem 1.1rem 1.2rem;
+  background: var(--md-code-bg-color);
+}
+
+/* Enhanced mode: JS present -> show only the selected panel. */
+.pp-js .pp-panel { display: none; }
+.pp-js .pp-panel.pp-active { display: block; }
+
+/* No-JS separator so stacked panels stay visually distinct. */
+.pp-panel + .pp-panel { margin-top: 1rem; }
+.pp-js .pp-panel + .pp-panel { margin-top: 0; }
+
+.pp-panel > h4 {
+  margin: 0 0 0.15rem;
+  font-size: 1rem;
+}
+.pp-panel-sub {
+  margin: 0 0 1rem;
+  color: var(--md-default-fg-color--light);
+  font-size: 0.85rem;
+}
+
+/* ---- Steps -------------------------------------------------------------- */
+
+.pp-step { margin-top: 1.1rem; }
+.pp-step:first-of-type { margin-top: 0; }
+
+.pp-step-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+.pp-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  flex: none;
+  border-radius: 999px;
+  background: var(--iro-steel-600);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.pp-step-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.pp-step-note {
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+  color: var(--md-default-fg-color--light);
+}
+
+/* ---- Code + copy button ------------------------------------------------- */
+
+.pp-code {
+  position: relative;
+}
+.pp-code pre {
+  margin: 0;
+  padding: 0.75rem 3.2rem 0.75rem 0.9rem; /* right room reserves space for the copy button */
+  border-radius: 0.35rem;
+  background: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.pp-code pre code {
+  font-family: var(--md-code-font-family, monospace);
+  /* Wrap long commands instead of scrolling: no horizontal scroll on mobile, and
+     the text never runs under the top-right copy button. The Copy button always
+     copies the exact single-line source regardless of visual wrapping. */
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: none;
+  padding: 0;
+}
+.pp-comment { color: var(--md-default-fg-color--light); }
+
+/* Copy button — hidden until JS reveals it (nothing to click without a handler). */
+.pp-copy {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  display: none;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 0.3rem;
+  background: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.pp-js .pp-copy { display: inline-flex; }
+.pp-copy:hover { border-color: var(--iro-steel-500); }
+.pp-copy:focus-visible {
+  outline: 2px solid var(--iro-steel-500);
+  outline-offset: 2px;
+}
+.pp-copy .pp-copy-done { display: none; }
+.pp-copy.pp-copied { border-color: var(--iro-steel-600); color: var(--iro-steel-700); }
+[data-md-color-scheme="slate"] .pp-copy.pp-copied { color: var(--iro-steel-300); }
+.pp-copy.pp-copied .pp-copy-idle { display: none; }
+.pp-copy.pp-copied .pp-copy-done { display: inline; }
+
+/* Screen-reader-only live region for copy confirmations. */
+.pp-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Reduced motion ----------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-chip,
+  .pp-copy {
+    transition: none;
+  }
+}
