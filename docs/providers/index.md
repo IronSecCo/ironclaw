@@ -223,7 +223,7 @@ export IRONCLAW_MODEL_GATEWAY_HOSTS=chatgpt.com</code></pre><button type="button
 | **OpenRouter** | `openrouter` | API key | `OPENROUTER_API_KEY` | yes (SSE) | One key, many models | [Setup](#anthropic-openai-openrouter) |
 | **Google Gemini** | `gemini` | API key | `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) | yes (SSE) | Hosted Google models, generous free tier | [Setup](#gemini-google-ai-studio) |
 | **Google Vertex AI** | `vertex` | OAuth2 bearer | gcloud ADC (`GOOGLE_VERTEX_USE_GCLOUD=1`) or `GOOGLE_VERTEX_ACCESS_TOKEN`; `GOOGLE_VERTEX_PROJECT` required | yes (SSE) | Gemini under GCP billing / IAM | [Setup](#vertex-ai-google-cloud) |
-| **AWS Bedrock** | `bedrock` | AWS SigV4 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (+ `AWS_SESSION_TOKEN`), `AWS_REGION` | no (InvokeModel) | Claude/others under AWS billing / IAM | [Setup](#aws-bedrock-beta) |
+| **AWS Bedrock** | `bedrock` | AWS SigV4 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (+ `AWS_SESSION_TOKEN`), `AWS_REGION` | no (InvokeModel) | Claude/others under AWS billing / IAM | [Setup](#aws-bedrock) |
 | **ChatGPT / Codex** | `codex` | OAuth via gateway | credential gateway (`IRONCLAW_MODEL_GATEWAY_URL`, e.g. OneCLI) | yes (SSE) | Reuse a ChatGPT/Codex subscription | [Setup](#codex-chatgpt-via-a-credential-gateway) |
 | **Azure OpenAI** | `azure` | api-key or Entra token | `AZURE_OPENAI_API_KEY` (or `AZURE_OPENAI_ACCESS_TOKEN`) + `AZURE_OPENAI_ENDPOINT` | yes (SSE) | GPT-class models under Azure billing / IAM | [Azure OpenAI](azure.md) |
 
@@ -286,7 +286,7 @@ export GOOGLE_VERTEX_USE_GCLOUD=1             # use gcloud Application Default C
 # export GOOGLE_VERTEX_ACCESS_TOKEN=ya29.…
 ```
 
-### AWS Bedrock (beta)
+### AWS Bedrock
 
 For orgs that consume models only through Bedrock. Credentials come from the
 standard AWS environment; the region selects the regional
@@ -299,10 +299,10 @@ export AWS_SESSION_TOKEN=…                # optional, for temporary credential
 export AWS_REGION=us-east-1               # or AWS_DEFAULT_REGION
 ```
 
-!!! info "Bedrock is landing"
-    The `bedrock` provider is in review ([IRO-273](https://github.com/IronSecCo/ironclaw/issues)).
+!!! note "How Bedrock auth works"
     Host-side SigV4 signing is validated against AWS's reference vectors; requests
-    use the non-stream `InvokeModel` API. This section documents the shipping shape.
+    use the non-stream `InvokeModel` API. The signature is region-bound, so
+    `AWS_REGION` is required and no static credential ever enters the sandbox.
 
 ### Codex (ChatGPT) via a credential gateway
 
