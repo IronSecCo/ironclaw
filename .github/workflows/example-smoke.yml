@@ -133,3 +133,30 @@ jobs:
       - name: Tear the demo down
         if: always()
         run: docker compose -f docker-compose.demo.yml down >/dev/null 2>&1 || true
+
+  smoke-matrix:
+    # RELEASE-READINESS smoke matrix (IRO-295): the single runner that exercises
+    # EVERY examples/*/ directory end-to-end against one offline control-plane and
+    # asserts real output. It extends the run-mock matrix above to also cover the
+    # config-recipe examples (setup.sh: channel-triage, keyword-watcher,
+    # multi-agent-team, personal-assistant) that the chat-only recipes cannot reach
+    # — those call `ironctl registry ...` against the live control-plane and are
+    # asserted to mint a real messaging-group id, so a broken CLI or registry route
+    # turns this job red. It rebuilds the demo image from the checkout first, which
+    # is what guards the IRO-278 class regression (a stale pre-fix image 500s with
+    # "UNIQUE constraint failed: messages_in.seq" under slack-triage's rapid sends).
+    #
+    # This is the `make smoke` target run in CI. Same additive/non-gating posture as
+    # the jobs above: NOT a required check, so it surfaces a broken first-run without
+    # ever blocking a release.
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Set up Go (needed to build ironctl for the config recipes)
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Run the full example smoke matrix
+        run: examples/smoke-matrix.sh
