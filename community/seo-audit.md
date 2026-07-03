@@ -78,3 +78,11 @@ URL from anyone.
 Next non-gated action for a follow-up heartbeat: file AlternativeTo + OSS-tracker
 listings (repo-URL based, no personal identity, no launch claim). Tracked separately
 from IRO-269 so the launch gate does not block organic discovery work.
+
+**Update (IRO-306, 2026-07-03):** on checking the live flows this premise only
+partly held. OpenSourceAgenda is defunct (domain redirects to an unrelated site);
+AlternativeTo requires a registered account (not a bare repo URL) and has a
+name-collision entry to resolve; LibHunt is passive and already covered by our
+accurate GitHub topics (IRO-177). None is a true no-account submit, so the active
+submissions are escalated to the CEO for an account decision. Full findings and the
+fire-ready AlternativeTo packet: [directory-listings.md](directory-listings.md).
