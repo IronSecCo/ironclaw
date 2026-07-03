@@ -229,6 +229,9 @@ func BuildOCISpec(spec SandboxSpec) (*OCISpec, error) {
 	if spec.ModelLocation != "" {
 		args = append(args, "--model-location", spec.ModelLocation)
 	}
+	if spec.ModelAPIVersion != "" {
+		args = append(args, "--model-api-version", spec.ModelAPIVersion)
+	}
 	if spec.Persona != "" {
 		args = append(args, "--persona", spec.Persona)
 	}

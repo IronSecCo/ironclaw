@@ -81,11 +81,13 @@ type SandboxSpec struct {
 	//   ModelHost     — upstream host override (empty = the provider's default).
 	//   ModelProject  — Google Cloud project id (Vertex AI only; rides in the URL path).
 	//   ModelLocation — Google Cloud region (Vertex AI only; empty = default region).
-	ModelProvider string
-	ModelID       string
-	ModelHost     string
-	ModelProject  string
-	ModelLocation string
+	//   ModelAPIVersion — Azure OpenAI api-version (Azure only; empty = default).
+	ModelProvider   string
+	ModelID         string
+	ModelHost       string
+	ModelProject    string
+	ModelLocation   string
+	ModelAPIVersion string
 
 	// Persona is the group's system-persona text, passed to the sandbox as a
 	// non-secret flag and appended (after the security framing) to its system prompt.
