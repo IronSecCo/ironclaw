@@ -28,6 +28,17 @@ import (
 	"strings"
 )
 
+// KindGemini routes to the Google Generative Language API
+// (generativelanguage.googleapis.com) — Google AI Studio with a host-held API key,
+// or the Gemini CLI's OAuth credential injected via the credential gateway. NewGemini
+// applies this backend's default host and model, so the registered factory just
+// delegates.
+const KindGemini = "gemini"
+
+func init() {
+	Register(KindGemini, func(cfg Config) (Provider, error) { return NewGemini(cfg), nil })
+}
+
 const (
 	geminiUpstreamHost = "generativelanguage.googleapis.com"
 	defaultGeminiModel = "gemini-2.5-pro"

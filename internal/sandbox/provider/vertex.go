@@ -20,6 +20,18 @@ package provider
 
 import "strings"
 
+// KindVertex routes to Google Cloud Vertex AI ({location}-aiplatform.googleapis.com).
+// It reuses GeminiProvider (identical wire format); only the transport envelope
+// differs — the GCP project and location ride in the URL path, and auth is an OAuth2
+// bearer (gcloud ADC / service account) injected host-side, not a static API key.
+// NewVertex derives the regional host from cfg.Project/cfg.Location, so the registered
+// factory just delegates.
+const KindVertex = "vertex"
+
+func init() {
+	Register(KindVertex, func(cfg Config) (Provider, error) { return NewVertex(cfg), nil })
+}
+
 const (
 	// defaultVertexModel matches the AI Studio default; Vertex serves the same
 	// Gemini models under publishers/google/models/{model}.

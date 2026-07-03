@@ -26,6 +26,16 @@ import (
 	"strings"
 )
 
+// KindCodex routes to the ChatGPT Codex Responses API (chatgpt.com), powered by a
+// ChatGPT/Codex OAuth credential injected host-side (e.g. via OneCLI). NewCodex
+// applies this backend's default host and model, so the registered factory just
+// delegates.
+const KindCodex = "codex"
+
+func init() {
+	Register(KindCodex, func(cfg Config) (Provider, error) { return NewCodex(cfg), nil })
+}
+
 // Codex backend constants. The model defaults to the current ChatGPT-account
 // Codex model; the upstream host is what the model-proxy allowlists and the
 // credential gateway matches to inject the Codex token.

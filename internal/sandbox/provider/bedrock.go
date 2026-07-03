@@ -41,6 +41,13 @@ const (
 	bedrockAnthropicVersion = "bedrock-2023-05-31"
 )
 
+// KindBedrock selects the AWS Bedrock Runtime backend.
+const KindBedrock = "bedrock"
+
+func init() {
+	Register(KindBedrock, func(cfg Config) (Provider, error) { return NewBedrock(cfg) })
+}
+
 // BedrockProvider talks to the AWS Bedrock Runtime InvokeModel API via the host
 // model-proxy socket. It reuses the Anthropic Messages wire format; only the
 // request envelope (URL + body markers) and the non-streaming response differ.

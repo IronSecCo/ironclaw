@@ -54,133 +54,72 @@ const (
 	anthropicVersion    = "2023-06-01"
 )
 
-// Provider kinds selectable per agent group. The default (empty) is Anthropic, so
-// the sealed single-provider posture is unchanged unless a group opts into another
-// backend. Each kind maps to a model-proxy-allowlisted upstream host that the host
-// authenticates with its own credential (see internal/host/modelproxy).
-const (
-	KindAnthropic  = "anthropic"
-	KindOpenAI     = "openai"
-	KindOpenRouter = "openrouter"
-	// KindCodex routes to the ChatGPT Codex Responses API (chatgpt.com), powered
-	// by a ChatGPT/Codex OAuth credential injected host-side (e.g. via OneCLI).
-	KindCodex = "codex"
-	// KindGemini routes to the Google Generative Language API
-	// (generativelanguage.googleapis.com) — Google AI Studio with a host-held API
-	// key, or the Gemini CLI's OAuth credential injected via the credential gateway.
-	KindGemini = "gemini"
-	// KindVertex routes to Google Cloud Vertex AI
-	// ({location}-aiplatform.googleapis.com). It speaks the identical Gemini wire
-	// format — only the transport envelope differs: the GCP project and location ride
-	// in the URL path, and auth is an OAuth2 bearer (gcloud ADC / service account)
-	// injected host-side, not a static API key. See NewVertex.
-	KindVertex = "vertex"
-	// KindLocal routes to a LOCAL, self-hosted OpenAI-compatible model server —
-	// Ollama (http://localhost:11434/v1), LM Studio, vLLM, or llama.cpp — running on
-	// the operator's own machine. It speaks the identical Chat Completions wire
-	// format as KindOpenAI (the same /v1/chat/completions path), so it reuses
-	// OpenAIProvider; the only difference is that the upstream is the operator's
-	// loopback host (set host-side; there is no sensible default) and that NO cloud
-	// credential is required — the host model-proxy forwards to the local server over
-	// plain HTTP and injects a key only if the operator configured one. This is the
-	// "100% local, zero cloud credential" path: the model runs on the same box, so no
-	// data leaves it. See New (requires UpstreamHost) and modelproxy.WithInsecureUpstreams.
-	KindLocal = "local"
-	// KindBedrock routes to the AWS Bedrock Runtime
-	// (bedrock-runtime.{region}.amazonaws.com) for orgs that consume models only
-	// through Bedrock. The primary target is Claude on Bedrock, which speaks the
-	// Anthropic Messages wire format — only the envelope differs: the model id rides
-	// in the URL path, the body carries anthropic_version:"bedrock-2023-05-31" and no
-	// model field, and auth is AWS SigV4 signed host-side by modelproxy.BedrockInjector
-	// (never a static header the sandbox could hold). See NewBedrock.
-	KindBedrock = "bedrock"
-	// KindAzure routes to Azure OpenAI (Azure AI Foundry) at the per-resource
-	// {resource}.openai.azure.com host. It speaks the identical OpenAI Chat
-	// Completions wire format as KindOpenAI, so it reuses OpenAIProvider; only the
-	// transport envelope differs — the model is selected by a DEPLOYMENT NAME in the
-	// URL path (cfg.Model) plus an api-version query param (cfg.APIVersion), and auth
-	// is the `api-key` header or a Microsoft Entra ID bearer token injected host-side
-	// (modelproxy.AzureKeyInjector / AzureTokenInjector), not the Bearer key OpenAI
-	// uses. There is no safe default host or deployment, so both are required. See NewAzure.
-	KindAzure = "azure"
-	// KindMock is a deterministic, offline backend (no network, no credential)
-	// for local demos and end-to-end tests. See MockProvider.
-	KindMock = "mock"
+// KindAnthropic is the default backend: an empty cfg.Kind resolves to it, so the
+// sealed single-provider posture is unchanged unless a group opts into another
+// backend. Its provider (AnthropicProvider) lives in this file and self-registers
+// in init below. Every OTHER kind is declared and registered in its own backend
+// file (openai.go, azure.go, ...) so adding a provider means adding ONE file that
+// touches no shared line here. Each kind maps to a model-proxy-allowlisted upstream
+// host that the host authenticates with its own credential (see internal/host/modelproxy).
+const KindAnthropic = "anthropic"
 
-	openAIUpstreamHost     = "api.openai.com"
-	openRouterUpstreamHost = "openrouter.ai"
+// Factory builds a Provider from cfg. A backend's Factory is responsible for
+// applying that backend's own default upstream host and model when cfg leaves them
+// zero (colocated with the backend, not here), so New stays a pure lookup. Backends
+// register their Factory for their kind via Register, called from an init() in the
+// backend's own file.
+type Factory func(cfg Config) (Provider, error)
 
-	defaultOpenAIModel     = "gpt-4o"
-	defaultOpenRouterModel = "openai/gpt-4o"
-)
+// registry maps a normalized (lowercased, trimmed) provider kind to its Factory.
+// It is written ONLY by Register, which runs exclusively from package init()
+// functions — before main starts and before any New call — so it is never mutated
+// concurrently with the reads New performs. New does a single keyed lookup and
+// never ranges the map, so provider selection has no map-iteration-order dependence
+// and is race-free.
+var registry = map[string]Factory{}
 
-// New builds the Provider for cfg.Kind, applying that kind's default upstream host
-// and model when cfg leaves them zero. An empty kind selects Anthropic. The
-// returned Provider always reaches the network only through the host model-proxy
-// unix socket (cfg.SocketPath) — the sandbox has network=none — and holds no
-// credentials; the proxy authenticates per provider and enforces the egress
-// allowlist. An unknown kind is an error.
+// Register wires a Factory for kind. Call it from a backend file's init(). It
+// panics on an empty kind, a nil factory, or a duplicate registration: all three
+// are init-time programming errors, and a silent overwrite could mask a backend
+// whose defaults changed. The kind is normalized (lowercased, trimmed) to match the
+// lookup New performs.
+func Register(kind string, f Factory) {
+	kind = strings.ToLower(strings.TrimSpace(kind))
+	if kind == "" {
+		panic("sandbox/provider: Register called with empty kind")
+	}
+	if f == nil {
+		panic("sandbox/provider: Register called with nil factory for kind " + kind)
+	}
+	if _, dup := registry[kind]; dup {
+		panic("sandbox/provider: duplicate provider registration for kind " + kind)
+	}
+	registry[kind] = f
+}
+
+func init() {
+	// Anthropic is the default backend; its provider lives in this file, so it is
+	// registered here rather than in a separate backend file.
+	Register(KindAnthropic, func(cfg Config) (Provider, error) { return NewAnthropic(cfg), nil })
+}
+
+// New builds the Provider for cfg.Kind by looking up its registered Factory and
+// delegating (the Factory applies that kind's default host/model). An empty kind
+// selects Anthropic, the sealed default. The lookup is case-insensitive and trims
+// surrounding whitespace. The returned Provider always reaches the network only
+// through the host model-proxy unix socket (cfg.SocketPath) — the sandbox has
+// network=none — and holds no credentials; the proxy authenticates per provider and
+// enforces the egress allowlist. An unknown kind is an error.
 func New(cfg Config) (Provider, error) {
-	switch strings.ToLower(strings.TrimSpace(cfg.Kind)) {
-	case "", KindAnthropic:
-		return NewAnthropic(cfg), nil
-	case KindOpenAI:
-		if cfg.UpstreamHost == "" {
-			cfg.UpstreamHost = openAIUpstreamHost
-		}
-		if cfg.Model == "" {
-			cfg.Model = defaultOpenAIModel
-		}
-		return NewOpenAI(cfg), nil
-	case KindOpenRouter:
-		if cfg.UpstreamHost == "" {
-			cfg.UpstreamHost = openRouterUpstreamHost
-		}
-		if cfg.Model == "" {
-			cfg.Model = defaultOpenRouterModel
-		}
-		return NewOpenAI(cfg), nil
-	case KindCodex:
-		// NewCodex applies the chatgpt.com upstream host and the default Codex
-		// model when cfg leaves them zero.
-		return NewCodex(cfg), nil
-	case KindGemini:
-		// NewGemini applies the generativelanguage.googleapis.com upstream host and
-		// the default Gemini model when cfg leaves them zero.
-		return NewGemini(cfg), nil
-	case KindVertex:
-		// NewVertex reuses GeminiProvider (identical wire format) but builds the
-		// Vertex URL from cfg.Project/cfg.Location and derives the regional
-		// {location}-aiplatform.googleapis.com host when cfg leaves them zero.
-		return NewVertex(cfg), nil
-	case KindLocal:
-		// Local, self-hosted OpenAI-compatible server (Ollama, LM Studio, vLLM,
-		// llama.cpp). It is OpenAI wire-compatible, so it reuses OpenAIProvider — but
-		// there is no default loopback host, so require one explicitly rather than
-		// silently falling back to api.openai.com (which would send "local" traffic to
-		// the cloud). The operator always passes the model id too; NewOpenAI keeps its
-		// own default only as a last resort.
-		if cfg.UpstreamHost == "" {
-			return nil, fmt.Errorf("sandbox/provider: local provider requires an upstream host (set --model-host, e.g. localhost:11434)")
-		}
-		return NewOpenAI(cfg), nil
-	case KindBedrock:
-		// AWS Bedrock Runtime (Claude on Bedrock). NewBedrock requires an explicit
-		// upstream host — the SigV4 signature is region-bound, so there is no safe
-		// default. The control-plane backfills the deployment's regional host.
-		return NewBedrock(cfg)
-	case KindAzure:
-		// NewAzure reuses OpenAIProvider (identical wire format) but builds the Azure
-		// deployment URL from cfg.UpstreamHost/cfg.Model/cfg.APIVersion. Azure is
-		// per-resource with no global default host and routes by deployment, so both
-		// the host and the deployment (cfg.Model) are required — see NewAzure.
-		return NewAzure(cfg)
-	case KindMock:
-		// Deterministic offline backend; ignores host/model/socket entirely.
-		return NewMock(cfg), nil
-	default:
+	kind := strings.ToLower(strings.TrimSpace(cfg.Kind))
+	if kind == "" {
+		kind = KindAnthropic
+	}
+	f, ok := registry[kind]
+	if !ok {
 		return nil, fmt.Errorf("sandbox/provider: unknown provider kind %q", cfg.Kind)
 	}
+	return f(cfg)
 }
 
 // Config configures a Provider. The same struct serves every backend; fields a
