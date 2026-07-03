@@ -1,0 +1,14 @@
+# Navigation for the "Learn: agent security" section.
+#
+# Search-intent SEO cluster targeting the sandboxing / untrusted-agent wedge
+# (IRO-321). Adding a page: drop `learn/<slug>.md` with an H1 and front-matter
+# title/description. The `*.md` glob below auto-includes it (titled from its H1)
+# with ZERO edit here. Add an explicit line only to control label or ordering.
+nav:
+  - AI agent security and sandboxing: index.md
+  - How to sandbox an AI agent: how-to-sandbox-an-ai-agent.md
+  - Run untrusted LLM code safely: run-untrusted-llm-code-safely.md
+  - Prevent prompt-injection escape: prevent-ai-agent-prompt-injection-escape.md
+  - AI agent security best practices: ai-agent-security-best-practices.md
+  - gVisor vs containers for AI isolation: gvisor-vs-container-ai-isolation.md
+  - "*.md"

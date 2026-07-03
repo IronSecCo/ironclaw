@@ -143,6 +143,13 @@ configuration change and watching it get held at the gateway** until you approve
 no model key required, entirely on your machine. Five minutes, and the core invariant
 stops being a paragraph and becomes a command you ran.
 
+For the practical, task-oriented versions of the ideas above, see the
+[agent security and sandboxing guide](learn/index.md): how to
+[sandbox an AI agent](learn/how-to-sandbox-an-ai-agent.md),
+[run untrusted LLM-generated code safely](learn/run-untrusted-llm-code-safely.md),
+[prevent prompt-injection escape](learn/prevent-ai-agent-prompt-injection-escape.md), and
+[gVisor vs containers for AI isolation](learn/gvisor-vs-container-ai-isolation.md).
+
 ---
 
 ### Accuracy notes (claim → source)
