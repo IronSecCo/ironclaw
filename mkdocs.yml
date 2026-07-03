@@ -59,12 +59,16 @@ extra_css:
   - stylesheets/brand.css
   # Landing-page styles, scoped under `.iro-landing` (home template only).
   - stylesheets/landing.css
+  # Interactive provider picker on the model-provider decision page (IRO-311).
+  - stylesheets/provider-picker.css
 
 extra_javascript:
   # Render the bare <div class="mermaid"> blocks (see superfences config below).
   # Loaded as an ES module so it can `import` the pinned Mermaid build.
   - path: javascripts/mermaid-init.js
     type: module
+  # Provider picker: panel switching + copy buttons (progressive enhancement).
+  - javascripts/provider-picker.js
 
 plugins:
   - search
