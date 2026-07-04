@@ -2,7 +2,9 @@
 
 <img src="docs/assets/logo.svg" alt="IronClaw" width="380">
 
-### Security-first, self-hosted AI agents — isolation you can prove, not just promise.
+### Self-hosted AI agents you do not have to trust.
+
+Each one runs sealed in a sandbox that provably cannot phone home, read your host, or rewrite its own rules.
 
 <!-- Security & supply-chain trust cluster — lead with what makes this project different -->
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/IronSecCo/ironclaw/badge)](https://scorecard.dev/viewer/?uri=github.com/IronSecCo/ironclaw)
@@ -23,63 +25,67 @@
 
 </div>
 
-IronClaw is an open-source platform for running personal AI assistants on infrastructure you
-control — reached through the chat apps you already use, each a real autonomous agent that can
-read, write, schedule, and reply.
+**IronClaw runs autonomous AI agents on infrastructure you control**, reached through the chat apps
+you already use. Each agent can read, write, schedule, and reply like any assistant, but it lives
+inside a sealed sandbox with `network=none`: it reaches the model only through a host proxy, and it
+**cannot change its own configuration.** It is for anyone who wants what agents can do without
+handing an autonomous program the keys to their machine.
+
+<div align="center">
+
+<img src="docs/assets/containment.svg" width="820" alt="live-containment demo (final frame): one command engages a real per-session sandbox, then a fully-jailbroken agent tries three escapes from inside the box and each is BLOCKED. Exfiltrating to the attacker is denied because network=none leaves only the loopback interface and DNS fails; reading the operator's host filesystem is denied because the host root is outside the sandbox mount namespace; seizing the host via the Docker Engine socket is denied because the socket is never mounted in and there is no docker client. It ends with a containment summary that 3 of 3 escape attempts were denied and the box held.">
+
+<sub><b>Watch it catch a real escape.</b> A fully-jailbroken agent inside a real sandbox tries to phone home, read the host filesystem, and seize the host through the Docker socket. Each attempt is <b>denied</b> at the isolation boundary, then a containment summary prints. One command, zero credentials, reduced-motion friendly. <a href="examples/live-containment/"><code>examples/live-containment/run.sh</code></a></sub>
+
+</div>
+
+**⭐ Like the idea of agents you do not have to trust? [Star the repo](https://github.com/IronSecCo/ironclaw)** so
+it is one click to follow along and easier for the next person to find. Then run the exact demo above
+in 30 seconds, no signup and no API key.
+
+### Try it in 30 seconds (zero credentials)
+
+Make sure the **Docker daemon is running** (start Docker Desktop, or `sudo systemctl start docker`
+on Linux), then paste one block:
+
+```sh
+git clone https://github.com/IronSecCo/ironclaw.git && cd ironclaw
+examples/live-containment/run.sh   # builds the sandbox once, engages a real sandbox, proves it holds
+```
+
+That single command runs the whole secured path on your laptop: it starts the offline mock-agent
+control-plane (**no API key**), engages a **real per-session sandbox**, lets a jailbroken agent try
+to break out, and prints the containment summary you saw above. Want to chat with an agent in a
+browser first? Run [`hello-ironclaw`](examples/hello-ironclaw/) or the
+[zero-credential quickstart](docs/quickstart.md). Production seals each sandbox with gVisor and
+`network=none`.
+
+> [!WARNING]
+> **Alpha software, work in progress. Please read before relying on it.**
+>
+> - **It's an alpha.** Flags, the on-disk format, and the HTTP/contract surfaces can still change without notice or a migration path. Don't point it at anything you can't afford to lose.
+> - **Not every feature is tested end-to-end.** The control-plane, gateway, and encrypted-queue core have real coverage (800+ Go tests plus a black-box parity suite); channel adapters, some tools, multi-provider routing, and a live sandbox launch are exercised more lightly. Treat anything outside the [tested core](#project-status) as experimental.
+>
+> macOS gets a weaker sandbox boundary than Linux+gVisor, and **native Windows can't run the agent sandbox at all** (use WSL2). See [Platform support](#platform-support).
 
 > **The security model, in one line:** each sandboxed agent runs with `network=none`, reaches the
-> model only through a host proxy, and **cannot change its own configuration** — every capability
+> model only through a host proxy, and **cannot change its own configuration.** Every capability
 > change is held at a gateway for a human decision. The full design is in the
 > [architecture overview](docs/architecture.md) and the [threat model](docs/threat-model.md).
 
-**If a safer way to run agents is worth having, [star the repo](https://github.com/IronSecCo/ironclaw)** to follow along and help others find it. Then try the zero-credential [quickstart](docs/quickstart.md).
+### See the whole journey, end to end
 
 <div align="center">
 
 <img src="docs/assets/demo.svg" width="800" alt="Zero-credential chat demo terminal session: one command (docker compose -f docker-compose.demo.yml up -d) starts the offline mock-agent control-plane with no API key; a chat message engages the agent, which launches a real per-session sandbox container (ic-sbx-…); the reply flows back through the encrypted per-session queue.">
 
-<sub><b>Zero credentials, one command.</b> The offline <code>mock-agent</code> runs the full chat → per-session sandbox → reply path with no API key — production seals each sandbox with gVisor and <code>network=none</code>. <a href="docs/quickstart.md">Quickstart</a></sub>
+<sub><b>Zero credentials, one command.</b> The offline <code>mock-agent</code> runs the full chat to per-session sandbox to reply path with no API key. Production seals each sandbox with gVisor and <code>network=none</code>. <a href="docs/quickstart.md">Quickstart</a></sub>
 
 <br><br>
 
-<img src="docs/assets/containment.svg" width="800" alt="live-containment demo (final frame): one command engages a real per-session sandbox, then a fully-jailbroken agent tries three escapes from inside the box and each is BLOCKED — exfiltrating to the attacker is denied because network=none leaves only the loopback interface and DNS fails; reading the operator's host filesystem is denied because the host root is outside the sandbox mount namespace; seizing the host via the Docker Engine socket is denied because the socket is never mounted in and there is no docker client — ending with a containment summary that 3 of 3 escape attempts were denied and the box held.">
-
-<sub><b>…now watch it catch a real escape.</b> <a href="examples/live-containment/"><code>examples/live-containment/run.sh</code></a> engages a real sandbox and lets a fully-jailbroken agent <b>try to break out</b> — network exfil, host-filesystem breakout, host takeover via the Docker socket — while your terminal shows each attempt <b>denied</b>, then prints a containment summary. Zero credentials; reduced-motion friendly (static final frame).</sub>
-
-</div>
-
-> [!WARNING]
-> **Alpha software — work in progress. Please read before relying on it.**
->
-> - **It's an alpha.** Flags, the on-disk format, and the HTTP/contract surfaces can still change without notice or a migration path. Don't point it at anything you can't afford to lose.
-> - **Not every feature is tested end-to-end.** The control-plane, gateway, and encrypted-queue core have real coverage (800+ Go tests plus a black-box parity suite); channel adapters, some tools, multi-provider routing, and a live sandbox launch are exercised more lightly. Treat anything outside the [tested core](#project-status) as experimental.
->
-> macOS gets a weaker sandbox boundary than Linux+gVisor, and **native Windows can't run the agent sandbox at all** (use WSL2) — see [Platform support](#platform-support).
-
-> **Want to see it work first — no API key, no signup?**
-> One offline demo runs the full chat → per-session sandbox → reply loop on a stock
-> laptop, where a mock agent actually replies — no credentials, no gVisor required.
-> Make sure the **Docker daemon is running first** (start Docker Desktop, or
-> `sudo systemctl start docker` on Linux):
->
-> ```sh
-> git clone https://github.com/IronSecCo/ironclaw.git && cd ironclaw
-> bash container/build.sh                                  # build the sandbox image once
-> docker compose -f docker-compose.demo.yml up --build -d  # start the offline demo
-> ```
->
-> Open **http://127.0.0.1:8787/ui/**, pick **Mock Agent (offline)** in the Chat tab, and
-> watch the agent reply. If the console prompts for an API token, paste `ironclaw-demo` (the
-> demo's fixed loopback token). Production seals each sandbox with gVisor and `network=none`.
-> [Zero-credential quickstart →](docs/quickstart.md)
-
-### The whole journey, end to end
-
-<div align="center">
-
 <img src="docs/assets/walkthrough.svg" width="820" height="595" alt="End-to-end IronClaw walkthrough terminal session in three acts. Act 1: one command starts the offline mock-agent and it replies with no API key. Act 2: connect a real provider by exporting a host-side, redacted ANTHROPIC_API_KEY and starting the real control-plane (each session sealed with gVisor and network=none). Act 3: the agent submits a persona change that is HELD at the human-approval gateway, a human approves it, and the submit-approve-apply trail lands on the append-only audit log.">
 
-<sub><b>Zero-cred demo → connect a real provider → first approved task.</b> The one credential step keeps the key host-side; every agent change is held at the gateway for a human, then written to the append-only audit log. Animation freezes on the final frame under <code>prefers-reduced-motion</code>. <a href="docs/quickstart.md">Quickstart</a></sub>
+<sub><b>Zero-cred demo, connect a real provider, first approved task.</b> The one credential step keeps the key host-side; every agent change is held at the gateway for a human, then written to the append-only audit log. Animation freezes on the final frame under <code>prefers-reduced-motion</code>. <a href="docs/quickstart.md">Quickstart</a></sub>
 
 </div>
 
