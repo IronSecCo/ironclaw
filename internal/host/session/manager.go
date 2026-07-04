@@ -123,6 +123,14 @@ type Config struct {
 	// counter, mirroring the SandboxKills increment on the kill path. Nil is a
 	// no-op. It must not block — it runs inline on the Wake path.
 	OnLaunch func()
+
+	// OnLaunchError is an optional hook fired when a sandbox launch fails and the
+	// session is left un-launched (the trigger message is already queued). The daemon
+	// wires it to surface a user-visible chat message ("the sandbox couldn't start")
+	// instead of leaving the visitor with a silent, empty reply forever (IRO-335).
+	// Nil is a no-op. It must not block — it runs inline on the Wake path, so the
+	// wiring does its own bounded, out-of-band delivery.
+	OnLaunchError func(id contract.SessionID, launchErr error)
 }
 
 // defaultEarlyExitGrace is the post-launch wait before probing for an early exit.
@@ -467,6 +475,11 @@ func (m *Manager) Wake(id contract.SessionID) error {
 		// Best-effort: the message is already queued. Log and leave the session
 		// un-launched so a later Wake retries once the environment can run it.
 		m.cfg.Logger.Printf("host/session: launch %s deferred: %v", id, err)
+		// Surface the failure to the user's chat (IRO-335) so a missing sandbox image
+		// or other launch fault is not an eternally silent empty reply. Best-effort.
+		if m.cfg.OnLaunchError != nil {
+			m.cfg.OnLaunchError(id, err)
+		}
 		return nil
 	}
 
