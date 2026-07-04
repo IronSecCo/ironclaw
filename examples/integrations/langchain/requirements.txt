@@ -1,6 +1,6 @@
 # The IronClaw sandbox client is pure standard library; the only dependency this
 # example adds is LangChain itself. Pinned for reproducible fresh-machine runs.
-langchain-core==0.3.29
+langchain-core==1.3.3
 pydantic==2.10.4
 
 # Optional -- only needed for the real-LLM path (set OPENAI_API_KEY):
