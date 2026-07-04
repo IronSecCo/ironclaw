@@ -1,10 +1,14 @@
 # IronClaw — zero-credential local chat demo (a working "it works" in one command).
 #
-#   bash container/build.sh                              # build the sandbox image once
-#   docker compose -f docker-compose.demo.yml up --build # start the demo control-plane
+#   docker compose -f docker-compose.demo.yml up --build # build BOTH images + start the demo
 #   open http://127.0.0.1:8787/ui/                       # Chat → "Mock Agent (offline)" → say hi
 #                                                         # (if it asks for an API token, paste: ironclaw-demo)
 #   docker compose -f docker-compose.demo.yml down       # tear it down
+#
+# One command: `up --build` builds the control-plane image AND the per-session sandbox
+# image (ironclaw-sandbox:latest, via the sandbox-image helper service below), so you no
+# longer need a separate `bash container/build.sh` first. If you skip --build on a clean
+# machine, compose still builds both images because neither tag exists locally yet.
 #
 # This is a STANDALONE compose file (run it with -f, NOT alongside docker-compose.yml).
 # It brings up a single control-plane wired for an offline chat: it seeds the `mock-agent`
@@ -29,6 +33,14 @@ services:
       dockerfile: container/controlplane.Dockerfile
     # First run builds the image (pass --build); later `up`s reuse it. The tag is
     # local-only, so compose builds it rather than pulling from a registry.
+    # Wait for the sandbox image to be built + tagged into the host daemon before
+    # starting, so the two-build requirement can't be half-satisfied: a launch would
+    # otherwise 404 ("No such image: ironclaw-sandbox:latest") and the chat would sit
+    # silent (IRO-335). service_completed_successfully = the build-only helper below
+    # ran and exited 0.
+    depends_on:
+      sandbox-image:
+        condition: service_completed_successfully
     # Run as root so the process can reach the bind-mounted Docker socket (root:docker).
     user: "0:0"
     environment:
@@ -76,3 +88,22 @@ services:
       retries: 5
       start_period: 10s
     stop_grace_period: 20s
+
+  # Build-only helper: compiles + tags the PER-SESSION sandbox image
+  # (ironclaw-sandbox:latest) into the SAME host Docker daemon the control-plane
+  # launches siblings through (they share /var/run/docker.sock). This makes the demo
+  # self-sufficient: `docker compose -f docker-compose.demo.yml up --build` now builds
+  # BOTH images, so a visitor no longer has to remember the separate
+  # `bash container/build.sh` step (the top drop-off in the try-it path, IRO-335).
+  #
+  # It is NOT a long-running service: compose builds the `image:` tag from `build:`,
+  # then this container overrides the entrypoint to a no-op that exits 0. The
+  # control-plane's depends_on ... service_completed_successfully gates on that exit.
+  # `restart: "no"` keeps it from re-running after it completes.
+  sandbox-image:
+    image: ironclaw-sandbox:latest
+    build:
+      context: .
+      dockerfile: container/Dockerfile
+    entrypoint: ["true"]
+    restart: "no"

@@ -166,6 +166,60 @@ func TestManagerWakeBestEffortOnLaunchFailure(t *testing.T) {
 	}
 }
 
+// TestManagerWakeReportsLaunchError asserts a failed launch fires OnLaunchError with
+// the session id and the underlying error, so the daemon can surface a user-visible
+// chat message instead of a silent empty reply (IRO-335). The hook runs inline on the
+// Wake path, so it has fired by the time Wake returns.
+func TestManagerWakeReportsLaunchError(t *testing.T) {
+	iso := &fakeIsolator{failWith: errors.New(
+		"host/isolation: docker create ic-sbx-ses_noimg: docker api POST /containers/create: 404 Not Found: No such image: ironclaw-sandbox:latest")}
+	cust, err := keys.New([32]byte{})
+	if err != nil {
+		t.Fatalf("keys.New: %v", err)
+	}
+	var (
+		mu     sync.Mutex
+		called int
+		gotID  contract.SessionID
+		gotErr error
+	)
+	m, err := New(Config{
+		Factory:       queue.NewFactory(t.TempDir()),
+		Keys:          cust,
+		Isolator:      iso,
+		Registry:      registry.NewMemRegistry(),
+		KeyDir:        t.TempDir(),
+		WorkspaceRoot: t.TempDir(),
+		OnLaunchError: func(id contract.SessionID, e error) {
+			mu.Lock()
+			defer mu.Unlock()
+			called++
+			gotID = id
+			gotErr = e
+		},
+	})
+	if err != nil {
+		t.Fatalf("session.New: %v", err)
+	}
+
+	const id contract.SessionID = "ses_noimg"
+	if err := m.Wake(id); err != nil {
+		t.Fatalf("Wake should not propagate launch failure: %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if called != 1 {
+		t.Fatalf("OnLaunchError called %d times, want 1", called)
+	}
+	if gotID != id {
+		t.Fatalf("OnLaunchError session id = %q, want %q", gotID, id)
+	}
+	if !isolation.IsImageMissing(gotErr) {
+		t.Fatalf("OnLaunchError err = %v, want classified image-missing", gotErr)
+	}
+}
+
 func TestManagerKillStopsAndUntracks(t *testing.T) {
 	iso := &fakeIsolator{}
 	m := newTestManager(t, iso)

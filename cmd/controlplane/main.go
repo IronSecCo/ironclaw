@@ -755,6 +755,19 @@ func main() {
 	if broker != nil && *vaultEndpoint != "" {
 		egressProvisioner = broker
 	}
+
+	// Channel adapters + the in-process webchat buffer are created here (ahead of the
+	// SessionManager) so the manager's OnLaunchError hook can deliver a user-visible
+	// "sandbox couldn't start" chat message through the same adapter the normal reply
+	// path uses (IRO-335). Concrete platform adapters register when configured; the
+	// inbound Router is wired below, once the manager exists.
+	channelReg := channels.NewRegistry()
+	registerChannelAdapters(channelReg, logger)
+	webchat := channels.NewWebchatAdapter("webchat")
+	if err := channelReg.Register(webchat); err != nil {
+		logger.Error("register webchat adapter", "error", err)
+	}
+
 	manager, err := session.New(session.Config{
 		Factory:          factory,
 		Keys:             custodian,
@@ -773,6 +786,7 @@ func main() {
 		KeyDir:           filepath.Join(*stateDir, "keys"),
 		WorkspaceRoot:    filepath.Join(*stateDir, "workspaces"),
 		OnLaunch:         m.SandboxLaunches.Inc,
+		OnLaunchError:    launchErrorReporter(reg, channelReg, logger, *sandboxImage),
 	})
 	if err != nil {
 		logger.Error("session manager", "error", err)
@@ -788,22 +802,14 @@ func main() {
 	// affected group's running sessions so the grant takes effect immediately.
 	respawnApplier.SetRespawner(manager)
 
-	// Delivery: poll per-session outbound queues and deliver via channel adapters,
-	// re-authorizing privileged system actions through the gateway. Concrete
-	// platform adapters register when their bot token is configured.
-	channelReg := channels.NewRegistry()
-	registerChannelAdapters(channelReg, logger)
-
-	// Chat playground: register an in-process webchat adapter so the
-	// delivery loop routes an agent's "webchat" replies back to it for the browser
-	// to poll, and instantiate the inbound Router (registry + the SessionManager's
-	// inbound-writer factory + waker) so the API can feed a browser message into
-	// the normal engage/route/deliver path. Additive — no existing adapter calls
-	// the router, so the inbound posture is unchanged for them.
-	webchat := channels.NewWebchatAdapter("webchat")
-	if err := channelReg.Register(webchat); err != nil {
-		logger.Error("register webchat adapter", "error", err)
-	}
+	// Delivery: poll per-session outbound queues and deliver via channel adapters
+	// (channelReg + the in-process webchat buffer created above), re-authorizing
+	// privileged system actions through the gateway.
+	//
+	// Chat playground: instantiate the inbound Router (registry + the SessionManager's
+	// inbound-writer factory + waker) so the API can feed a browser message into the
+	// normal engage/route/deliver path. Additive — no existing adapter calls the
+	// router, so the inbound posture is unchanged for them.
 	chatRouter := router.New(reg, manager.InboundWriter, manager)
 	server = server.WithChat(chatRouter, webchat)
 
@@ -1067,6 +1073,65 @@ func registerChannelAdapters(reg *channels.Registry, logger *obs.Logger) {
 	})
 	reqExtra("imessage", runtime.GOOS == "darwin" && os.Getenv("IRONCLAW_IMESSAGE_ENABLE") == "1",
 		func() channels.Adapter { return channels.NewIMessageAdapter("imessage") })
+}
+
+// launchErrorReporter builds the session manager's OnLaunchError hook: when a
+// sandbox launch fails and the session is left un-launched, it delivers a
+// user-visible chat message to the conversation that triggered it, so a fresh
+// visitor sees an actionable error instead of an eternally silent empty reply
+// (IRO-335). It resolves the session's own messaging group and delivers through the
+// SAME channel adapter the normal reply path uses, so the message shows up wherever
+// the visitor is chatting (the web console, Slack, etc.). Best-effort: any
+// unresolved session/group/adapter is a no-op, and delivery runs out-of-band on a
+// bounded context so it never blocks the Wake path.
+func launchErrorReporter(reg registry.Registry, channelReg *channels.Registry, logger *obs.Logger, sandboxImage string) func(contract.SessionID, error) {
+	return func(id contract.SessionID, launchErr error) {
+		sess, ok := reg.GetSession(id)
+		if !ok {
+			return
+		}
+		mg, ok := reg.GetMessagingGroup(sess.MessagingGroupID)
+		if !ok {
+			return
+		}
+		adapter, ok := channelReg.Get(mg.ChannelType)
+		if !ok {
+			return
+		}
+		var content string
+		if isolation.IsImageMissing(launchErr) {
+			img := sandboxImage
+			if img == "" {
+				img = "ironclaw-sandbox:latest"
+			}
+			content = fmt.Sprintf("The IronClaw sandbox could not start: its container image %q is missing.\n\n"+
+				"Build it once, then resend your message:\n"+
+				"    bash container/build.sh\n\n"+
+				"(The demo compose file builds it for you: docker compose -f docker-compose.demo.yml up --build)", img)
+		} else {
+			content = "The IronClaw sandbox could not start due to a host error. " +
+				"Check the control-plane logs for details, then resend your message."
+		}
+		channelType := mg.ChannelType
+		platformID := mg.PlatformID
+		msg := contract.MessageOut{
+			ID:          contract.MessageID("launcherr_" + string(id)),
+			Timestamp:   time.Now().UTC(),
+			Kind:        contract.KindChat,
+			ChannelType: &channelType,
+			PlatformID:  &platformID,
+			Content:     content,
+		}
+		// Deliver out-of-band: platform adapters make network calls, and this runs
+		// inline on the Wake path. Bound it so a slow adapter cannot wedge a launch.
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if _, err := adapter.Deliver(ctx, msg); err != nil {
+				logger.Warn("surface launch error to chat", "session", id, "channel", channelType, "error", err)
+			}
+		}()
+	}
 }
 
 // defaultStateDir returns a per-user state directory under the OS state/cache
