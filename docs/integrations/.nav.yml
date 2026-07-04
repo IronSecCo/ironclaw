@@ -1,9 +1,13 @@
-# Navigation for the "Integrations" section. New integration guide: drop the
-# file; the `*.md` glob auto-includes it (titled from its H1). List it explicitly
-# only to override the label or ordering.
+# Navigation for the "Integrations" section. Search-intent SEO cluster (IRO-348):
+# one "Sandbox your <framework> agent with IronClaw" page per framework, tied
+# together by index.md. New integration guide: drop the file; the `*.md` glob
+# auto-includes it (titled from its H1). List it explicitly only to override the
+# label or ordering.
 nav:
-  - CI (GitHub Action): ci.md
+  - Sandbox any agent framework: index.md
   - LangChain: langchain.md
-  - OpenAI SDK: openai-sdk.md
   - CrewAI: crewai.md
+  - OpenAI Agents SDK: openai-sdk.md
+  - Claude Agent SDK: claude-sdk.md
+  - CI (GitHub Action): ci.md
   - "*.md"

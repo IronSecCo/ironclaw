@@ -1,22 +1,48 @@
 ---
-title: "From the OpenAI SDK to a sandboxed IronClaw agent"
-description: You built an agent with the OpenAI SDK and function calling. Here is how to run the same job behind IronClaw's sealed sandbox, with the API key held host-side and every tool call audited and gated, plus a credential-free way to see it work first.
+title: "Sandbox your OpenAI Agents SDK agent with IronClaw"
+description: How to sandbox an OpenAI Agents SDK agent. Run your OpenAI agent's untrusted tool and code execution inside IronClaw's sealed gVisor sandbox, with the API key held host-side and every tool call gated and audited, plus a credential-free way to see it work first.
 ---
 
-# From the OpenAI SDK to a sandboxed IronClaw agent
+# Sandbox your OpenAI Agents SDK agent with IronClaw
 
-You built an agent with the **OpenAI SDK**: a `client`, a model, and a set of
-functions the model can call. The loop is familiar, and so is the exposure. The
-SDK client holds your API key in the process, your tool functions run with your
-full local privileges, and nothing stops the process from reaching any host on the
-internet. One tool-call the model was talked into making, and that is your box.
+You built an agent with the **OpenAI Agents SDK** (or plain OpenAI function
+calling): an agent, a model, and a set of tools the model can call. The loop is
+familiar, and so is the exposure. The SDK client holds your API key in the process,
+your tool functions run with your full local privileges, and nothing stops the
+process from reaching any host on the internet. One tool-call the model was talked
+into making, and that is your box.
 
 IronClaw runs the same job behind a **sealed sandbox**: no network card, the API
 key held **host-side** and never in the agent, and every privileged tool call
 routed through a human-approval gateway and an audit log. IronClaw already speaks
 the OpenAI wire format, so this is a short trip.
 
-!!! info "IronClaw does not run your Python in the sandbox — and that is the point"
+!!! example "Runnable example"
+    A one-command OpenAI-Agents-to-IronClaw example lives at
+    [`examples/integrations/openai-agents`](https://github.com/IronSecCo/ironclaw/tree/main/examples/integrations/openai-agents):
+    an Agents SDK agent whose tool and code execution is backed by an IronClaw
+    sandbox, with a blocked escape attempt printed at the end. It ships with the
+    integration examples. The credential-free demo below runs the same sealed loop
+    today.
+
+## The three-line fix
+
+Stop running the agent's tool functions in your own process. Declare the same agent
+to IronClaw and it runs inside a sealed, network-free sandbox instead:
+
+```sh
+export OPENAI_API_KEY=sk-...   # host-side only; the sandbox never sees this key
+./bin/controlplane --dev --api-addr 127.0.0.1:8787 &
+ironctl agent create --name "Housekeeper" --provider openai --model gpt-4o \
+  --instructions "Tidy the workspace and report what you changed." \
+  --tool list_dir --tool read_file --tool write_file --yes
+```
+
+No `run_shell` that is your shell, no key in the code. Built-in tools act only in
+the agent's private workspace; anything stronger is a reviewed MCP tool. Full
+mapping below.
+
+!!! info "IronClaw does not run your Python in the sandbox, and that is the point"
     IronClaw's sandbox has **no interpreter and no in-sandbox install**. You do not
     *wrap* the OpenAI SDK process; you re-declare the same agent (persona, model,
     tools) as an IronClaw agent group, and IronClaw runs it inside the sealed
