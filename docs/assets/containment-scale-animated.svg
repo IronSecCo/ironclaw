@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" role="img" aria-labelledby="cs-title cs-desc">
+  <title id="cs-title">IronClaw containment at scale: 84 real escape attempts across 12 sandbox sessions, 84 blocked, 0 escaped, 100 percent contained</title>
+  <desc id="cs-desc">A jailbroken agent ran an escape battery from inside a real per-session IronClaw sandbox, at scale. Seven escape invariants were each attempted across twelve independent sessions, for eighty-four attempts in total. Three representative attempts are shown, each blocked twelve times out of twelve: phoning home to the attacker is blocked because network is set to none so only loopback exists and DNS has nowhere to go; reading the operator host filesystem and keys is blocked because the host root is outside the sandbox mount namespace and each session binds in only its own key; seizing the host through the Docker Engine socket is blocked because the socket is never mounted in and there is no docker client. The run ends on a containment summary: eighty-four attempts, eighty-four blocked, zero escaped, one hundred percent contained. The animation loops; where animation is unavailable, or when reduced motion is preferred, the complete final frame is shown.</desc>
+  <style>
+    /* Sequential reveal for animating surfaces (blog inline SVG). Where CSS is
+       stripped (GitHub markdown, non-animating social embeds) the base SVG opacity
+       of 1 shows the complete final frame. Peak-End: the frame that persists is the
+       numeric summary. */
+    .anim{opacity:0}
+    .a0{animation:a0 12s linear infinite}
+    @keyframes a0{0%{opacity:1}93%{opacity:1}100%{opacity:0}}
+    .a1{animation:a1 12s linear infinite}
+    @keyframes a1{0%,4%{opacity:0}7%,93%{opacity:1}100%{opacity:0}}
+    .a2{animation:a2 12s linear infinite}
+    @keyframes a2{0%,10%{opacity:0}13%,93%{opacity:1}100%{opacity:0}}
+    .a3{animation:a3 12s linear infinite}
+    @keyframes a3{0%,22%{opacity:0}26%,93%{opacity:1}100%{opacity:0}}
+    .a4{animation:a4 12s linear infinite}
+    @keyframes a4{0%,36%{opacity:0}40%,93%{opacity:1}100%{opacity:0}}
+    .a5{animation:a5 12s linear infinite}
+    @keyframes a5{0%,50%{opacity:0}54%,93%{opacity:1}100%{opacity:0}}
+    .a6{animation:a6 12s linear infinite}
+    @keyframes a6{0%,66%{opacity:0}70%,93%{opacity:1}100%{opacity:0}}
+    @media (prefers-reduced-motion: reduce){.anim{animation:none!important;opacity:1!important}}
+  </style>
+
+  <rect width="1200" height="630" fill="#0d1117"/>
+  <rect x="1" y="1" width="1198" height="628" fill="none" stroke="#30363d" stroke-width="2"/>
+  <rect x="0" y="0" width="8" height="630" fill="#238636"/>
+
+  <!-- Wordmark + trust tagline. Aesthetic-Usability + trust signal for a security product. -->
+  <text x="72" y="86" font-size="32" font-weight="bold" fill="#e6edf3" letter-spacing="2">IRONCLAW</text>
+  <text x="72" y="116" font-size="18" fill="#8b949e">Self-hosted AI agents you do not have to trust</text>
+
+  <!-- Headline. The number is the hook (issue: headline the scale data). -->
+  <g class="anim a1">
+    <text x="72" y="188" font-size="43" font-weight="bold" fill="#e6edf3">A jailbroken agent tried to escape</text>
+    <text x="72" y="240" font-size="43" font-weight="bold" fill="#e6edf3"><tspan fill="#3fb950">84 times.</tspan> Every attempt was blocked.</text>
+  </g>
+
+  <!-- Subhead: scale framing (12 sessions x 7 invariants). Chunking. -->
+  <text class="anim a2" x="72" y="282" font-size="20" fill="#8b949e">7 escape invariants, each run across 12 independent sandbox sessions.</text>
+
+  <!-- Three representative attempts, each blocked 12/12. Similarity + Common Region group them. -->
+  <g font-size="22">
+    <g class="anim a3" transform="translate(72,308)">
+      <rect x="0" y="0" width="126" height="36" rx="6" fill="#238636"/>
+      <text x="63" y="25" text-anchor="middle" font-size="19" font-weight="bold" fill="#ffffff">BLOCKED</text>
+      <text x="150" y="26" fill="#c9d1d9">Phone home to the attacker</text>
+      <text x="1056" y="26" text-anchor="end" font-size="19" fill="#3fb950">12 / 12</text>
+    </g>
+    <g class="anim a4" transform="translate(72,360)">
+      <rect x="0" y="0" width="126" height="36" rx="6" fill="#238636"/>
+      <text x="63" y="25" text-anchor="middle" font-size="19" font-weight="bold" fill="#ffffff">BLOCKED</text>
+      <text x="150" y="26" fill="#c9d1d9">Read the host filesystem and keys</text>
+      <text x="1056" y="26" text-anchor="end" font-size="19" fill="#3fb950">12 / 12</text>
+    </g>
+    <g class="anim a5" transform="translate(72,412)">
+      <rect x="0" y="0" width="126" height="36" rx="6" fill="#238636"/>
+      <text x="63" y="25" text-anchor="middle" font-size="19" font-weight="bold" fill="#ffffff">BLOCKED</text>
+      <text x="150" y="26" fill="#c9d1d9">Seize the host via the Docker socket</text>
+      <text x="1056" y="26" text-anchor="end" font-size="19" fill="#3fb950">12 / 12</text>
+    </g>
+  </g>
+
+  <!-- Persistent summary bar: the Peak-End payload and static-fallback headline.
+       Three evenly-spaced stat tiles; trust caption sits below the bar (no overlap). -->
+  <g class="anim a6">
+    <rect x="72" y="466" width="1056" height="96" rx="10" fill="#0f2417" stroke="#238636" stroke-width="2"/>
+    <g text-anchor="middle">
+      <text x="248" y="520" font-size="46" font-weight="bold" fill="#3fb950">84</text>
+      <text x="248" y="548" font-size="17" fill="#8b949e">attempts blocked</text>
+      <text x="600" y="520" font-size="46" font-weight="bold" fill="#3fb950">0</text>
+      <text x="600" y="548" font-size="17" fill="#8b949e">escaped</text>
+      <text x="952" y="520" font-size="46" font-weight="bold" fill="#3fb950">100%</text>
+      <text x="952" y="548" font-size="17" fill="#8b949e">contained</text>
+    </g>
+    <line x1="424" y1="490" x2="424" y2="538" stroke="#238636" stroke-width="1"/>
+    <line x1="776" y1="490" x2="776" y2="538" stroke="#238636" stroke-width="1"/>
+    <text x="600" y="598" text-anchor="middle" font-size="17" fill="#8b949e">Isolation you can prove, not just promise. One command, zero credentials.</text>
+  </g>
+</svg>

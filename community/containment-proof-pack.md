@@ -105,6 +105,12 @@ contained.
 
 **Slug:** `we-let-an-ai-agent-try-to-escape`
 
+**Hero media:** `docs/assets/containment-scale-animated.svg` (animated; loops the three
+marquee attempts denied, holds on the scale summary). Static fallback frame carries the full
+headline, so it reads on GitHub and on any embed that does not animate.
+
+![A jailbroken agent tried to escape 84 times. Every attempt was blocked. 84 attempts blocked, 0 escaped, 100 percent contained across 12 sandbox sessions.](../docs/assets/containment-scale-animated.svg)
+
 ---
 
 Everyone shipping AI agents right now is making a bet: that the model will not do something
@@ -314,6 +320,10 @@ signed containment report. Repo: https://github.com/IronSecCo/ironclaw
 
 ### 4e. X / Mastodon thread
 
+**Lead media (attach to post 1):** `docs/assets/containment-scale-animated.svg`. It headlines
+the 84 / 0 / 100 percent numbers in the first frame, so the card sells the thread before anyone
+reads it.
+
 ```
 1/
 We let a fully jailbroken AI agent try to escape its sandbox 84 times.
@@ -369,12 +379,16 @@ IronClaw, open source: https://github.com/IronSecCo/ironclaw
 
 ## 5. Visual (UXDesigner coordination)
 
-The animated live-containment demo (`docs/assets/containment.svg` and the asciinema recording from
-IRO-322) is the embed for the blog and the X thread lead. Coordination is filed as **IRO-342**
-(child of IRO-339, assigned to UXDesigner): produce or confirm a short animated cut of the
-`live-containment` run (each escape attempt denied, ending on the containment summary) sized for
-social embed. Until that lands, the blog and thread embed the existing `containment.svg`, so this
-pack is complete and post-ready without waiting on IRO-342.
+The embed is `docs/assets/containment-scale-animated.svg`, the social-embed cut delivered by
+**IRO-342** (child of IRO-339, UXDesigner). It is 1200x630 (the OG card ratio, so it doubles as
+blog hero and X / Mastodon lead), animates the three marquee attempts denied, and holds on the
+scale summary: 84 attempts blocked, 0 escaped, 100 percent contained across 12 sandbox sessions.
+The design degrades safely: where CSS animation is unavailable (GitHub markdown, non-animating
+social embeds) or reduced motion is preferred, the complete final frame renders with the full
+headline. Source material was the IRO-322 `live-containment` recording and `containment.svg`; the
+scale numbers come from `community/data/containment-scale-results.json`. Rendered and verified at
+1200px and at 504px feed scale before landing. The earlier `containment.svg` remains the fallback
+for surfaces that predate this cut.
 
 ---
 
