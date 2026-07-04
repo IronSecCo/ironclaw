@@ -19,7 +19,8 @@
 
   {# ===== 1. HERO ===== #}
   <section class="iro-section iro-hero" aria-labelledby="hero-title">
-    <div class="iro-wrap">
+    <div class="iro-wrap iro-hero__grid">
+     <div class="iro-hero__copy">
       <span class="iro-eyebrow">A sandboxed runtime for untrusted AI agents</span>
       <h1 class="iro-hero__title" id="hero-title">Security-first AI agents you actually run yourself.</h1>
       <p class="iro-hero__sub">
@@ -37,6 +38,14 @@
           Star on GitHub
           <span class="iro-btn__star" aria-hidden="true">★</span>
         </a>
+      </div>
+
+      {# Compact trust strip — keep >=1 supply-chain signal above the fold with the
+         CTAs (R4). A 3-badge subset of the full .iro-badges wall below; not a dup. #}
+      <div class="iro-trust-strip" aria-label="Security trust signals">
+        <a href="https://www.bestpractices.dev/projects/13348" rel="noopener" title="OpenSSF Best Practices (passing)"><img src="https://www.bestpractices.dev/projects/13348/badge" alt="OpenSSF Best Practices: passing" loading="lazy"></a>
+        <a href="https://scorecard.dev/viewer/?uri=github.com/IronSecCo/ironclaw" rel="noopener" title="OpenSSF Scorecard"><img src="https://api.securityscorecards.dev/projects/github.com/IronSecCo/ironclaw/badge" alt="OpenSSF Scorecard score" loading="lazy"></a>
+        <a href="https://ironsecco.github.io/ironclaw/security/" title="cosign-signed releases"><img src="https://img.shields.io/badge/releases-cosign%20signed-2563eb.svg" alt="Releases: cosign signed" loading="lazy"></a>
       </div>
 
       <p class="iro-hero__proof">
@@ -73,6 +82,14 @@
           Alpha software — the gVisor seal is Linux-only.
           <a href="https://ironsecco.github.io/ironclaw/roadmap/">See project status →</a>
         </p>
+      </div>
+     </div>{# /.iro-hero__copy #}
+
+      {# Fill the >=1024px right-column void with the shipped, static, reduced-motion
+         safe live-containment still (R1). Stacks below the copy on mobile. #}
+      <div class="iro-hero__media" aria-hidden="false">
+        <img src="{{ base_url }}/assets/containment.svg" loading="lazy" decoding="async" width="820" height="556"
+             alt="IronClaw live-containment demo (final terminal frame): a jailbroken agent's three escape attempts — reaching the network, reading a host secret, and breaking out of the sandbox — are each blocked, and the run ends CONTAINED.">
       </div>
     </div>
   </section>

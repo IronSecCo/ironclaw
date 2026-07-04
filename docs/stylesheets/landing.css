@@ -148,6 +148,44 @@
   font-weight: 700;
 }
 
+/* ----- hero 2-col layout (R1) -------------------------------------------
+   Base: single column. The copy renders full-width and the containment still
+   stacks BELOW it, so the mobile layout is unchanged (copy order untouched).
+   The 2-col split only engages at >=1024px (see responsive block), where it
+   fills the right-column void the left-aligned copy would otherwise leave. */
+.iro-hero__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s-6);
+  align-items: center;
+}
+.iro-hero__media {
+  min-width: 0;
+}
+.iro-hero__media img {
+  display: block;
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  margin-inline: auto;
+  border: 1px solid rgba(143, 180, 255, 0.20);
+  border-radius: var(--iro-radius);
+  box-shadow: 0 1.2rem 3rem rgba(3, 8, 22, 0.45);
+}
+
+/* ----- compact trust strip (R4) -----------------------------------------
+   A 2-3 badge subset kept next to the CTAs so >=1 supply-chain signal is
+   visible above the fold. Not a duplicate of the full .iro-badges wall. */
+.iro-trust-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: calc(-1 * var(--s-4)) 0 var(--s-6);
+}
+.iro-trust-strip img { height: 20px; display: block; }
+.iro-trust-strip a:focus-visible { outline: 3px solid #8fb4ff; outline-offset: 3px; border-radius: 3px; }
+
 /* ----- CTA buttons ------------------------------------------------------- */
 .iro-cta-row {
   display: flex;
@@ -626,6 +664,16 @@
 }
 @media (min-width: 960px) {
   .iro-section { padding-inline: 2rem; }
+}
+/* >=1024px: split the hero into copy (left) + containment still (right) so the
+   left-aligned copy no longer leaves the right ~50% as dark void (R1). Below
+   this width the grid stays single-column and the still stacks under the copy. */
+@media (min-width: 1024px) {
+  .iro-hero__grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.85fr);
+    gap: var(--s-8, 3rem);
+  }
+  .iro-hero__media img { max-width: 100%; }
 }
 
 /* =============================================================================
