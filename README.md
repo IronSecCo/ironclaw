@@ -26,7 +26,16 @@ handing an autonomous program the keys to their machine.
 
 <div align="center">
 
-<img src="docs/assets/containment-animated.svg" width="820" alt="live-containment demo (animated, looping): one command engages a real per-session sandbox, then a fully-jailbroken agent tries three escapes from inside the box and each is revealed as BLOCKED in turn. Exfiltrating to the attacker is denied because network=none leaves only the loopback interface and DNS fails; reading the operator's host filesystem is denied because the host root is outside the sandbox mount namespace; seizing the host via the Docker Engine socket is denied because the socket is never mounted in and there is no docker client. It ends with a containment summary that 3 of 3 escape attempts were denied and the box held. Viewers who prefer reduced motion see the completed final frame.">
+<!--
+  Motion of a REAL block sells. This is an unedited recording of examples/live-containment
+  (source cast: docs/assets/live-containment.cast; regen recipe in that example's README) —
+  the real red-team probes, not staged text. The static final-frame SVG is the
+  prefers-reduced-motion / no-animation fallback. GIF has no audio, so nothing autoplays sound.
+-->
+<picture>
+  <source media="(prefers-reduced-motion: reduce)" srcset="docs/assets/containment.svg">
+  <img src="docs/assets/live-containment.gif" width="820" alt="live-containment demo (real terminal recording, looping): one command engages a real per-session sandbox, then a fully-jailbroken agent tries three escapes from inside the box and each is revealed as BLOCKED in turn. Exfiltrating to the attacker is denied because network=none leaves only the loopback interface and DNS fails; reading the operator's host filesystem is denied because the host root is outside the sandbox mount namespace; seizing the host via the Docker Engine socket is denied because the socket is never mounted in and there is no docker client. It ends with a containment summary that 3 of 3 escape attempts were denied and the box held. Viewers who prefer reduced motion see the completed final frame.">
+</picture>
 
 <sub><b>Watch it catch a real escape.</b> A fully-jailbroken agent inside a real sandbox tries to phone home, read the host filesystem, and seize the host through the Docker socket. Each attempt is <b>denied</b> at the isolation boundary, then a containment summary prints. One command, zero credentials, reduced-motion friendly. <a href="examples/live-containment/"><code>examples/live-containment/run.sh</code></a></sub>
 

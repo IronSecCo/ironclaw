@@ -85,11 +85,20 @@
       </div>
      </div>{# /.iro-hero__copy #}
 
-      {# Fill the >=1024px right-column void with the shipped, static, reduced-motion
-         safe live-containment still (R1). Stacks below the copy on mobile. #}
+      {# Fill the >=1024px right-column void with a REAL motion proof: an unedited
+         recording of examples/live-containment catching three escapes (docs/assets/
+         live-containment.cast). The shipped static final-frame SVG is the
+         prefers-reduced-motion fallback (no motion autoplays for users who opt out).
+         Explicit width/height reserve the box so the GIF<->SVG swap causes no layout
+         shift (LCP/CLS stay sane). Stacks below the copy on mobile. #}
       <div class="iro-hero__media" aria-hidden="false">
-        <img src="{{ base_url }}/assets/containment.svg" loading="lazy" decoding="async" width="820" height="556"
-             alt="IronClaw live-containment demo (final terminal frame): a jailbroken agent's three escape attempts — reaching the network, reading a host secret, and breaking out of the sandbox — are each blocked, and the run ends CONTAINED.">
+        <picture>
+          <source media="(prefers-reduced-motion: reduce)"
+                  srcset="{{ base_url }}/assets/containment.svg">
+          <img src="{{ base_url }}/assets/live-containment.gif" loading="lazy" decoding="async"
+               width="820" height="589"
+               alt="IronClaw live-containment demo (real terminal recording): a jailbroken agent's three escape attempts — reaching the network, reading a host secret, and seizing the host via the Docker socket — are each BLOCKED, and the run ends with a containment summary that 3 of 3 attempts were denied.">
+        </picture>
       </div>
     </div>
   </section>

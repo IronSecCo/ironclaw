@@ -13,9 +13,16 @@ examples/live-containment/run.sh
 ```
 
 <div align="center">
-<img src="../../docs/assets/containment.svg" width="760"
-     alt="live-containment terminal demo: a fully-jailbroken agent tries three escapes from inside the sandbox and each is BLOCKED — network exfil denied by network=none (only loopback), host filesystem read denied by the mount namespace, and host takeover via the Docker Engine socket denied because the socket is never mounted in — ending with a containment summary that 3 of 3 escape attempts were denied.">
+<picture>
+  <source media="(prefers-reduced-motion: reduce)" srcset="../../docs/assets/containment.svg">
+  <img src="../../docs/assets/live-containment.gif" width="760"
+       alt="live-containment terminal demo: a fully-jailbroken agent tries three escapes from inside the sandbox and each is BLOCKED — network exfil denied by network=none (only loopback), host filesystem read denied by the mount namespace, and host takeover via the Docker Engine socket denied because the socket is never mounted in — ending with a containment summary that 3 of 3 escape attempts were denied.">
+</picture>
 </div>
+
+<sub>The clip above is a **real recording of this script** (not staged text) — the source cast
+is [`docs/assets/live-containment.cast`](../../docs/assets/live-containment.cast). Users who set
+`prefers-reduced-motion: reduce` get the static final-frame SVG instead.</sub>
 
 ## What you see
 
@@ -49,6 +56,28 @@ examples/live-containment/run.sh --attach   # use an already-running demo contro
 
 It exits non-zero if **any** escape is not contained, so it doubles as a smoke/CI
 assertion — [`examples/smoke-matrix.sh`](../smoke-matrix.sh) drives it with `--attach`.
+
+## Re-record the clip
+
+The animated hero is regenerated straight from this script — no editing, no staged text.
+Bring the demo up once (`run.sh --keep`), then record an `--attach` run and render the GIF
+([`asciinema`](https://asciinema.org/) + [`agg`](https://github.com/asciinema/agg)):
+
+```bash
+examples/live-containment/run.sh --keep                          # bring the demo up
+
+asciinema rec docs/assets/live-containment.cast --overwrite \
+  --idle-time-limit 1.4 --window-size 92x28 \
+  --command "SKIP_BUILD=1 examples/live-containment/run.sh --attach"
+
+agg --font-size 16 --fps-cap 10 --speed 1.0 --idle-time-limit 2.0 \
+  --last-frame-duration 4 \
+  --theme 0b1124,eaf2ff,1d2c57,ff8087,5ad6a0,e3b341,3b82f6,b9a0ff,63a0ff,b9d4ff,3a4a7a,ff9aa0,7ce8bb,f0c460,63a0ff,cdbcff,93b6ff,ffffff \
+  docs/assets/live-containment.cast docs/assets/live-containment.gif
+```
+
+The static [`containment.svg`](../../docs/assets/containment.svg) stays the reduced-motion
+fallback; regenerate it only if the final frame's copy changes.
 
 ## Where to go deeper
 
