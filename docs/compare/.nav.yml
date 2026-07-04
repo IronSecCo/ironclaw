@@ -1,0 +1,15 @@
+# Navigation for the "Compare" section.
+#
+# Comparison-intent SEO cluster (IRO-330). Comparison search converts best, so
+# each page answers a real "IronClaw vs X" evaluation question with an honest
+# table, a when-to-use box, and a try-it link. Adding a page: drop
+# `compare/<slug>.md` with an H1 and front-matter title/description. The `*.md`
+# glob below auto-includes it (titled from its H1) with ZERO edit here. Add an
+# explicit line only to control label or ordering.
+nav:
+  - Compare IronClaw: index.md
+  - vs running agents unsandboxed: ironclaw-vs-unsandboxed-ai-agents.md
+  - vs raw Docker: ironclaw-vs-docker-agent-sandbox.md
+  - vs gVisor alone: ironclaw-vs-gvisor-alone.md
+  - vs hosted sandboxes (E2B): ironclaw-vs-e2b-hosted-sandboxes.md
+  - "*.md"
