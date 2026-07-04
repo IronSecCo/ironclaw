@@ -1,0 +1,4 @@
+# The IronClaw sandbox client is pure standard library; the only dependency this
+# example adds is CrewAI itself. Pinned for reproducible fresh-machine runs.
+# crewai pulls in pydantic; the scripted (zero-cred) path needs nothing else.
+crewai==0.86.0
