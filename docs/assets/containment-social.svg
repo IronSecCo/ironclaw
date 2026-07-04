@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" role="img" aria-label="IronClaw: a fully-jailbroken agent tries three escapes from a real sandbox and each is BLOCKED. Network exfil denied by network=none, host filesystem read denied by the mount namespace, host takeover via the Docker socket denied because the socket is never mounted in. 3 of 3 escape attempts denied. Isolation you can prove, not just promise.">
+  <rect width="1200" height="630" fill="#0d1117"/>
+  <rect width="1200" height="630" fill="none" stroke="#30363d" stroke-width="2"/>
+  <rect x="0" y="0" width="8" height="630" fill="#238636"/>
+
+  <!-- wordmark -->
+  <text x="72" y="92" font-size="30" font-weight="bold" fill="#e6edf3" letter-spacing="2">IRONCLAW</text>
+  <text x="72" y="122" font-size="19" fill="#8b949e">Self-hosted AI agents you do not have to trust</text>
+
+  <!-- headline -->
+  <text x="72" y="205" font-size="46" font-weight="bold" fill="#e6edf3">A jailbroken agent tries to escape.</text>
+  <text x="72" y="262" font-size="46" font-weight="bold" fill="#3fb950">Every attempt is blocked.</text>
+
+  <!-- three proofs -->
+  <g font-size="24">
+    <g transform="translate(72,312)">
+      <rect x="0" y="0" width="118" height="34" rx="6" fill="#238636"/>
+      <text x="59" y="24" text-anchor="middle" font-size="20" font-weight="bold" fill="#ffffff">BLOCKED</text>
+      <text x="142" y="25" fill="#c9d1d9">Phone home to the attacker (network=none, DNS fails)</text>
+    </g>
+    <g transform="translate(72,368)">
+      <rect x="0" y="0" width="118" height="34" rx="6" fill="#238636"/>
+      <text x="59" y="24" text-anchor="middle" font-size="20" font-weight="bold" fill="#ffffff">BLOCKED</text>
+      <text x="142" y="25" fill="#c9d1d9">Read the host filesystem (outside the mount namespace)</text>
+    </g>
+    <g transform="translate(72,424)">
+      <rect x="0" y="0" width="118" height="34" rx="6" fill="#238636"/>
+      <text x="59" y="24" text-anchor="middle" font-size="20" font-weight="bold" fill="#ffffff">BLOCKED</text>
+      <text x="142" y="25" fill="#c9d1d9">Seize the host via the Docker socket (never mounted in)</text>
+    </g>
+  </g>
+
+  <!-- summary bar -->
+  <rect x="72" y="498" width="1056" height="72" rx="9" fill="#0f2417" stroke="#238636" stroke-width="2"/>
+  <text x="96" y="530" font-size="26" font-weight="bold" fill="#3fb950">3 / 3 escape attempts DENIED. The box held.</text>
+  <text x="96" y="558" font-size="19" fill="#8b949e">Isolation you can prove, not just promise.</text>
+</svg>
