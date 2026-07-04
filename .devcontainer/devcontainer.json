@@ -1,0 +1,50 @@
+{
+  // Zero-install "Try IronClaw" in GitHub Codespaces (IRO-329).
+  //
+  // Open this repo in a Codespace and, with no local install, you get a running
+  // sandboxed agent: the post-create step builds the sandbox image, brings up the
+  // offline mock-agent control-plane, ASSERTS a real chat -> per-session sandbox ->
+  // encrypted-queue -> reply round-trip, and leaves the demo running on port 8787.
+  //
+  // Why docker-in-docker (not the host Docker socket): the demo launches each agent
+  // sandbox as a sibling container and binds the session's queue + key files at the
+  // SAME absolute path in both the control-plane and the sandbox (docker-compose.demo.yml,
+  // IRONCLAW_DOCKER_BINDS). That path alignment only holds when the Docker daemon shares
+  // this container's filesystem, which docker-in-docker gives us. A mounted host socket
+  // (docker-outside-of-docker) would resolve ${PWD} against a different filesystem and
+  // break the queue handshake. See .devcontainer/README.md for the security note.
+  "name": "IronClaw — zero-install try",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    // Nested Docker daemon so the demo can build the sandbox image and launch
+    // per-session sandbox siblings entirely inside this Codespace.
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    // Go toolchain matching the repo (go.mod: go 1.23) so contributors can also
+    // `make build/vet/test` from the same Codespace. Not needed for the demo itself
+    // (the control-plane and sandbox are built inside Docker), only for local dev.
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.23"
+    }
+  },
+  // curl + jq are what the demo check needs on the host side; the images build in Docker.
+  "onCreateCommand": "sudo apt-get update -y && sudo apt-get install -y --no-install-recommends jq curl",
+  // The single post-create command that runs the demo end to end and leaves it up.
+  "postCreateCommand": ".devcontainer/post-create.sh",
+  // Re-print the "what now" banner every time you attach to the Codespace.
+  "postAttachCommand": ".devcontainer/welcome.sh",
+  // The demo control-plane listens on 127.0.0.1:8787; Codespaces forwards it so the
+  // web console at /ui/ opens in your browser. Loopback-only binding is intentional
+  // (same posture as production) — no public 0.0.0.0 port is opened inside the box.
+  "forwardPorts": [8787],
+  "portsAttributes": {
+    "8787": {
+      "label": "IronClaw control-plane (web console at /ui/)",
+      "onAutoForward": "notify"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["golang.go"]
+    }
+  }
+}

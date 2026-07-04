@@ -53,6 +53,18 @@ browser first? Run [`hello-ironclaw`](examples/hello-ironclaw/) or the
 [zero-credential quickstart](docs/quickstart.md). Production seals each sandbox with gVisor and
 `network=none`.
 
+> **No Docker, nothing to install? Try it in your browser.**
+> Open the repo in a GitHub Codespace and it builds and starts the same offline demo for
+> you, then leaves a real sandboxed agent running on the forwarded port **8787**. Chat with
+> it at **`/ui/`** (token `ironclaw-demo`). Zero install, zero credentials.
+>
+> [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/IronSecCo/ironclaw?quickstart=1)
+>
+> Codespaces has no gVisor, so the sandbox seal is `runc` (same as the laptop demo), but
+> `network=none`, the approval gateway, and the encrypted queues are unchanged — so you can
+> still run `examples/live-containment/run.sh` and watch an escape get denied. Details in
+> [`.devcontainer/`](.devcontainer/README.md).
+
 > [!WARNING]
 > **Alpha software, work in progress. Please read before relying on it.**
 >
