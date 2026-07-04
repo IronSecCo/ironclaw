@@ -64,9 +64,13 @@ ensure_demo_up() {
 setup_venv() {
   local dir="$1"
   local venv="$dir/.venv"
-  if [ ! -d "$venv" ]; then
+  # Guard on the activate script, not the directory: a venv left half-built by an
+  # interrupted earlier run has a .venv/ dir but no bin/activate, so a dir check
+  # would wrongly skip the (re)build and then fail to source it.
+  if [ ! -f "$venv/bin/activate" ]; then
     echo "==> creating Python venv and installing dependencies (first run only)"
-    python3 -m venv "$venv"
+    rm -rf "$venv"
+    "${PYTHON:-python3}" -m venv "$venv"
     # shellcheck disable=SC1091
     source "$venv/bin/activate"
     pip install --quiet --upgrade pip
