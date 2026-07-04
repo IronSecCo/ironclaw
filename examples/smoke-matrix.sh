@@ -113,7 +113,7 @@ fi
 # run.sh recipes (hello-ironclaw, red-team-escape) self-assert and support
 # --attach so they reuse the shared control-plane instead of managing their own.
 run_realpath_recipe() {
-  local dir="$1" name; name="$(basename "$dir")"
+  local dir="$1" name; name="${2:-$(basename "$dir")}"
   echo "::group::$name (run.sh --attach)"
   if bash "$dir/run.sh" --attach; then record "$name" PASS "run.sh round-trip asserted"
   else record "$name" FAIL "run.sh returned non-zero"; fi
@@ -123,7 +123,7 @@ run_realpath_recipe() {
 # run-mock.sh recipes self-assert a NON-EMPTY .content reply (the IRO-279 guard);
 # a bare non-zero exit is a real break (empty/wrong reply or broken round-trip).
 run_mock_recipe() {
-  local dir="$1" name; name="$(basename "$dir")"
+  local dir="$1" name; name="${2:-$(basename "$dir")}"
   echo "::group::$name (run-mock.sh)"
   if IRONCLAW_ADDR="$ADDR" IRONCLAW_API_TOKEN="$TOKEN" bash "$dir/run-mock.sh"; then
     record "$name" PASS "non-empty .content reply asserted"
@@ -139,7 +139,7 @@ run_mock_recipe() {
 # an empty id. We additionally assert the recipe minted a real messaging-group id
 # so a silent null cannot pass.
 run_setup_recipe() {
-  local dir="$1" name; name="$(basename "$dir")"
+  local dir="$1" name; name="${2:-$(basename "$dir")}"
   echo "::group::$name (setup.sh)"
   if [ -z "${IRONCTL_BIN:-}" ]; then
     record "$name" SKIP "ironctl unavailable"; echo "::endgroup::"; return
@@ -158,17 +158,38 @@ run_setup_recipe() {
 }
 
 # --- dispatch every example directory --------------------------------------
+# We cover the top-level examples/*/ recipes AND the framework-integration
+# examples that live one level deeper under examples/integrations/*/ (IRO-346/347:
+# langchain, crewai, openai-agents, claude-agent-sdk). Both sets share the same
+# run.sh --attach / run-mock.sh / setup.sh dispatch, so a stranger's single
+# `smoke-matrix.sh` run proves the integration examples with the same rigor as the
+# built-in ones (IRO-350). Integration rows are shown as "integrations/<name>" so
+# the report reads as an explicit per-integration pass/fail matrix. Each
+# integration's own run.sh is expected to launch a real per-session sandbox and
+# assert an escape attempt is BLOCKED, exiting non-zero if containment fails — the
+# matrix simply surfaces that verdict as PASS/FAIL.
 echo "==> running the example smoke matrix"
-for dir in "$REPO_ROOT"/examples/*/; do
+shopt -s nullglob
+EXAMPLE_DIRS=( "$REPO_ROOT"/examples/*/ "$REPO_ROOT"/examples/integrations/*/ )
+shopt -u nullglob
+for dir in "${EXAMPLE_DIRS[@]}"; do
   dir="${dir%/}"
   name="$(basename "$dir")"
-  if   [ -f "$dir/run.sh" ]      && grep -q -- '--attach' "$dir/run.sh"; then run_realpath_recipe "$dir"
-  elif [ -f "$dir/run-mock.sh" ]; then run_mock_recipe "$dir"
-  elif [ -f "$dir/setup.sh" ];    then run_setup_recipe "$dir"
+  # examples/*/ also matches the integrations/ parent, which has no recipe of its
+  # own — its children are enumerated separately below, so skip it here.
+  [ "$name" = integrations ] && continue
+  # Give integration examples a namespaced display label for the matrix.
+  case "$dir" in
+    "$REPO_ROOT"/examples/integrations/*) label="integrations/$name" ;;
+    *) label="$name" ;;
+  esac
+  if   [ -f "$dir/run.sh" ]      && grep -q -- '--attach' "$dir/run.sh"; then run_realpath_recipe "$dir" "$label"
+  elif [ -f "$dir/run-mock.sh" ]; then run_mock_recipe "$dir" "$label"
+  elif [ -f "$dir/setup.sh" ];    then run_setup_recipe "$dir" "$label"
   else
     # Doc-only recipe (e.g. ci-action, whose green run is proven by the
     # reusable action in .github/workflows/ironclaw-action-example.yml).
-    record "$name" SKIP "doc-only; no runnable script"
+    record "$label" SKIP "doc-only; no runnable script"
   fi
 done
 
@@ -178,7 +199,7 @@ echo "================ example smoke matrix ================"
 fail=0 pass=0 skip=0
 for row in "${ROWS[@]}"; do
   IFS='|' read -r n s note <<<"$row"
-  printf '  %-6s %-20s %s\n' "$s" "$n" "$note"
+  printf '  %-6s %-28s %s\n' "$s" "$n" "$note"
   case "$s" in PASS) pass=$((pass+1));; FAIL) fail=$((fail+1));; SKIP) skip=$((skip+1));; esac
 done
 echo "-----------------------------------------------------"
