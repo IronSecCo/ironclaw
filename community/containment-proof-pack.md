@@ -370,10 +370,11 @@ IronClaw, open source: https://github.com/IronSecCo/ironclaw
 ## 5. Visual (UXDesigner coordination)
 
 The animated live-containment demo (`docs/assets/containment.svg` and the asciinema recording from
-IRO-322) is the embed for the blog and the X thread lead. Coordination is filed as a child issue
-to UXDesigner: produce or confirm a short animated cut of the `live-containment` run (each escape
-attempt denied, ending on the containment summary) sized for social embed. Until that lands, the
-blog embeds the existing `containment.svg`.
+IRO-322) is the embed for the blog and the X thread lead. Coordination is filed as **IRO-342**
+(child of IRO-339, assigned to UXDesigner): produce or confirm a short animated cut of the
+`live-containment` run (each escape attempt denied, ending on the containment summary) sized for
+social embed. Until that lands, the blog and thread embed the existing `containment.svg`, so this
+pack is complete and post-ready without waiting on IRO-342.
 
 ---
 
