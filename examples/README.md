@@ -54,6 +54,18 @@ examples/smoke-matrix.sh --attach   # against an already-running demo control-pl
 It runs in CI as the `smoke-matrix` job in
 [`example-smoke.yml`](../.github/workflows/example-smoke.yml).
 
+### Bring your agent SDK, run its tools in the sandbox
+
+[**`integrations/`**](integrations/) ports agents built with popular SDKs so their
+**code/tool execution runs inside a sealed IronClaw sandbox** — no network card, no host
+filesystem, no Docker socket — while the SDK still plans the calls. Each runs
+credential-free by default and ends by printing real escape attempts **BLOCKED**:
+
+```sh
+examples/integrations/openai-agents/run.sh        # OpenAI Agents SDK
+examples/integrations/claude-agent-sdk/run.sh     # Claude Agent SDK
+```
+
 ### Run a sandboxed agent in CI (GitHub Action)
 
 [**`ci-action/`**](ci-action/) documents the reusable
@@ -83,6 +95,8 @@ docker compose -f docker-compose.demo.yml down            # tear down
 |--------|---------------|:--------------------:|
 | [`hello-ironclaw/`](hello-ironclaw/) | The full path working end-to-end, asserted — the smoke test + first "it works". | ✅ `run.sh` (self-contained) |
 | [`red-team-escape/`](red-team-escape/) | The sandbox **holding** under attack — network egress, host/socket escape, sibling breakout, and gateway-held self-modification, all asserted contained. | ✅ `run.sh` (self-contained) |
+| [`integrations/openai-agents/`](integrations/openai-agents/) | An **OpenAI Agents SDK** agent whose code-execution tool runs inside the sandbox; benign command works, prompt-injected escape **BLOCKED**. | ✅ `run.sh` (self-contained) |
+| [`integrations/claude-agent-sdk/`](integrations/claude-agent-sdk/) | A **Claude Agent SDK** agent whose bash tool is backed by a sandbox session; benign command works, prompt-injected escape **BLOCKED**. | ✅ `run.sh` (self-contained) |
 | [`ollama/`](ollama/) | A real agent on a **local Ollama model** with **zero cloud API key** — the first-class `ollama` provider, create-group + chat + reply. | ✅ `setup.sh` (needs local Ollama) |
 | [`scheduled-report/`](scheduled-report/) | An agent that wakes itself on a schedule (`schedule_task`), summarizes, and posts to a channel. | ✅ `run-mock.sh` |
 | [`webhook-responder/`](webhook-responder/) | An inbound HTTP webhook routed to an agent that replies (poll or push-back via a `webhook` destination). | ✅ `run-mock.sh` |
