@@ -1,9 +1,9 @@
 ---
-title: "From LangChain to a sandboxed IronClaw agent"
-description: You prototyped an agent with LangChain. Here is how to run the same job behind IronClaw's sealed sandbox, with the model key held host-side and every tool call audited and gated, plus a credential-free way to see it work first.
+title: "Sandbox your LangChain agent with IronClaw"
+description: How to sandbox a LangChain agent. Run your LangChain agent's untrusted tool and code execution inside IronClaw's sealed gVisor sandbox, with the model key held host-side and every tool call gated and audited, plus a credential-free way to see it work first.
 ---
 
-# From LangChain to a sandboxed IronClaw agent
+# Sandbox your LangChain agent with IronClaw
 
 You built an agent with **LangChain**: a prompt, a model, and a set of tools the
 model can call. That is a great way to design the *behavior*. The problem starts
@@ -17,7 +17,31 @@ the model key held **host-side** and never in the agent, and every privileged to
 call routed through a human-approval gateway and an audit log. This page maps a
 LangChain agent onto IronClaw one field at a time.
 
-!!! info "IronClaw does not run your Python in the sandbox — and that is the point"
+!!! example "Runnable example"
+    A one-command LangChain-to-IronClaw example lives at
+    [`examples/integrations/langchain`](https://github.com/IronSecCo/ironclaw/tree/main/examples/integrations/langchain):
+    a LangChain agent whose tool and code execution is backed by an IronClaw
+    sandbox, with a blocked escape attempt printed at the end. It ships with the
+    integration examples. The credential-free demo below runs the same sealed loop
+    today.
+
+## The three-line fix
+
+Stop running the agent's tools in your own process. Declare the same agent to
+IronClaw and it runs inside a sealed, network-free sandbox instead:
+
+```sh
+export OPENAI_API_KEY=sk-...   # host-side only; the sandbox never sees this key
+./bin/controlplane --dev --api-addr 127.0.0.1:8787 &
+ironctl agent create --name "Incident Reporter" --provider openai --model gpt-4o \
+  --instructions "Summarize today's incidents and cite sources." \
+  --tool web_search --tool http_fetch --tool write_file --yes
+```
+
+Same persona, same model, same tools, now behind a human-approval gateway and an
+audit log. The field-by-field mapping is below.
+
+!!! info "IronClaw does not run your Python in the sandbox, and that is the point"
     IronClaw's sandbox has **no interpreter and no in-sandbox install**: you cannot
     drop arbitrary code into it, and neither can a prompt injection. So you do not
     *wrap* the LangChain process; you re-declare the same agent (persona, model,

@@ -1,9 +1,9 @@
 ---
-title: "From CrewAI to a sandboxed IronClaw agent"
-description: You built a multi-agent crew with CrewAI. Here is how to run those agents behind IronClaw's sealed sandbox, with model keys held host-side, agent-to-agent messaging host-mediated, and spawning a new agent gated on human approval, plus a credential-free way to see it work first.
+title: "Sandbox your CrewAI agents with IronClaw"
+description: How to sandbox a CrewAI crew. Run every CrewAI agent's untrusted tool and code execution inside IronClaw's sealed gVisor sandbox, with model keys held host-side, agent-to-agent hand-offs host-mediated and audited, and spawning a new agent gated on human approval, plus a credential-free way to see it work first.
 ---
 
-# From CrewAI to a sandboxed IronClaw agent
+# Sandbox your CrewAI agents with IronClaw
 
 You built a crew with **CrewAI**: several agents, each with a role and tools,
 handing work to one another. Multi-agent is where the blast radius grows. Every
@@ -16,7 +16,29 @@ card, model keys held **host-side**, **agent-to-agent messaging host-mediated an
 audited** (agents never talk peer-to-peer), and **spawning a new agent gated on
 mandatory human approval** because a new agent is a new trust principal.
 
-!!! info "IronClaw does not run your Python in the sandbox — and that is the point"
+!!! example "Runnable example"
+    A one-command CrewAI-to-IronClaw example lives at
+    [`examples/integrations/crewai`](https://github.com/IronSecCo/ironclaw/tree/main/examples/integrations/crewai):
+    a crew whose tool and code execution is backed by IronClaw sandboxes, with a
+    blocked escape attempt printed at the end. It ships with the integration
+    examples. The credential-free demo below runs the same sealed loop today.
+
+## The three-line fix
+
+Stop running crew members in your own process. Declare each one to IronClaw and it
+runs inside its own sealed, network-free sandbox, with hand-offs host-mediated:
+
+```sh
+export OPENAI_API_KEY=sk-...   # host-side only; no sandbox ever sees this key
+./bin/controlplane --dev --api-addr 127.0.0.1:8787 &
+ironctl agent create --name "Researcher" --provider openai --model gpt-4o \
+  --instructions "Research the topic and cite sources." --tool web_search --tool http_fetch --yes
+```
+
+Repeat one `ironctl agent create` per crew member. Same roles, same tools, now with
+a boundary at every hand-off and every spawn. Full mapping below.
+
+!!! info "IronClaw does not run your Python in the sandbox, and that is the point"
     IronClaw's sandbox has **no interpreter and no in-sandbox install**. You do not
     *wrap* the CrewAI process; you re-declare each crew member (role, model, tools)
     as an IronClaw agent group, and IronClaw runs them inside the sealed runtime.
