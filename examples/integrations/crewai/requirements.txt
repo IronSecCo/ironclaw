@@ -1,0 +1,8 @@
+# The IronClaw sandbox client is pure standard library; the only dependency this
+# example adds is CrewAI itself. CrewAI's own dependency tree (litellm, lancedb,
+# ...) is heavy and version-churny, so this floor-pins a compatible 1.x line and
+# lets pip resolve the transitive deps for your platform.
+#
+# NOTE: CrewAI requires Python 3.10-3.12 (it does not yet support 3.13). Use a
+# matching interpreter for this example: `python3.12 -m venv ...`.
+crewai>=1.5,<2.0

@@ -92,6 +92,18 @@ docker compose -f docker-compose.demo.yml down            # tear down
 | [`multi-agent-team/`](multi-agent-team/) | Two agents wired into one group chat (a frontline responder + a scribe), showing priorities, multi-agent wiring, and where agent-to-agent / `create_agent` sits. | |
 | [`keyword-watcher/`](keyword-watcher/) | A quiet ops agent in a Discord channel that engages only on a `pattern` match (`deploy`/`incident`/`outage`), from any sender, one session per incident thread. | |
 
+### Framework integrations
+
+Already using LangChain or CrewAI? [**`integrations/`**](integrations/) backs
+your agent's untrusted code execution with a real IronClaw sandbox instead of a
+host shell — the same tool interface, none of the host risk. Each ships a
+one-command, zero-credential containment demo:
+
+| Integration | What it shows | Credential-free demo |
+|-------------|---------------|:--------------------:|
+| [`integrations/langchain/`](integrations/langchain/) | A LangChain `StructuredTool` (`sandboxed_shell`) whose commands run inside an IronClaw per-session sandbox; benign code runs, every escape attempt is contained. | ✅ `run.sh` (self-contained) |
+| [`integrations/crewai/`](integrations/crewai/) | The same pattern as a CrewAI `BaseTool` for a crew agent. | ✅ `run.sh` (self-contained) |
+
 ## Prerequisites
 
 1. A running control-plane. For a local trial, dev mode is enough:
