@@ -779,13 +779,31 @@ jobs:
               -f "sha=${base_sha}"
           fi
 
-          # Commit the regenerated formula onto the rolling branch via the Contents API
-          # so the commit is signed by GitHub (required_signatures on main).
+          # Commit the regenerated formula onto the rolling branch via the Contents API.
+          #
+          # Author it as the CLA-signed release maintainer, NOT the default
+          # github-actions[bot]. cla-assistant (the external license/cla gate) checks
+          # every commit AUTHOR against the signed-CLA roster; a bot-authored commit
+          # leaves the PR stuck on "Contributor License Agreement is not signed yet"
+          # forever, and each release had to be manually re-authored to land the bump
+          # (IRO-353, IRO-363). Pinning the author to the maintainer who has signed the
+          # CLA makes the gate pass automatically. The email here is already public in
+          # the verified-commit history; it is not a secret.
+          #
+          # Signing note: passing `author` makes the Contents API set committer=author
+          # too, so this commit is NOT GitHub-web-flow-signed (the API only signs when
+          # committer defaults to the authenticated identity). That is fine because the
+          # rolling PR lands via SQUASH merge, and GitHub signs the squashed commit it
+          # writes to main — so main's required_signatures rule is still satisfied. (A
+          # rebase-merge would replay this unsigned commit and be blocked; do not switch
+          # the merge method for this PR to rebase.)
           gh api -X PUT "repos/${REPO}/contents/Formula/ironclaw.rb" \
             -f "message=chore(brew): track ${TAG} in the Homebrew formula" \
             -f "content=${content_b64}" \
             -f "sha=${file_sha}" \
-            -f "branch=${branch}"
+            -f "branch=${branch}" \
+            -f "author[name]=Omer Zamir" \
+            -f "author[email]=zamir98@gmail.com"
 
           # emit_manual_fallback writes the human runbook to the job summary and exits 1.
           # Do NOT swallow a failure: a silently-skipped PR strands `brew install` on a
