@@ -1,0 +1,7 @@
+#start	end	text
+0.0	12.0	A jailbroken agent runs code as root inside the sandbox.\nIronClaw assumes it already won.
+12.0	28.0	Escape 1, phone home to exfiltrate.\nnetwork=none, only loopback exists. Denied.
+28.0	44.0	Escape 2, read the operator host.\nThe host root is outside the sandbox namespace. Denied.
+44.0	60.0	Escape 3, seize the Docker Engine socket.\nIt was never mounted in. Denied.
+60.0	72.0	3 of 3 escapes denied. The box held.\nIsolation you can prove, not just promise.
+72.0	82.0	Star IronClaw on GitHub.\nbrew install ironsecco/ironclaw/ironclaw

@@ -1,0 +1,29 @@
+1
+00:00:00,000 --> 00:00:12,000
+A jailbroken agent runs code as root inside the sandbox.
+IronClaw assumes it already won.
+
+2
+00:00:12,000 --> 00:00:28,000
+Escape 1, phone home to exfiltrate.
+network=none, only loopback exists. Denied.
+
+3
+00:00:28,000 --> 00:00:44,000
+Escape 2, read the operator host.
+The host root is outside the sandbox namespace. Denied.
+
+4
+00:00:44,000 --> 00:01:00,000
+Escape 3, seize the Docker Engine socket.
+It was never mounted in. Denied.
+
+5
+00:01:00,000 --> 00:01:12,000
+3 of 3 escapes denied. The box held.
+Isolation you can prove, not just promise.
+
+6
+00:01:12,000 --> 00:01:22,000
+Star IronClaw on GitHub.
+brew install ironsecco/ironclaw/ironclaw
