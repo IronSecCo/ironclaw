@@ -5,6 +5,9 @@ description: Add MCP server tools to a self-hosted AI agent without weakening th
 
 # MCP servers
 
+!!! tip "Want to use IronClaw as an MCP server inside Claude Desktop, Cursor, or Windsurf?"
+    See the [MCP Server onboarding guide](mcp-server/index.md) for a 30-second setup.
+
 IronClaw can extend an agent with the tools of a **Model Context Protocol (MCP)**
 server — local (a stdio subprocess) or remote (a streamable‑HTTP endpoint) — without
 weakening the sandbox. The reference design that IronClaw was built to harden wired MCP
@@ -15,12 +18,6 @@ reachable from — the agent sandbox.**
 
 This is opt‑in. With no `--mcp-catalog` the daemon exposes no MCP surface at all and a
 sandbox can never reach one.
-
-!!! note "Looking for the inverse?"
-    This page is IronClaw as an MCP **client** (a broker that gates an agent's access
-    to other servers). To expose IronClaw **as** an MCP server so Claude Desktop,
-    Cursor, or Windsurf can run code in a sandbox, see
-    [Run IronClaw as a sandbox MCP server](mcp-server/index.md).
 
 ## The security model in one picture
 

@@ -1,11 +1,7 @@
-# Navigation for the "Run as a sandbox MCP server" section (IronClaw exposed to
-# MCP clients via `ironctl mcp serve`). New client page: drop `mcp-server/<name>.md`
-# with an H1 and the `*.md` glob auto-includes it (titled from its H1). List a page
-# explicitly only to control its label or ordering, so client PRs never collide on a
-# shared nav line.
+# Navigation for the "IronClaw MCP Server" section.
+# New client page: add a file and list it here.
 nav:
-  - Overview (sandbox MCP server): index.md
+  - Overview: index.md
   - Claude Desktop: claude-desktop.md
   - Cursor: cursor.md
   - Windsurf: windsurf.md
-  - "*.md"
