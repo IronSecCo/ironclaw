@@ -9,6 +9,8 @@ nav:
   - CrewAI: crewai.md
   - LlamaIndex: llamaindex.md
   - Pydantic AI: pydantic-ai.md
+  - AutoGen: autogen.md
+  - Semantic Kernel: semantic-kernel.md
   - OpenAI Agents SDK: openai-sdk.md
   - Claude Agent SDK: claude-sdk.md
   - CI (GitHub Action): ci.md

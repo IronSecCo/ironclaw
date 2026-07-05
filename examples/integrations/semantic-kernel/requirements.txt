@@ -1,0 +1,8 @@
+# The IronClaw sandbox client is pure standard library; the only dependency this
+# example adds is Semantic Kernel itself. Floor-pinned to the 1.x line where the
+# `@kernel_function` decorator and the function-choice behavior API are stable.
+semantic-kernel>=1.0,<2.0
+
+# The default credential-free path only needs the `@kernel_function` decorator
+# above. The real-LLM path (set OPENAI_API_KEY) uses semantic-kernel's bundled
+# OpenAI connector -- no extra install.

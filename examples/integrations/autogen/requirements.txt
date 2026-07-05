@@ -1,0 +1,8 @@
+# The IronClaw sandbox client is pure standard library; the only dependency the
+# default credential-free path adds is AutoGen's core + tool layer. Floor-pinned
+# to the 0.4+ line where FunctionTool lives in autogen_core.tools.
+autogen-core>=0.4,<0.8
+
+# Optional -- only needed for the real-LLM path (set OPENAI_API_KEY):
+# autogen-agentchat>=0.4,<0.8
+# autogen-ext[openai]>=0.4,<0.8
