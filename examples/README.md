@@ -108,7 +108,8 @@ docker compose -f docker-compose.demo.yml down            # tear down
 
 ### Framework integrations
 
-Already using LangChain or CrewAI? [**`integrations/`**](integrations/) backs
+Already using LangChain, CrewAI, AutoGen, or Semantic Kernel?
+[**`integrations/`**](integrations/) backs
 your agent's untrusted code execution with a real IronClaw sandbox instead of a
 host shell — the same tool interface, none of the host risk. Each ships a
 one-command, zero-credential containment demo:
@@ -117,6 +118,8 @@ one-command, zero-credential containment demo:
 |-------------|---------------|:--------------------:|
 | [`integrations/langchain/`](integrations/langchain/) | A LangChain `StructuredTool` (`sandboxed_shell`) whose commands run inside an IronClaw per-session sandbox; benign code runs, every escape attempt is contained. | ✅ `run.sh` (self-contained) |
 | [`integrations/crewai/`](integrations/crewai/) | The same pattern as a CrewAI `BaseTool` for a crew agent. | ✅ `run.sh` (self-contained) |
+| [`integrations/autogen/`](integrations/autogen/) | The same pattern as an **AutoGen** `FunctionTool` for an `AssistantAgent`. | ✅ `run.sh` (self-contained) |
+| [`integrations/semantic-kernel/`](integrations/semantic-kernel/) | The same pattern as a **Semantic Kernel** native `@kernel_function` plugin. | ✅ `run.sh` (self-contained) |
 
 ## Prerequisites
 
