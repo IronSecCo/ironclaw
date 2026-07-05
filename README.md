@@ -710,6 +710,12 @@ reference design had. Enable it with `--mcp-catalog`, add servers + grant agents
 console's **MCP** tab, and try it end to end with the bundled `cmd/mcp-sample` server.
 Full guide: [docs/mcp.md](docs/mcp.md).
 
+The inverse also works: `ironctl mcp serve` exposes IronClaw **as** an MCP server with a
+single `sandbox_exec` tool, so **Claude Desktop, Cursor, or Windsurf** can run
+model-generated code in an ephemeral gVisor box (no network, non-root, read-only root,
+dropped caps) with one copy-paste config. Guide:
+[docs/mcp-server/](docs/mcp-server/index.md).
+
 Environment: `ANTHROPIC_API_KEY` (model proxy credential, host-only) and `IRONCLAW_API_TOKEN`
 (bearer token required on every API call when set).
 

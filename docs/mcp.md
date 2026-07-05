@@ -16,6 +16,12 @@ reachable from — the agent sandbox.**
 This is opt‑in. With no `--mcp-catalog` the daemon exposes no MCP surface at all and a
 sandbox can never reach one.
 
+!!! note "Looking for the inverse?"
+    This page is IronClaw as an MCP **client** (a broker that gates an agent's access
+    to other servers). To expose IronClaw **as** an MCP server so Claude Desktop,
+    Cursor, or Windsurf can run code in a sandbox, see
+    [Run IronClaw as a sandbox MCP server](mcp-server/index.md).
+
 ## The security model in one picture
 
 ```
