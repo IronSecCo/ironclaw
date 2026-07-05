@@ -1,0 +1,8 @@
+# The IronClaw sandbox client is pure standard library; the only dependency this
+# example adds is LlamaIndex itself. Pinned for reproducible fresh-machine runs.
+# `llama-index-core` carries FunctionTool and the FunctionAgent workflow -- no
+# LLM integration package is needed for the default, credential-free path.
+llama-index-core>=0.12,<0.13
+
+# Optional -- only needed for the real-LLM path (set OPENAI_API_KEY):
+# llama-index-llms-openai>=0.3,<0.4

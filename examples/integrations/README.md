@@ -15,6 +15,8 @@ foot-gun for a boundary IronClaw [proves holds](../red-team-escape/).
 |---------|-----------------|------------------|
 | [`langchain/`](langchain/) | [LangChain](https://python.langchain.com) | `examples/integrations/langchain/run.sh` |
 | [`crewai/`](crewai/) | [CrewAI](https://docs.crewai.com) | `examples/integrations/crewai/run.sh` |
+| [`llamaindex/`](llamaindex/) | [LlamaIndex](https://docs.llamaindex.ai) | `examples/integrations/llamaindex/run.sh` |
+| [`pydantic-ai/`](pydantic-ai/) | [Pydantic AI](https://ai.pydantic.dev) | `examples/integrations/pydantic-ai/run.sh` |
 | [`openai-agents/`](openai-agents/) | [OpenAI Agents SDK](https://github.com/openai/openai-agents-python) | `examples/integrations/openai-agents/run.sh` |
 | [`claude-agent-sdk/`](claude-agent-sdk/) | [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python) | `examples/integrations/claude-agent-sdk/run.sh` |
 
@@ -31,7 +33,7 @@ key never enters the sandbox.
 The IronClaw-specific piece is one small, standard-library client that engages a
 per-session sandbox and runs commands inside it. The examples come in two shapes:
 
-- **Framework tools** (LangChain, CrewAI) wrap the shared
+- **Framework tools** (LangChain, CrewAI, LlamaIndex, Pydantic AI) wrap the shared
   [`_shared/ironclaw_sandbox.py`](_shared/ironclaw_sandbox.py) client as a native tool
   via a thin `ironclaw_tool.py` adapter (~15-20 lines):
 

@@ -1,6 +1,6 @@
 ---
 title: "Sandbox any AI agent framework with IronClaw"
-description: You built an agent with LangChain, CrewAI, the OpenAI Agents SDK, or the Claude Agent SDK. Those frameworks run your agent's tools and code in your own process, on your host. IronClaw runs the same agent inside a sealed gVisor sandbox instead. One search-intent guide per framework.
+description: You built an agent with LangChain, CrewAI, LlamaIndex, Pydantic AI, the OpenAI Agents SDK, or the Claude Agent SDK. Those frameworks run your agent's tools and code in your own process, on your host. IronClaw runs the same agent inside a sealed gVisor sandbox instead. One search-intent guide per framework.
 ---
 
 # Sandbox any AI agent framework with IronClaw
@@ -11,8 +11,8 @@ matters the moment the agent runs somewhere real:
 
 **When your agent runs untrusted, model-chosen code, whose machine is it running on?**
 
-With LangChain, CrewAI, the OpenAI Agents SDK, and the Claude Agent SDK, the answer
-is the same: **yours**. The tool loop runs in your process, with your API key in
+With LangChain, CrewAI, LlamaIndex, Pydantic AI, the OpenAI Agents SDK, and the
+Claude Agent SDK, the answer is the same: **yours**. The tool loop runs in your process, with your API key in
 memory, your filesystem, and unrestricted outbound network. A single prompt
 injection inside a document the agent reads can turn a `Bash` or `ShellTool` call
 into a shell on your box.
@@ -39,6 +39,8 @@ attack in [Isolation, proven](../security-isolation.md) and the
 |---|---|
 | **LangChain** | [Sandbox your LangChain agent](langchain.md) |
 | **CrewAI** | [Sandbox your CrewAI agents](crewai.md) |
+| **LlamaIndex** | [Sandbox your LlamaIndex agent](llamaindex.md) |
+| **Pydantic AI** | [Sandbox your Pydantic AI agent](pydantic-ai.md) |
 | **OpenAI Agents SDK** | [Sandbox your OpenAI Agents SDK agent](openai-sdk.md) |
 | **Claude Agent SDK** | [Sandbox your Claude Agent SDK agent](claude-sdk.md) |
 | **A CI pipeline** | [Run IronClaw in GitHub Actions](ci.md) |

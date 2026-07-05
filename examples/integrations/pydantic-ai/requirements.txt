@@ -1,0 +1,8 @@
+# The IronClaw sandbox client is pure standard library; the only dependency this
+# example adds is Pydantic AI itself. `pydantic-ai-slim` carries the core `Tool`
+# and `Agent` types with no model-provider extras, which is all the default,
+# credential-free path needs. Pinned for reproducible fresh-machine runs.
+pydantic-ai-slim>=0.0.15,<1.0
+
+# Optional -- only needed for the real-LLM path (set OPENAI_API_KEY):
+# pydantic-ai-slim[openai]>=0.0.15,<1.0
