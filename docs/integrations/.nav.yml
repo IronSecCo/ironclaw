@@ -10,4 +10,5 @@ nav:
   - OpenAI Agents SDK: openai-sdk.md
   - Claude Agent SDK: claude-sdk.md
   - CI (GitHub Action): ci.md
+  - MCP server (any client): mcp-server.md
   - "*.md"

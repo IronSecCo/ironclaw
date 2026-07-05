@@ -576,6 +576,7 @@ func printReference(w io.Writer) {
   ironctl [--addr URL] [--token T] skill add <name>@<version> --group <id> [--by <user>]
   ironctl [--addr URL] [--token T] skill list
   ironctl [--addr URL] [--token T] skill remove <name>[@<version>]
+  ironctl mcp serve [--http :ADDR] [--image IMG] [--docker BIN] [--timeout SECONDS]
   ironctl [--addr URL] [--token T] mcp list
   ironctl [--addr URL] [--token T] mcp add <name> (--command C [--arg A]... | --url U) [--image I] [--env K=V]... [--header K=V]...
   ironctl [--addr URL] [--token T] mcp probe <name>

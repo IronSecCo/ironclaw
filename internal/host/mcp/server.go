@@ -47,6 +47,18 @@ func (s *Server) AddTool(t Tool, fn ToolFunc) {
 	s.handlers[t.Name] = fn
 }
 
+// Tools returns the registered tool metadata in registration order. It is a
+// read-only snapshot used by callers and tests to inspect the exposed tool set.
+func (s *Server) Tools() []Tool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]Tool, 0, len(s.order))
+	for _, n := range s.order {
+		out = append(out, s.tools[n])
+	}
+	return out
+}
+
 // dispatch routes one request method to a JSON result. ok=false means "no response"
 // (a notification). An error is a JSON-RPC error to return to the caller.
 func (s *Server) dispatch(ctx context.Context, method string, params json.RawMessage) (result any, ok bool, err *rpcError) {
