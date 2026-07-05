@@ -44,6 +44,35 @@ revise after the first real launch-week data lands.
 > Newest first. Append a new block each Monday by running the refresh command and pasting
 > its output above the previous block.
 
+### Snapshot — 2026-07-05 (post-launch reach round 2)
+
+| Metric | Value | Notes |
+| --- | --- | --- |
+| Stars | 13 | **flat** vs 2026-07-03 (13) and the IRO-286 baseline — reach is not yet converting |
+| Forks | 2 | flat |
+| Watchers / subscribers | 0 | |
+| Open issues | 17 | incl. tracked work + open PRs + GFIs |
+| Views (14d) | 546 | 55 unique visitors (+4 uniques vs 2026-07-03) |
+| Clones (14d) | 10890 | 881 unique, **CI-inflated** (release-per-push) |
+| Release downloads (all-time) | 2753 | +619 vs 2026-07-03, across 146 releases (all CI) |
+| Latest release | v0.1.200 | 24 downloads |
+| Top referrers | — | github.com (18u) · **linkedin.com (9u) + com.linkedin.android (5u)** · cla-assistant.io (3u) · reddit.com (3u) · **goodfirstissues.com (2u)** · Google (2u) |
+
+**Delta readout vs 13-star baseline (IRO-286):**
+
+- **Stars flat at 13.** No net-new stars since 2026-07-03. Confirms the IRO-355 thesis: the
+  #1 lever is *reach*, not features. The merged content (integration examples + SEO cluster +
+  2 follow-up blog posts) is live but under-distributed.
+- **LinkedIn is the strongest live external channel** — 14 combined unique referrers (9 web +
+  5 Android), up from 3u on 2026-07-03. The launch posts that are already live are driving the
+  most non-GitHub traffic.
+- **`goodfirstissues.com` now appears (2u)** — the GFI seeding (IRO-263/286) is producing an
+  organic contributor on-ramp with zero paid spend.
+- **reddit.com steady at 3u**, Google organic surfacing (2u) as the SEO cluster indexes.
+- **Bottleneck is unchanged and board-gated:** the high-intent surfaces (Show HN, Reddit
+  threads, remaining directory submissions) require human/board posting (IRO-290, IRO-306).
+  Traffic exists; the star conversion needs those top-of-funnel posts to fire.
+
 ### Snapshot — 2026-07-03 (blog live, external threads not yet posted)
 
 | Metric | Value | Notes |

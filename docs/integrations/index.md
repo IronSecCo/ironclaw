@@ -67,6 +67,13 @@ curl -s -H 'authorization: Bearer ironclaw-demo' \
 The self-checking, one-command version is
 [`examples/hello-ironclaw`](https://github.com/IronSecCo/ironclaw/tree/main/examples/hello-ironclaw).
 
+## Go deeper
+
+- [Why we run AI agents in gVisor](../gvisor-deep-dive.md) — the security model behind
+  every guide above: no network card, no host key, no self-reconfiguration.
+- [Bring your own model](../bring-your-own-model.md) — run any of these frameworks against
+  a local (Ollama), Gemini, or Vertex model without a credential ever entering the sandbox.
+
 ## Next
 
 - [Choose your model provider](../providers/index.md)
