@@ -17,7 +17,13 @@ export IRONCLAW_ADDR="$ADDR" IRONCLAW_API_TOKEN="$TOKEN" IRONCLAW_DEMO_AGENT="$A
 _KEEP=0
 _ATTACH=0
 
-compose() { docker compose -f "$REPO_ROOT/docker-compose.demo.yml" "$@"; }
+# Run compose from the repo root so ${PWD} inside docker-compose.demo.yml (the
+# state bind, IRONCLAW_DOCKER_BINDS) resolves to the repo root regardless of the
+# caller's cwd. Compose resolves ${PWD} from the invocation cwd, not the -f
+# directory, so `bash /abs/path/run.sh` from a stranger's cwd would otherwise
+# hand sandboxes a nonexistent state path and every session would exit 1
+# ("read session key ...: is a directory"). See IRO-361.
+compose() { ( cd "$REPO_ROOT" && docker compose -f docker-compose.demo.yml "$@" ); }
 
 _teardown() {
   [ "$_KEEP" = 1 ] && { echo "==> leaving the demo running (--keep). Stop it with:"; \
