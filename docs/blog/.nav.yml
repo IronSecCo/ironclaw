@@ -1,0 +1,11 @@
+# Navigation for the "Blog" section.
+#
+# Long-form, evidence-backed posts. Each claim links to shipped code, a versioned
+# threat model, or a re-runnable benchmark. Adding a post: drop `blog/<slug>.md`
+# with an H1 and front-matter title/description. The `*.md` glob below auto-includes
+# it (titled from its H1) with ZERO edit here. Add an explicit line only to control
+# label or ordering.
+nav:
+  - IronClaw blog: index.md
+  - Escape suite vs Docker, gVisor, E2B, Daytona: containment-benchmark-docker-gvisor-e2b-daytona.md
+  - "*.md"
