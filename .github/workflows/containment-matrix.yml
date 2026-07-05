@@ -1,0 +1,108 @@
+name: Containment matrix
+
+# Reproducible HEAD-TO-HEAD containment benchmark (IRO-369). Runs one fixed
+# escape-attempt suite (scripts/bench/containment-matrix.sh) from inside several
+# sandbox postures and publishes, per target, how many attacks the boundary blocks:
+#
+#   raw Docker (default runc)  ->  hardened Docker (runc)  ->  gVisor / runsc
+#
+# This is the security counterpart to sandbox-bench.yml (which measures *overhead*).
+# It regenerates the results table that docs/compare/sandbox-containment-benchmark.md
+# is built from, so the published numbers can be reviewed with the change that alters
+# them. The harness also asserts each target's EXPECTED posture and exits non-zero on
+# divergence, so a change that weakens a runtime turns this job RED — like the
+# sandbox-containment gate, this is self-verifying, not a static table.
+#
+# DELIBERATELY separate from the required CI gate (ci.yml): a host-dependent benchmark
+# must never block a release. Runs on demand, weekly, and on PRs that touch the harness,
+# the workflow, or the docs page.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, Monday 06:20 UTC — 20 min after sandbox-bench so they do not contend.
+    - cron: "20 6 * * 1"
+  pull_request:
+    paths:
+      - "scripts/bench/containment-matrix.sh"
+      - "docs/compare/sandbox-containment-benchmark.md"
+      - ".github/workflows/containment-matrix.yml"
+
+# Least-privilege default (Scorecard Token-Permissions).
+permissions:
+  contents: read
+
+jobs:
+  containment-matrix:
+    # Pin the runner series so the published "runner spec" in the docs stays honest.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      # Third-party actions pinned to a commit SHA (tag in trailing comment), matching
+      # the rest of our workflows — see OpenSSF Scorecard Pinned-Dependencies.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Harness self-test (no runtime needed)
+        # Fast, deterministic gate on the scoring / regression / rate logic. Runs
+        # anywhere; catches a broken harness before we spend time on containers.
+        run: scripts/bench/containment-matrix.sh --self-test
+
+      - name: Install gVisor (runsc) and register it as a Docker runtime
+        run: |
+          set -euo pipefail
+          ARCH=$(uname -m)
+          URL="https://storage.googleapis.com/gvisor/releases/release/latest/${ARCH}"
+          sudo curl -fsSL -o /usr/local/bin/runsc "${URL}/runsc"
+          sudo chmod 0755 /usr/local/bin/runsc
+          runsc --version
+          # Hosted runners have no /dev/kvm, so the sentry must use the systrap
+          # platform. Wire runsc into Docker with that default so `docker run
+          # --runtime=runsc` just works (see IRO-266 / IRO-103).
+          sudo runsc install -- --platform=systrap
+          sudo systemctl restart docker
+          # Prove the runtime is registered before the harness relies on it.
+          docker info --format '{{range .Runtimes}}{{println .}}{{end}}' | grep -i runsc
+
+      - name: Relax unprivileged-userns AppArmor gate
+        # ubuntu-24.04 ships kernel.apparmor_restrict_unprivileged_userns=1, which blocks
+        # the gVisor gofer from creating its user namespace (IRO-103). Relaxing the knob
+        # lets the gofer start; it does not weaken gVisor's own isolation. Non-fatal on
+        # kernels without the knob.
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+
+      - name: gVisor runnability smoke (diagnostic, non-fatal)
+        continue-on-error: true
+        run: docker run --rm --runtime=runsc busybox:1.36.1 sh -c 'cat /proc/version' || echo "runsc docker run failed on this runner"
+
+      - name: Run the containment matrix
+        run: |
+          set -euo pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/matrix-results"
+          scripts/bench/containment-matrix.sh --out "${GITHUB_WORKSPACE}/matrix-results"
+
+      - name: Publish results to the job summary
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="${GITHUB_WORKSPACE}/matrix-results"
+          {
+            echo "## Containment matrix — escape-attempt suite vs sandbox posture"
+            echo
+            echo '### Results'
+            echo
+            cat "${OUT}/results.md" 2>/dev/null || echo "(no results — harness did not complete)"
+            echo
+            echo '### Methodology'
+            echo
+            echo '```'
+            cat "${OUT}/methodology.txt" 2>/dev/null || echo "(methodology not captured)"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload matrix artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: containment-matrix-results
+          path: matrix-results/
+          if-no-files-found: warn
