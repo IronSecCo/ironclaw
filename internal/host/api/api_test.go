@@ -64,11 +64,24 @@ func TestBearerTokenAuth(t *testing.T) {
 		t.Fatalf("correct-token status = %d, want 200", resp.StatusCode)
 	}
 
-	// /healthz is exempt -> 200 with no token.
+	// /healthz is exempt -> 200 with no token, and carries the public build version
+	// (consumed by the live-containment --share receipt; IRO-367).
 	resp, _ = http.Get(srv.URL + "/healthz")
-	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
 		t.Fatalf("healthz status = %d, want 200 (must be exempt)", resp.StatusCode)
+	}
+	var health map[string]string
+	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
+		resp.Body.Close()
+		t.Fatalf("healthz body decode: %v", err)
+	}
+	resp.Body.Close()
+	if health["status"] != "ok" {
+		t.Fatalf("healthz status field = %q, want ok", health["status"])
+	}
+	if health["version"] == "" {
+		t.Fatalf("healthz must expose a non-empty version field")
 	}
 }
 

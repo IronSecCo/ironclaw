@@ -36,6 +36,9 @@ Thumbs.db
 .claude/
 .remember/
 
+# live-containment --share receipt output (per-run, regenerated)
+ironclaw-receipt/
+
 # Docs site build artifacts (MkDocs)
 /site/
 _site/

@@ -52,10 +52,42 @@ polite tool API proves the tools are polite; it does not prove the *box* is a bo
 examples/live-containment/run.sh            # build + up + demo + tear down
 examples/live-containment/run.sh --keep     # leave the demo running afterwards
 examples/live-containment/run.sh --attach   # use an already-running demo control-plane
+examples/live-containment/run.sh --share    # also emit a shareable containment receipt
 ```
 
 It exits non-zero if **any** escape is not contained, so it doubles as a smoke/CI
 assertion — [`examples/smoke-matrix.sh`](../smoke-matrix.sh) drives it with `--attach`.
+
+## Share your run (`--share`)
+
+Proved your box holds? Post the proof. `--share` freezes a contained run into a clean,
+**copy-pasteable receipt** plus a self-contained **SVG badge** you can drop into a README
+or share on X / LinkedIn. Every run becomes a small piece of evidence that IronClaw does
+what it says.
+
+```bash
+examples/live-containment/run.sh --share
+```
+
+It writes three files to `./ironclaw-receipt/` (override with `IRONCLAW_RECEIPT_DIR`):
+
+| File | What it is |
+|------|-----------|
+| `containment-receipt.txt`  | human-readable receipt + the one-liner to copy |
+| `containment-receipt.svg`  | a `IronClaw \| 3/3 contained` badge (offline, embeddable) |
+| `containment-receipt.json` | the same facts, machine-readable (schemaVersion 1.0) |
+
+The receipt carries only **counts, the ephemeral session id, the public build version, and
+the invariants that held** — no secrets, no host paths, no credentials, no PII. It is safe
+to publish as-is. The one-liner reads:
+
+> I ran a fully-jailbroken AI agent inside IronClaw and it could NOT escape: 3/3 sandbox
+> breakout attempts blocked (network exfil, host filesystem read, Docker socket takeover).
+> Isolation you can prove, not just promise. github.com/IronSecCo/ironclaw
+
+The renderer ([`emit-receipt.sh`](emit-receipt.sh)) is a pure, hermetic transform with its
+own unit test ([`receipt_test.sh`](receipt_test.sh)) — no Docker or network required to
+exercise the artifact shape.
 
 ## Re-record the clip
 
