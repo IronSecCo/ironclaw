@@ -53,14 +53,16 @@ on Linux), then paste one block:
 ```sh
 git clone https://github.com/IronSecCo/ironclaw.git && cd ironclaw
 examples/live-containment/run.sh   # builds the sandbox once, engages a real sandbox, proves it holds
+examples/live-containment/run.sh --share   # ...and emit a shareable containment receipt + badge
 ```
 
 That single command runs the whole secured path on your laptop: it starts the offline mock-agent
 control-plane (**no API key**), engages a **real per-session sandbox**, lets a jailbroken agent try
-to break out, and prints the containment summary you saw above. Want to chat with an agent in a
-browser first? Run [`hello-ironclaw`](examples/hello-ironclaw/) or the
-[zero-credential quickstart](docs/quickstart.md). Production seals each sandbox with gVisor and
-`network=none`.
+to break out, and prints the containment summary you saw above. Add [`--share`](examples/live-containment/#share-your-run---share)
+to freeze a contained run into a copy-pasteable receipt and an `IronClaw | 3/3 contained` badge you
+can drop into your own README. Want to chat with an agent in a browser first? Run
+[`hello-ironclaw`](examples/hello-ironclaw/) or the [zero-credential quickstart](docs/quickstart.md).
+Production seals each sandbox with gVisor and `network=none`.
 
 > **No Docker, nothing to install? Try it in your browser.**
 > Open the repo in a GitHub Codespace and it builds and starts the same offline demo for

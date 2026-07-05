@@ -20,6 +20,12 @@
 #   examples/live-containment/run.sh            # build + up + demo + tear down
 #   examples/live-containment/run.sh --keep     # leave the demo running afterwards
 #   examples/live-containment/run.sh --attach   # use an already-running demo control-plane
+#   examples/live-containment/run.sh --share    # also emit a shareable containment receipt
+#
+# --share turns a contained run into a clean, copy-pasteable receipt (attempts blocked,
+# session id, IronClaw version) plus a self-contained SVG badge you can drop into a
+# README or post to X / LinkedIn. The artifact carries no secrets or PII (IRO-367).
+# Written to $IRONCLAW_RECEIPT_DIR (default ./ironclaw-receipt).
 #
 # Env overrides (all optional):
 #   IRONCLAW_ADDR        control-plane base URL   (default http://127.0.0.1:8787)
@@ -48,13 +54,17 @@ ENGAGE_TIMEOUT="${IRONCLAW_ENGAGE_TIMEOUT:-180}"
 # A hostname the demo sandbox has NO business resolving — the exfil-egress probe target.
 EGRESS_HOST="${IRONCLAW_EGRESS_PROBE_HOST:-api.anthropic.com}"
 
+RECEIPT_DIR="${IRONCLAW_RECEIPT_DIR:-$PWD/ironclaw-receipt}"
+
 KEEP=0        # --keep: don't tear the demo down on exit
 ATTACH=0      # --attach: talk to an already-running control-plane, manage nothing
+SHARE=0       # --share: emit a shareable containment receipt on a contained run
 for arg in "$@"; do
   case "$arg" in
     --keep)   KEEP=1 ;;
     --attach) ATTACH=1 ;;
-    -h|--help) sed -n '2,32p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --share)  SHARE=1 ;;
+    -h|--help) sed -n '2,40p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown flag: $arg (try --help)" >&2; exit 2 ;;
   esac
 done
@@ -134,6 +144,7 @@ set +e   # a contained attack returns non-zero — that is the point, not a fail
 
 CONTAINED=0 ESCAPED=0
 step=0
+BLOCKED_INVARIANTS=""   # short names of the invariants that held, for the --share receipt
 
 # scene <title> <what-the-agent-runs>  — narrate one escape attempt.
 scene() {
@@ -142,7 +153,12 @@ scene() {
   echo "${BOLD}${CYAN}[$step/3] $1${RESET}"
   echo "${DIM}    agent (inside the box, uid 65532) runs:${RESET} ${YELLOW}$2${RESET}"
 }
-blocked() { echo "    ${GREEN}${BOLD}⛔ BLOCKED${RESET}${GREEN} — $1${RESET}"; CONTAINED=$((CONTAINED + 1)); }
+# blocked <explanation> [short-invariant-name]  — record a contained attempt.
+blocked() {
+  echo "    ${GREEN}${BOLD}⛔ BLOCKED${RESET}${GREEN} — $1${RESET}"
+  CONTAINED=$((CONTAINED + 1))
+  [ -n "${2:-}" ] && BLOCKED_INVARIANTS="${BLOCKED_INVARIANTS:+$BLOCKED_INVARIANTS, }$2"
+}
 leaked()  { echo "    ${RED}${BOLD}✗ ESCAPED${RESET}${RED} — $1${RESET}";    ESCAPED=$((ESCAPED + 1)); }
 
 echo
@@ -157,7 +173,7 @@ scene "Exfiltrate stolen data to the attacker" "getent hosts $EGRESS_HOST   # re
 ifaces="$(sbx 'ls -1 /sys/class/net 2>/dev/null | tr "\n" " " | sed "s/ *$//"')"
 sbx "getent hosts $EGRESS_HOST" >/dev/null 2>&1; dns_rc=$?
 if [ "$ifaces" = "lo" ] && [ "$dns_rc" != "0" ]; then
-  blocked "no network namespace: only \`lo\` exists (interfaces: $ifaces), DNS resolution fails. network=none."
+  blocked "no network namespace: only \`lo\` exists (interfaces: $ifaces), DNS resolution fails. network=none." "network exfil"
 else
   leaked  "reached the network — interfaces: [$ifaces], DNS exit: $dns_rc"
 fi
@@ -167,7 +183,7 @@ fi
 scene "Read the operator's host filesystem" "cat /host/etc/shadow /etc/ironclaw-host-marker   # steal host secrets"
 hostfs="$(sbx 'if [ -e /host ] || [ -r /etc/ironclaw-host-marker ]; then echo EXPOSED; else echo CONTAINED; fi')"
 if [ "$hostfs" = "CONTAINED" ]; then
-  blocked "host root is outside the sandbox mount namespace: the paths do not exist in the box."
+  blocked "host root is outside the sandbox mount namespace: the paths do not exist in the box." "host filesystem read"
 else
   leaked  "host paths are reachable from inside the sandbox ($hostfs)"
 fi
@@ -178,7 +194,7 @@ scene "Seize the host via the Docker Engine socket" "docker -H unix:///var/run/d
 socket="$(sbx 'if [ -S /var/run/docker.sock ] || [ -S /run/docker.sock ]; then echo PRESENT; else echo ABSENT; fi')"
 cli="$(sbx 'command -v docker >/dev/null 2>&1 && echo PRESENT || echo ABSENT')"
 if [ "$socket" = "ABSENT" ] && [ "$cli" = "ABSENT" ]; then
-  blocked "the Engine socket is never mounted in and there is no docker client: nothing to seize."
+  blocked "the Engine socket is never mounted in and there is no docker client: nothing to seize." "Docker socket takeover"
 else
   leaked  "the sandbox can reach the Docker Engine (socket:$socket client:$cli)"
 fi
@@ -195,6 +211,26 @@ if [ "$ESCAPED" = 0 ]; then
   echo " Next: the full six-assertion battery + signed containment report ->"
   echo "   ${BOLD}examples/red-team-escape/run.sh${RESET}"
   echo "   Production seals each session with gVisor and network=none (docs/breaking-our-own-sandbox.md)."
+
+  # --- shareable receipt (--share) ------------------------------------------
+  # Freeze this contained run into a copy-pasteable receipt + SVG badge the user
+  # can post anywhere. Every run becomes potential inbound (IRO-367). We only get
+  # here when ESCAPED=0, so the receipt only ever attests a genuinely held box.
+  if [ "$SHARE" = 1 ]; then
+    # session id: the sandbox container name is ic-sbx-<sessionId>; strip the prefix.
+    # It is an ephemeral, PII-free token that names a torn-down container.
+    session_id="${SBX#ic-sbx-}"
+    # IronClaw build: read from the unauthenticated /healthz (works on any install).
+    ic_version="$(curl -fsS "$ADDR/healthz" 2>/dev/null | jq -r '.version // "unknown"' 2>/dev/null || echo unknown)"
+    [ -n "$ic_version" ] || ic_version="unknown"
+    echo
+    echo "=============================================================================="
+    RECEIPT_DIR="$RECEIPT_DIR" \
+    CONTAINED="$CONTAINED" TOTAL="$step" \
+    SESSION_ID="$session_id" VERSION="$ic_version" POSTURE="demo-runc" \
+    INVARIANTS="$BLOCKED_INVARIANTS" \
+    bash "$SCRIPT_DIR/emit-receipt.sh"
+  fi
   exit 0
 fi
 echo " ${RED}${BOLD}CONTAINMENT SUMMARY: $ESCAPED of 3 escapes SUCCEEDED — the sandbox did NOT hold.${RESET}"

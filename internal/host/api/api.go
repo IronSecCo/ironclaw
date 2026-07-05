@@ -23,6 +23,7 @@ import (
 	"github.com/IronSecCo/ironclaw/internal/host/registry"
 	"github.com/IronSecCo/ironclaw/internal/host/router"
 	"github.com/IronSecCo/ironclaw/internal/host/skills"
+	"github.com/IronSecCo/ironclaw/internal/version"
 )
 
 // HistoryProvider returns the applied/rejected change history. A FileStore
@@ -188,7 +189,14 @@ func (s *Server) auth(h http.Handler) http.Handler {
 
 // handleHealthz is an unauthenticated liveness probe.
 func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	// version is public, non-secret build metadata. It is exposed on the
+	// unauthenticated liveness probe so tooling (e.g. the live-containment
+	// share receipt) can stamp the exact IronClaw build without a credential
+	// and regardless of how the control-plane was installed.
+	writeJSON(w, http.StatusOK, map[string]string{
+		"status":  "ok",
+		"version": version.String(),
+	})
 }
 
 // handleHistory returns the applied + rejected change history. When no history
