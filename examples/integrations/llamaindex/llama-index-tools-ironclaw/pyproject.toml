@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llama-index-tools-ironclaw"
+version = "0.1.0"
+description = "IronClaw sandbox tool spec for LlamaIndex -- run agent code in an isolated, network-less sandbox"
+authors = [{name = "IronSec Co", email = "oss@ironsec.co"}]
+requires-python = ">=3.10,<4.0"
+readme = "README.md"
+license = "MIT"
+keywords = ["llama-index", "ironclaw", "sandbox", "code-execution", "security", "isolation"]
+maintainers = [{name = "IronSecCo"}]
+dependencies = [
+    "llama-index-core>=0.12,<0.15",
+]
+
+[project.urls]
+Homepage = "https://github.com/IronSecCo/ironclaw"
+Repository = "https://github.com/IronSecCo/ironclaw"
+Example = "https://github.com/IronSecCo/ironclaw/tree/main/examples/integrations/llamaindex"
+
+[dependency-groups]
+dev = [
+    "pytest>=7.2.1",
+    "pytest-mock>=3.11.1",
+    "ruff>=0.11.11",
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["llama_index/"]
+
+[tool.hatch.build.targets.wheel]
+include = ["llama_index/"]
+
+[tool.llamahub]
+contains_example = false
+import_path = "llama_index.tools.ironclaw"
+
+[tool.llamahub.class_authors]
+IronClawToolSpec = "IronSecCo"

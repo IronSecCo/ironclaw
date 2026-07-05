@@ -16,6 +16,19 @@ with IronClawSandbox() as sandbox:            # engage a per-session sandbox
     # agent = FunctionAgent(tools=[tool], llm=llm)  # ... drop into any LlamaIndex agent
 ```
 
+## Install it as a package
+
+This example is also packaged as a standalone, PyPI-installable LlamaIndex tool
+integration, [`llama-index-tools-ironclaw`](llama-index-tools-ironclaw/), which
+exposes the same `sandboxed_shell` via an `IronClawToolSpec` (`BaseToolSpec`):
+
+```python
+from llama_index.tools.ironclaw import IronClawToolSpec
+
+tool_spec = IronClawToolSpec()                       # points at the demo control-plane
+agent = FunctionAgent(tools=tool_spec.to_tool_list(), llm=llm)
+```
+
 ## Try it in one command
 
 Zero credentials — the LLM side uses the offline **mock provider**, the sandbox
