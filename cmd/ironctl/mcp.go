@@ -16,9 +16,13 @@ import (
 // is a thin client — the daemon (with --mcp-catalog set) owns the broker + verifier.
 func cmdMCP(addr string, args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("expected: mcp <list|add|remove|probe|grant>")
+		return fmt.Errorf("expected: mcp <serve|list|add|remove|probe|grant>")
 	}
 	switch args[0] {
+	case "serve":
+		// serve runs IronClaw ITSELF as an MCP server (sandbox_exec tool); it is
+		// standalone (no control-plane API), so it ignores addr.
+		return cmdMCPServe(args[1:])
 	case "list", "ls":
 		return cmdMCPList(addr)
 	case "add", "put":
@@ -30,7 +34,7 @@ func cmdMCP(addr string, args []string) error {
 	case "grant":
 		return cmdMCPGrant(addr, args[1:])
 	default:
-		return fmt.Errorf("unknown mcp subcommand %q (want list|add|remove|probe|grant)", args[0])
+		return fmt.Errorf("unknown mcp subcommand %q (want serve|list|add|remove|probe|grant)", args[0])
 	}
 }
 
