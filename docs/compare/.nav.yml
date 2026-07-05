@@ -12,4 +12,5 @@ nav:
   - vs raw Docker: ironclaw-vs-docker-agent-sandbox.md
   - vs gVisor alone: ironclaw-vs-gvisor-alone.md
   - vs hosted sandboxes (E2B): ironclaw-vs-e2b-hosted-sandboxes.md
+  - Containment benchmark (vs runc / E2B / Daytona): sandbox-containment-benchmark.md
   - "*.md"

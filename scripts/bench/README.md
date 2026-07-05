@@ -1,13 +1,23 @@
 # Sandbox benchmarks
 
-`sandbox-bench.sh` measures the runtime overhead of IronClaw's gVisor (`runsc`)
-sandbox versus a host baseline (`runc`), using an OCI bundle whose `config.json`
-mirrors the real IronClaw trust boundary (`network=none`, no capabilities,
-`no_new_privs`, non-root user namespace, read-only rootfs, cgroup mem/CPU limits;
-see `internal/host/isolation`).
+Two harnesses, two axes:
 
-The published methodology and the expected-overhead profile live at
-[`docs/benchmarks.md`](../../docs/benchmarks.md).
+- **`sandbox-bench.sh` — performance.** Measures the runtime overhead of IronClaw's
+  gVisor (`runsc`) sandbox versus a host baseline (`runc`), using an OCI bundle whose
+  `config.json` mirrors the real IronClaw trust boundary (`network=none`, no
+  capabilities, `no_new_privs`, non-root user namespace, read-only rootfs, cgroup
+  mem/CPU limits; see `internal/host/isolation`). Methodology + expected-overhead
+  profile: [`docs/benchmarks.md`](../../docs/benchmarks.md).
+- **`containment-matrix.sh` — containment.** Runs one fixed escape-attempt suite from
+  inside several sandbox postures (raw Docker / hardened runc / gVisor) and reports, per
+  target, how many attacks the boundary blocks. Asserts each target's expected posture
+  and exits non-zero on divergence (it doubles as a gate). Published table:
+  [`docs/compare/sandbox-containment-benchmark.md`](../../docs/compare/sandbox-containment-benchmark.md).
+
+  ```bash
+  scripts/bench/containment-matrix.sh --self-test         # no runtime; validates the logic
+  scripts/bench/containment-matrix.sh --out ./matrix-out  # measured run (Docker; runsc optional)
+  ```
 
 ## Run it
 
