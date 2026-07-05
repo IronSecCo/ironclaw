@@ -7,6 +7,8 @@ nav:
   - Sandbox any agent framework: index.md
   - LangChain: langchain.md
   - CrewAI: crewai.md
+  - LlamaIndex: llamaindex.md
+  - Pydantic AI: pydantic-ai.md
   - OpenAI Agents SDK: openai-sdk.md
   - Claude Agent SDK: claude-sdk.md
   - CI (GitHub Action): ci.md
