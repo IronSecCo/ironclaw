@@ -37,6 +37,7 @@ nav:
       - Writing a channel adapter: writing-a-channel-adapter.md
   - Skills: skills.md
   - Integrations: integrations
+  - MCP Server (for clients): mcp-server
   - Social proof: social-proof.md
   - Security & Trust:
       - Overview: security.md

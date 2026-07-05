@@ -1,0 +1,7 @@
+# Navigation for the "IronClaw MCP Server" section.
+# New client page: add a file and list it here.
+nav:
+  - Overview: index.md
+  - Claude Desktop: claude-desktop.md
+  - Cursor: cursor.md
+  - Windsurf: windsurf.md

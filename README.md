@@ -6,15 +6,22 @@
 
 Each one runs sealed in a sandbox that provably cannot phone home, read your host, or rewrite its own rules.
 
-<!-- One curated row, stars first. The supply-chain trust badges (Scorecard, cosign, SBOM, SLSA) live beside the release-verification story below, where they carry more weight. -->
-[![GitHub stars](https://img.shields.io/github/stars/IronSecCo/ironclaw?style=social)](https://github.com/IronSecCo/ironclaw/stargazers)
+<!-- Security & supply-chain trust cluster — lead with what makes this project different -->
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/IronSecCo/ironclaw/badge)](https://scorecard.dev/viewer/?uri=github.com/IronSecCo/ironclaw)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13348/badge)](https://www.bestpractices.dev/projects/13348)
 [![CodeQL](https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml/badge.svg)](https://github.com/IronSecCo/ironclaw/actions/workflows/codeql.yml)
-[![Latest release](https://img.shields.io/github/v/release/IronSecCo/ironclaw?sort=semver)](https://github.com/IronSecCo/ironclaw/releases/latest)
-[![License: AGPLv3 + Commercial](https://img.shields.io/badge/License-AGPLv3%20%2B%20Commercial-blue.svg)](LICENSING.md)
-[![Documentation](https://img.shields.io/badge/docs-ironsecco.github.io-0a7bbb.svg)](https://ironsecco.github.io/ironclaw/)
+[![Signed releases (cosign)](https://img.shields.io/badge/releases-cosign%20signed-0a7bbb.svg)](#verifying-a-release)
+[![SBOM: SPDX + CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-44883e.svg)](#verifying-a-release)
+[![SLSA provenance](https://img.shields.io/badge/SLSA-build%20provenance-44883e.svg)](#verifying-a-release)
 
-**If a safer way to run agents is worth having, [star the repo](https://github.com/IronSecCo/ironclaw)** to follow along and help others find it. Then try the zero-credential [quickstart](docs/quickstart.md).
+[![Documentation](https://img.shields.io/badge/docs-ironsecco.github.io-0a7bbb.svg)](https://ironsecco.github.io/ironclaw/)
+[![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#project-status)
+[![Latest release](https://img.shields.io/github/v/release/IronSecCo/ironclaw?sort=semver)](https://github.com/IronSecCo/ironclaw/releases/latest)
+[![Go Reference](https://pkg.go.dev/badge/github.com/IronSecCo/ironclaw.svg)](https://pkg.go.dev/github.com/IronSecCo/ironclaw)
+[![License: AGPLv3 + Commercial](https://img.shields.io/badge/License-AGPLv3%20%2B%20Commercial-blue.svg)](LICENSING.md)
+[![GitHub Discussions](https://img.shields.io/github/discussions/IronSecCo/ironclaw?logo=github&label=discussions)](https://github.com/IronSecCo/ironclaw/discussions)
+[![Good first issues](https://img.shields.io/github/issues/IronSecCo/ironclaw/good%20first%20issue?label=good%20first%20issues)](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+[![GitHub stars](https://img.shields.io/github/stars/IronSecCo/ironclaw?style=social)](https://github.com/IronSecCo/ironclaw/stargazers)
 
 </div>
 
@@ -27,14 +34,13 @@ handing an autonomous program the keys to their machine.
 <div align="center">
 
 <!--
-  Motion of a REAL block sells. This is an unedited recording of examples/live-containment
-  (source cast: docs/assets/live-containment.cast; regen recipe in that example's README) —
-  the real red-team probes, not staged text. The static final-frame SVG is the
-  prefers-reduced-motion / no-animation fallback. GIF has no audio, so nothing autoplays sound.
+  Motion sells: a REAL recording of examples/live-containment (docs/assets/live-containment.cast,
+  regenerable via the "Re-record the clip" note in that example's README). The static final-frame
+  SVG is the reduced-motion / no-animation fallback. No autoplay-with-sound (GIF has no audio).
 -->
 <picture>
   <source media="(prefers-reduced-motion: reduce)" srcset="docs/assets/containment.svg">
-  <img src="docs/assets/live-containment.gif" width="820" alt="live-containment demo (real terminal recording, looping): one command engages a real per-session sandbox, then a fully-jailbroken agent tries three escapes from inside the box and each is revealed as BLOCKED in turn. Exfiltrating to the attacker is denied because network=none leaves only the loopback interface and DNS fails; reading the operator's host filesystem is denied because the host root is outside the sandbox mount namespace; seizing the host via the Docker Engine socket is denied because the socket is never mounted in and there is no docker client. It ends with a containment summary that 3 of 3 escape attempts were denied and the box held. Viewers who prefer reduced motion see the completed final frame.">
+  <img src="docs/assets/live-containment.gif" width="820" alt="live-containment demo: one command engages a real per-session sandbox, then a fully-jailbroken agent tries three escapes from inside the box and each is BLOCKED. Exfiltrating to the attacker is denied because network=none leaves only the loopback interface and DNS fails; reading the operator's host filesystem is denied because the host root is outside the sandbox mount namespace; seizing the host via the Docker Engine socket is denied because the socket is never mounted in and there is no docker client. It ends with a containment summary that 3 of 3 escape attempts were denied and the box held.">
 </picture>
 
 <sub><b>Watch it catch a real escape.</b> A fully-jailbroken agent inside a real sandbox tries to phone home, read the host filesystem, and seize the host through the Docker socket. Each attempt is <b>denied</b> at the isolation boundary, then a containment summary prints. One command, zero credentials, reduced-motion friendly. <a href="examples/live-containment/"><code>examples/live-containment/run.sh</code></a></sub>
@@ -53,28 +59,14 @@ on Linux), then paste one block:
 ```sh
 git clone https://github.com/IronSecCo/ironclaw.git && cd ironclaw
 examples/live-containment/run.sh   # builds the sandbox once, engages a real sandbox, proves it holds
-examples/live-containment/run.sh --share   # ...and emit a shareable containment receipt + badge
 ```
 
 That single command runs the whole secured path on your laptop: it starts the offline mock-agent
 control-plane (**no API key**), engages a **real per-session sandbox**, lets a jailbroken agent try
-to break out, and prints the containment summary you saw above. Add [`--share`](examples/live-containment/#share-your-run---share)
-to freeze a contained run into a copy-pasteable receipt and an `IronClaw | 3/3 contained` badge you
-can drop into your own README. Want to chat with an agent in a browser first? Run
-[`hello-ironclaw`](examples/hello-ironclaw/) or the [zero-credential quickstart](docs/quickstart.md).
-Production seals each sandbox with gVisor and `network=none`.
-
-> **No Docker, nothing to install? Try it in your browser.**
-> Open the repo in a GitHub Codespace and it builds and starts the same offline demo for
-> you, then leaves a real sandboxed agent running on the forwarded port **8787**. Chat with
-> it at **`/ui/`** (token `ironclaw-demo`). Zero install, zero credentials.
->
-> [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/IronSecCo/ironclaw?quickstart=1)
->
-> Codespaces has no gVisor, so the sandbox seal is `runc` (same as the laptop demo), but
-> `network=none`, the approval gateway, and the encrypted queues are unchanged — so you can
-> still run `examples/live-containment/run.sh` and watch an escape get denied. Details in
-> [`.devcontainer/`](.devcontainer/README.md).
+to break out, and prints the containment summary you saw above. Want to chat with an agent in a
+browser first? Run [`hello-ironclaw`](examples/hello-ironclaw/) or the
+[zero-credential quickstart](docs/quickstart.md). Production seals each sandbox with gVisor and
+`network=none`.
 
 > [!WARNING]
 > **Alpha software, work in progress. Please read before relying on it.**
@@ -373,9 +365,6 @@ around.
 
 ## Project status
 
-[![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#project-status)
-[![Go Reference](https://pkg.go.dev/badge/github.com/IronSecCo/ironclaw.svg)](https://pkg.go.dev/github.com/IronSecCo/ironclaw)
-
 **Alpha.** The architecture is settled and the full control-plane and sandbox pipelines are
 implemented and tested. The encrypted-queue binding is now wired:
 
@@ -494,11 +483,6 @@ Releases are **signed and attested** — a keyless [cosign](https://docs.sigstor
 signature over `SHA256SUMS`, an **SBOM** (SPDX + CycloneDX), and build-provenance attestations for
 every archive and the container image. For how releases are cut, verified, and yanked, see the
 [release runbook](docs/release-runbook.md).
-
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/IronSecCo/ironclaw/badge)](https://scorecard.dev/viewer/?uri=github.com/IronSecCo/ironclaw)
-[![Signed releases (cosign)](https://img.shields.io/badge/releases-cosign%20signed-0a7bbb.svg)](#verifying-a-release)
-[![SBOM: SPDX + CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-44883e.svg)](#verifying-a-release)
-[![SLSA provenance](https://img.shields.io/badge/SLSA-build%20provenance-44883e.svg)](#verifying-a-release)
 
 <details>
 <summary>Verifying a signed release</summary>
@@ -709,6 +693,8 @@ human-approved grant** and audited. This closes the "blind MCP approval" gap the
 reference design had. Enable it with `--mcp-catalog`, add servers + grant agents on the
 console's **MCP** tab, and try it end to end with the bundled `cmd/mcp-sample` server.
 Full guide: [docs/mcp.md](docs/mcp.md).
+To expose IronClaw's `sandbox_exec` tool to Claude Desktop, Cursor, or Windsurf
+as an MCP server, see [docs/mcp-server/](docs/mcp-server/index.md).
 
 Environment: `ANTHROPIC_API_KEY` (model proxy credential, host-only) and `IRONCLAW_API_TOKEN`
 (bearer token required on every API call when set).
@@ -1002,9 +988,6 @@ To report a vulnerability, please open a private security advisory rather than a
 - [x] Gateway auto-approval policy + RBAC — implemented as a verifier/approver, but **inert by default**: the mandatory-human floor is the only active path until an operator opts in
 
 ## Community
-
-[![GitHub Discussions](https://img.shields.io/github/discussions/IronSecCo/ironclaw?logo=github&label=discussions)](https://github.com/IronSecCo/ironclaw/discussions)
-[![Good first issues](https://img.shields.io/github/issues/IronSecCo/ironclaw/good%20first%20issue?label=good%20first%20issues)](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
 Questions, ideas, "is this a bug or am I holding it wrong?" — bring them to
 **[GitHub Discussions](https://github.com/IronSecCo/ironclaw/discussions)**. It's the project's
