@@ -28,6 +28,10 @@ change and you should verify them against that project's own docs.
   strong wall, but a wall is not a runtime. What the rest of the agent lifecycle needs.
 - [IronClaw vs hosted agent sandboxes (E2B and similar)](ironclaw-vs-e2b-hosted-sandboxes.md) -
   the self-hosted vs managed trade: who holds your keys and data, and when each side wins.
+- [IronClaw vs Modal Sandboxes](ironclaw-vs-modal-sandboxes.md) - the managed serverless
+  cloud vs a complete self-hosted agent runtime, and where each one fits.
+- [IronClaw vs Daytona](ironclaw-vs-daytona.md) - fast ephemeral sandboxes optimized for
+  spin-up speed vs a boundary built to be verified against a hostile agent.
 - [Sandbox containment benchmark](sandbox-containment-benchmark.md) - a reproducible
   head-to-head: one fixed escape-attempt suite run against raw Docker, hardened runc, and
   gVisor, with honest labels for where E2B and Daytona sit.
