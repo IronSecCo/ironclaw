@@ -38,7 +38,10 @@ export const PROBES: Probe[] = [
   },
   {
     title: "network egress: only loopback exists",
-    command: "ls -1 /sys/class/net | tr '\\n' ' '",
+    // Enumerate via /proc/net/dev, not /sys/class/net: gVisor (the runtime this
+    // smoke requires) does not populate sysfs class dirs, but /proc/net/dev is
+    // present on both runsc and runc and lists only `lo` when network=none.
+    command: "tail -n +3 /proc/net/dev | cut -d: -f1 | tr -d ' ' | tr '\\n' ' '",
     kind: "contain",
     contained: (out) => {
       const afterExit = out.split("[exit").pop()?.trim() ?? "";

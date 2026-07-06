@@ -154,7 +154,10 @@ class SandboxSession:
         probes: list[Probe] = []
 
         # 1) Network exfil: network=none means only `lo` exists, so DNS has nowhere to go.
-        _, ifaces = self.exec("ls -1 /sys/class/net 2>/dev/null | tr '\\n' ' ' | sed 's/ *$//'")
+        # /proc/net/dev (not /sys/class/net): populated under gVisor too.
+        _, ifaces = self.exec(
+            "tail -n +3 /proc/net/dev 2>/dev/null | cut -d: -f1 | tr -d ' ' | tr '\\n' ' ' | sed 's/ *$//'"
+        )
         dns_rc, _ = self.exec(f"getent hosts {egress_host}")
         blocked = ifaces == "lo" and dns_rc != 0
         probes.append(Probe(
