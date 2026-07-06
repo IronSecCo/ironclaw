@@ -515,8 +515,16 @@ type table struct {
 	w *tabwriter.Writer
 }
 
+const (
+	tableMinWidth = 0
+	tableTabWidth = 2
+	tablePadding  = 2
+	tablePadChar  = ' '
+	tableFlags    = 0
+)
+
 func newTable(headers ...string) *table {
-	tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
+	tw := tabwriter.NewWriter(os.Stdout, tableMinWidth, tableTabWidth, tablePadding, tablePadChar, tableFlags)
 	fmt.Fprintln(tw, dim(strings.Join(headers, "\t")))
 	return &table{w: tw}
 }
