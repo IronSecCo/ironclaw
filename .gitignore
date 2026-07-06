@@ -39,6 +39,10 @@ Thumbs.db
 # live-containment --share receipt output (per-run, regenerated)
 ironclaw-receipt/
 
+# Example runtime deps (created by an example's run.sh; never committed)
+node_modules/
+.venv/
+
 # Docs site build artifacts (MkDocs)
 /site/
 _site/

@@ -21,6 +21,8 @@ foot-gun for a boundary IronClaw [proves holds](../red-team-escape/).
 | [`semantic-kernel/`](semantic-kernel/) | [Semantic Kernel (Microsoft)](https://github.com/microsoft/semantic-kernel) | `examples/integrations/semantic-kernel/run.sh` |
 | [`openai-agents/`](openai-agents/) | [OpenAI Agents SDK](https://github.com/openai/openai-agents-python) | `examples/integrations/openai-agents/run.sh` |
 | [`claude-agent-sdk/`](claude-agent-sdk/) | [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python) | `examples/integrations/claude-agent-sdk/run.sh` |
+| [`vercel-ai-sdk/`](vercel-ai-sdk/) | [Vercel AI SDK](https://ai-sdk.dev/) *(TS)* | `examples/integrations/vercel-ai-sdk/run.sh` |
+| [`langchainjs/`](langchainjs/) | [LangChain.js](https://js.langchain.com/) *(TS)* | `examples/integrations/langchainjs/run.sh` |
 
 Every one is **zero-credential**: the LLM side uses the offline `mock` provider (or a
 scripted transcript), the sandbox is real. Each demo engages a live sandbox, drives the
@@ -68,13 +70,34 @@ Docker-socket takeover) and reporting each **BLOCKED** — the same probes as
 Adding another framework is the same shape: reuse the client, write a small adapter for
 that framework's tool interface.
 
+### JS / TypeScript
+
+The [`vercel-ai-sdk/`](vercel-ai-sdk/) and [`langchainjs/`](langchainjs/) examples are
+the TypeScript twins of the pattern above, for the npm agent ecosystem. They wrap the
+shared, dependency-free [`_shared/ironclaw-sandbox.ts`](_shared/ironclaw-sandbox.ts)
+client (global `fetch` + `child_process`) as a native tool:
+
+```ts
+import { IronClawSandbox } from "../_shared/ironclaw-sandbox";
+import { makeSandboxTool } from "./ironclaw-tool";
+
+const sandbox = await new IronClawSandbox().engage();  // launch a real per-session sandbox
+const tool = makeSandboxTool(sandbox);                 // a real AI SDK / LangChain.js tool
+console.log(await tool.execute({ command: "id" }, ctx)); // runs INSIDE the box, not your host
+```
+
+They engage the same `ic-sbx-*` container and run the identical escape battery
+(`_shared/containment-demo.ts` mirrors the Python probes), exiting non-zero on any
+containment miss — so the smoke matrix asserts them with the same rigor.
+
 ## Prerequisites
 
-- Docker (the sandbox is a real container) and `python3` (stdlib only — no `pip install`
-  for the default, credential-free path).
-- For the real runners: install the framework/SDK (`pip install langchain` /
-  `crewai` / `openai-agents` / `claude-agent-sdk`) and set its API key **host-side**
-  (the sandbox never sees it).
+- Docker (the sandbox is a real container). The Python examples need `python3` (stdlib
+  only — no `pip install` for the default, credential-free path); the JS/TS examples need
+  Node.js 18+ (their only runtime dep, the framework, is installed by `run.sh`).
+- For the real runners: install the framework/SDK if needed (`pip install langchain` /
+  `crewai` / `openai-agents` / `claude-agent-sdk`; the JS examples already bundle their
+  provider) and set its API key **host-side** (the sandbox never sees it).
 
 ## See also
 
