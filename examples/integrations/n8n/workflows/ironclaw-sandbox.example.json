@@ -1,0 +1,57 @@
+{
+  "name": "IronClaw Sandbox - contain untrusted code",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b1a0f000-0000-4000-8000-000000000001",
+      "name": "When clicking Test workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "language": "shell",
+        "code": "echo 'hello from inside the IronClaw sandbox'; id; echo '--- trying to escape ---'; wget -T3 -qO- http://example.com || echo NETWORK_BLOCKED; ([ -S /var/run/docker.sock ] && echo SOCKET_PRESENT || echo SOCKET_ABSENT)",
+        "timeoutSeconds": 30,
+        "continueOnNonZeroExit": true
+      },
+      "id": "b1a0f000-0000-4000-8000-000000000002",
+      "name": "IronClaw Sandbox",
+      "type": "n8n-nodes-base.ironClawSandbox",
+      "typeVersion": 1,
+      "position": [
+        520,
+        320
+      ],
+      "credentials": {
+        "ironClawSandboxApi": {
+          "id": "1",
+          "name": "IronClaw local (ironctl mcp serve)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking Test workflow": {
+      "main": [
+        [
+          {
+            "node": "IronClaw Sandbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {},
+  "pinData": {}
+}

@@ -1,0 +1,18 @@
+{
+	"node": "n8n-nodes-base.ironClawSandbox",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Development", "Utility"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://ironsec.co/docs/integrations/mcp-server"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://ironsec.co/docs/integrations/mcp-server"
+			}
+		]
+	}
+}
