@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# asdf/mise plugin: resolve the newest released IronClaw version.
+set -euo pipefail
+
+REPO="${IRONCLAW_ASDF_REPO:-IronSecCo/ironclaw}"
+
+curl_opts=(-fsSL)
+[ -n "${GITHUB_API_TOKEN:-}" ] && curl_opts+=(-H "Authorization: token ${GITHUB_API_TOKEN}")
+
+curl "${curl_opts[@]}" "https://api.github.com/repos/${REPO}/releases/latest" \
+  | grep -o '"tag_name": *"v[0-9][0-9.]*"' \
+  | sed -E 's/.*"v([0-9][0-9.]*)".*/\1/' \
+  | head -n1

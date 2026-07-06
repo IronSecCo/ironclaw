@@ -1,6 +1,6 @@
 ---
 title: "Sandbox any AI agent framework with IronClaw"
-description: You built an agent with LangChain, CrewAI, LlamaIndex, Pydantic AI, AutoGen, Semantic Kernel, the OpenAI Agents SDK, or the Claude Agent SDK. Those frameworks run your agent's tools and code in your own process, on your host. IronClaw runs the same agent inside a sealed gVisor sandbox instead. One search-intent guide per framework.
+description: You built an agent with LangChain, CrewAI, LlamaIndex, Pydantic AI, AutoGen, Semantic Kernel, the OpenAI Agents SDK, the Claude Agent SDK, the Vercel AI SDK, LangChain.js, Hugging Face smolagents, or Google ADK. Those frameworks run your agent's tools and code in your own process, on your host. IronClaw runs the same agent inside a sealed gVisor sandbox instead. One search-intent guide per framework.
 ---
 
 # Sandbox any AI agent framework with IronClaw
@@ -12,7 +12,8 @@ matters the moment the agent runs somewhere real:
 **When your agent runs untrusted, model-chosen code, whose machine is it running on?**
 
 With LangChain, CrewAI, LlamaIndex, Pydantic AI, AutoGen, Semantic Kernel, the
-OpenAI Agents SDK, and the Claude Agent SDK, the answer is the same: **yours**. The tool loop runs in your process, with your API key in
+OpenAI Agents SDK, the Claude Agent SDK, the Vercel AI SDK, LangChain.js, Hugging
+Face smolagents, and Google ADK, the answer is the same: **yours**. The tool loop runs in your process, with your API key in
 memory, your filesystem, and unrestricted outbound network. A single prompt
 injection inside a document the agent reads can turn a `Bash` or `ShellTool` call
 into a shell on your box.
@@ -45,6 +46,10 @@ attack in [Isolation, proven](../security-isolation.md) and the
 | **Semantic Kernel** | [Sandbox your Semantic Kernel agent](semantic-kernel.md) |
 | **OpenAI Agents SDK** | [Sandbox your OpenAI Agents SDK agent](openai-sdk.md) |
 | **Claude Agent SDK** | [Sandbox your Claude Agent SDK agent](claude-sdk.md) |
+| **Vercel AI SDK** (JS/TS) | [Sandbox your Vercel AI SDK agent](vercel-ai-sdk.md) |
+| **LangChain.js** (JS/TS) | [Sandbox your LangChain.js agent](langchain-js.md) |
+| **smolagents** (Hugging Face) | [Sandbox your smolagents agent](smolagents.md) |
+| **Google ADK** | [Sandbox your Google ADK agent](google-adk.md) |
 | **A CI pipeline** | [Run IronClaw in GitHub Actions](ci.md) |
 
 Each guide covers the same three beats: the problem in your framework's own code,

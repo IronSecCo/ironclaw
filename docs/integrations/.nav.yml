@@ -13,6 +13,10 @@ nav:
   - Semantic Kernel: semantic-kernel.md
   - OpenAI Agents SDK: openai-sdk.md
   - Claude Agent SDK: claude-sdk.md
+  - Vercel AI SDK: vercel-ai-sdk.md
+  - LangChain.js: langchain-js.md
+  - smolagents (Hugging Face): smolagents.md
+  - Google ADK: google-adk.md
   - CI (GitHub Action): ci.md
   - MCP server (any client): mcp-server.md
   - "*.md"
