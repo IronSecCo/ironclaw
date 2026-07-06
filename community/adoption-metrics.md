@@ -44,6 +44,39 @@ revise after the first real launch-week data lands.
 > Newest first. Append a new block each Monday by running the refresh command and pasting
 > its output above the previous block.
 
+### Snapshot — 2026-07-06 (steady-state baseline, IRO-392)
+
+| Metric | Value | Notes |
+| --- | --- | --- |
+| Stars | 13 | **flat** vs 2026-07-05 (13) and the IRO-286 baseline — reach still not converting |
+| Forks | 2 | flat |
+| Watchers / subscribers | 0 | |
+| Open issues | 18 | incl. tracked work + open PRs + GFIs |
+| Views (14d) | 481 | 54 unique visitors (-1 vs 2026-07-05, effectively flat) |
+| Clones (14d) | 11906 | 870 unique, **CI-inflated** (release-per-push) |
+| Release downloads (all-time) | 3030 | +277 vs 2026-07-05, across 158 releases (all CI) |
+| Latest release | v0.1.216 | 23 downloads |
+| Top referrers | — | github.com (19u) · **linkedin.com (9u) + com.linkedin.android (5u)** · cla-assistant.io (2u) |
+
+**Delta readout vs 13-star baseline (IRO-286):**
+
+- **Stars flat at 13 for a fourth straight snapshot** (2026-07-02 → 07-03 → 07-05 → 07-06). The
+  reach thesis (IRO-355) holds: distribution, not features, is the binding constraint. Everything
+  merged this week (MCP-server onboarding, AutoGen/SK integrations, containment benchmark blog) is
+  live but under-distributed.
+- **LinkedIn remains the only strong live external channel** — 14 combined unique referrers (9 web
+  + 5 Android), unchanged from 2026-07-05. It is the single non-GitHub source still driving humans.
+- **`reddit.com`, `goodfirstissues.com`, and Google dropped out of the trailing-14-day window.**
+  This is not a loss of interest so much as decay: no fresh inbound push on those surfaces in the
+  last two weeks, so their older hits aged out. The 14-day window punishes any channel we are not
+  actively feeding.
+- **Unique visitors flat (55 → 54).** Views fell (546 → 481) but uniques held, so the drop is
+  repeat/CI traffic, not lost reach.
+- **Bottleneck unchanged and board-gated:** the high-intent top-of-funnel surfaces (Show HN,
+  Reddit launch threads, remaining directory submissions) need human/board posting (IRO-290,
+  IRO-306, IRO-355). Owned growth work has saturated what it can move without those posts firing;
+  the flat star line is the direct readout of that gate.
+
 ### Snapshot — 2026-07-05 (post-launch reach round 2)
 
 | Metric | Value | Notes |
