@@ -1,0 +1,8 @@
+# The IronClaw sandbox client is pure standard library; the only dependency the
+# default credential-free path adds is Google ADK itself. Floor-pinned to the 1.x
+# line where `google.adk.tools.FunctionTool` and its `run_async(args=...)` loop
+# are stable. ADK moves fast -- bump the ceiling deliberately.
+google-adk>=1.0,<2.0
+
+# The real-LLM path (set GOOGLE_API_KEY) uses ADK's bundled Gemini connector and
+# InMemoryRunner -- no extra install.

@@ -1,0 +1,9 @@
+# The IronClaw sandbox client is pure standard library; the only dependency the
+# default credential-free path adds is smolagents itself. Floor-pinned to the 1.x
+# line where the `Tool` subclass API (name/description/inputs/output_type/forward)
+# is stable. smolagents moves fast -- bump the ceiling deliberately.
+smolagents>=1.0,<2.0
+
+# Optional -- only needed for the real-LLM path (set OPENAI_API_KEY). smolagents
+# routes model calls through LiteLLM:
+# smolagents[litellm]>=1.0,<2.0
