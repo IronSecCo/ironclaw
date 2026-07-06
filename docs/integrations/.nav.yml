@@ -6,7 +6,9 @@
 nav:
   - Sandbox any agent framework: index.md
   - LangChain: langchain.md
+  - LangGraph: langgraph.md
   - CrewAI: crewai.md
+  - Agno: agno.md
   - LlamaIndex: llamaindex.md
   - Pydantic AI: pydantic-ai.md
   - AutoGen: autogen.md
@@ -15,6 +17,7 @@ nav:
   - Claude Agent SDK: claude-sdk.md
   - Vercel AI SDK: vercel-ai-sdk.md
   - LangChain.js: langchain-js.md
+  - Mastra: mastra.md
   - smolagents (Hugging Face): smolagents.md
   - Google ADK: google-adk.md
   - CI (GitHub Action): ci.md

@@ -1,0 +1,9 @@
+# The IronClaw sandbox client is pure standard library; this example adds only
+# LangGraph (which brings langchain-core, the tool interface) and pydantic.
+# Pinned for reproducible fresh-machine runs.
+langgraph==1.2.7
+langchain-core==1.4.7
+pydantic==2.10.4
+
+# Optional -- only needed for the real-LLM path (set OPENAI_API_KEY):
+# langchain-openai==0.2.14

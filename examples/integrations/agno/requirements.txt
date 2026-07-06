@@ -1,0 +1,7 @@
+# The IronClaw sandbox client is pure standard library; the only dependency this
+# example adds for the default, credential-free path is Agno itself. Pinned for
+# reproducible fresh-machine runs.
+agno==2.6.22
+
+# Optional -- only needed for the real-LLM path (set OPENAI_API_KEY):
+# openai==1.59.6
