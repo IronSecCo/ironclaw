@@ -43,9 +43,11 @@ ensure_demo_up() {
     esac
   done
 
+  # Only the control-plane runtimes are required here; a given example enforces
+  # its own language runtime in setup_venv (python3) / setup_node (node), so a
+  # pure-TS example does not spuriously demand python3 and vice versa.
   command -v docker  >/dev/null || { echo "this demo needs Docker" >&2; exit 1; }
   command -v curl    >/dev/null || { echo "this demo needs curl" >&2; exit 1; }
-  command -v python3 >/dev/null || { echo "this demo needs python3" >&2; exit 1; }
 
   if [ "$_ATTACH" = 0 ]; then
     trap _teardown EXIT
@@ -69,6 +71,7 @@ ensure_demo_up() {
 
 setup_venv() {
   local dir="$1"
+  command -v python3 >/dev/null || { echo "this demo needs python3" >&2; exit 1; }
   local venv="$dir/.venv"
   # Guard on the activate script, not the directory: a venv left half-built by an
   # interrupted earlier run has a .venv/ dir but no bin/activate, so a dir check
@@ -84,5 +87,18 @@ setup_venv() {
   else
     # shellcheck disable=SC1091
     source "$venv/bin/activate"
+  fi
+}
+
+setup_node() {
+  # Install a TS example's Node dependencies (idempotent). The IronClaw sandbox
+  # client is pure Node stdlib; the only dependency an example adds is the agent
+  # framework itself plus tsx to run the .ts entrypoint without a build step.
+  local dir="$1"
+  command -v node >/dev/null || { echo "this demo needs Node.js 18+ (global fetch)" >&2; exit 1; }
+  command -v npm  >/dev/null || { echo "this demo needs npm" >&2; exit 1; }
+  if [ ! -d "$dir/node_modules" ]; then
+    echo "==> installing Node dependencies (first run only)"
+    ( cd "$dir" && npm install --silent --no-audit --no-fund )
   fi
 }
