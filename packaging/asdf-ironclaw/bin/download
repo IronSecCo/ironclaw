@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# asdf/mise plugin: download and checksum-verify a pinned IronClaw release.
+# Contract inputs: ASDF_INSTALL_VERSION, ASDF_DOWNLOAD_PATH.
+set -euo pipefail
+
+REPO="${IRONCLAW_ASDF_REPO:-IronSecCo/ironclaw}"
+version="${ASDF_INSTALL_VERSION:?ASDF_INSTALL_VERSION is required}"
+dest="${ASDF_DOWNLOAD_PATH:?ASDF_DOWNLOAD_PATH is required}"
+
+os="$(uname -s)"
+case "$os" in
+  Linux)  os="linux" ;;
+  Darwin) os="darwin" ;;
+  *) echo "unsupported OS: $os" >&2; exit 1 ;;
+esac
+
+arch="$(uname -m)"
+case "$arch" in
+  x86_64 | amd64)  arch="amd64" ;;
+  arm64 | aarch64) arch="arm64" ;;
+  *) echo "unsupported arch: $arch" >&2; exit 1 ;;
+esac
+
+asset="ironclaw_${version}_${os}_${arch}.tar.gz"
+base="https://github.com/${REPO}/releases/download/v${version}"
+
+curl_opts=(-fsSL)
+[ -n "${GITHUB_API_TOKEN:-}" ] && curl_opts+=(-H "Authorization: token ${GITHUB_API_TOKEN}")
+
+mkdir -p "$dest"
+echo "Downloading ${asset} ..."
+curl "${curl_opts[@]}" -o "${dest}/${asset}" "${base}/${asset}"
+
+# Verify against the release SHA256SUMS (fail closed if the sum is present).
+if curl "${curl_opts[@]}" -o "${dest}/SHA256SUMS" "${base}/SHA256SUMS" 2>/dev/null; then
+  want="$(grep -F "$asset" "${dest}/SHA256SUMS" | awk '{print $1}' | head -n1 || true)"
+  if [ -n "$want" ]; then
+    if command -v sha256sum >/dev/null 2>&1; then
+      got="$(sha256sum "${dest}/${asset}" | awk '{print $1}')"
+    else
+      got="$(shasum -a 256 "${dest}/${asset}" | awk '{print $1}')"
+    fi
+    [ "$got" = "$want" ] || { echo "checksum mismatch for ${asset} (want ${want}, got ${got})" >&2; exit 1; }
+    echo "Checksum OK: ${asset}"
+  fi
+fi
+
+tar -xzf "${dest}/${asset}" -C "$dest"
+rm -f "${dest}/${asset}" "${dest}/SHA256SUMS"

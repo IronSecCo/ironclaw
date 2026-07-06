@@ -1,5 +1,7 @@
 # Compiled binaries / build output
 bin/
+# ...but the asdf/mise plugin ships its scripts under bin/ (not build output).
+!packaging/asdf-ironclaw/bin/
 dist/
 *.exe
 *.dll

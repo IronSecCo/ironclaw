@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# asdf/mise plugin: list every installable IronClaw version.
+# Prints space-separated versions (no leading "v"), oldest first, as asdf expects.
+set -euo pipefail
+
+REPO="${IRONCLAW_ASDF_REPO:-IronSecCo/ironclaw}"
+
+curl_opts=(-fsSL)
+[ -n "${GITHUB_API_TOKEN:-}" ] && curl_opts+=(-H "Authorization: token ${GITHUB_API_TOKEN}")
+
+# Pull tags (paginated), keep vX.Y.Z, strip the leading "v", sort as versions.
+versions=$(
+  for page in 1 2 3 4 5; do
+    body="$(curl "${curl_opts[@]}" \
+      "https://api.github.com/repos/${REPO}/tags?per_page=100&page=${page}" 2>/dev/null || true)"
+    # Empty page (grep finds nothing) must not abort the loop under `set -e`.
+    printf '%s' "$body" | grep -o '"name": *"v[0-9][0-9.]*"' || true
+  done | sed -E 's/.*"v([0-9][0-9.]*)".*/\1/' | sort -t. -k1,1n -k2,2n -k3,3n | uniq
+)
+
+# shellcheck disable=SC2086
+echo $versions

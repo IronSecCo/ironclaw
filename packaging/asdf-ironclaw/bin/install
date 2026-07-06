@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# asdf/mise plugin: place the IronClaw binaries on the managed PATH.
+# Contract inputs: ASDF_INSTALL_TYPE, ASDF_INSTALL_VERSION, ASDF_INSTALL_PATH, ASDF_DOWNLOAD_PATH.
+set -euo pipefail
+
+install_path="${ASDF_INSTALL_PATH:?ASDF_INSTALL_PATH is required}"
+download_path="${ASDF_DOWNLOAD_PATH:?ASDF_DOWNLOAD_PATH is required}"
+
+[ "${ASDF_INSTALL_TYPE:-version}" = "version" ] || {
+  echo "ref/head installs are not supported; use a released version" >&2; exit 1;
+}
+
+bindir="${install_path}/bin"
+mkdir -p "$bindir"
+
+installed=0
+for b in ironctl ironclaw-controlplane; do
+  if [ -f "${download_path}/${b}" ]; then
+    install -m 0755 "${download_path}/${b}" "${bindir}/${b}"
+    installed=1
+  fi
+done
+
+[ "$installed" = 1 ] || { echo "no IronClaw binaries found in download path" >&2; exit 1; }
+echo "Installed ironctl to ${bindir}"

@@ -477,6 +477,31 @@ ironctl --version
 Prefer to grab files by hand? Download the archive and `SHA256SUMS` for your platform from the
 [latest release](https://github.com/IronSecCo/ironclaw/releases/latest).
 
+### Version managers (mise / asdf)
+
+Pin IronClaw per project with [mise](https://mise.jdx.dev) or [asdf](https://asdf-vm.com), no
+account and no `sudo`. The quickest path uses mise's `ubi` backend to install the `ironctl` CLI
+straight from the GitHub release (no plugin repo):
+
+```sh
+mise use -g "ubi:IronSecCo/ironclaw[exe=ironctl]@latest"
+ironctl --version
+```
+
+For both host binaries (`ironctl` + `ironclaw-controlplane`) and a pinned `.tool-versions`, use the
+asdf-style plugin under [`packaging/asdf-ironclaw/`](packaging/asdf-ironclaw/). It downloads the
+release tarball, verifies it against the published `SHA256SUMS`, and drops both binaries on the
+managed PATH:
+
+```
+ironclaw 0.1.217
+```
+
+The plugin resolves as a standalone repo (asdf clones plugins by URL), so `asdf plugin add ironclaw`
+and `mise use asdf:...` become available once the plugin lands in its own `IronSecCo/asdf-ironclaw`
+repository. Until then the scripts in `packaging/asdf-ironclaw/` are runnable directly (see that
+directory's `README.md`).
+
 ### Verifying a release
 
 Releases are **signed and attested** — a keyless [cosign](https://docs.sigstore.dev/)
