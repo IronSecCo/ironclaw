@@ -11,6 +11,8 @@ nav:
   - vs running agents unsandboxed: ironclaw-vs-unsandboxed-ai-agents.md
   - vs raw Docker: ironclaw-vs-docker-agent-sandbox.md
   - vs gVisor alone: ironclaw-vs-gvisor-alone.md
+  - vs Firecracker (microVM): ironclaw-vs-firecracker.md
+  - vs Kata Containers (microVM): ironclaw-vs-kata-containers.md
   - vs hosted sandboxes (E2B): ironclaw-vs-e2b-hosted-sandboxes.md
   - vs Modal Sandboxes: ironclaw-vs-modal-sandboxes.md
   - vs Daytona: ironclaw-vs-daytona.md

@@ -26,6 +26,12 @@ change and you should verify them against that project's own docs.
   still have to build on top of it.
 - [IronClaw vs gVisor alone](ironclaw-vs-gvisor-alone.md) - a user-space kernel is a
   strong wall, but a wall is not a runtime. What the rest of the agent lifecycle needs.
+- [IronClaw vs Firecracker](ironclaw-vs-firecracker.md) - a KVM microVM is a genuinely
+  strong wall, but a VMM is not an agent runtime. What egress, keys, approval, and proof
+  still require around it.
+- [IronClaw vs Kata Containers](ironclaw-vs-kata-containers.md) - VM-grade isolation with
+  container ergonomics, and why the agent runtime and proof-of-containment posture still
+  have to be built on top.
 - [IronClaw vs hosted agent sandboxes (E2B and similar)](ironclaw-vs-e2b-hosted-sandboxes.md) -
   the self-hosted vs managed trade: who holds your keys and data, and when each side wins.
 - [IronClaw vs Modal Sandboxes](ironclaw-vs-modal-sandboxes.md) - the managed serverless

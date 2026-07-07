@@ -175,6 +175,7 @@ We'd rather you find this out here than after an install:
 - **Judge the security design:** [Security posture](security.md) → [Threat model](threat-model.md)
 - **Understand the architecture:** [IronClaw, explained](ironclaw-explained.md) → [Architecture](architecture.md)
 - **Verify a release yourself:** [Release runbook](release-runbook.md)
+- **Weigh a specific alternative:** head-to-head [comparison pages](compare/index.md), including [vs Firecracker](compare/ironclaw-vs-firecracker.md) and [vs Kata Containers](compare/ironclaw-vs-kata-containers.md) microVM isolation.
 
 ---
 
