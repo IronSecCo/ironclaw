@@ -1,0 +1,126 @@
+name: MCP Registry Status
+
+# One-shot, manually-triggered maintenance workflow for the IronClaw listing on the
+# official MCP Registry (registry.modelcontextprotocol.io), namespace
+# io.github.IronSecCo/ironclaw.
+#
+# Why it exists: the option-A listing (control-plane image + host Docker-socket mount)
+# was auto-published by image.yml on releases 0.1.216–0.1.230 before the CEO chose
+# option B (IRO-391 / IRO-414). That listing must not stand as our public entry. This
+# workflow flips the status of ALL published versions in one transaction — deprecate now,
+# reactivate/delete later — using the repo's own GitHub Actions OIDC token (the same
+# account-free namespace auth that published), so no long-lived secret is involved.
+#
+# Manual only: never chained to a release. A repo-writer runs it from the Actions tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      status:
+        description: "New status for ALL versions of io.github.IronSecCo/ironclaw"
+        required: true
+        type: choice
+        default: deprecated
+        options: [deprecated, active, deleted]
+      message:
+        description: "Status message (<=500 chars; ignored when status=active)"
+        required: false
+        default: "Superseded: this listing launched IronClaw via a host Docker-socket mount, which we do not endorse. A socket-free ironclaw-mcp image is in progress (IRO-414); the listing will be re-published against it."
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-registry-status
+  cancel-in-progress: false
+
+jobs:
+  set-status:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # OIDC token proving io.github.IronSecCo namespace ownership; no secret
+    env:
+      SERVER_NAME: io.github.IronSecCo/ironclaw
+      REGISTRY: https://registry.modelcontextprotocol.io
+      NEW_STATUS: ${{ inputs.status }}
+      STATUS_MESSAGE: ${{ inputs.message }}
+      # Pinned mcp-publisher release (kept in lock-step with image.yml / runbooks/mcp-registry.md).
+      MCP_PUBLISHER_VERSION: v1.7.9
+      MCP_PUBLISHER_SHA256: ab128162b0616090b47cf245afe0a23f3ef08936fdce19074f5ba0a4469281ac
+      MCP_PUBLISHER_CERT_IDENTITY: https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/v1.7.9
+      MCP_PUBLISHER_CERT_ISSUER: https://token.actions.githubusercontent.com
+    steps:
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Download + verify mcp-publisher (pinned version, sha256, cosign provenance)
+        run: |
+          set -euo pipefail
+          base="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+          asset="mcp-publisher_linux_amd64.tar.gz"
+          curl -fsSL "${base}/${asset}" -o "${asset}"
+          curl -fsSL "${base}/${asset}.sigstore.json" -o "${asset}.sigstore.json"
+          echo "${MCP_PUBLISHER_SHA256}  ${asset}" | sha256sum -c -
+          cosign verify-blob \
+            --bundle "${asset}.sigstore.json" \
+            --certificate-identity "${MCP_PUBLISHER_CERT_IDENTITY}" \
+            --certificate-oidc-issuer "${MCP_PUBLISHER_CERT_ISSUER}" \
+            "${asset}"
+          tar xzf "${asset}" mcp-publisher
+          chmod +x mcp-publisher
+
+      - name: Authenticate to the MCP Registry via GitHub OIDC
+        run: ./mcp-publisher login github-oidc
+
+      - name: Set status for all versions
+        run: |
+          set -euo pipefail
+          # The registry bearer token mcp-publisher just stored after github-oidc login.
+          token="$(jq -r '.token' "${HOME}/.config/mcp-publisher/token.json")"
+          if [ -z "${token}" ] || [ "${token}" = "null" ]; then
+            echo "::error::No registry token after github-oidc login." >&2
+            exit 1
+          fi
+
+          # URL-encode the server name (the '/' must be %2F) for the path.
+          enc="$(jq -rn --arg s "${SERVER_NAME}" '$s|@uri')"
+
+          # Build the JSON body safely from env (never inline-interpolated).
+          if [ "${NEW_STATUS}" = "active" ]; then
+            # statusMessage is not allowed when status=active.
+            body="$(jq -nc --arg st "${NEW_STATUS}" '{status:$st}')"
+          else
+            body="$(jq -nc --arg st "${NEW_STATUS}" --arg msg "${STATUS_MESSAGE}" '{status:$st, statusMessage:$msg}')"
+          fi
+
+          echo "PATCH ${REGISTRY}/v0/servers/${enc}/status -> ${NEW_STATUS}"
+          code="$(curl -sS -o /tmp/resp.json -w '%{http_code}' \
+            -X PATCH "${REGISTRY}/v0/servers/${enc}/status" \
+            -H "Authorization: Bearer ${token}" \
+            -H "Content-Type: application/json" \
+            -d "${body}")"
+          echo "HTTP ${code}"; cat /tmp/resp.json || true; echo
+          if [ "${code}" != "200" ] && [ "${code}" != "204" ]; then
+            echo "::error::Status update returned HTTP ${code}." >&2
+            exit 1
+          fi
+
+      - name: Verify every version reflects the new status
+        run: |
+          set -euo pipefail
+          enc="$(jq -rn --arg s "${SERVER_NAME}" '$s|@uri')"
+          # Registry indexing can lag a moment; retry before failing loud.
+          ok=""
+          for attempt in 1 2 3 4 5; do
+            body="$(curl -fsSL "${REGISTRY}/v0/servers/${enc}/versions" || true)"
+            total="$(printf '%s' "${body}" | jq '[.servers[]?] | length')"
+            mismatch="$(printf '%s' "${body}" | jq --arg st "${NEW_STATUS}" \
+              '[.servers[]? | ._meta["io.modelcontextprotocol.registry/official"].status // "unknown" | select(. != $st)] | length')"
+            echo "  attempt ${attempt}: ${total} versions, ${mismatch} not '${NEW_STATUS}'"
+            if [ "${total}" != "0" ] && [ "${mismatch}" = "0" ]; then ok="yes"; break; fi
+            sleep 10
+          done
+          if [ -z "${ok}" ]; then
+            echo "::error::Not all versions reflect status '${NEW_STATUS}' yet." >&2
+            exit 1
+          fi
+          echo "All versions of ${SERVER_NAME} are now '${NEW_STATUS}'."
