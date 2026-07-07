@@ -22,6 +22,7 @@ nav:
   - smolagents (Hugging Face): smolagents.md
   - Google ADK: google-adk.md
   - DSPy (Stanford): dspy.md
+  - Letta (MemGPT): letta.md
   - CI (GitHub Action): ci.md
   - MCP server (any client): mcp-server.md
   - "*.md"

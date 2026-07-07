@@ -1,0 +1,12 @@
+# The credential-free containment demo is pure standard library: a Letta
+# client-side tool is a plain schema dict plus a Python executor, so building and
+# driving `sandboxed_shell` needs no Letta install at all. Nothing to install for
+# `run.sh` to print its PASS/FAIL containment table.
+#
+# Optional -- only the real-agent path (set LETTA_BASE_URL, with a running Letta
+# server) needs the Letta SDK. Uncomment to install it, or `pip install
+# letta-client` by hand. Floor-pinned to the line where client-side tool
+# execution (`client_tools=[...]` on the messages API plus the approval-return
+# flow) is stable. Letta moves fast -- bump the ceiling deliberately.
+#
+# letta-client>=0.1,<1
