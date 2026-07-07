@@ -14,6 +14,7 @@ exclude_docs: |
   site/
   docs.json
   reference/openapi.yaml
+  launch/
 
 # docs/hooks.py copies api/openapi.yaml into the build and stamps the version.
 hooks:
