@@ -91,19 +91,30 @@ exercise the artifact shape.
 
 ## Re-record the clip
 
-The animated hero is regenerated straight from this script — no editing, no staged text.
-Bring the demo up once (`run.sh --keep`), then record an `--attach` run and render the GIF
+The animated hero is regenerated straight from this script — the terminal **output is
+byte-for-byte the real `--attach` run**, no invented or staged text. The only post-step is
+timing: `run.sh` streams its whole transcript in under two seconds, so a raw recording renders
+as an unreadable dump (a few near-identical frames). [`pace-cast.py`](pace-cast.py) keeps every
+character of that real output and only re-times the inter-line reveal so each containment step
+holds long enough to read. It discards input timing, so it is idempotent — re-running it on the
+committed cast reproduces the committed cast.
+
+Bring the demo up once (`run.sh --keep`), record an `--attach` run, pace it, then render the GIF
 ([`asciinema`](https://asciinema.org/) + [`agg`](https://github.com/asciinema/agg)):
 
 ```bash
 examples/live-containment/run.sh --keep                          # bring the demo up
 
-asciinema rec docs/assets/live-containment.cast --overwrite \
+asciinema rec /tmp/live-containment.raw.cast --overwrite \
   --idle-time-limit 1.4 --window-size 92x28 \
   --command "SKIP_BUILD=1 examples/live-containment/run.sh --attach"
 
-agg --font-size 16 --fps-cap 10 --speed 1.0 --idle-time-limit 2.0 \
-  --last-frame-duration 4 \
+# real output, paced for legibility (see the honesty note above)
+examples/live-containment/pace-cast.py /tmp/live-containment.raw.cast \
+  > docs/assets/live-containment.cast
+
+agg --font-size 16 --fps-cap 10 --speed 1.0 --idle-time-limit 2.5 \
+  --last-frame-duration 2 \
   --theme 0b1124,eaf2ff,1d2c57,ff8087,5ad6a0,e3b341,3b82f6,b9a0ff,63a0ff,b9d4ff,3a4a7a,ff9aa0,7ce8bb,f0c460,63a0ff,cdbcff,93b6ff,ffffff \
   docs/assets/live-containment.cast docs/assets/live-containment.gif
 ```
