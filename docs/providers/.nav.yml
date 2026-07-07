@@ -9,6 +9,7 @@ nav:
   - Bring your own model (Ollama / Gemini / Vertex): ../bring-your-own-model.md
   - AWS Bedrock: bedrock.md
   - Azure OpenAI: azure.md
+  - Google Gemini: gemini.md
   - OpenRouter (100+ models): openrouter.md
   - Ollama (zero-credential local): ollama.md
   - "*.md"
