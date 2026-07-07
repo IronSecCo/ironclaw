@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="IronClaw">
+  <title>IronClaw</title>
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#63a0ff"/><stop offset="0.5" stop-color="#3b82f6"/><stop offset="1" stop-color="#1a44bd"/></linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9d4ff"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
+    <clipPath id="sh"><path d="M50 8 L88 22 L88 54 Q88 84 50 98 Q12 84 12 54 L12 22 Z"/></clipPath>
+  </defs>
+  <path d="M50 8 L88 22 L88 54 Q88 84 50 98 Q12 84 12 54 L12 22 Z" fill="url(#steel)"/>
+  <path d="M50 8 L88 22 L88 54 Q88 84 50 98 Q12 84 12 54 L12 22 Z" fill="none" stroke="url(#edge)" stroke-width="2.5"/>
+  <g clip-path="url(#sh)" fill="#eaf2ff" opacity="0.97">
+    <path d="M25 66 Q52 55 58 26 Q45 49 25 66 Z"/>
+    <path d="M35 74 Q64 62 71 32 Q56 56 35 74 Z"/>
+    <path d="M45 81 Q75 69 84 40 Q68 63 45 81 Z"/>
+  </g>
+</svg>

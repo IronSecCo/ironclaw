@@ -35,6 +35,16 @@ they double as CI checks. Set `OPENAI_API_KEY` (or `pip install` the SDK + its k
 host-side) to drive a real LLM instead — the tool and the isolation are identical; the
 key never enters the sandbox.
 
+## Low-code / automation: n8n community node
+
+[`n8n/`](n8n/) is the odd one out — a publishable **n8n community node**
+(`n8n-nodes-ironclaw`), not a framework tool. It reaches the automation/ops crowd
+who run AI or code steps inside [n8n](https://n8n.io/) workflows and need to
+sandbox untrusted execution. It talks to `ironctl mcp serve` (the `sandbox_exec`
+MCP tool) rather than a per-session `ic-sbx-*` container, so it builds/lints with
+the n8n scaffold and ships an import-ready example workflow. Its containment smoke
+requires gVisor — see [`n8n/README.md`](n8n/README.md).
+
 ## The pattern
 
 The IronClaw-specific piece is one small, standard-library client that engages a
