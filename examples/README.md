@@ -108,7 +108,7 @@ docker compose -f docker-compose.demo.yml down            # tear down
 
 ### Framework integrations
 
-Already using LangChain, CrewAI, AutoGen, or Semantic Kernel?
+Already using LangChain, CrewAI, AutoGen, Semantic Kernel, smolagents, or Google ADK?
 [**`integrations/`**](integrations/) backs
 your agent's untrusted code execution with a real IronClaw sandbox instead of a
 host shell — the same tool interface, none of the host risk. Each ships a
@@ -120,6 +120,8 @@ one-command, zero-credential containment demo:
 | [`integrations/crewai/`](integrations/crewai/) | The same pattern as a CrewAI `BaseTool` for a crew agent. | ✅ `run.sh` (self-contained) |
 | [`integrations/autogen/`](integrations/autogen/) | The same pattern as an **AutoGen** `FunctionTool` for an `AssistantAgent`. | ✅ `run.sh` (self-contained) |
 | [`integrations/semantic-kernel/`](integrations/semantic-kernel/) | The same pattern as a **Semantic Kernel** native `@kernel_function` plugin. | ✅ `run.sh` (self-contained) |
+| [`integrations/smolagents/`](integrations/smolagents/) | The same pattern as a **smolagents** (HuggingFace) `Tool` for a `ToolCallingAgent`. | ✅ `run.sh` (self-contained) |
+| [`integrations/google-adk/`](integrations/google-adk/) | The same pattern as a **Google ADK** `FunctionTool` for an `Agent`. | ✅ `run.sh` (self-contained) |
 
 ## Prerequisites
 
