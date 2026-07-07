@@ -20,6 +20,7 @@ nav:
   - Mastra: mastra.md
   - smolagents (Hugging Face): smolagents.md
   - Google ADK: google-adk.md
+  - DSPy (Stanford): dspy.md
   - CI (GitHub Action): ci.md
   - MCP server (any client): mcp-server.md
   - "*.md"
