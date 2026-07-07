@@ -2,6 +2,24 @@ package main
 
 import "testing"
 
+func TestTableLayoutConstantsDocumentTabwriterDefaults(t *testing.T) {
+	if tableMinWidth != 0 {
+		t.Fatalf("tableMinWidth = %d, want 0", tableMinWidth)
+	}
+	if tableTabWidth != 2 {
+		t.Fatalf("tableTabWidth = %d, want 2", tableTabWidth)
+	}
+	if tablePadding != 2 {
+		t.Fatalf("tablePadding = %d, want 2", tablePadding)
+	}
+	if tablePadChar != ' ' {
+		t.Fatalf("tablePadChar = %q, want space", tablePadChar)
+	}
+	if tableFlags != 0 {
+		t.Fatalf("tableFlags = %d, want 0", tableFlags)
+	}
+}
+
 // TestRunFirstRunHelp covers the F10 first-run UX fix (IRO-39): bare `ironctl`
 // and explicit `help` greet the user and succeed (exit 0), while genuine misuse
 // still fails (exit non-zero). None of these paths touch the network.
