@@ -109,6 +109,69 @@ same hardened posture as an IronClaw session sandbox:
 The tool's `containment:` line names the actual runtime, so a caller always sees
 whether it ran under gVisor or a labelled fallback.
 
+## Two backends: standalone vs. thin client
+
+`ironctl mcp serve` has two interchangeable sandbox_exec backends. Both build the
+**same** hardened box (the posture above lives in one place,
+`internal/host/sandboxexec`, so the two backends cannot drift apart).
+
+**Standalone (default).** The command shells `docker run` on **this** host. Use it
+for native/host installs where the process can hold the container runtime. This is
+what the one-line install above uses.
+
+**Thin client (`--controlplane`).** The command is delegated to a running IronClaw
+**control-plane** over its authenticated API; the control-plane (which already owns
+hardened gVisor spawning) launches the box. The `ironctl mcp serve` process then
+holds **no host privilege** - no `docker.sock`, no `runsc` - so it is safe to
+containerize for the [MCP Registry](https://github.com/modelcontextprotocol/registry)
+without mounting the host Docker socket.
+
+```bash
+# Thin-client mode: this process never touches host docker/runsc.
+ironctl mcp serve \
+  --controlplane http://control-plane:8787 \
+  --token-env IRONCLAW_API_TOKEN
+```
+
+Enable the endpoint on the control-plane with `--sandbox-exec` (runtime defaults to
+gVisor `runsc`; override with `--sandbox-exec-runtime`):
+
+```bash
+ironclaw-controlplane --sandbox-exec        # exposes POST /v1/sandbox/exec
+```
+
+**Fail-closed.** If the control-plane is unreachable, the tool returns an error; it
+**never** falls back to a host run. The containerized image ships no runtime, so a
+local box is not even possible.
+
+### Slim registry image
+
+`container/mcp.Dockerfile` builds `ghcr.io/ironsecco/ironclaw-mcp`: a ~15&nbsp;MB
+distroless image with only the static `ironctl` binary (no shell, no package
+manager, non-root 65532) whose entrypoint is `ironctl mcp serve` in thin-client
+mode. Point it at a control-plane with env:
+
+```json
+{
+  "mcpServers": {
+    "ironclaw": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm",
+        "-e", "IRONCLAW_CONTROLPLANE_URL",
+        "-e", "IRONCLAW_API_TOKEN",
+        "ghcr.io/ironsecco/ironclaw-mcp:latest"],
+      "env": {
+        "IRONCLAW_CONTROLPLANE_URL": "http://control-plane:8787",
+        "IRONCLAW_API_TOKEN": "..."
+      }
+    }
+  }
+}
+```
+
+The MCP container gets normal egress **only to reach the control-plane**; the actual
+`sandbox_exec` box still runs on the control-plane under gVisor with `network=none`.
+
 ## Prove containment yourself
 
 The value of the tool is what it **stops**. Ask your MCP client (or drive the server

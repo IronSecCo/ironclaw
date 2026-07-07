@@ -51,6 +51,7 @@ import (
 	"github.com/IronSecCo/ironclaw/internal/host/queue"
 	"github.com/IronSecCo/ironclaw/internal/host/registry"
 	"github.com/IronSecCo/ironclaw/internal/host/router"
+	"github.com/IronSecCo/ironclaw/internal/host/sandboxexec"
 	"github.com/IronSecCo/ironclaw/internal/host/session"
 	"github.com/IronSecCo/ironclaw/internal/host/skills"
 	"github.com/IronSecCo/ironclaw/internal/host/sweep"
@@ -107,6 +108,16 @@ func main() {
 		"OCI runtime for container MCP isolation, passed as docker --runtime (e.g. \"runsc\" for gVisor); empty uses the container CLI default")
 	mcpImage := flag.String("mcp-image", "",
 		"default container image for isolated local MCP servers when a server config sets no image")
+	sandboxExec := flag.Bool("sandbox-exec", envBool("IRONCLAW_ENABLE_SANDBOX_EXEC"),
+		"enable POST /v1/sandbox/exec: run one-shot HARDENED ephemeral boxes on behalf of a privilege-free thin MCP client (the slim ironclaw-mcp image running `ironctl mcp serve --controlplane`). Requires a container runtime CLI on this host")
+	sandboxExecRuntime := flag.String("sandbox-exec-runtime", envOr("IRONCLAW_SANDBOX_EXEC_RUNTIME", isolation.DefaultRuntimeBinary),
+		"OCI runtime for sandbox_exec boxes, passed as docker --runtime; default is gVisor (runsc). Any other value is a LABELLED fallback that does NOT provide gVisor's syscall interception")
+	sandboxExecImage := flag.String("sandbox-exec-image", envOr("IRONCLAW_SANDBOX_EXEC_IMAGE", sandboxexec.DefaultImage),
+		"default container image for sandbox_exec boxes")
+	sandboxExecDocker := flag.String("sandbox-exec-docker", envOr("IRONCLAW_SANDBOX_EXEC_DOCKER", "docker"),
+		"container runtime binary (docker/podman) used to launch sandbox_exec boxes")
+	sandboxExecTimeout := flag.Int("sandbox-exec-timeout", 30,
+		"default per-exec timeout in seconds for sandbox_exec boxes")
 	localModelURL := flag.String("local-model-url", os.Getenv("IRONCLAW_LOCAL_MODEL_URL"),
 		"OPT-IN: base URL of a LOCAL OpenAI-compatible model server — Ollama (http://localhost:11434/v1), LM Studio, vLLM, or llama.cpp. Allowlists its host, forwards to a loopback host over plain HTTP, and makes it the deployment-default model — no cloud credential. Empty disables local-model mode")
 	localModel := flag.String("local-model", os.Getenv("IRONCLAW_LOCAL_MODEL"),
@@ -703,6 +714,33 @@ func main() {
 	apiToken := os.Getenv("IRONCLAW_API_TOKEN")
 	if apiToken != "" {
 		server = server.WithToken(apiToken)
+	}
+
+	// Optional ephemeral sandbox_exec endpoint (POST /v1/sandbox/exec). It lets a
+	// privilege-free thin MCP client (the slim ironclaw-mcp image running
+	// `ironctl mcp serve --controlplane`) delegate one-shot code execution to THIS
+	// control-plane, which owns the hardened gVisor spawning — so the MCP container
+	// needs no docker.sock or runsc. The box posture is the containment single-source-
+	// of-truth in internal/host/sandboxexec (same as `ironctl mcp serve` standalone).
+	if *sandboxExec {
+		seccompPath, seccompCleanup, err := sandboxexec.WriteSeccompProfile()
+		if err != nil {
+			logger.Error("could not stage sandbox_exec seccomp profile", "err", err)
+			os.Exit(1)
+		}
+		defer seccompCleanup()
+		server = server.WithSandboxExec(&sandboxexec.Config{
+			Image:       *sandboxExecImage,
+			DockerBin:   *sandboxExecDocker,
+			Runtime:     *sandboxExecRuntime,
+			SeccompPath: seccompPath,
+			TimeoutSec:  *sandboxExecTimeout,
+			Run:         sandboxexec.DockerRunner,
+		})
+		gvisor := *sandboxExecRuntime == isolation.DefaultRuntimeBinary
+		logger.Info("sandbox_exec endpoint enabled",
+			"runtime", *sandboxExecRuntime, "gvisor", gvisor,
+			"image", *sandboxExecImage, "engine", *sandboxExecDocker)
 	}
 
 	// Isolation: per session, build a hardened OCI bundle and exec the runtime
