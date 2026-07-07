@@ -10,6 +10,7 @@ nav:
   - CrewAI: crewai.md
   - Agno: agno.md
   - LlamaIndex: llamaindex.md
+  - Haystack (deepset): haystack.md
   - Pydantic AI: pydantic-ai.md
   - AutoGen: autogen.md
   - Semantic Kernel: semantic-kernel.md

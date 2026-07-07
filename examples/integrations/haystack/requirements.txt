@@ -1,0 +1,7 @@
+# The IronClaw sandbox client is pure standard library; the only dependency this
+# example adds is Haystack itself. The `haystack.tools.Tool` API this example uses
+# graduated from `haystack_experimental` in haystack-ai 2.9, so floor-pin there and
+# let pip resolve the transitive deps for your platform.
+#
+# Haystack supports Python 3.9-3.13, so any modern python3 works.
+haystack-ai>=2.9,<3.0
