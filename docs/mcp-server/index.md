@@ -1,6 +1,6 @@
 ---
 title: IronClaw MCP Server
-description: "Run IronClaw as an MCP server to give Claude Desktop, Cursor, and Windsurf a sandboxed code-execution tool in 30 seconds."
+description: "Run IronClaw as an MCP server to give Claude Desktop, Cursor, Windsurf, Cline, Roo Code, and Continue.dev a sandboxed code-execution tool in 30 seconds."
 ---
 
 # IronClaw as an MCP Server
@@ -23,6 +23,9 @@ session, so nothing persists to your host.
 | [Claude Desktop](claude-desktop.md) | `~/Library/Application Support/Claude/claude_desktop_config.json` |
 | [Cursor](cursor.md) | `~/.cursor/mcp.json` |
 | [Windsurf](windsurf.md) | `~/.codeium/windsurf/mcp_server_config.json` |
+| [Cline](cline.md) | `cline_mcp_settings.json` (VS Code panel) / `~/.cline/mcp.json` |
+| [Roo Code](roo-code.md) | `mcp_settings.json` (VS Code panel) / `.roo/mcp.json` |
+| [Continue.dev](continue.md) | `~/.continue/config.yaml` |
 
 ## Prerequisites
 
