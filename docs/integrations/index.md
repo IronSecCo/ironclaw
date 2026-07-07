@@ -1,6 +1,6 @@
 ---
 title: "Sandbox any AI agent framework with IronClaw"
-description: You built an agent with LangChain, LangGraph, CrewAI, Agno, LlamaIndex, Pydantic AI, AutoGen, Semantic Kernel, the OpenAI Agents SDK, the Claude Agent SDK, the Vercel AI SDK, LangChain.js, Mastra, Hugging Face smolagents, or Google ADK. Those frameworks run your agent's tools and code in your own process, on your host. IronClaw runs the same agent inside a sealed gVisor sandbox instead. One search-intent guide per framework.
+description: You built an agent with LangChain, LangGraph, CrewAI, Agno, LlamaIndex, Haystack, Pydantic AI, AutoGen, Semantic Kernel, the OpenAI Agents SDK, the Claude Agent SDK, the Vercel AI SDK, LangChain.js, Mastra, Hugging Face smolagents, or Google ADK. Those frameworks run your agent's tools and code in your own process, on your host. IronClaw runs the same agent inside a sealed gVisor sandbox instead. One search-intent guide per framework.
 ---
 
 # Sandbox any AI agent framework with IronClaw
@@ -11,7 +11,7 @@ matters the moment the agent runs somewhere real:
 
 **When your agent runs untrusted, model-chosen code, whose machine is it running on?**
 
-With LangChain, LangGraph, CrewAI, Agno, LlamaIndex, Pydantic AI, AutoGen, Semantic
+With LangChain, LangGraph, CrewAI, Agno, LlamaIndex, Haystack, Pydantic AI, AutoGen, Semantic
 Kernel, the OpenAI Agents SDK, the Claude Agent SDK, the Vercel AI SDK, LangChain.js,
 Mastra, Hugging Face smolagents, and Google ADK, the answer is the same: **yours**. The tool loop runs in your process, with your API key in
 memory, your filesystem, and unrestricted outbound network. A single prompt
@@ -43,6 +43,7 @@ attack in [Isolation, proven](../security-isolation.md) and the
 | **CrewAI** | [Sandbox your CrewAI agents](crewai.md) |
 | **Agno** (ex-Phidata) | [Sandbox your Agno agent](agno.md) |
 | **LlamaIndex** | [Sandbox your LlamaIndex agent](llamaindex.md) |
+| **Haystack** (deepset) | [Sandbox your Haystack agent](haystack.md) |
 | **Pydantic AI** | [Sandbox your Pydantic AI agent](pydantic-ai.md) |
 | **AutoGen** | [Sandbox your AutoGen agent](autogen.md) |
 | **Semantic Kernel** | [Sandbox your Semantic Kernel agent](semantic-kernel.md) |
