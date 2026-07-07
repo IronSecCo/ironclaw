@@ -89,3 +89,6 @@ This is a curated, three-escape cut. For the full picture:
 - [`docs/breaking-our-own-sandbox.md`](../../docs/breaking-our-own-sandbox.md) — the write-up.
 - The **runc fallback** used by this laptop demo is deliberately weaker than the production
   posture: each session is sealed with **gVisor** and `network=none` in production.
+- [`docs/assets/live-containment-social/`](../../docs/assets/live-containment-social/) — the
+  narrated, captioned social cut of this same demo (landscape + square MP4, GIF preview),
+  ready to share.

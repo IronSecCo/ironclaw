@@ -4,13 +4,12 @@ A 60 to 90 second narrated, captioned screencast of a fully jailbroken agent try
 break out of an IronClaw sandbox and being denied at the isolation boundary, three times,
 ending on a star plus install call to action.
 
-This is the board-review draft. Nothing renders as final until the board approves the
-copy below. Source footage is the real `examples/live-containment/run.sh` recording
-(`docs/assets/live-containment.cast`), the same script behind the existing hero clip, so
-the terminal content is a genuine run, not staged text.
+Board approved this copy (IRO-370); the final cut is rendered and committed next to this
+file. Source footage is the real `examples/live-containment/run.sh` run, the same script
+behind the existing hero clip, so the terminal content is a genuine run, not staged text.
 
-- Deliverables on approval: `landscape.mp4` (16:9), `square.mp4` (1:1), `preview.gif`
-  (lightweight loop). All under this directory. MP4s target under 30 MB.
+- Deliverables: `landscape.mp4` (16:9), `square.mp4` (1:1), `preview.gif` (lightweight
+  loop), `captions.srt` (sidecar). All under this directory. MP4s well under 30 MB.
 - Captions are burned in and readable with sound off (autoplay muted friendly).
 - House style: no em or en dashes in any on screen copy (IRO-254).
 - Single source of truth for caption copy and timing: `captions.tsv`. `render.sh`
@@ -73,21 +72,21 @@ brew install ironsecco/ironclaw/ironclaw
 
 ## Production pipeline
 
-`render.sh` in this directory is the one command render, run after board approval:
+`render.sh` in this directory is the one command render:
 
-1. Record a fresh, naturally paced run of `examples/live-containment/run.sh` with
-   `asciinema` (the built in sleeps between escapes give the 60 to 90 second pacing), or
-   reuse the committed `docs/assets/live-containment.cast`.
-2. `agg` renders the cast to a master GIF at true speed with pacing preserved.
-3. `ffmpeg` pads to 1920x1080, burns the landscape caption track, appends the generated
-   end card, writes `landscape.mp4`.
-4. `ffmpeg` reframes to 1080x1080, burns the square caption track, appends the end card,
-   writes `square.mp4`.
-5. `ffmpeg` down samples `landscape.mp4` to a palette optimized `preview.gif` for the
-   lightweight loop.
+1. `agg` renders the committed `live-containment.cast` to terminal frames.
+2. `_gen_captions.py` rasterizes the caption bands and the end card with Pillow.
+3. `_compose.py` places each escape frame on the house canvas with its caption band.
+4. `render.sh` encodes one clip per beat at its duration and crossfades them together into
+   `landscape.mp4` (1920x1080) and `square.mp4` (1080x1080), each with the end card.
+5. `ffmpeg` down samples `landscape.mp4` to a palette optimized `preview.gif`.
 
 Caption copy and timings are read from `captions.tsv` so the storyboard, the two burned in
 variants, and the sidecar `.srt` are always the same words.
+
+Note on pacing: `run.sh` echoes its output near-instantly, so a raw recording is a
+sub-second dump (confirmed by a fresh `--attach` capture, every event at about t=0). The
+deliberate per beat pacing is the narration; the crossfades give motion. See the README.
 
 ## Open questions for the board
 
