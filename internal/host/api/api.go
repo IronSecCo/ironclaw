@@ -22,6 +22,7 @@ import (
 	"github.com/IronSecCo/ironclaw/internal/host/mcp"
 	"github.com/IronSecCo/ironclaw/internal/host/registry"
 	"github.com/IronSecCo/ironclaw/internal/host/router"
+	"github.com/IronSecCo/ironclaw/internal/host/sandboxexec"
 	"github.com/IronSecCo/ironclaw/internal/host/skills"
 	"github.com/IronSecCo/ironclaw/internal/version"
 )
@@ -47,6 +48,7 @@ type Server struct {
 	mcpCatalog *mcp.Catalog             // operator-configured MCP server catalog; nil = MCP disabled
 	mcpBroker  *mcp.Broker              // host MCP broker, for probe/discovery; nil = MCP disabled
 	vault      VaultPolicyReader        // per-group vault policy, for the read surface; nil = vault read disabled
+	sandbox    *sandboxexec.Config      // ephemeral hardened sandbox_exec backend; nil = POST /v1/sandbox/exec disabled
 	mux        *http.ServeMux
 
 	// Hardening (all opt-in; see hardening.go). Zero values disable the feature.
@@ -161,6 +163,7 @@ func (s *Server) routes() {
 	s.skillsRoutes()      // skills install/list/remove at /v1/skills (see skills.go)
 	s.mcpRoutes()         // MCP server CRUD/probe + read-model at /v1/registry/mcp-servers|/v1/ui/mcp-servers (see mcp.go)
 	s.vaultRoutes()       // per-group vault policy read surface at /v1/vault/policy (see vault.go)
+	s.sandboxRoutes()     // ephemeral hardened sandbox_exec at POST /v1/sandbox/exec (see sandbox.go)
 }
 
 // auth wraps h with optional bearer-token authentication. With no token set, the
