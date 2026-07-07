@@ -23,6 +23,7 @@ foot-gun for a boundary IronClaw [proves holds](../red-team-escape/).
 | [`semantic-kernel/`](semantic-kernel/) | [Semantic Kernel (Microsoft)](https://github.com/microsoft/semantic-kernel) | `examples/integrations/semantic-kernel/run.sh` |
 | [`smolagents/`](smolagents/) | [smolagents (HuggingFace)](https://github.com/huggingface/smolagents) | `examples/integrations/smolagents/run.sh` |
 | [`google-adk/`](google-adk/) | [Google ADK](https://github.com/google/adk-python) | `examples/integrations/google-adk/run.sh` |
+| [`dspy/`](dspy/) | [DSPy (Stanford)](https://github.com/stanfordnlp/dspy) | `examples/integrations/dspy/run.sh` |
 | [`openai-agents/`](openai-agents/) | [OpenAI Agents SDK](https://github.com/openai/openai-agents-python) | `examples/integrations/openai-agents/run.sh` |
 | [`claude-agent-sdk/`](claude-agent-sdk/) | [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python) | `examples/integrations/claude-agent-sdk/run.sh` |
 | [`vercel-ai-sdk/`](vercel-ai-sdk/) | [Vercel AI SDK](https://ai-sdk.dev/) *(TS)* | `examples/integrations/vercel-ai-sdk/run.sh` |
@@ -53,7 +54,7 @@ The IronClaw-specific piece is one small, standard-library client that engages a
 per-session sandbox and runs commands inside it. The examples come in two shapes:
 
 - **Framework tools** (LangChain, LangGraph, CrewAI, Agno, LlamaIndex, Pydantic AI,
-  AutoGen, Semantic Kernel, smolagents, Google ADK) wrap the shared
+  AutoGen, Semantic Kernel, smolagents, Google ADK, DSPy) wrap the shared
   [`_shared/ironclaw_sandbox.py`](_shared/ironclaw_sandbox.py) client as a native tool
   via a thin `ironclaw_tool.py` adapter (~15-20 lines):
 

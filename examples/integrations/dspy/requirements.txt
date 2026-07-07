@@ -1,0 +1,10 @@
+# The IronClaw sandbox client is pure standard library; the only dependency the
+# default credential-free path adds is DSPy itself. Floor-pinned to the 2.5 line
+# where the `dspy.Tool` wrapper API (func + name/desc, callable as tool(**kwargs))
+# and `dspy.ReAct(signature, tools=[...])` are stable. DSPy moves fast -- bump the
+# ceiling deliberately.
+dspy>=2.5,<4
+
+# Optional -- only needed for the real-LLM path (set OPENAI_API_KEY). DSPy routes
+# model calls through LiteLLM, which is already a DSPy dependency, so no extra
+# install is required.

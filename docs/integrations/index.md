@@ -13,7 +13,7 @@ matters the moment the agent runs somewhere real:
 
 With LangChain, LangGraph, CrewAI, Agno, LlamaIndex, Pydantic AI, AutoGen, Semantic
 Kernel, the OpenAI Agents SDK, the Claude Agent SDK, the Vercel AI SDK, LangChain.js,
-Mastra, Hugging Face smolagents, and Google ADK, the answer is the same: **yours**. The tool loop runs in your process, with your API key in
+Mastra, Hugging Face smolagents, Google ADK, and DSPy, the answer is the same: **yours**. The tool loop runs in your process, with your API key in
 memory, your filesystem, and unrestricted outbound network. A single prompt
 injection inside a document the agent reads can turn a `Bash` or `ShellTool` call
 into a shell on your box.
@@ -53,6 +53,7 @@ attack in [Isolation, proven](../security-isolation.md) and the
 | **Mastra** (JS/TS) | [Sandbox your Mastra agent](mastra.md) |
 | **smolagents** (Hugging Face) | [Sandbox your smolagents agent](smolagents.md) |
 | **Google ADK** | [Sandbox your Google ADK agent](google-adk.md) |
+| **DSPy** (Stanford) | [Sandbox your DSPy agent](dspy.md) |
 | **A CI pipeline** | [Run IronClaw in GitHub Actions](ci.md) |
 
 Each guide covers the same three beats: the problem in your framework's own code,
