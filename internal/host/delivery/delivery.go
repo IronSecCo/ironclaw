@@ -25,7 +25,7 @@ import (
 
 // OutboundReaderFactory returns the host's read-only outbound view for a session.
 // Tests inject a fake (host/queue.MemOutbound); production wires it to
-// host/queue.OpenOutbound once the encrypted-SQLite binding lands.
+// host/queue.OpenOutbound for the encrypted outbound queue.
 type OutboundReaderFactory func(contract.SessionID) (contract.OutboundReader, error)
 
 // SkillInstallResolver resolves a NAMED, curated, signed skill into its gateway
