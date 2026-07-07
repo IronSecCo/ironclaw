@@ -21,6 +21,7 @@ nav:
       - Observability (metrics): observability.md
       - Troubleshooting: troubleshooting.md
       - FAQ: faq.md
+  - Scan any container: scan.md
   - Model providers: providers
   - Tutorials: tutorials
   - Examples & use cases: examples.md

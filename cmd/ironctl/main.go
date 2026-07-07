@@ -125,6 +125,10 @@ parse:
 	if args[0] == "doctor" {
 		return cmdDoctor(addr, args[1:])
 	}
+	// Top-level "scan" command (local containment self-audit; no control-plane API).
+	if args[0] == "scan" {
+		return cmdScan(args[1:])
+	}
 	// `usage` / `commands` print the full command reference to stdout and exit 0:
 	// a help request is requested output, not an error. The model-call metrics
 	// report (which queries /metrics) now lives under `metrics`.
@@ -550,6 +554,7 @@ New here? Start with:
 
 Everyday commands:
   ironctl agent create | list             Create and inspect agents
+  ironctl scan <container>                Grade any container's containment 0-100
   ironctl change pending | approve <id>   Review gated capability changes
   ironctl audit                           Tail the append-only audit log
 
@@ -580,6 +585,7 @@ func printReference(w io.Writer) {
   ironctl [--addr URL] onboard [--yes] [--dry-run] [--force] [--config PATH]
   ironctl [--addr URL] [--token T] status [--json]
   ironctl [--addr URL] [--token T] doctor [--runtime BIN] [--model-proxy-socket PATH]
+  ironctl scan <container> | --compose FILE [--service N] | --k8s FILE   [--json] [--badge PATH] [--md] [--min-score N]
   ironctl [--addr URL] [--token T] metrics [--json]
   ironctl [--addr URL] [--token T] skill add <name>@<version> --group <id> [--by <user>]
   ironctl [--addr URL] [--token T] skill list
