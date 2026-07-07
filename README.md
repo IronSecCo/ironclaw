@@ -1024,8 +1024,12 @@ home for Q&A, design discussion, and show-and-tell, and it's where maintainers a
 - **Found a bug or have a feature request?** Open an [issue](https://github.com/IronSecCo/ironclaw/issues/new/choose).
 - **Security report?** Do **not** open a public issue — follow [`SECURITY.md`](SECURITY.md).
 - **Want to contribute code?** Start with a
-  [**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-  — these are small, self-contained, and mentored. See [Contributing](#contributing) for the workflow.
+  [**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22),
+  or narrow to the ones
+  [ready to claim](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22+label%3A%22help+wanted%22)
+  (`good first issue` + `help wanted`). They are small, self-contained, and mentored, and every one
+  carries the standard labels that contributor boards such as [up-for-grabs.net](https://up-for-grabs.net)
+  and [goodfirstissue.dev](https://goodfirstissue.dev) index by. See [Contributing](#contributing) for the workflow.
 - **First time here?** Everyone interacting with the project is expected to follow our
   [**Code of Conduct**](CODE_OF_CONDUCT.md) — be excellent to each other.
 
@@ -1038,7 +1042,9 @@ to a category to follow along, and watch the repo for **Announcements**.
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contract-freeze rule, the code layout
 (the control-plane and sandbox trees build against the frozen seam), how to report a vulnerability
 ([`SECURITY.md`](SECURITY.md)), our [Code of Conduct](CODE_OF_CONDUCT.md), and how to open a pull request.
-New here? Pick up a [**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+New here? Pick up a [**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+(or the [`help wanted`](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22+label%3A%22help+wanted%22) subset that is ready to claim).
+No account or sign-up needed beyond GitHub itself.
 
 ## License
 
