@@ -62,16 +62,28 @@ echo "==> composing beats"
 "$PY" "$HERE/_compose.py" "$WORK" "$WORK"    1920 1080 landscape
 "$PY" "$HERE/_compose.py" "$WORK" "$WORK/sq" 1080 1080 square
 
-# 4. Encode each variant: per-beat clip at its duration, then concat (exact runtime).
+# 4. Encode each variant: one clip per beat, then crossfade the beats together so the cut
+#    reads as motion rather than hard cuts. The demo itself prints near-instantly, so the
+#    beat pacing here is deliberate (a narrated reveal), not a recording artifact.
+XF="${XF:-0.6}"                          # crossfade seconds between beats
 encode () { # prefix out
   local prefix=$1 out=$2
-  local list="$WORK/list_${prefix}.txt"; : > "$list"
+  local inputs=() filt="" last="0:v" acc=0
   for i in 0 1 2 3 4 5; do
-    ffmpeg -y -loop 1 -i "$WORK/${prefix}_0${i}.png" -t "${DUR[$i]}" -r 12 \
+    ffmpeg -y -loop 1 -i "$WORK/${prefix}_0${i}.png" -t "${DUR[$i]}" -r 24 \
       -vf format=yuv420p -c:v libx264 -crf 23 "$WORK/${prefix}_clip_${i}.mp4" >/dev/null 2>&1
-    printf "file '%s/${prefix}_clip_%d.mp4'\n" "$WORK" "$i" >> "$list"
+    inputs+=(-i "$WORK/${prefix}_clip_${i}.mp4")
   done
-  ffmpeg -y -f concat -safe 0 -i "$list" -c copy "$out" >/dev/null 2>&1
+  # Chain xfade: offset_k = sum(dur[0..k-1]) - k*XF.
+  acc=${DUR[0]}
+  for i in 1 2 3 4 5; do
+    local off; off=$(python3 -c "print(round($acc - $i*$XF, 3))")
+    filt+="[${last}][${i}:v]xfade=transition=fade:duration=${XF}:offset=${off}[v${i}];"
+    last="v${i}"; acc=$(python3 -c "print($acc + ${DUR[$i]})")
+  done
+  filt="${filt%;}"
+  ffmpeg -y "${inputs[@]}" -filter_complex "$filt" -map "[${last}]" \
+    -c:v libx264 -crf 23 -pix_fmt yuv420p -movflags +faststart "$out" >/dev/null 2>&1
 }
 echo "==> encoding landscape + square"
 encode beat   "$HERE/landscape${SUFFIX}.mp4"
