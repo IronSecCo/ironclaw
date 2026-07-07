@@ -28,6 +28,11 @@ on:
         description: "Version tag to stamp + publish (e.g. v0.1.99). Blank = latest only."
         required: false
         default: ""
+      publish_mcp_registry:
+        description: "PARKED kill-switch for the MCP Registry publish (IRO-391/IRO-414). Leave false: the job publishes the CEO-rejected option-A listing. Only true after IRO-391 is reworked onto the socket-free image."
+        type: boolean
+        required: false
+        default: false
 
 # Least privilege by default: the workflow token is read-only at the top level.
 # The write scopes (packages / id-token / attestations) are granted only to the
@@ -424,9 +429,21 @@ jobs:
   # runs. A publish failure fails the workflow (fail-loud) but never rolls back the already
   # -published, already-attested image — the listing points at an artifact that stands on
   # its own.
+  #
+  # PARKED (IRO-391 / IRO-414). CEO chose option B: do NOT list the control-plane image
+  # with a host Docker-socket mount (host-root, against our hardening promise). This job
+  # as written publishes exactly that rejected option-A listing, so it is hard-disabled
+  # (`if: false`) until IRO-414 ships the slim, socket-free `ironclaw-mcp` image and
+  # IRO-391 is reworked to point server.json at it. Leaving it enabled would (a) re-publish
+  # the rejected listing on every release and (b) red the whole Image workflow on the
+  # post-check. The already-published option-A versions (0.1.216–0.1.230) are being
+  # deprecated out-of-band via mcp-registry-deprecate.yml.
   publish-mcp-registry:
     needs: [prepare, merge, verify-consumer]
-    if: ${{ needs.prepare.outputs.present == 'true' && needs.prepare.outputs.version != 'dev' && needs.prepare.outputs.version != '' }}
+    # PARKED: never runs on the release (workflow_run) path — it requires an explicit
+    # manual dispatch with publish_mcp_registry=true, which must not be set until IRO-391
+    # is reworked onto the socket-free image (IRO-414). See comment block above.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_mcp_registry && needs.prepare.outputs.present == 'true' && needs.prepare.outputs.version != 'dev' && needs.prepare.outputs.version != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read # checkout the trust-gated commit to read server.json
