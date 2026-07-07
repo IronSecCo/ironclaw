@@ -74,7 +74,9 @@ func TestDefaultSeccompProfileAllowsRuntimeDeniesDangerous(t *testing.T) {
 		allow[n] = true
 	}
 	// Core runtime + the model-proxy socket connect path must be permitted.
-	for _, must := range []string{"read", "write", "futex", "mmap", "connect", "epoll_wait", "clone"} {
+	// fork/vfork are required so musl/glibc shells can spawn subprocesses for a
+	// multi-command `sh -c` under the runc (non-gVisor) runtime (IRO-406).
+	for _, must := range []string{"read", "write", "futex", "mmap", "connect", "epoll_wait", "clone", "fork", "vfork"} {
 		if !allow[must] {
 			t.Errorf("allowlist missing required syscall %q", must)
 		}

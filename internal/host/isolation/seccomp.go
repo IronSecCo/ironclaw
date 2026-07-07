@@ -71,8 +71,13 @@ var allowedSyscalls = []string{
 	"rt_sigaction", "rt_sigprocmask", "rt_sigreturn", "rt_sigpending",
 	"rt_sigtimedwait", "rt_sigqueueinfo", "rt_sigsuspend", "sigaltstack",
 	"tgkill", "tkill", "kill", "restart_syscall",
-	// Process / thread lifecycle.
-	"clone", "clone3", "execve", "execveat", "exit", "exit_group", "wait4",
+	// Process / thread lifecycle. fork/vfork are needed by musl (busybox) and
+	// glibc (dash) shells to spawn subprocesses for a multi-command `sh -c`;
+	// omitting them made runc's non-gVisor fallback unable to run a normal shell
+	// script ("sh: can't fork"). Allowing them does not widen the boundary —
+	// network=none, all caps dropped, non-root, read-only rootfs, and no host
+	// socket all remain. Docker's own default profile allows both.
+	"clone", "clone3", "fork", "vfork", "execve", "execveat", "exit", "exit_group", "wait4",
 	"waitid", "set_tid_address", "set_robust_list", "get_robust_list", "gettid",
 	"getpid", "getppid", "prctl", "arch_prctl", "setpgid", "getpgid", "setsid",
 	// Identity (read-only; caps are already dropped).
