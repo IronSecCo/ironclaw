@@ -51,6 +51,10 @@ inputs:
     description: 'Write and upload the shareable SVG badge as a build artifact (true/false).'
     required: false
     default: 'false'
+  upload-sarif:
+    description: 'Emit SARIF and upload it to GitHub code scanning so failed dimensions appear in the Security tab (true/false). Requires `permissions: security-events: write` in the calling workflow. Default false so the action needs no extra permission unless you opt in.'
+    required: false
+    default: 'false'
   version:
     description: 'ironctl release to use: a tag like v0.1.252, or "latest" (default).'
     required: false
@@ -73,6 +77,9 @@ outputs:
   badge-path:
     description: 'Path to the SVG badge (only when badge=true).'
     value: ${{ steps.scan.outputs.badge-path }}
+  sarif-path:
+    description: 'Path to the SARIF log (only when upload-sarif=true).'
+    value: ${{ steps.scan.outputs.sarif-path }}
   passed:
     description: 'true when the score met min-score (or min-score was 0).'
     value: ${{ steps.scan.outputs.passed }}
@@ -89,9 +96,21 @@ runs:
         IC_MIN_SCORE: ${{ inputs.min-score }}
         IC_COMMENT: ${{ inputs.comment }}
         IC_BADGE: ${{ inputs.badge }}
+        IC_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
         IC_VERSION: ${{ inputs.version }}
         GH_TOKEN: ${{ inputs.github-token }}
       run: bash "${GITHUB_ACTION_PATH}/scan.sh"
+
+    # Opt-in SARIF upload: surfaces failed isolation dimensions in the repo's
+    # Security > Code scanning tab. Gated on upload-sarif so the action needs no
+    # security-events permission unless the consumer opts in. always() so a SARIF
+    # written before a min-score gate failure still uploads. codeql-action pinned
+    # by commit SHA (supply-chain).
+    - if: ${{ always() && inputs.upload-sarif == 'true' && steps.scan.outputs.sarif-path != '' }}
+      uses: github/codeql-action/upload-sarif@02c5e83432fe5497fd85b873b6c9f16a8578e1d9 # v3.37.0
+      with:
+        sarif_file: ${{ steps.scan.outputs.sarif-path }}
+        category: ironclaw-scan
 
     # Uploaded as a separate composite step, with always(), so the artifact
     # survives even when the scan step fails the min-score gate after the badge

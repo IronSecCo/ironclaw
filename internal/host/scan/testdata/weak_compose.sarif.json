@@ -1,0 +1,348 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ironctl-scan",
+          "version": "v0.0.0-golden",
+          "informationUri": "https://ironsecco.github.io/ironclaw/scan/",
+          "rules": [
+            {
+              "id": "user.nonroot",
+              "name": "UserNonroot",
+              "shortDescription": {
+                "text": "Non-root user (uid != 0)"
+              },
+              "fullDescription": {
+                "text": "Pin a non-root uid so a container escape does not begin as host uid 0."
+              },
+              "help": {
+                "text": "Pin a non-root uid so a container escape does not begin as host uid 0.\n\nFix: user: \"65532:65532\"\nMore: https://ironsecco.github.io/ironclaw/scan/",
+                "markdown": "Pin a non-root uid so a container escape does not begin as host uid 0.\n\n**Fix:** `user: \"65532:65532\"`\n\n[Hardening guide](https://ironsecco.github.io/ironclaw/scan/)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "containment",
+                  "ironclaw"
+                ]
+              }
+            },
+            {
+              "id": "caps.dropped",
+              "name": "CapsDropped",
+              "shortDescription": {
+                "text": "Dropped capabilities"
+              },
+              "fullDescription": {
+                "text": "Drop every Linux capability; add back only what the workload provably needs."
+              },
+              "help": {
+                "text": "Drop every Linux capability; add back only what the workload provably needs.\n\nFix: cap_drop: [ALL]\nMore: https://ironsecco.github.io/ironclaw/scan/",
+                "markdown": "Drop every Linux capability; add back only what the workload provably needs.\n\n**Fix:** `cap_drop: [ALL]`\n\n[Hardening guide](https://ironsecco.github.io/ironclaw/scan/)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "containment",
+                  "ironclaw"
+                ]
+              }
+            },
+            {
+              "id": "seccomp",
+              "name": "Seccomp",
+              "shortDescription": {
+                "text": "Seccomp profile"
+              },
+              "fullDescription": {
+                "text": "Keep a seccomp profile active to shrink the reachable syscall surface."
+              },
+              "help": {
+                "text": "Keep a seccomp profile active to shrink the reachable syscall surface.\n\nFix: security_opt: [no-new-privileges:true]  (and remove any seccomp=unconfined)\nMore: https://ironsecco.github.io/ironclaw/scan/",
+                "markdown": "Keep a seccomp profile active to shrink the reachable syscall surface.\n\n**Fix:** `security_opt: [no-new-privileges:true]  (and remove any seccomp=unconfined)`\n\n[Hardening guide](https://ironsecco.github.io/ironclaw/scan/)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "containment",
+                  "ironclaw"
+                ]
+              }
+            },
+            {
+              "id": "network.isolated",
+              "name": "NetworkIsolated",
+              "shortDescription": {
+                "text": "Network isolation / egress"
+              },
+              "fullDescription": {
+                "text": "Cut egress so a compromised workload cannot reach the network or exfiltrate."
+              },
+              "help": {
+                "text": "Cut egress so a compromised workload cannot reach the network or exfiltrate.\n\nFix: network_mode: none\nMore: https://ironsecco.github.io/ironclaw/scan/",
+                "markdown": "Cut egress so a compromised workload cannot reach the network or exfiltrate.\n\n**Fix:** `network_mode: none`\n\n[Hardening guide](https://ironsecco.github.io/ironclaw/scan/)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "containment",
+                  "ironclaw"
+                ]
+              }
+            },
+            {
+              "id": "rootfs.readonly",
+              "name": "RootfsReadonly",
+              "shortDescription": {
+                "text": "Read-only root filesystem"
+              },
+              "fullDescription": {
+                "text": "Make the root filesystem read-only to remove the tamper/persistence surface."
+              },
+              "help": {
+                "text": "Make the root filesystem read-only to remove the tamper/persistence surface.\n\nFix: read_only: true\nMore: https://ironsecco.github.io/ironclaw/scan/",
+                "markdown": "Make the root filesystem read-only to remove the tamper/persistence surface.\n\n**Fix:** `read_only: true`\n\n[Hardening guide](https://ironsecco.github.io/ironclaw/scan/)"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "containment",
+                  "ironclaw"
+                ]
+              }
+            },
+            {
+              "id": "docker.sock",
+              "name": "DockerSock",
+              "shortDescription": {
+                "text": "No docker.sock exposure"
+              },
+              "fullDescription": {
+                "text": "Mounting the container-runtime socket is a one-command host-root escape."
+              },
+              "help": {
+                "text": "Mounting the container-runtime socket is a one-command host-root escape.\n\nFix: remove the docker.sock entry from the service's volumes:\nMore: https://ironsecco.github.io/ironclaw/scan/",
+                "markdown": "Mounting the container-runtime socket is a one-command host-root escape.\n\n**Fix:** `remove the docker.sock entry from the service's volumes:`\n\n[Hardening guide](https://ironsecco.github.io/ironclaw/scan/)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "containment",
+                  "ironclaw"
+                ]
+              }
+            },
+            {
+              "id": "namespaces.host",
+              "name": "NamespacesHost",
+              "shortDescription": {
+                "text": "No shared host namespaces"
+              },
+              "fullDescription": {
+                "text": "Do not share host namespaces; each shared namespace erases an isolation boundary."
+              },
+              "help": {
+                "text": "Do not share host namespaces; each shared namespace erases an isolation boundary.\n\nFix: remove pid: host\nMore: https://ironsecco.github.io/ironclaw/scan/",
+                "markdown": "Do not share host namespaces; each shared namespace erases an isolation boundary.\n\n**Fix:** `remove pid: host`\n\n[Hardening guide](https://ironsecco.github.io/ironclaw/scan/)"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "containment",
+                  "ironclaw"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "user.nonroot",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "Non-root user (uid != 0) (FAIL): runs as root (user \"0\"); a container escape starts with host-uid 0. Fix: user: \"65532:65532\""
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "docker-compose.yml"
+                },
+                "region": {
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "ironclawScan/v1": "48330939b59526e4"
+          }
+        },
+        {
+          "ruleId": "caps.dropped",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "Dropped capabilities (FAIL): default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, …). Fix: cap_drop: [ALL]"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "docker-compose.yml"
+                },
+                "region": {
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "ironclawScan/v1": "a8cf0ca19dcf3eaf"
+          }
+        },
+        {
+          "ruleId": "seccomp",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "Seccomp profile (FAIL): seccomp=unconfined: the full syscall surface is exposed. Fix: security_opt: [no-new-privileges:true]  (and remove any seccomp=unconfined)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "docker-compose.yml"
+                },
+                "region": {
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "ironclawScan/v1": "f5272f010045cc40"
+          }
+        },
+        {
+          "ruleId": "network.isolated",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "Network isolation / egress (WARN): network=bridge: outbound egress is possible; prefer network=none. Fix: network_mode: none"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "docker-compose.yml"
+                },
+                "region": {
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "ironclawScan/v1": "b9532d876273bc28"
+          }
+        },
+        {
+          "ruleId": "rootfs.readonly",
+          "ruleIndex": 4,
+          "level": "warning",
+          "message": {
+            "text": "Read-only root filesystem (FAIL): root filesystem is writable: tamper/persistence surface. Fix: read_only: true"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "docker-compose.yml"
+                },
+                "region": {
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "ironclawScan/v1": "131b561f1c1c4dda"
+          }
+        },
+        {
+          "ruleId": "docker.sock",
+          "ruleIndex": 5,
+          "level": "error",
+          "message": {
+            "text": "No docker.sock exposure (FAIL): docker.sock is mounted: trivial host-root escape (docker run --privileged -v /:/host). Fix: remove the docker.sock entry from the service's volumes:"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "docker-compose.yml"
+                },
+                "region": {
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "ironclawScan/v1": "9cea47edf2bca8d4"
+          }
+        },
+        {
+          "ruleId": "namespaces.host",
+          "ruleIndex": 6,
+          "level": "warning",
+          "message": {
+            "text": "No shared host namespaces (FAIL): shares host namespace(s): PID. Fix: remove pid: host"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "docker-compose.yml"
+                },
+                "region": {
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "ironclawScan/v1": "48696dfb137ef63a"
+          }
+        }
+      ]
+    }
+  ]
+}

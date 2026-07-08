@@ -73,10 +73,42 @@ The file modes need no Docker daemon — the action reads the file directly:
 | `min-score` | `0` | Fail the check below this score. `0` = report-only. |
 | `comment` | `true` | Post the scorecard as a sticky PR comment. |
 | `badge` | `false` | Write and upload the SVG badge as a build artifact. |
+| `upload-sarif` | `false` | Emit SARIF and upload it to GitHub code scanning (Security tab). Requires `security-events: write`. |
 | `version` | `latest` | ironctl release (`latest` or a tag like `v0.1.252`). |
 | `github-token` | `${{ github.token }}` | Token for the comment + release lookup. |
 
-Outputs: `score`, `grade`, `scorecard` (path), `badge-path`, and `passed`.
+Outputs: `score`, `grade`, `scorecard` (path), `badge-path`, `sarif-path`, and `passed`.
+
+## Surface findings in the Security tab (SARIF)
+
+Set `upload-sarif: true` and grant `security-events: write`, and the action
+uploads a [SARIF 2.1.0](scan.md#github-code-scanning-security-tab) log so every
+failed isolation dimension shows up in your repo's **Security > Code scanning**
+tab, deduped across runs, alongside CodeQL and any other scanner:
+
+```yaml
+permissions:
+  contents: read
+  security-events: write      # required to upload SARIF
+  pull-requests: write        # only if you also keep the sticky comment
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: IronSecCo/ironclaw/.github/actions/scan@v1
+        with:
+          mode: compose
+          target: docker-compose.yml
+          upload-sarif: true
+```
+
+`upload-sarif` defaults to `false`, so the action asks for **no** new permission
+unless you opt in. Results are anchored at the scanned config file (with a line
+region when derivable), and a clean 100/A target uploads zero findings. SARIF
+emit is fail-open: a write failure never blocks the scan or its `min-score` gate.
+The upload uses `github/codeql-action/upload-sarif`, pinned by commit SHA.
 
 ## Report-only vs. gating
 
