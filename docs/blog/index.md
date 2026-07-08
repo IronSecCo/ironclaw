@@ -19,3 +19,7 @@ adjectives standing in for numbers.
   one command grades any container, compose service, or Kubernetes pod on a 0 to 100
   containment scale. Fail-closed, works on your own setups. A wide-open container scores
   23 of 100; a hardened IronClaw sandbox scores 100.
+- [Add a live Sandbox Isolation Score badge to your repo](add-a-sandbox-isolation-score-badge-to-your-repo.md) -
+  generate a shields.io endpoint JSON with `ironctl scan --badge-json`, commit it as a
+  static file, and render a live 0 to 100 A-to-F containment grade in your README. No
+  server, no scan on every badge hit.
