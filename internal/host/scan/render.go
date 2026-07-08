@@ -152,6 +152,37 @@ func RenderBadgeSVG(r Report) string {
 		llx, label, llx, label, rx, right, rx, right)
 }
 
+// BadgeEndpoint is the shields.io endpoint response schema (schemaVersion 1).
+// See https://shields.io/badges/endpoint-badge.
+type BadgeEndpoint struct {
+	SchemaVersion int    `json:"schemaVersion"`
+	Label         string `json:"label"`
+	Message       string `json:"message"`
+	Color         string `json:"color"`
+}
+
+// RenderBadgeEndpointJSON returns the shields.io endpoint JSON for r. Commit the
+// output into your repo and point a shields endpoint badge at its raw URL to get
+// a live, self-updating Sandbox Isolation Score badge in your README:
+//
+//	![Sandbox Isolation](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/OWNER/REPO/BRANCH/PATH.json)
+//
+// The score is pinned at generation time; this file triggers no live scan (no
+// server-side DoS surface). Regenerate with `ironctl scan --badge-json` whenever
+// your container config changes.
+func RenderBadgeEndpointJSON(r Report) string {
+	b := BadgeEndpoint{
+		SchemaVersion: 1,
+		Label:         "sandbox isolation",
+		Message:       fmt.Sprintf("%d/100 %s", r.Score, r.Grade),
+		// shields accepts a bare 6-hex color; drop the leading '#'. Same palette
+		// as the committed SVG so both surfaces agree.
+		Color: strings.TrimPrefix(gradeColor(r.Grade), "#"),
+	}
+	out, _ := json.MarshalIndent(b, "", "  ")
+	return string(out) + "\n"
+}
+
 // gradeColor maps a letter grade to the shields flat-badge palette.
 func gradeColor(g string) string {
 	switch g {

@@ -14,6 +14,7 @@ Each one runs sealed in a sandbox that provably cannot phone home, read your hos
 [![SBOM: SPDX + CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-44883e.svg)](#verifying-a-release)
 [![SLSA provenance](https://img.shields.io/badge/SLSA-build%20provenance-44883e.svg)](#verifying-a-release)
 [![Sandbox scan: PR scorecard](https://img.shields.io/badge/sandbox%20scan-PR%20scorecard-0a7bbb.svg)](https://ironsecco.github.io/ironclaw/scan-action/)
+[![Sandbox Isolation Score](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/IronSecCo/ironclaw/main/.ironclaw/sandbox-isolation.json)](https://ironsecco.github.io/ironclaw/scan/#sandbox-isolation-score-badge)
 
 [![Documentation](https://img.shields.io/badge/docs-ironsecco.github.io-0a7bbb.svg)](https://ironsecco.github.io/ironclaw/)
 [![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#project-status)

@@ -96,8 +96,46 @@ the runtime name. The dimension scorers remain the authority on the score.
 | `--json` | the full report as JSON (schemaVersion 1.0), for pipelines and dashboards |
 | `--fix` | print the concrete remediation for every failed dimension, plus a copy-pasteable hardened config (`--remediate` is an alias) |
 | `--badge scan.svg` | a self-contained SVG badge you can drop into a README |
+| `--badge-json badge.json` | a [shields.io endpoint](https://shields.io/badges/endpoint-badge) JSON file for a live, self-updating README badge |
 | `--md` | a shareable markdown block for a README or blog post |
 | `--min-score N` | exit non-zero when the score is below N (a CI gate) |
+
+## Sandbox Isolation Score badge
+
+Show your container's containment grade in your README, the same way a coverage or
+build badge advertises code health. Two ways to do it, both free and static (no
+server scans your image on every badge hit):
+
+**1. A pinned static badge (zero infrastructure).** Point a plain
+[shields.io static badge](https://shields.io/badges/static-badge) at your grade:
+
+```markdown
+![Sandbox Isolation](https://img.shields.io/badge/sandbox%20isolation-100%2F100%20A-3fb950)
+```
+
+**2. A live badge that updates itself.** Commit a small JSON file to your repo and
+let shields.io render it. Regenerate the file whenever your container config
+changes and the badge follows along:
+
+```bash
+# grade your container (or --compose FILE / --k8s FILE) and write the badge file
+ironctl scan my-container --badge-json .ironclaw/sandbox-isolation.json
+git add .ironclaw/sandbox-isolation.json && git commit -m "chore: refresh sandbox isolation badge"
+```
+
+Then embed it, swapping in your `OWNER/REPO/BRANCH/PATH`:
+
+```markdown
+[![Sandbox Isolation Score](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/OWNER/REPO/main/.ironclaw/sandbox-isolation.json)](https://ironsecco.github.io/ironclaw/scan/)
+```
+
+The score is pinned in the committed file at generation time, so a badge hit never
+triggers a scan of a remote target. Grade to color follows the scorecard palette:
+A is green, B and C are amber, D and F are red.
+
+IronClaw dogfoods its own badge in the project README, generated from the sandbox
+reference posture the isolation launcher applies to every session
+(`.ironclaw/sandbox-posture.yml`, graded 100/100 A).
 
 ## Fix it, do not just grade it
 
