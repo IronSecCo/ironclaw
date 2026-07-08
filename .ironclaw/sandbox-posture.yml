@@ -1,0 +1,14 @@
+# IronClaw sandbox reference posture (what the isolation launcher applies to every
+# per-session sandbox): non-root nonroot uid, all caps dropped, no new privileges,
+# read-only rootfs, seccomp confined, network=none (egress only via host-mediated
+# socket, never a NIC), no shared host namespaces. See internal/host/isolation.
+services:
+  ironclaw-sandbox:
+    image: gcr.io/distroless/static:nonroot
+    user: "65532:65532"
+    cap_drop:
+      - ALL
+    network_mode: none
+    read_only: true
+    security_opt:
+      - no-new-privileges:true

@@ -98,6 +98,35 @@ func TestRenderBadgeSVG(t *testing.T) {
 	}
 }
 
+func TestRenderBadgeEndpointJSON(t *testing.T) {
+	var pass BadgeEndpoint
+	if err := json.Unmarshal([]byte(RenderBadgeEndpointJSON(sampleReport())), &pass); err != nil {
+		t.Fatalf("badge JSON is not valid: %v", err)
+	}
+	if pass.SchemaVersion != 1 {
+		t.Errorf("schemaVersion = %d, want 1", pass.SchemaVersion)
+	}
+	if pass.Label != "sandbox isolation" {
+		t.Errorf("label = %q", pass.Label)
+	}
+	if pass.Message != "100/100 A" {
+		t.Errorf("message = %q, want 100/100 A", pass.Message)
+	}
+	// Color is the bare hex (no '#') so shields accepts it, and matches the SVG.
+	if want := strings.TrimPrefix(gradeColor("A"), "#"); pass.Color != want {
+		t.Errorf("color = %q, want %q", pass.Color, want)
+	}
+
+	// A failing report must render red, not green.
+	var fail BadgeEndpoint
+	if err := json.Unmarshal([]byte(RenderBadgeEndpointJSON(Score(Spec{}))), &fail); err != nil {
+		t.Fatalf("failing badge JSON invalid: %v", err)
+	}
+	if want := strings.TrimPrefix(gradeColor("F"), "#"); fail.Color != want {
+		t.Errorf("failing badge color = %q, want %q (red)", fail.Color, want)
+	}
+}
+
 func TestRenderMarkdown(t *testing.T) {
 	md := RenderMarkdown(sampleReport())
 	for _, want := range []string{"ic-sbx-demo", "100/100", "| Dimension |", "ironctl scan"} {

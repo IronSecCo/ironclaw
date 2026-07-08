@@ -30,6 +30,7 @@ func cmdScan(args []string) error {
 	fs := flag.NewFlagSet("scan", flag.ContinueOnError)
 	asJSON := fs.Bool("json", false, "emit the scorecard as JSON")
 	badge := fs.String("badge", "", "write a shareable SVG badge to this path")
+	badgeJSON := fs.String("badge-json", "", "write a shields.io endpoint JSON badge to this path (embed a live README badge)")
 	md := fs.Bool("md", false, "print a shareable markdown block (README/blog section)")
 	fix := fs.Bool("fix", false, "emit concrete remediation config for each failed dimension")
 	remediate := fs.Bool("remediate", false, "alias for --fix")
@@ -125,6 +126,14 @@ func cmdScan(args []string) error {
 		}
 		if !*asJSON {
 			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", *badge)
+		}
+	}
+	if *badgeJSON != "" {
+		if err := os.WriteFile(*badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !*asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", *badgeJSON)
 		}
 	}
 
@@ -243,6 +252,7 @@ FLAGS:
   --fix               emit concrete remediation config for each failed dimension
   --remediate         alias for --fix
   --badge PATH        write a shareable SVG badge to PATH
+  --badge-json PATH   write a shields.io endpoint JSON badge to PATH (live README badge)
   --md                print a shareable markdown block
   --min-score N       exit non-zero if the score is below N (CI gate)
   --service NAME      compose service to grade (if the file has >1)
