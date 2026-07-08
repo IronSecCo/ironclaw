@@ -74,6 +74,15 @@ type Spec struct {
 	// User is the raw user spec observed ("65532", "nobody", "0:0", ""), shown
 	// as evidence in the detail column.
 	User string
+	// Rootless is Yes when the container runs in a user namespace that remaps
+	// container-uid 0 to an UNPRIVILEGED host uid (rootless Podman, or an explicit
+	// userns). This is a genuine posture win independent of the runtime name: a
+	// container-root escape lands as an unprivileged host user, not host root. It
+	// credits the non-root dimension even when the in-container user is 0.
+	Rootless Tristate
+	// UserNSHostUID is the host uid that container-uid 0 maps to, when known
+	// (evidence for the rootless credit; e.g. "100000").
+	UserNSHostUID string
 
 	// --- capabilities --------------------------------------------------------
 	// CapDropAll is Yes when ALL capabilities are dropped (cap_drop: [ALL] or an

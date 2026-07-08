@@ -36,7 +36,10 @@ func cmdScan(args []string) error {
 	compose := fs.String("compose", "", "grade a service in this docker-compose file")
 	service := fs.String("service", "", "compose service name (required if the file has >1 service)")
 	k8s := fs.String("k8s", "", "grade the first container in this Kubernetes pod/workload manifest")
+	runtime := fs.String("runtime", envOrDefault("IRONCTL_SCAN_RUNTIME", "auto"), "container runtime: auto|docker|podman|nerdctl")
 	dockerBin := fs.String("docker-bin", envOrDefault("DOCKER", "docker"), "docker binary used for `docker inspect`")
+	podmanBin := fs.String("podman-bin", envOrDefault("PODMAN", "podman"), "podman binary used for `podman inspect`")
+	nerdctlBin := fs.String("nerdctl-bin", envOrDefault("NERDCTL", "nerdctl"), "nerdctl binary used for `nerdctl inspect`")
 	minScore := fs.Int("min-score", 0, "exit non-zero if the score is below this threshold (CI gate)")
 	fs.Usage = func() { scanUsage(os.Stdout) }
 	// Go's flag package stops at the first positional, so `scan <target> --json`
@@ -82,7 +85,8 @@ func cmdScan(args []string) error {
 		if len(positional) > 1 {
 			return fmt.Errorf("scan grades one target at a time; got %d: %s", len(positional), strings.Join(positional, " "))
 		}
-		spec, err = dockerSpec(*dockerBin, positional[0])
+		bins := runtimeBins{docker: *dockerBin, podman: *podmanBin, nerdctl: *nerdctlBin}
+		spec, err = containerSpec(*runtime, bins, positional[0])
 	}
 	if err != nil {
 		return err
@@ -131,32 +135,110 @@ func cmdScan(args []string) error {
 	return nil
 }
 
-// dockerSpec runs `docker inspect <target>` and parses the result into a Spec.
-func dockerSpec(dockerBin, target string) (scan.Spec, error) {
-	cmd := exec.Command(dockerBin, "inspect", target)
-	out, err := cmd.Output()
+// runtimeBins carries the resolved binary name for each supported runtime.
+type runtimeBins struct{ docker, podman, nerdctl string }
+
+// containerSpec inspects a running container with the selected (or auto-detected)
+// OCI runtime and parses the result into a Spec. It fails closed: an unknown or
+// unreachable runtime returns a clear error rather than a silent empty scan.
+func containerSpec(runtime string, bins runtimeBins, target string) (scan.Spec, error) {
+	rt := strings.ToLower(strings.TrimSpace(runtime))
+	if rt == "" || rt == "auto" {
+		detected, err := detectRuntime(bins)
+		if err != nil {
+			return scan.Spec{}, err
+		}
+		rt = detected
+	}
+
+	switch rt {
+	case "docker":
+		out, err := runInspect(bins.docker, "docker", target)
+		if err != nil {
+			return scan.Spec{}, err
+		}
+		return scan.SpecFromDockerInspect(out)
+	case "podman":
+		out, err := runInspect(bins.podman, "podman", target)
+		if err != nil {
+			return scan.Spec{}, err
+		}
+		return scan.SpecFromPodmanInspect(out, podmanRootless(bins.podman))
+	case "nerdctl":
+		out, err := runInspect(bins.nerdctl, "nerdctl", target)
+		if err != nil {
+			return scan.Spec{}, err
+		}
+		return scan.SpecFromNerdctlInspect(out)
+	default:
+		return scan.Spec{}, fmt.Errorf("unknown --runtime %q: expected auto|docker|podman|nerdctl", runtime)
+	}
+}
+
+// detectRuntime picks the first runtime whose CLI is on PATH, preferring docker,
+// then podman, then nerdctl. Fails closed with actionable guidance when none is
+// found so a missing runtime never masquerades as a clean scan.
+func detectRuntime(bins runtimeBins) (string, error) {
+	for _, c := range []struct{ name, bin string }{
+		{"docker", bins.docker},
+		{"podman", bins.podman},
+		{"nerdctl", bins.nerdctl},
+	} {
+		if _, err := exec.LookPath(c.bin); err == nil {
+			return c.name, nil
+		}
+	}
+	return "", fmt.Errorf("no container runtime found (looked for docker, podman, nerdctl on PATH); install one or pass --runtime and the matching --<runtime>-bin")
+}
+
+// runInspect runs `<bin> inspect <target>` and returns its stdout, surfacing the
+// runtime's own stderr on failure.
+func runInspect(bin, runtime, target string) ([]byte, error) {
+	if _, err := exec.LookPath(bin); err != nil {
+		return nil, fmt.Errorf("%s runtime selected but %q is not on PATH: %w", runtime, bin, err)
+	}
+	out, err := exec.Command(bin, "inspect", target).Output()
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
 			msg := strings.TrimSpace(string(ee.Stderr))
 			if msg == "" {
 				msg = err.Error()
 			}
-			return scan.Spec{}, fmt.Errorf("docker inspect %s: %s", target, msg)
+			return nil, fmt.Errorf("%s inspect %s: %s", runtime, target, msg)
 		}
-		return scan.Spec{}, fmt.Errorf("run %s inspect: %w (is Docker installed and the container running?)", dockerBin, err)
+		return nil, fmt.Errorf("run %s inspect: %w (is %s running and the container up?)", bin, err, runtime)
 	}
-	return scan.SpecFromDockerInspect(out)
+	return out, nil
+}
+
+// podmanRootless probes `podman info` for the daemon-level rootless flag. On any
+// error it returns Unknown; the podman adapter then falls back to the per-container
+// uid-map evidence, so this is best-effort corroboration, not a hard dependency.
+func podmanRootless(bin string) scan.Tristate {
+	out, err := exec.Command(bin, "info", "--format", "{{.Host.Security.Rootless}}").Output()
+	if err != nil {
+		return scan.Unknown
+	}
+	switch strings.TrimSpace(string(out)) {
+	case "true":
+		return scan.Yes
+	case "false":
+		return scan.No
+	default:
+		return scan.Unknown
+	}
 }
 
 func scanUsage(w *os.File) {
 	fmt.Fprint(w, `ironctl scan — grade a container's containment posture (0-100)
 
 USAGE:
-  ironctl scan <container>                    grade a running docker container
+  ironctl scan <container>                    grade a running container (docker|podman|nerdctl)
   ironctl scan --compose FILE [--service N]   grade a docker-compose service
   ironctl scan --k8s FILE                     grade a Kubernetes pod/workload manifest
 
 FLAGS:
+  --runtime NAME      container runtime: auto|docker|podman|nerdctl (default: auto)
   --json              emit the scorecard as JSON
   --fix               emit concrete remediation config for each failed dimension
   --remediate         alias for --fix
@@ -165,6 +247,14 @@ FLAGS:
   --min-score N       exit non-zero if the score is below N (CI gate)
   --service NAME      compose service to grade (if the file has >1)
   --docker-bin BIN    docker binary for `+"`docker inspect`"+` (default: docker)
+  --podman-bin BIN    podman binary for `+"`podman inspect`"+` (default: podman)
+  --nerdctl-bin BIN   nerdctl binary for `+"`nerdctl inspect`"+` (default: nerdctl)
+
+Runtime is auto-detected (docker, then podman, then nerdctl on PATH); override
+with --runtime. Rootless podman is credited: a userns remap of container-uid 0
+to an unprivileged host uid earns credit on the non-root dimension. A recognized
+hardened runtime (gVisor/Kata/Firecracker) is surfaced informationally, but per
+IRO-429 scoring stays runtime-agnostic (no points for a runtime name).
 
 Dimensions graded: non-root user, dropped capabilities, seccomp, network
 isolation, read-only rootfs, docker.sock exposure, shared host namespaces.

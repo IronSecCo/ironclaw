@@ -37,7 +37,56 @@ ironctl scan --compose docker-compose.yml --service web
 
 # grade a Kubernetes pod or workload manifest (Deployment, StatefulSet, ...)
 ironctl scan --k8s pod.yaml
+
+# force a specific runtime (default is auto-detect)
+ironctl scan --runtime podman my-container
 ```
+
+## Supported runtimes
+
+`ironctl scan` audits any OCI container, not just Docker. It auto-detects the
+available runtime (in order: docker, then podman, then nerdctl on your PATH) and
+picks the matching adapter; override it with `--runtime`. It grades host-side
+inspect data, so probe-masking from inside the container cannot change the score.
+
+| Runtime | How it is graded | Notes |
+|---|---|---|
+| `docker` | `docker inspect` | the default; also covers Docker-compatible engines |
+| `podman` | `podman inspect` | rootless is detected and credited (see below) |
+| `nerdctl` / containerd | `nerdctl inspect` | Docker-compatible schema; containerd runtime handlers (for example `io.containerd.runsc.v1`) are recognized |
+| compose | `--compose FILE` | grades a service from the file, no runtime needed |
+| Kubernetes | `--k8s FILE` | grades a pod or workload manifest, no runtime needed |
+
+Selection and binaries:
+
+```bash
+ironctl scan --runtime auto CONTAINER      # auto-detect (default)
+ironctl scan --runtime podman CONTAINER    # force podman
+ironctl scan --podman-bin /usr/bin/podman CONTAINER
+```
+
+The runtime is resolved fail-closed: if the selected (or auto-detected) runtime
+is not on your PATH or cannot reach a running container, the scan errors with a
+clear message instead of returning a misleadingly clean report. `--docker-bin`,
+`--podman-bin`, and `--nerdctl-bin` (or the `DOCKER`, `PODMAN`, `NERDCTL`
+environment variables) point at a non-default binary.
+
+### Rootless Podman is credited
+
+A rootless container runs inside a user namespace that remaps container-uid 0 to
+an unprivileged host uid, so a container-root escape lands as an unprivileged
+host user rather than host root. That is a real isolation win, so a rootless
+Podman container earns credit on the non-root dimension even when the process
+inside the container is uid 0. Rootless mode is detected from `podman info` and,
+when present, from the container's user-namespace uid map.
+
+### Hardened runtimes are surfaced, not scored
+
+When a container runs under a recognized strong-isolation runtime (gVisor /
+`runsc`, Kata Containers, or Firecracker), the scorecard names it as an
+informational line. Scoring stays runtime-agnostic on purpose: a container can
+name a hardened runtime and still be misconfigured, so no points are awarded for
+the runtime name. The dimension scorers remain the authority on the score.
 
 ## Output formats
 

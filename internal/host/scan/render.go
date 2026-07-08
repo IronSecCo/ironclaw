@@ -16,6 +16,9 @@ func RenderTable(w io.Writer, r Report) {
 	if r.Runtime != "" {
 		fmt.Fprintf(w, "  runtime: %s\n", r.Runtime)
 	}
+	if r.HardenedRuntime != "" {
+		fmt.Fprintf(w, "  isolation: %s (hardened runtime; informational, no score bonus)\n", r.HardenedRuntime)
+	}
 	fmt.Fprintf(w, "  score:   %d/%d  grade %s  %s\n\n", r.Score, r.Max, r.Grade, gradeBanner(r.Grade))
 
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
