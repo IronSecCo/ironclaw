@@ -88,6 +88,10 @@ Grades map to bands: A is 90 or above, B is 75 to 89, C is 50 to 74, D is 25 to
 ironctl scan my-sandbox --min-score 90
 ```
 
+On GitHub, the [scan GitHub Action](scan-action.md) does this for you: it posts
+the scorecard as a sticky pull-request comment and fails the check below your
+`min-score`, so every PR carries an IronClaw containment grade.
+
 ## What a hardened target looks like
 
 An IronClaw `ic-sbx-*` sandbox scores a clean 100:
