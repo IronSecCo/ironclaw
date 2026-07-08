@@ -63,6 +63,10 @@ type Spec struct {
 	// Source identity (informational; shown in the report header).
 	Source string // "docker" | "compose" | "k8s"
 	Target string // container name/id, compose service, or pod name
+	// Image is the container image reference, when the source reports it. Used to
+	// render a copy-pasteable hardened `docker run` in remediation output; may be
+	// "" (compose/k8s adapters do not populate it).
+	Image string
 
 	// --- user namespace / uid ------------------------------------------------
 	// RunAsNonRoot is Yes when the workload is known to run as a uid != 0.

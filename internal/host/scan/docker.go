@@ -12,7 +12,8 @@ type dockerInspect struct {
 	ID     string `json:"Id"`
 	Name   string `json:"Name"`
 	Config struct {
-		User string `json:"User"`
+		User  string `json:"User"`
+		Image string `json:"Image"`
 	} `json:"Config"`
 	HostConfig struct {
 		NetworkMode    string   `json:"NetworkMode"`
@@ -53,6 +54,7 @@ func SpecFromDockerInspect(raw []byte) (Spec, error) {
 	s := Spec{
 		Source:  "docker",
 		Target:  strings.TrimPrefix(d.Name, "/"),
+		Image:   strings.TrimSpace(d.Config.Image),
 		Runtime: d.HostConfig.Runtime,
 	}
 	if s.Target == "" {

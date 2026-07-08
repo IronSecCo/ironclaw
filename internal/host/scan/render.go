@@ -61,13 +61,12 @@ func verdictGlyph(v Verdict) string {
 	}
 }
 
-// RenderJSON writes the machine-readable report (schemaVersion 1.0).
-func RenderJSON(w io.Writer, r Report) error {
-	type envelope struct {
-		SchemaVersion string `json:"schemaVersion"`
-		Report        `json:",inline"`
-	}
-	// json does not honour ",inline"; marshal the report and splice the field in.
+// RenderJSON writes the machine-readable report (schemaVersion 1.0). When a
+// non-nil RemediationPlan is passed (from `--fix`), it is spliced in under the
+// "remediation" key so the JSON carries the prescriptive fixes too — fail-closed
+// parity with the human output.
+func RenderJSON(w io.Writer, r Report, plan ...*RemediationPlan) error {
+	// json does not honour ",inline"; marshal the report and splice fields in.
 	b, err := json.Marshal(r)
 	if err != nil {
 		return err
@@ -78,6 +77,9 @@ func RenderJSON(w io.Writer, r Report) error {
 	}
 	m["schemaVersion"] = "1.0"
 	m["report"] = "ironclaw-containment-scan"
+	if len(plan) > 0 && plan[0] != nil {
+		m["remediation"] = plan[0]
+	}
 	out, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return err

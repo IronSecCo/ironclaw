@@ -31,6 +31,8 @@ func cmdScan(args []string) error {
 	asJSON := fs.Bool("json", false, "emit the scorecard as JSON")
 	badge := fs.String("badge", "", "write a shareable SVG badge to this path")
 	md := fs.Bool("md", false, "print a shareable markdown block (README/blog section)")
+	fix := fs.Bool("fix", false, "emit concrete remediation config for each failed dimension")
+	remediate := fs.Bool("remediate", false, "alias for --fix")
 	compose := fs.String("compose", "", "grade a service in this docker-compose file")
 	service := fs.String("service", "", "compose service name (required if the file has >1 service)")
 	k8s := fs.String("k8s", "", "grade the first container in this Kubernetes pod/workload manifest")
@@ -90,13 +92,24 @@ func cmdScan(args []string) error {
 	report.Version = version.String()
 	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
 
+	// --fix (a.k.a. --remediate): compute the prescriptive plan up front so it can
+	// ride along in either the JSON or the table output.
+	var plan *scan.RemediationPlan
+	if *fix || *remediate {
+		p := scan.Remediate(spec, report)
+		plan = &p
+	}
+
 	// Emit the requested representations. Table is the default; --json swaps it.
 	if *asJSON {
-		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+		if err := scan.RenderJSON(os.Stdout, report, plan); err != nil {
 			return err
 		}
 	} else {
 		scan.RenderTable(os.Stdout, report)
+		if plan != nil {
+			scan.RenderPlan(os.Stdout, *plan)
+		}
 	}
 	if *md {
 		fmt.Fprintln(os.Stdout)
@@ -145,6 +158,8 @@ USAGE:
 
 FLAGS:
   --json              emit the scorecard as JSON
+  --fix               emit concrete remediation config for each failed dimension
+  --remediate         alias for --fix
   --badge PATH        write a shareable SVG badge to PATH
   --md                print a shareable markdown block
   --min-score N       exit non-zero if the score is below N (CI gate)

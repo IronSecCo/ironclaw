@@ -47,6 +47,42 @@ func TestRenderJSON(t *testing.T) {
 	}
 }
 
+// --json must carry the remediation when a plan is passed (--fix), and omit it
+// otherwise. Fail-closed parity between the human and machine outputs.
+func TestRenderJSON_WithRemediation(t *testing.T) {
+	s := weakDockerSpec()
+	plan := Remediate(s, Score(s))
+	var b bytes.Buffer
+	if err := RenderJSON(&b, Score(s), &plan); err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b.Bytes(), &m); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	rem, ok := m["remediation"].(map[string]any)
+	if !ok {
+		t.Fatal("remediation key missing from JSON")
+	}
+	if _, ok := rem["items"].([]any); !ok {
+		t.Error("remediation.items missing")
+	}
+	if snip, _ := rem["snippet"].(string); !strings.Contains(snip, "docker run") {
+		t.Errorf("remediation.snippet not carried: %v", rem["snippet"])
+	}
+
+	// Without a plan, no remediation key.
+	var b2 bytes.Buffer
+	if err := RenderJSON(&b2, sampleReport()); err != nil {
+		t.Fatal(err)
+	}
+	var m2 map[string]any
+	_ = json.Unmarshal(b2.Bytes(), &m2)
+	if _, present := m2["remediation"]; present {
+		t.Error("remediation should be absent when no plan is passed")
+	}
+}
+
 func TestRenderBadgeSVG(t *testing.T) {
 	svg := RenderBadgeSVG(sampleReport())
 	if !strings.HasPrefix(svg, "<svg") || !strings.Contains(svg, "100/100 A") {

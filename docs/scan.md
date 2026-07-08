@@ -45,9 +45,55 @@ ironctl scan --k8s pod.yaml
 |---|---|
 | (default) | a human-readable scorecard table |
 | `--json` | the full report as JSON (schemaVersion 1.0), for pipelines and dashboards |
+| `--fix` | print the concrete remediation for every failed dimension, plus a copy-pasteable hardened config (`--remediate` is an alias) |
 | `--badge scan.svg` | a self-contained SVG badge you can drop into a README |
 | `--md` | a shareable markdown block for a README or blog post |
 | `--min-score N` | exit non-zero when the score is below N (a CI gate) |
+
+## Fix it, do not just grade it
+
+`--fix` turns the audit into a prescription. For every dimension that did not
+pass, it prints the exact config to set for the source you scanned (docker
+flags, a compose service patch, or a Kubernetes securityContext), then assembles
+one copy-pasteable hardened artifact that scores A when applied. It is
+fail-closed and deterministic, and `--json` carries the same remediation under a
+`remediation` key.
+
+```
+$ ironctl scan my-container --fix
+  score:   23/100  grade F  (wide open)
+  ... scorecard table ...
+
+Remediation (6 dimension(s) to harden, my-container currently 23/100 grade F):
+
+  [user.nonroot] Non-root user (uid != 0) (FAIL)
+      fix: --user 65532:65532
+      why: Pin a non-root uid so a container escape does not begin as host uid 0.
+  [caps.dropped] Dropped capabilities (FAIL)
+      fix: --cap-drop=ALL
+      why: Drop every Linux capability; add back only what the workload provably needs.
+  [docker.sock] No docker.sock exposure (FAIL)
+      fix: remove the -v /var/run/docker.sock:... bind mount
+      why: Mounting the container-runtime socket is a one-command host-root escape.
+  ... one entry per failed dimension ...
+
+Copy-pasteable hardened docker run (scores A/100 when applied):
+
+docker run -d --name ic-hardened \
+  --user 65532:65532 \
+  --cap-drop=ALL \
+  --security-opt=no-new-privileges \
+  --read-only --tmpfs /tmp \
+  --network=none \
+  nginx:alpine
+# intentionally dropped from the original run: the docker.sock bind mount (host-root escape), --pid=host
+```
+
+Run that command and rescan: `ironctl scan ic-hardened` reports `100/100 grade
+A`. For a compose service the snippet is a minimal patch to merge into the file;
+for a Kubernetes manifest it is the pod-spec and container `securityContext`
+fields to set (plus a note to add a default-deny egress NetworkPolicy, which the
+pod spec cannot express).
 
 ## What it grades
 
