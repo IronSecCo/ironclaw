@@ -69,6 +69,7 @@ Grade a **container**, a **compose** service, or a **k8s** manifest:
 | `min-score` | `0` | Fail the check below this score. `0` = report-only. |
 | `comment` | `true` | Post the scorecard as a sticky PR comment. |
 | `badge` | `false` | Write and upload the SVG badge as a build artifact. |
+| `upload-sarif` | `false` | Emit SARIF and upload to GitHub code scanning (Security tab). Requires `security-events: write`. |
 | `version` | `latest` | ironctl release to use (`latest` or a tag like `v0.1.252`). |
 | `github-token` | `${{ github.token }}` | Token for the comment + release lookup. |
 
@@ -80,6 +81,7 @@ Grade a **container**, a **compose** service, or a **k8s** manifest:
 | `grade` | Letter grade (A-F). |
 | `scorecard` | Path to the rendered markdown scorecard. |
 | `badge-path` | Path to the SVG badge (when `badge: true`). |
+| `sarif-path` | Path to the SARIF log (when `upload-sarif: true`). |
 | `passed` | `true` when the score met `min-score`. |
 
 ## What it grades

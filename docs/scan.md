@@ -97,6 +97,7 @@ the runtime name. The dimension scorers remain the authority on the score.
 | `--fix` | print the concrete remediation for every failed dimension, plus a copy-pasteable hardened config (`--remediate` is an alias) |
 | `--badge scan.svg` | a self-contained SVG badge you can drop into a README |
 | `--badge-json badge.json` | a [shields.io endpoint](https://shields.io/badges/endpoint-badge) JSON file for a live, self-updating README badge |
+| `--sarif scan.sarif` | a SARIF 2.1.0 log you can upload to GitHub code scanning (findings land in the repo Security tab) |
 | `--md` | a shareable markdown block for a README or blog post |
 | `--min-score N` | exit non-zero when the score is below N (a CI gate) |
 
@@ -140,6 +141,44 @@ reference posture the isolation launcher applies to every session
 For a step-by-step walkthrough, including hosting the file, wiring it into CI, and the
 reasoning behind the committed-file design, see the blog post
 [Add a live Sandbox Isolation Score badge to your repo](blog/add-a-sandbox-isolation-score-badge-to-your-repo.md).
+
+## GitHub code scanning (Security tab)
+
+Emit [SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html)
+and upload it so every failed isolation dimension appears in your repo's
+**Security > Code scanning** tab, right next to the findings from CodeQL and any
+other scanner, with no IronClaw account required:
+
+```bash
+ironctl scan --compose docker-compose.yml --sarif ironclaw-scan.sarif
+```
+
+- One SARIF **rule** per graded dimension (non-root user, dropped capabilities,
+  seccomp, network isolation, read-only rootfs, docker.sock, host namespaces),
+  each carrying the concrete remediation as `help` text.
+- One SARIF **result** per FAILED dimension, at `error` or `warning` level from
+  the dimension's severity, anchored at the scanned config file (with a line
+  region when derivable). A clean 100/A target emits **zero** results.
+- A stable `partialFingerprints` value per (rule, file) so GitHub dedupes the
+  same finding across runs instead of re-alerting.
+
+The easiest way to upload is the [scan Action](scan-action.md) with
+`upload-sarif: true`; it runs the scan and hands the SARIF to
+`github/codeql-action/upload-sarif` for you. To upload from your own workflow,
+grant `permissions: security-events: write` and call the same action:
+
+```yaml
+permissions:
+  security-events: write   # required to upload SARIF
+steps:
+  - uses: github/codeql-action/upload-sarif@v3
+    with:
+      sarif_file: ironclaw-scan.sarif
+      category: ironclaw-scan
+```
+
+SARIF emit is fail-open: if writing the file ever fails, the scan itself (and its
+`--min-score` gate) is unaffected.
 
 ## Fix it, do not just grade it
 

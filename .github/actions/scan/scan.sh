@@ -13,6 +13,7 @@ SERVICE="${IC_SERVICE:-}"
 MIN_SCORE="${IC_MIN_SCORE:-0}"
 COMMENT="${IC_COMMENT:-true}"
 BADGE="${IC_BADGE:-false}"
+UPLOAD_SARIF="${IC_UPLOAD_SARIF:-false}"
 VERSION="${IC_VERSION:-latest}"
 
 REPO="IronSecCo/ironclaw"
@@ -64,6 +65,7 @@ chmod +x "$IRONCTL"
 # ---------------------------------------------------------------------------
 scorecard="${WORK}/scorecard.md"
 badge_path=""
+sarif_path=""
 scan_args=()
 case "$MODE" in
   container)
@@ -81,6 +83,10 @@ scan_args+=(--md)
 if [ "$BADGE" = "true" ]; then
   badge_path="${WORK}/scan-badge.svg"
   scan_args+=(--badge "$badge_path")
+fi
+if [ "$UPLOAD_SARIF" = "true" ]; then
+  sarif_path="${WORK}/ironclaw-scan.sarif"
+  scan_args+=(--sarif "$sarif_path")
 fi
 
 # ---------------------------------------------------------------------------
@@ -112,6 +118,9 @@ out score "$score"
 out grade "${grade:-?}"
 out scorecard "$scorecard"
 [ -n "$badge_path" ] && out badge-path "$badge_path"
+# Only advertise the SARIF path when the file was actually written, so the
+# upload step's guard is precise and never uploads a missing file.
+[ -n "$sarif_path" ] && [ -s "$sarif_path" ] && out sarif-path "$sarif_path"
 
 # ---------------------------------------------------------------------------
 # 4. Sticky PR comment (create-or-update). A stable marker keyed by mode+target

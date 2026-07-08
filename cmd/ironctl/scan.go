@@ -25,12 +25,13 @@ import (
 //	ironctl scan <container>                 grade a running docker container
 //	ironctl scan --compose FILE [--service N]  grade a compose service
 //	ironctl scan --k8s FILE                    grade a pod/workload manifest
-//	  [--json] [--badge scan.svg] [--md] [--min-score N]
+//	  [--json] [--badge scan.svg] [--sarif scan.sarif] [--md] [--min-score N]
 func cmdScan(args []string) error {
 	fs := flag.NewFlagSet("scan", flag.ContinueOnError)
 	asJSON := fs.Bool("json", false, "emit the scorecard as JSON")
 	badge := fs.String("badge", "", "write a shareable SVG badge to this path")
 	badgeJSON := fs.String("badge-json", "", "write a shields.io endpoint JSON badge to this path (embed a live README badge)")
+	sarif := fs.String("sarif", "", "write a SARIF 2.1.0 log to this path (GitHub code-scanning upload)")
 	md := fs.Bool("md", false, "print a shareable markdown block (README/blog section)")
 	fix := fs.Bool("fix", false, "emit concrete remediation config for each failed dimension")
 	remediate := fs.Bool("remediate", false, "alias for --fix")
@@ -60,10 +61,14 @@ func cmdScan(args []string) error {
 		rest = rest[1:]
 	}
 
-	// Resolve the source and build a normalized Spec.
+	// Resolve the source and build a normalized Spec. configFile/configRaw carry
+	// the scanned file (compose/k8s) so SARIF results anchor at the config; both
+	// stay empty for a live-container scan (no file to point at).
 	var (
-		spec scan.Spec
-		err  error
+		spec       scan.Spec
+		err        error
+		configFile string
+		configRaw  []byte
 	)
 	switch {
 	case *compose != "":
@@ -71,12 +76,14 @@ func cmdScan(args []string) error {
 		if rerr != nil {
 			return fmt.Errorf("read compose file: %w", rerr)
 		}
+		configFile, configRaw = *compose, raw
 		spec, err = scan.SpecFromCompose(raw, *service)
 	case *k8s != "":
 		raw, rerr := os.ReadFile(*k8s)
 		if rerr != nil {
 			return fmt.Errorf("read manifest: %w", rerr)
 		}
+		configFile, configRaw = *k8s, raw
 		spec, err = scan.SpecFromK8s(raw)
 	default:
 		if len(positional) < 1 {
@@ -137,11 +144,40 @@ func cmdScan(args []string) error {
 		}
 	}
 
+	if *sarif != "" {
+		// SARIF is a best-effort side artifact: an emit error must never block the
+		// scan itself (fail-open), and never affects the min-score gate below.
+		opts := scan.SARIFOptions{ConfigFile: configFile}
+		if configRaw != nil {
+			opts.AnchorLine = scan.AnchorLine(configRaw, spec.Target)
+		}
+		if err := writeSARIF(*sarif, report, spec, opts); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !*asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", *sarif)
+		}
+	}
+
 	// CI gate: fail-closed below the requested threshold.
 	if *minScore > 0 && report.Score < *minScore {
 		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, *minScore)
 	}
 	return nil
+}
+
+// writeSARIF renders the SARIF log for report r to path. It is separated so the
+// caller can fail-open on any error without leaking a half-written file into a
+// later step.
+func writeSARIF(path string, r scan.Report, s scan.Spec, opts scan.SARIFOptions) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	if err := scan.RenderSARIF(f, r, s, opts); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 // runtimeBins carries the resolved binary name for each supported runtime.
@@ -253,6 +289,7 @@ FLAGS:
   --remediate         alias for --fix
   --badge PATH        write a shareable SVG badge to PATH
   --badge-json PATH   write a shields.io endpoint JSON badge to PATH (live README badge)
+  --sarif PATH        write a SARIF 2.1.0 log to PATH (GitHub code-scanning upload)
   --md                print a shareable markdown block
   --min-score N       exit non-zero if the score is below N (CI gate)
   --service NAME      compose service to grade (if the file has >1)
