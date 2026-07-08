@@ -221,6 +221,25 @@ README with `ironctl scan --badge scan.svg`, or gate CI with `ironctl scan --min
 See the [scan reference](https://ironsecco.github.io/ironclaw/scan/) for all seven dimensions
 and every flag.
 
+### Show your score
+
+Put your containment grade in your README, the same way a coverage or build badge does.
+Generate a shields.io endpoint file, commit it (no server, so a badge hit never triggers a
+remote scan), and embed it:
+
+```bash
+ironctl scan my-container --badge-json .ironclaw/sandbox-isolation.json
+git add .ironclaw/sandbox-isolation.json && git commit -m "chore: add sandbox isolation badge"
+```
+
+```markdown
+[![Sandbox Isolation Score](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/OWNER/REPO/main/.ironclaw/sandbox-isolation.json)](https://ironsecco.github.io/ironclaw/scan/)
+```
+
+The badge at the top of this README is IronClaw's own, graded 100/100 A from
+[`.ironclaw/sandbox-posture.yml`](.ironclaw/sandbox-posture.yml). Full walkthrough:
+[Add a live Sandbox Isolation Score badge to your repo](https://ironsecco.github.io/ironclaw/blog/add-a-sandbox-isolation-score-badge-to-your-repo/).
+
 ## How it works
 
 Two compiled Go programs that never share memory and talk only through a pair of encrypted SQLite

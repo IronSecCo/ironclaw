@@ -137,6 +137,10 @@ IronClaw dogfoods its own badge in the project README, generated from the sandbo
 reference posture the isolation launcher applies to every session
 (`.ironclaw/sandbox-posture.yml`, graded 100/100 A).
 
+For a step-by-step walkthrough, including hosting the file, wiring it into CI, and the
+reasoning behind the committed-file design, see the blog post
+[Add a live Sandbox Isolation Score badge to your repo](blog/add-a-sandbox-isolation-score-badge-to-your-repo.md).
+
 ## Fix it, do not just grade it
 
 `--fix` turns the audit into a prescription. For every dimension that did not
