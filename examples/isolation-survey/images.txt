@@ -1,0 +1,58 @@
+# isolation-survey manifest — the curated, pinned dataset for `survey.sh`.
+#
+# Each non-comment line is ONE survey scenario:
+#
+#     label | image:tag@sha256:<digest> | run-flags...
+#
+#   label       stable, filesystem-safe id; the container is named ic-survey-<label>.
+#   image       a PUBLIC Docker Hub image pinned by its multi-arch MANIFEST-LIST
+#               digest, so `docker pull` resolves the identical bits on amd64 and
+#               arm64. Digests were captured with:
+#                   docker buildx imagetools inspect <tag> --format '{{.Manifest.Digest}}'
+#   run-flags   the `docker run` security flags that define this scenario's
+#               posture (may be empty = a plain `docker run` with all defaults).
+#
+# Every scenario is launched as:
+#     docker run -d --name ic-survey-<label> <run-flags> --entrypoint sleep <image> 86400
+# The `--entrypoint sleep` override only keeps the container alive for inspection;
+# it does NOT alter any graded dimension (user, caps, seccomp, network, rootfs,
+# docker.sock, host namespaces all come from the image config + run flags). See
+# README.md "Methodology".
+#
+# THREE scenario families:
+#   1. default-*  : a popular image run with ZERO hardening flags — what you get
+#                   from a copy-pasted `docker run <image>`. This is the baseline
+#                   the report is about.
+#   2. naive-*    : a common but dangerous CI / ops pattern applied to a popular
+#                   image (bind-mounted docker.sock, --privileged, host namespaces).
+#   3. hardened   : the reference target every workload should aim for.
+#
+# ---------------------------------------------------------------------------
+# family 1 — popular images, plain `docker run` defaults (no hardening flags)
+# ---------------------------------------------------------------------------
+default-nginx     | nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10          |
+default-postgres  | postgres:17-alpine@sha256:67f624a4ad70edba8d65c82341124fab7054b277b4f7dea4b04be6f939ce2314        |
+default-redis     | redis:7-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99            |
+default-mysql     | mysql:8.4@sha256:d36d39a64cd12a5c1cc9e6aa2bfb5f8d4c81a2f6586e0a04a9ae13939db02209                 |
+default-mongo     | mongo:7@sha256:d5b3ca8c3f3cdce78d44870dc0871b76d5235e9b2ad4ea6bea5d1fbff8027703                   |
+default-node      | node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2            |
+default-python    | python:3.13-alpine@sha256:399babc8b49529dabfd9c922f2b5eea81d611e4512e3ed250d75bd2e7683f4b0        |
+default-golang    | golang:1.23-alpine@sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f        |
+default-httpd     | httpd:2.4-alpine@sha256:1b766f17b84026429b7cb243317b142921b24432336e798bc881c43f45ed9567           |
+default-rabbitmq  | rabbitmq:4-alpine@sha256:835cbc6fabceedef7a3b0ce3195a17adccb753a3ba645bdd61c5557b6e4bf580         |
+default-memcached | memcached:1.6-alpine@sha256:dfacdbd93e7a6f1ad63801753a1fc959dc678a5a1d2141ff438d57e6d8793fc3      |
+default-wordpress | wordpress:6-php8.3-apache@sha256:5d2c212561c4b5442ebc4d98933a9cbadcf3dee8888ed3fd9ed44667c27cc905 |
+# ---------------------------------------------------------------------------
+# family 2 — common but dangerous CI / ops patterns on popular base images
+# ---------------------------------------------------------------------------
+# A CI runner that bind-mounts the host docker.sock to "build images" — one API
+# call from full host root.
+naive-ci-docker-sock | node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 | -v /var/run/docker.sock:/var/run/docker.sock
+# A "docker-in-docker" build agent started --privileged.
+naive-privileged     | python:3.13-alpine@sha256:399babc8b49529dabfd9c922f2b5eea81d611e4512e3ed250d75bd2e7683f4b0 | --privileged
+# A monitoring/agent sidecar wired into the host network and PID namespaces.
+naive-host-ns        | redis:7-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99 | --network host --pid host
+# ---------------------------------------------------------------------------
+# family 3 — the hardened reference every workload should target
+# ---------------------------------------------------------------------------
+hardened-reference   | nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10 | --user 65532:65532 --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp --network none
