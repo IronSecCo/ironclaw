@@ -13,6 +13,7 @@ Each one runs sealed in a sandbox that provably cannot phone home, read your hos
 [![Signed releases (cosign)](https://img.shields.io/badge/releases-cosign%20signed-0a7bbb.svg)](#verifying-a-release)
 [![SBOM: SPDX + CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-44883e.svg)](#verifying-a-release)
 [![SLSA provenance](https://img.shields.io/badge/SLSA-build%20provenance-44883e.svg)](#verifying-a-release)
+[![Sandbox scan: PR scorecard](https://img.shields.io/badge/sandbox%20scan-PR%20scorecard-0a7bbb.svg)](https://ironsecco.github.io/ironclaw/scan-action/)
 
 [![Documentation](https://img.shields.io/badge/docs-ironsecco.github.io-0a7bbb.svg)](https://ironsecco.github.io/ironclaw/)
 [![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#project-status)

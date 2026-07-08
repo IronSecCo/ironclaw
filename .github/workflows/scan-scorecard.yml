@@ -1,0 +1,80 @@
+name: Sandbox scan scorecard (dogfood)
+
+# Green-run proof + live example for the reusable `IronClaw sandbox scan` action
+# (.github/actions/scan). It runs the exact thing an external adopter runs —
+# `uses: <the action>` against real containers — so a broken action surfaces here
+# before an adopter hits it, and this PR itself renders the scorecard comments.
+#
+# Two contrasting targets prove the grader both ways:
+#   * a HARDENED container  -> ~100/A, gated at min-score 90 (must pass)
+#   * a WEAK container       -> ~0/F,  report-only (min-score 0, never blocks)
+#
+# Credential-free: ubuntu ships Docker; the action downloads the released ironctl
+# binary. Additive and non-gating (not a required check) so it can never block a
+# release.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/actions/scan/**"
+      - ".github/workflows/scan-scorecard.yml"
+  pull_request:
+    paths:
+      - ".github/actions/scan/**"
+      - ".github/workflows/scan-scorecard.yml"
+  workflow_dispatch:
+
+# Least-privilege: read the repo, and write PR comments for the sticky scorecard.
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Start a HARDENED sandbox container
+        run: |
+          docker run -d --name hardened-sandbox \
+            --user 65532:65532 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --network none \
+            --read-only \
+            alpine:3 sleep 3600
+
+      - name: Start a WEAK sandbox container (contrast)
+        run: |
+          docker run -d --name weak-sandbox \
+            --privileged \
+            --network host \
+            alpine:3 sleep 3600
+
+      - name: Scan the hardened sandbox (gated at 90)
+        id: hardened
+        uses: ./.github/actions/scan
+        with:
+          target: hardened-sandbox
+          mode: container
+          min-score: 90
+          badge: true
+
+      - name: Scan the weak sandbox (report-only)
+        uses: ./.github/actions/scan
+        with:
+          target: weak-sandbox
+          mode: container
+          min-score: 0
+
+      - name: Assert the hardened container graded A
+        env:
+          SCORE: ${{ steps.hardened.outputs.score }}
+          GRADE: ${{ steps.hardened.outputs.grade }}
+        run: |
+          echo "hardened score=${SCORE} grade=${GRADE}"
+          test "${GRADE}" = "A" \
+            || { echo "::error::expected the hardened container to grade A"; exit 1; }
