@@ -161,6 +161,7 @@ Tailscale-bound API, so it adds no public port.)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Quickstart](#quickstart)
+- [Audit your own sandbox](#audit-your-own-sandbox-in-10-seconds)
 - [Examples](#examples)
 - [Usage](#usage)
 - [Model providers](#model-providers)
@@ -191,6 +192,33 @@ verify — not something you take on faith.**
 > ⚖️ **Weighing your options?** See [**Why IronClaw / vs. the alternatives**](https://ironsecco.github.io/ironclaw/comparison/)
 > for an honest comparison against hosted agent platforms, raw container + LLM glue, and other
 > self-hosted agent runtimes.
+
+## Audit your own sandbox in 10 seconds
+
+Do not take our word for any of that. `ironctl scan` grades the containment posture of
+**any** running container, docker-compose service, or Kubernetes pod on a 0 to 100 scale.
+It works on your own setups, not just IronClaw's, so you can measure how much isolation you
+actually have before you hand a sandbox to untrusted code. It is fail-closed: any boundary
+it cannot observe is scored insecure, never waved through.
+
+```bash
+ironctl scan my-container
+```
+
+A container started the usual way (root user, default caps, bridge network, `docker.sock`
+mounted in) grades **23/100, F**. An IronClaw `ic-sbx-*` session sandbox grades a clean
+**100/100, A**:
+
+| Target | Score | Grade | Posture |
+|---|---|---|---|
+| Typical `docker run` container | 23/100 | F | runs as root, `docker.sock` mounted, writable rootfs, bridge egress |
+| IronClaw session sandbox | 100/100 | A | non-root, all caps dropped, seccomp on, `network=none`, read-only rootfs, gVisor |
+
+Every failing line names the specific hole and why it matters. Drop the grade into your own
+README with `ironctl scan --badge scan.svg`, or gate CI with `ironctl scan --min-score 90`.
+
+See the [scan reference](https://ironsecco.github.io/ironclaw/scan/) for all seven dimensions
+and every flag.
 
 ## How it works
 
