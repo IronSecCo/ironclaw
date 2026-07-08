@@ -28,14 +28,19 @@ type Dimension struct {
 
 // Report is the full scorecard for one Spec.
 type Report struct {
-	Source     string      `json:"source"`
-	Target     string      `json:"target"`
-	Runtime    string      `json:"runtime,omitempty"`
-	Score      int         `json:"score"` // 0..100
-	Max        int         `json:"max"`   // always 100
-	Grade      string      `json:"grade"` // A..F
-	Dimensions []Dimension `json:"dimensions"`
-	Notes      []string    `json:"notes,omitempty"`
+	Source  string `json:"source"`
+	Target  string `json:"target"`
+	Runtime string `json:"runtime,omitempty"`
+	// HardenedRuntime names a recognized strong-isolation runtime (gVisor, Kata,
+	// Firecracker) when one is detected. Informational ONLY: scoring stays
+	// runtime-agnostic (IRO-429), so this awards no points; it surfaces the fact
+	// that a userspace-kernel / microVM boundary is in play.
+	HardenedRuntime string      `json:"hardenedRuntime,omitempty"`
+	Score           int         `json:"score"` // 0..100
+	Max             int         `json:"max"`   // always 100
+	Grade           string      `json:"grade"` // A..F
+	Dimensions      []Dimension `json:"dimensions"`
+	Notes           []string    `json:"notes,omitempty"`
 	// GeneratedAt is set by the caller (injected for deterministic tests); the
 	// pure scorer never reads the clock.
 	GeneratedAt string `json:"generatedAt,omitempty"`
@@ -94,7 +99,40 @@ func Score(s Spec) Report {
 	}
 	r.Score = sum
 	r.Grade = grade(sum)
+
+	// Strong-isolation runtime is informational only (IRO-429: scoring is
+	// runtime-agnostic). We never award points for a runtime NAME, but we DO
+	// surface when a recognized hardened runtime (gVisor/Kata/Firecracker) wraps
+	// the workload, since it materially changes the escape story.
+	if name, ok := StrongIsolationRuntime(s.Runtime); ok {
+		r.HardenedRuntime = name
+		r.Notes = append(r.Notes, fmt.Sprintf(
+			"hardened runtime detected: %s (userspace-kernel / microVM isolation). Informational only; scoring is runtime-agnostic, so no points are awarded for the runtime name.",
+			name))
+	}
 	return r
+}
+
+// StrongIsolationRuntime classifies an OCI runtime identifier (a docker
+// HostConfig.Runtime, a podman OCIRuntime, a containerd runtime handler like
+// "io.containerd.runsc.v1", or a Kubernetes runtimeClassName) as a recognized
+// strong-isolation technology and returns a display name. It is a NAME match
+// only and never affects the score — a container can name a hardened runtime and
+// still be misconfigured, so the dimension scorers remain authoritative.
+func StrongIsolationRuntime(runtime string) (string, bool) {
+	r := strings.ToLower(strings.TrimSpace(runtime))
+	if r == "" {
+		return "", false
+	}
+	switch {
+	case strings.Contains(r, "runsc") || strings.Contains(r, "gvisor"):
+		return "gVisor (runsc)", true
+	case strings.Contains(r, "kata"):
+		return "Kata Containers", true
+	case strings.Contains(r, "firecracker") || strings.Contains(r, "fc-runtime") || r == "runc-fc":
+		return "Firecracker", true
+	}
+	return "", false
 }
 
 // grade maps a 0..100 score to a letter band.
@@ -127,8 +165,22 @@ func gradeNonRoot(s Spec) (int, Verdict, string) {
 		}
 		return 15, VerdictPass, fmt.Sprintf("runs as %s (uid != 0)", u)
 	case No:
+		// Rootless / userns remap: even a container-uid-0 process maps to an
+		// UNPRIVILEGED host uid, so an escape does not yield host root. That is the
+		// single strongest mitigation for this dimension, so it earns near-full
+		// credit even though the in-container user is 0.
+		if s.Rootless == Yes {
+			return 12, VerdictWarn, fmt.Sprintf(
+				"runs as root INSIDE the container, but a rootless userns remaps container-uid 0 to unprivileged host uid %s; an escape lands unprivileged",
+				nz(s.UserNSHostUID, "!= 0"))
+		}
 		return 0, VerdictFail, fmt.Sprintf("runs as root (user %q); a container escape starts with host-uid 0", nz(s.User, "0"))
 	default:
+		if s.Rootless == Yes {
+			return 12, VerdictWarn, fmt.Sprintf(
+				"in-container user not reported, but a rootless userns remaps container-uid 0 to unprivileged host uid %s; an escape lands unprivileged",
+				nz(s.UserNSHostUID, "!= 0"))
+		}
 		return 0, VerdictUnknown, "user not reported; assuming root (fail-closed)"
 	}
 }
