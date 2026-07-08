@@ -11,6 +11,11 @@ adjectives standing in for numbers.
 
 ## Posts
 
+- [State of Container Isolation 2026: we graded 16 popular images and 15 scored a D or worse](state-of-container-isolation-2026.md) -
+  a reproducible survey of 16 popular public images in their common run
+  configurations, graded 0 to 100 with `ironctl scan`. Only one hit an A;
+  thirteen landed on a D. The median default image scores 48 of 100, running as
+  root with the full capability set and a writable root filesystem.
 - [We ran the same escape suite against Docker, gVisor, E2B, and Daytona](containment-benchmark-docker-gvisor-e2b-daytona.md) -
   a reproducible containment benchmark. One fixed escape-attempt suite, scored by
   observed behavior. Raw Docker blocked 2 of 5, hardened runc 4 of 5, gVisor 5 of 5,
