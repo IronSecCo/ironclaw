@@ -7,6 +7,7 @@
 # label or ordering.
 nav:
   - IronClaw blog: index.md
+  - State of Container Isolation 2026: state-of-container-isolation-2026.md
   - Escape suite vs Docker, gVisor, E2B, Daytona: containment-benchmark-docker-gvisor-e2b-daytona.md
   - Add a Sandbox Isolation Score badge to your repo: add-a-sandbox-isolation-score-badge-to-your-repo.md
   - "*.md"
