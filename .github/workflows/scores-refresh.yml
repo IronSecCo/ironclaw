@@ -1,0 +1,202 @@
+# Weekly refresh of the Container Isolation Scores directory (IRO-449).
+#
+# The scores directory (docs/scores/) is a compounding SEO surface: one indexable
+# "<image> container isolation score" page per most-pulled public image, generated
+# from the reproducible isolation-survey by examples/isolation-survey/survey.sh +
+# gen_scorecards.py. Base images move (a new tag flips a default USER, drops a
+# capability, adds a seccomp default), so a one-shot snapshot goes stale. This
+# workflow re-runs the whole survey every week and opens a PR with the refreshed
+# results.json + per-image scorecards, so the directory stays current with zero
+# manual toil and search engines keep seeing fresh content.
+#
+# It does NOT push to main directly: main requires a reviewed PR with passing
+# checks (.github/rulesets/main.json), and weakening that is off the table for a
+# security product. It pushes the regenerated pages to ONE rolling branch and
+# opens/refreshes a single PR for a maintainer to merge. Modeled on the Homebrew
+# rolling-bump PR in release.yml (IRO-270/IRO-318): a fixed branch name, force-
+# reset onto the current main tip each run, so the PR never conflicts and there is
+# never more than one open.
+name: Scores refresh
+
+on:
+  schedule:
+    # Mondays 06:00 UTC. Weekly is enough for base-image drift without churn.
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+# One refresh at a time; a new run supersedes an in-flight one (the survey is
+# long-running and the rolling PR is idempotent, so cancelling a stale run is safe).
+concurrency:
+  group: scores-refresh
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    # Never run on forks: the survey is expensive and the PR/token steps are
+    # meaningless off the canonical repo.
+    if: github.repository == 'IronSecCo/ironclaw'
+    runs-on: ubuntu-latest
+    # The survey pulls + scans ~150 images through mirror.gcr.io; give it room but
+    # cap it so a hung pull can never burn a full 6h of runner time.
+    timeout-minutes: 120
+    permissions:
+      contents: write # push the rolling refresh branch
+      pull-requests: write # open/refresh the tracking PR
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
+        with:
+          go-version: "1.23"
+          cache: true
+
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce62c38 # v5.4.0
+        with:
+          python-version: "3.12"
+
+      # Build ironctl once (CGO for the encrypted-SQLite deps). survey.sh will reuse
+      # this binary via $IRONCTL instead of rebuilding.
+      - name: Build ironctl
+        run: CGO_ENABLED=1 go build -o bin/ironctl ./cmd/ironctl
+
+      # Run the full survey. PRUNE=1 removes each image right after it is scanned so
+      # the ~150-image sweep never exceeds the runner's free disk. Mirror-first
+      # (the default) dodges Docker Hub's anonymous pull-rate limit.
+      - name: Run the isolation survey
+        env:
+          IRONCTL: ${{ github.workspace }}/bin/ironctl
+          PRUNE: "1"
+        run: bash examples/isolation-survey/survey.sh
+
+      - name: Regenerate the scorecard directory
+        run: |
+          python3 examples/isolation-survey/gen_scorecards.py \
+            examples/isolation-survey/results.json docs/scores
+
+      # The refreshed pages must still pass the same strict docs gate main enforces,
+      # so a bad regeneration can never open a PR that fails CI.
+      - name: Verify docs build (strict)
+        # Same install + strict build the docs CI gate uses (docs.yml), so a bad
+        # regeneration can never open a PR that would fail the docs check on main.
+        run: |
+          pip install --require-hashes -r docs/requirements.txt
+          mkdocs build --strict --site-dir /tmp/_scores_site
+
+      # Mint a short-lived, least-privilege token for the reviewer App so the refresh
+      # PR can open itself. The default GITHUB_TOKEN cannot create PRs while the repo
+      # setting "Allow GitHub Actions to create and approve pull requests" stays OFF
+      # (IRO-203 keeps it off and uses a scoped App token instead). Scoped to
+      # pull-requests:write only; used ONLY to open the PR, never to approve/merge.
+      # continue-on-error so a missing/rotated secret degrades to the loud manual
+      # fallback instead of aborting after the branch is already pushed.
+      - name: Mint a scoped reviewer-App token to open the refresh PR
+        id: pr-app-token
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.REVIEWER_APP_ID }}
+          private-key: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
+          permission-pull-requests: write
+          permission-contents: read
+
+      - name: Push the rolling refresh branch and open a PR if the scores changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_TOKEN: ${{ steps.pr-app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # Nothing to do if the weekly survey produced byte-identical output
+          # (gen_scorecards.py is deterministic; results.json only changes when a
+          # base image's config actually moved).
+          if git diff --quiet -- docs/scores examples/isolation-survey/results.json examples/isolation-survey/results.md; then
+            echo "Scores directory already current, nothing to refresh."
+            exit 0
+          fi
+
+          # ONE rolling refresh branch, force-reset onto the current main tip every
+          # run so the PR is always cleanly rebased and there is never more than one
+          # open (same discipline as the Homebrew brew/track branch, IRO-270).
+          branch="scores/refresh"
+
+          # Author the commit as the CLA-signed maintainer, NOT github-actions[bot]:
+          # cla-assistant checks every commit AUTHOR against the signed roster, and a
+          # bot-authored commit strands the PR on "CLA not signed" (IRO-353). The
+          # email is already public in the verified-commit history; not a secret.
+          git config user.name "Omer Zamir"
+          git config user.email "zamir98@gmail.com"
+
+          git checkout -B "$branch"
+          git add docs/scores examples/isolation-survey/results.json examples/isolation-survey/results.md
+          today="$(date -u +%Y-%m-%d)"
+          n_pages=0
+          for f in docs/scores/*.md; do
+            [ "$(basename "$f")" = "index.md" ] || n_pages=$((n_pages + 1))
+          done
+          git commit -m "chore(scores): weekly refresh of the container isolation scores directory (${today})" \
+                     -m "Regenerated docs/scores/ (${n_pages} image scorecards) + results.json from the weekly isolation-survey re-run. Automated by .github/workflows/scores-refresh.yml (IRO-449)."
+
+          # Force-push the rolling branch to the current tip. Unprotected feature
+          # branch, so a plain push works; the commit is unsigned but the rolling PR
+          # lands via SQUASH merge and GitHub signs the squashed commit it writes to
+          # main, so main's required_signatures rule is still satisfied.
+          git push --force origin "$branch"
+
+          title="chore(scores): weekly refresh of the container isolation scores directory"
+          body="Automated by the weekly Scores refresh workflow (IRO-449): re-runs \`examples/isolation-survey/survey.sh\` over the top ~150 public images and regenerates \`docs/scores/\` + \`results.json\` so the [Container Isolation Scores](https://github.com/${REPO}/tree/main/docs/scores) directory tracks current base-image posture. This is the single **rolling** refresh PR, force-reset onto the current main tip each run, so it never conflicts and supersedes any prior refresh. Opened by the reviewer App (PR creation only; a human still approves + merges)."
+
+          emit_manual_fallback() {
+            echo "::error title=Scores refresh PR not opened::${1}"
+            {
+              echo "### ⚠️ Weekly scores refresh needs a manual PR"
+              echo
+              echo "The refresh branch [\`${branch}\`](https://github.com/${REPO}/tree/${branch}) was pushed, but the workflow could not open its PR:"
+              echo
+              echo '```'
+              printf '%s\n' "${1}"
+              echo '```'
+              echo
+              echo "Usual cause: the scoped reviewer-App token could not be minted (check \`REVIEWER_APP_ID\` / \`REVIEWER_APP_PRIVATE_KEY\`). Open it manually from the already-pushed branch:"
+              echo
+              echo '```'
+              echo "gh pr create --repo ${REPO} --base main --head ${branch} \\"
+              echo "  --title 'chore(scores): weekly refresh of the container isolation scores directory'"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+
+          # Refresh the existing rolling PR if one is open; otherwise create it.
+          existing="$(gh pr list --repo "${REPO}" --head "${branch}" --state open \
+            --json number -q '.[0].number' 2>/dev/null || true)"
+
+          if [ -n "${existing:-}" ]; then
+            # gh pr edit works with the default GITHUB_TOKEN — the OFF repo setting
+            # only blocks PR creation/approval, not edits. The force-push above has
+            # already refreshed the PR's diff.
+            if gh pr edit "${existing}" --repo "${REPO}" --title "${title}" --body "${body}"; then
+              echo "Refreshed rolling scores PR #${existing}."
+            else
+              echo "::warning title=Scores refresh PR not refreshed::could not update PR #${existing} metadata (non-fatal; its diff is already current)."
+            fi
+          else
+            if [ -z "${PR_TOKEN:-}" ]; then
+              emit_manual_fallback "scoped reviewer-App token was not minted (actions/create-github-app-token failed — see the mint step)."
+            fi
+            if out="$(GH_TOKEN="${PR_TOKEN}" gh pr create \
+              --repo "${REPO}" \
+              --base main \
+              --head "${branch}" \
+              --title "${title}" \
+              --body "${body}" 2>&1)"; then
+              echo "Opened rolling scores refresh PR: ${out}"
+            elif printf '%s' "$out" | grep -qi 'already exists'; then
+              echo "A rolling scores refresh PR for ${branch} already exists — left it in place."
+            else
+              emit_manual_fallback "gh pr create failed for ${branch}: ${out}"
+            fi
+          fi

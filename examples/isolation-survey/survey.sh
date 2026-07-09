@@ -44,6 +44,14 @@ DOCKER="${DOCKER:-docker}"
 MIRROR="${MIRROR:-1}"
 MIRROR_HOST="${MIRROR_HOST:-mirror.gcr.io}"
 
+# Disk hygiene for large surveys. Scanning ~150 images pulls many GB; a CI runner
+# (or a laptop VM) can run out of space long before the survey finishes. With
+# PRUNE=1 each image we PULLED this run is removed right after it is scanned, so
+# peak disk stays ~one image, not the whole set. Images already present locally
+# before the run are left untouched. Off by default so cache-friendly local
+# re-runs stay fast; the weekly refresh Action turns it on.
+PRUNE="${PRUNE:-0}"
+
 die() { echo "error: $*" >&2; exit 1; }
 log() { echo ">> $*" >&2; }
 
@@ -144,9 +152,11 @@ while IFS= read -r line; do
   # a rate limit, back off and retry; if the mirror can't serve it, fall back to
   # the original ref once. A scenario that still can't be pulled is SKIPPED (not
   # fatal) so one unavailable image never aborts a 50-image survey.
+  pulled=0
   if "$DOCKER" image inspect "$runref" >/dev/null 2>&1; then
     log "[$n] $label — cached $runref"
   else
+    pulled=1
     log "[$n] $label — pulling $runref"
     tries=0
     until "$DOCKER" pull -q "$runref" >/dev/null 2>pull.err; do
@@ -204,6 +214,11 @@ while IFS= read -r line; do
   if [ "$KEEP" -eq 0 ]; then
     "$DOCKER" rm -f "$cname" >/dev/null 2>&1 || true
     CREATED=("${CREATED[@]/$cname}")
+    # Bound peak disk on a big survey: drop the image we just pulled + scanned.
+    # Only images pulled THIS run are removed (pre-existing cache is preserved).
+    if [ "$PRUNE" = "1" ] && [ "$pulled" = "1" ] && [ -n "$runref" ]; then
+      "$DOCKER" rmi "$runref" >/dev/null 2>&1 || true
+    fi
   fi
 done < "$MANIFEST"
 
