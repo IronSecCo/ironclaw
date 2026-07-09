@@ -9,6 +9,10 @@ It grades the same dimensions IronClaw's own containment benchmark checks, and
 it is fail-closed: any posture it cannot determine is scored as insecure, never
 silently passed.
 
+Curious how the images you already pull score? Browse the public
+[Container Isolation Scores directory](scores/index.md): the default-config
+grade for 50+ of the most-pulled public images, then scan your own in 10 seconds.
+
 ```
 $ ironctl scan my-container
 IronClaw containment scan
@@ -141,6 +145,10 @@ reference posture the isolation launcher applies to every session
 For a step-by-step walkthrough, including hosting the file, wiring it into CI, and the
 reasoning behind the committed-file design, see the blog post
 [Add a live Sandbox Isolation Score badge to your repo](blog/add-a-sandbox-isolation-score-badge-to-your-repo.md).
+
+Want to see how your grade stacks up? Compare it against the
+[Container Isolation Scores directory](scores/index.md), where 50+ of the most-pulled
+public images are graded in their default configuration.
 
 ## GitHub code scanning (Security tab)
 

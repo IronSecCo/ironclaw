@@ -219,7 +219,10 @@ Every failing line names the specific hole and why it matters. Drop the grade in
 README with `ironctl scan --badge scan.svg`, or gate CI with `ironctl scan --min-score 90`.
 
 See the [scan reference](https://ironsecco.github.io/ironclaw/scan/) for all seven dimensions
-and every flag.
+and every flag. Or browse the
+[Container Isolation Scores directory](https://ironsecco.github.io/ironclaw/scores/): the
+default-config grade for 50+ of the most-pulled public images, so you can see how the
+containers you already run stack up.
 
 ### Show your score
 
