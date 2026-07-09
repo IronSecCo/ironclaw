@@ -121,6 +121,11 @@ image in the survey is pinned by its multi-arch manifest-list digest, so a
 `docker pull` resolves byte-identical bits on amd64 and arm64. The survey was
 generated on 2026-07-08 with `ironctl` at dev.
 
+Want the per-image breakdown? See the
+[Container Isolation Scores directory](../scores/index.md) for one scorecard page
+per image, each with its full dimension-by-dimension grade and the exact flags
+that close the gap.
+
 Re-run the whole thing from a clean checkout with nothing but a Docker daemon:
 
 ```bash
