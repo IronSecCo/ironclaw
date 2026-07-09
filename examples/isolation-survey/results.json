@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-08T11:27:08Z",
-  "ironctlVersion": "dev",
+  "generatedAt": "2026-07-09T10:13:17Z",
+  "ironctlVersion": "v0.1.179-0.20260704091530-f48951d3f70f+dirty",
   "report": "ironclaw-isolation-survey",
-  "scenarioCount": 16,
+  "scenarioCount": 58,
   "scenarios": [
     {
       "failedDimensions": [
@@ -18,7 +18,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -74,17 +74,18 @@
             "verdict": "FAIL"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:29Z",
+        "generatedAt": "2026-07-09T10:15:45Z",
         "grade": "F",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 19,
         "source": "docker",
         "target": "ic-survey-naive-privileged",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:399babc8b49529dabfd9c922f2b5eea81d611e4512e3ed250d75bd2e7683f4b0",
       "runFlags": "--privileged",
       "score": 19
     },
@@ -101,7 +102,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -157,17 +158,18 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:28Z",
+        "generatedAt": "2026-07-09T10:15:34Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 33,
         "source": "docker",
         "target": "ic-survey-naive-ci-docker-sock",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2",
       "runFlags": "-v /var/run/docker.sock:/var/run/docker.sock",
       "score": 33
     },
@@ -185,7 +187,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -241,17 +243,18 @@
             "verdict": "FAIL"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:31Z",
+        "generatedAt": "2026-07-09T10:15:57Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 34,
         "source": "docker",
         "target": "ic-survey-naive-host-ns",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99",
       "runFlags": "--network host --pid host",
       "score": 34
     },
@@ -262,12 +265,12 @@
         "Read-only root filesystem"
       ],
       "grade": "D",
-      "image": "golang:1.23-alpine@sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f",
-      "label": "default-golang",
+      "image": "alpine:3.21",
+      "label": "default-alpine",
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -323,17 +326,931 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:19Z",
+        "generatedAt": "2026-07-09T10:21:08Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-alpine",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "amazonlinux:2023",
+      "label": "default-amazonlinux",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:22:16Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-amazonlinux",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:2a6e72177eb52cf10cacb59f4920e48d33871a168ebf5a02bd7ae0369f73dcc6",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "busybox:1.37",
+      "label": "default-busybox",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:21:42Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-busybox",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "caddy:2-alpine",
+      "label": "default-caddy",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:17:31Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-caddy",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "hashicorp/consul:1.20",
+      "label": "default-consul",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:19:47Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-consul",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:200471c74bc0965cd20c81eacc31a209873d5d9e599fe637ceb856b0cbbc518d",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "couchdb:3.4",
+      "label": "default-couchdb",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:16:22Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-couchdb",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:6c5046c5e71559d43247120c8d2cb88e40ffa5155820e52b58238acdf9466f87",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "debian:12-slim",
+      "label": "default-debian",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:21:30Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-debian",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:1def178129dfb5f24db43afbf2fcac04530012e3264ba4ff81c71184e17a9ee4",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "drupal:11-apache",
+      "label": "default-drupal",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:23:02Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-drupal",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:11748f3fba287c1e8927d64c6f805115e8bedcb95715e19be9c0c0f3adeeef8a",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "fedora:41",
+      "label": "default-fedora",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:21:53Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-fedora",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:68bb1ba893be0c05991b2df55bc6571862bab7526fd6053b1ebacd53a2a75366",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "ghost:5-alpine",
+      "label": "default-ghost",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:23:13Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-ghost",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:2341e27e1f3f8496f677f77d0620c1d514e2f4111708bbc03e8bc7c9d39a36fb",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "gitea/gitea:1.22",
+      "label": "default-gitea",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:23:36Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-gitea",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:538658de667c5d098a274f2f63aa6ec891d88f670cdd5282cf27221ba747dda4",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "golang:1.23-alpine@sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f",
+      "label": "default-golang",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:14:37Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-golang",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f",
       "runFlags": "",
       "score": 48
     },
@@ -349,7 +1266,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -405,17 +1322,267 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:21Z",
+        "generatedAt": "2026-07-09T10:14:48Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-httpd",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:1b766f17b84026429b7cb243317b142921b24432336e798bc881c43f45ed9567",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "influxdb:2.7-alpine",
+      "label": "default-influxdb",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:16:34Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-influxdb",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:991673dc2d237bd79b15d6627410d72de111387e7dac673dbb92cf3333ffcc8c",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "joomla:5-apache",
+      "label": "default-joomla",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:23:24Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-joomla",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:469a69f1f7284b5d45f06a51c7bca26178953fc4f12428e958bc239741d2979c",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "mariadb:11",
+      "label": "default-mariadb",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:16:11Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-mariadb",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:09336a8c0cff9f363e133d8a245cca5ad3eeb326e0ffaedf74d49214c4571486",
       "runFlags": "",
       "score": 48
     },
@@ -431,7 +1598,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -487,17 +1654,101 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:14Z",
+        "generatedAt": "2026-07-09T10:14:03Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mongo",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:486795b20c58fd338291e1552118a59a810a4c30dd7f56c690198085797b6c70",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "eclipse-mosquitto:2",
+      "label": "default-mosquitto",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:23:47Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-mosquitto",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:6dba0f1b2795ddcbe0d41bdfb8b8d56a423acca23ccde4342a4652be54639b11",
       "runFlags": "",
       "score": 48
     },
@@ -513,7 +1764,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -569,17 +1820,101 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:13Z",
+        "generatedAt": "2026-07-09T10:13:51Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mysql",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:02aa6476f6b675e5d4d19c5b437798b1b8a4048ae39383eac609814998ed15b8",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "nats:2.10-alpine",
+      "label": "default-nats",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:16:45Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-nats",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:7e2f895a12d5bc4586191452f5dd20968e8c800d53622073a2730c38d6b0eccb",
       "runFlags": "",
       "score": 48
     },
@@ -595,7 +1930,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -651,17 +1986,18 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:08Z",
+        "generatedAt": "2026-07-09T10:13:17Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nginx",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:62223d644fa234c3a1cc785ee14242ec47a77364226f1c811d2f669f96dc2ac8",
       "runFlags": "",
       "score": 48
     },
@@ -677,7 +2013,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -733,17 +2069,350 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:16Z",
+        "generatedAt": "2026-07-09T10:14:14Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-node",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "openresty/openresty:alpine",
+      "label": "default-openresty",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:18:28Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-openresty",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:49db7235f2f94aa179c1242882619aea258c112b20f48ba45aefba010a1d0607",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "perl:5.40-slim",
+      "label": "default-perl",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:20:56Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-perl",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:5a61ff1daad0a27fdd26b337152e36a1516ec5da032560cd2ce53aaae560e584",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "php:8.4-apache",
+      "label": "default-php",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:20:22Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-php",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:12d26bcc36a7866fd92ac6154adb59f776cce77774cdf0599ef50b3390a12891",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "phpmyadmin:5.2",
+      "label": "default-phpmyadmin",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"root\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:22:50Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-phpmyadmin",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:9d4365ec568e04d5feb6988612e355d4f6d68b0c5995997f96a0f89352f38767",
       "runFlags": "",
       "score": 48
     },
@@ -759,7 +2428,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -815,17 +2484,18 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:10Z",
+        "generatedAt": "2026-07-09T10:13:28Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-postgres",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:67f624a4ad70edba8d65c82341124fab7054b277b4f7dea4b04be6f939ce2314",
       "runFlags": "",
       "score": 48
     },
@@ -841,7 +2511,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -897,17 +2567,18 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:18Z",
+        "generatedAt": "2026-07-09T10:14:25Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-python",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:399babc8b49529dabfd9c922f2b5eea81d611e4512e3ed250d75bd2e7683f4b0",
       "runFlags": "",
       "score": 48
     },
@@ -923,7 +2594,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -979,17 +2650,18 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:23Z",
+        "generatedAt": "2026-07-09T10:15:00Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rabbitmq",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:05ea3d1ce60612ce7bb359f4786087bea339b9329f7b5c77a29feb01c641dff8",
       "runFlags": "",
       "score": 48
     },
@@ -1005,7 +2677,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -1061,17 +2733,931 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:11Z",
+        "generatedAt": "2026-07-09T10:13:40Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-redis",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "registry:2.8.3",
+      "label": "default-registry",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:22:27Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-registry",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "rockylinux:9",
+      "label": "default-rockylinux",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:22:05Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-rockylinux",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:d644d203142cd5b54ad2a83a203e1dee68af2229f8fe32f52a30c6e1d3c3a9e0",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "ruby:3.4-alpine",
+      "label": "default-ruby",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:20:11Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-ruby",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:c5a5064d190055633011c03aa800170cc36945ff3afb5f6c915329f92d6f1e00",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "rust:1.83-alpine",
+      "label": "default-rust",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:20:45Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-rust",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:0ac946ed7597a9f053a1be2ce38c09aa88b3d7079a91ea491493615294b1f699",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "telegraf:1.33-alpine",
+      "label": "default-telegraf",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:19:36Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-telegraf",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:3ea0664bed1cacec5e6b463882dc43da9b33c9742d436ace35f157843aca9e40",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "eclipse-temurin:21-jre-alpine",
+      "label": "default-temurin",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:20:34Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-temurin",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:3f08b13888f595cc49edabea7250ba69499ba25602b267da591720769400e08c",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "tomcat:10.1-jre21-temurin",
+      "label": "default-tomcat",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:17:54Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-tomcat",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:5b1091b520c45e26b9a3ab50d74f367892cfbe0f4ad056e66bf63d35afe75683",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "traefik:v3.2",
+      "label": "default-traefik",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:17:08Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-traefik",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:684cb01614fc38240a5f13e302920a12ba3c6d604ff90d0a6c0ade9a1294a712",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "ubuntu:24.04",
+      "label": "default-ubuntu",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:21:19Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-ubuntu",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "hashicorp/vault:1.18",
+      "label": "default-vault",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:19:59Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-vault",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:750bb37c1638fa194ab37053a81618c61bb0491ddec6fccac87c07a8e6cd8166",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "vaultwarden/server:1.32.7",
+      "label": "default-vaultwarden",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:23:59Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-vaultwarden",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:7a0aa23c0947be3582898deb5170ea4359493ed9a76af2badf60a7eb45ac36af",
       "runFlags": "",
       "score": 48
     },
@@ -1087,7 +3673,7 @@
       "report": {
         "dimensions": [
           {
-            "detail": "runs as root (user \"0 (docker default)\"); a container escape starts with host-uid 0",
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
             "key": "user.nonroot",
             "max": 15,
             "score": 0,
@@ -1143,19 +3729,595 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:26Z",
+        "generatedAt": "2026-07-09T10:15:23Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-wordpress",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:5d2c212561c4b5442ebc4d98933a9cbadcf3dee8888ed3fd9ed44667c27cc905",
       "runFlags": "",
       "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "zookeeper:3.9",
+      "label": "default-zookeeper",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:16:57Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-zookeeper",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:4c6f15fbd5491a3e01b0108c046891125553329a4956848ba3014cedff5386ee",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Read-only root filesystem"
+      ],
+      "grade": "C",
+      "image": "adminer:4.8.1",
+      "label": "default-adminer",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as adminer (uid != 0)",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 15,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:22:39Z",
+        "grade": "C",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 63,
+        "source": "docker",
+        "target": "ic-survey-default-adminer",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:34d37131366c5aa84e1693dbed48593ed6f95fb450b576c1a7a59d3a9c9e8802",
+      "runFlags": "",
+      "score": 63
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Read-only root filesystem"
+      ],
+      "grade": "C",
+      "image": "prom/alertmanager:v0.28.0",
+      "label": "default-alertmanager",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as nobody (uid != 0)",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 15,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:19:13Z",
+        "grade": "C",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 63,
+        "source": "docker",
+        "target": "ic-survey-default-alertmanager",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:9139cd2c7ab7ff951e5ed9ffc4f70122a7de9678fb51065061a5f72549c91bab",
+      "runFlags": "",
+      "score": 63
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Read-only root filesystem"
+      ],
+      "grade": "C",
+      "image": "grafana/grafana:11.4.0",
+      "label": "default-grafana",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as 472 (uid != 0)",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 15,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:18:50Z",
+        "grade": "C",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 63,
+        "source": "docker",
+        "target": "ic-survey-default-grafana",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:8d938a1c52b018c60cb3583657e038054387aa18a74f09a865c99a522481f7ac",
+      "runFlags": "",
+      "score": 63
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Read-only root filesystem"
+      ],
+      "grade": "C",
+      "image": "haproxy:3.1-alpine",
+      "label": "default-haproxy",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as haproxy (uid != 0)",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 15,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:17:19Z",
+        "grade": "C",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 63,
+        "source": "docker",
+        "target": "ic-survey-default-haproxy",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:475863a372c92c3dab3d59eafbbf8019dceebcd0c456594551b160ecdba4bdb9",
+      "runFlags": "",
+      "score": 63
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Read-only root filesystem"
+      ],
+      "grade": "C",
+      "image": "jetty:12-jre21",
+      "label": "default-jetty",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as jetty (uid != 0)",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 15,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:18:05Z",
+        "grade": "C",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 63,
+        "source": "docker",
+        "target": "ic-survey-default-jetty",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:a7b9f19032f2974e2e981826832d0bb37e843fdbba3bd2042a1b6c17b38011a7",
+      "runFlags": "",
+      "score": 63
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Read-only root filesystem"
+      ],
+      "grade": "C",
+      "image": "kong:3.8",
+      "label": "default-kong",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as kong (uid != 0)",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 15,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:18:16Z",
+        "grade": "C",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 63,
+        "source": "docker",
+        "target": "ic-survey-default-kong",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:0dbd72dc596763758e9f8ada732648ef087f256da07b304efca269d50545de00",
+      "runFlags": "",
+      "score": 63
     },
     {
       "failedDimensions": [
@@ -1224,23 +4386,354 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:24Z",
+        "generatedAt": "2026-07-09T10:15:11Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-memcached",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:dfacdbd93e7a6f1ad63801753a1fc959dc678a5a1d2141ff438d57e6d8793fc3",
       "runFlags": "",
       "score": 63
     },
     {
-      "failedDimensions": [],
-      "grade": "A",
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Read-only root filesystem"
+      ],
+      "grade": "C",
+      "image": "nginxinc/nginx-unprivileged:1.27-alpine",
+      "label": "default-nginx-unpriv",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as 101 (uid != 0)",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 15,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:18:39Z",
+        "grade": "C",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 63,
+        "source": "docker",
+        "target": "ic-survey-default-nginx-unpriv",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:28d91bdce70ad09025ea901458fdd149259d8e05982ade79d4ef2c0d9470eb48",
+      "runFlags": "",
+      "score": 63
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Read-only root filesystem"
+      ],
+      "grade": "C",
+      "image": "prom/node-exporter:v1.8.2",
+      "label": "default-node-exporter",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as nobody (uid != 0)",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 15,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:19:25Z",
+        "grade": "C",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 63,
+        "source": "docker",
+        "target": "ic-survey-default-node-exporter",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:065914c03336590ebed517e7df38520f0efb44465fde4123c3f6b7328f5a9396",
+      "runFlags": "",
+      "score": 63
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Read-only root filesystem"
+      ],
+      "grade": "C",
+      "image": "prom/prometheus:v3.1.0",
+      "label": "default-prometheus",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as nobody (uid != 0)",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 15,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:19:02Z",
+        "grade": "C",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 63,
+        "source": "docker",
+        "target": "ic-survey-default-prometheus",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:6559acbd5d770b15bb3c954629ce190ac3cbbdb2b7f1c30f0385c4e05104e218",
+      "runFlags": "",
+      "score": 63
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Read-only root filesystem"
+      ],
+      "grade": "C",
+      "image": "varnish:7.6-alpine",
+      "label": "default-varnish",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as varnish (uid != 0)",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 15,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T10:17:42Z",
+        "grade": "C",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 63,
+        "source": "docker",
+        "target": "ic-survey-default-varnish",
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+      },
+      "resolvedDigest": "sha256:eb21e9f988be93f33ff9a0025d0a00617d49f3cc0cf59e0f2167bde7724eae6a",
+      "runFlags": "",
+      "score": 63
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities"
+      ],
+      "grade": "B",
       "image": "nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
       "label": "hardened-reference",
       "report": {
@@ -1254,12 +4747,12 @@
             "verdict": "PASS"
           },
           {
-            "detail": "all capabilities dropped, none added back",
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
             "key": "caps.dropped",
             "max": 20,
-            "score": 20,
+            "score": 4,
             "title": "Dropped capabilities",
-            "verdict": "PASS"
+            "verdict": "FAIL"
           },
           {
             "detail": "seccomp profile active (syscall surface filtered)",
@@ -1302,19 +4795,20 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-08T11:27:33Z",
-        "grade": "A",
+        "generatedAt": "2026-07-09T10:15:59Z",
+        "grade": "B",
         "max": 100,
         "report": "ironclaw-containment-scan",
-        "runtime": "runc",
+        "runtime": "oci",
         "schemaVersion": "1.0",
-        "score": 100,
+        "score": 84,
         "source": "docker",
         "target": "ic-survey-hardened-reference",
-        "version": "dev"
+        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
       },
+      "resolvedDigest": "sha256:62223d644fa234c3a1cc785ee14242ec47a77364226f1c811d2f669f96dc2ac8",
       "runFlags": "--user 65532:65532 --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp --network none",
-      "score": 100
+      "score": 84
     }
   ],
   "schemaVersion": "1.0"

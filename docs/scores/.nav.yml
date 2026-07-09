@@ -1,0 +1,11 @@
+# Navigation for the "Container Isolation Scores" directory (IRO-445).
+#
+# An evergreen, expanding SEO directory: one indexable scorecard page per
+# most-pulled public image, generated from the isolation-survey dataset by
+# `examples/isolation-survey/gen_scorecards.py`. The `*.md` glob below auto-
+# includes every generated `<image>.md` (titled from its H1) with ZERO edit
+# here — adding images to the survey and regenerating is all it takes. The
+# index is pinned first; everything else is alphabetical by the glob.
+nav:
+  - All container isolation scores: index.md
+  - "*.md"

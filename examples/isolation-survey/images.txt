@@ -56,3 +56,62 @@ naive-host-ns        | redis:7-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b07
 # family 3 — the hardened reference every workload should target
 # ---------------------------------------------------------------------------
 hardened-reference   | nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10 | --user 65532:65532 --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp --network none
+
+# ---------------------------------------------------------------------------
+# family 1 (expanded) — the long tail of most-pulled public images, each run
+# with plain `docker run <image>` defaults (IRO-445). These back the per-image
+# scorecard directory under docs/scores/. Tag-only refs: survey.sh resolves and
+# RECORDS the manifest digest it actually scanned (results.json .resolvedDigest)
+# so every scorecard names the exact bits it graded, while re-runs pick up the
+# current published tag. Pulled through mirror.gcr.io by default (no anon rate
+# limit). A scenario whose image can't be pulled/run is skipped, never fatal.
+# ---------------------------------------------------------------------------
+# databases / stores / queues
+default-mariadb          | mariadb:11                              |
+default-couchdb          | couchdb:3.4                             |
+default-influxdb         | influxdb:2.7-alpine                     |
+default-nats             | nats:2.10-alpine                        |
+default-zookeeper        | zookeeper:3.9                           |
+# web servers / proxies / app servers
+default-traefik          | traefik:v3.2                            |
+default-haproxy          | haproxy:3.1-alpine                      |
+default-caddy            | caddy:2-alpine                          |
+default-varnish          | varnish:7.6-alpine                      |
+default-tomcat           | tomcat:10.1-jre21-temurin               |
+default-jetty            | jetty:12-jre21                          |
+default-kong             | kong:3.8                                |
+default-openresty        | openresty/openresty:alpine              |
+default-nginx-unpriv     | nginxinc/nginx-unprivileged:1.27-alpine |
+# observability
+default-grafana          | grafana/grafana:11.4.0                  |
+default-prometheus       | prom/prometheus:v3.1.0                  |
+default-alertmanager     | prom/alertmanager:v0.28.0               |
+default-node-exporter    | prom/node-exporter:v1.8.2               |
+default-telegraf         | telegraf:1.33-alpine                    |
+# infra / service discovery / secrets
+default-consul           | hashicorp/consul:1.20                   |
+default-vault            | hashicorp/vault:1.18                    |
+# language runtimes
+default-ruby             | ruby:3.4-alpine                         |
+default-php              | php:8.4-apache                          |
+default-temurin          | eclipse-temurin:21-jre-alpine           |
+default-rust             | rust:1.83-alpine                        |
+default-perl             | perl:5.40-slim                          |
+# OS base images
+default-alpine           | alpine:3.21                             |
+default-ubuntu           | ubuntu:24.04                            |
+default-debian           | debian:12-slim                          |
+default-busybox          | busybox:1.37                            |
+default-fedora           | fedora:41                               |
+default-rockylinux       | rockylinux:9                            |
+default-amazonlinux      | amazonlinux:2023                        |
+# apps / CMS / dev tools
+default-registry         | registry:2.8.3                          |
+default-adminer          | adminer:4.8.1                           |
+default-phpmyadmin       | phpmyadmin:5.2                          |
+default-drupal           | drupal:11-apache                        |
+default-ghost            | ghost:5-alpine                          |
+default-joomla           | joomla:5-apache                         |
+default-gitea            | gitea/gitea:1.22                        |
+default-mosquitto        | eclipse-mosquitto:2                     |
+default-vaultwarden      | vaultwarden/server:1.32.7               |

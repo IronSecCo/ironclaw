@@ -35,8 +35,38 @@ KEEP=0
 
 DOCKER="${DOCKER:-docker}"
 
+# Mirror-first pulls. Docker Hub's anonymous pull-rate limit (100 pulls / 6h per
+# IP) is the single biggest cause of a partial survey once the image set grows
+# past a couple dozen. mirror.gcr.io is Google's pull-through cache for Docker
+# Hub and is NOT anonymously rate-limited, so we resolve every image through it
+# by default (the bits are identical — both registries are content-addressed).
+# Set MIRROR=0 to pull straight from the original ref instead.
+MIRROR="${MIRROR:-1}"
+MIRROR_HOST="${MIRROR_HOST:-mirror.gcr.io}"
+
 die() { echo "error: $*" >&2; exit 1; }
 log() { echo ">> $*" >&2; }
+
+# mirror_ref <repo[:tag][@digest]> -> the same image on $MIRROR_HOST.
+# Official (single-segment) repos are namespaced under library/; already-
+# namespaced repos (grafana/grafana, prom/prometheus, hashicorp/vault) pass
+# through unchanged. A pinned @sha256 digest is preserved; the digest is the
+# manifest digest and is identical across registries.
+mirror_ref() {
+  local ref="$1" repo digest="" path reponame
+  repo="${ref%%@*}"
+  [ "$ref" != "$repo" ] && digest="${ref#*@}"
+  case "$repo" in
+    */*) path="$repo" ;;                 # already namespaced
+    *)   path="library/$repo" ;;         # official image
+  esac
+  if [ -n "$digest" ]; then
+    reponame="${path%%:*}"               # drop :tag for a digest pull
+    echo "${MIRROR_HOST}/${reponame}@${digest}"
+  else
+    echo "${MIRROR_HOST}/${path}"
+  fi
+}
 
 command -v "$DOCKER" >/dev/null 2>&1 || die "docker not found (set \$DOCKER)"
 "$DOCKER" info >/dev/null 2>&1 || die "docker daemon not reachable (is it running?)"
@@ -71,22 +101,24 @@ RECORDS="$(mktemp)"
 trap 'rm -f "$RECORDS"' RETURN 2>/dev/null || true
 echo "[]" > "$RECORDS"
 
-append_record() { # label image runFlags scanjson-file
-  local label="$1" image="$2" flags="$3" scanfile="$4"
-  python3 - "$RECORDS" "$label" "$image" "$flags" "$scanfile" <<'PY'
+append_record() { # label image runFlags resolvedDigest scanjson-file
+  local label="$1" image="$2" flags="$3" digest="$4" scanfile="$5"
+  python3 - "$RECORDS" "$label" "$image" "$flags" "$digest" "$scanfile" <<'PY'
 import json, sys
-recfile, label, image, flags, scanfile = sys.argv[1:6]
+recfile, label, image, flags, digest, scanfile = sys.argv[1:7]
 with open(recfile) as f:
     recs = json.load(f)
 with open(scanfile) as f:
     report = json.load(f)
-recs.append({"label": label, "image": image, "runFlags": flags, "report": report})
+recs.append({"label": label, "image": image, "runFlags": flags,
+             "resolvedDigest": digest, "report": report})
 with open(recfile, "w") as f:
     json.dump(recs, f)
 PY
 }
 
 n=0
+scanned=0
 while IFS= read -r line; do
   # strip comments / blanks
   line="${line%%$'\r'}"
@@ -100,17 +132,24 @@ while IFS= read -r line; do
   n=$((n+1))
   cname="${NAME_PREFIX}${label}"
 
-  # Pull only if the pinned digest is not already present locally. This makes
-  # re-runs fast and lets the survey complete from cache even when Docker Hub's
-  # anonymous pull-rate limit is exhausted. On a 429, back off and retry a few
-  # times; if you hit this often, `docker login` (a free account) lifts the
-  # anonymous limit — see README.md.
-  if "$DOCKER" image inspect "$image" >/dev/null 2>&1; then
-    log "[$n] $label — cached $image"
+  # Resolve the local ref to run: mirror.gcr.io by default (no anon rate limit),
+  # falling back to the original ref if the mirror does not have the image.
+  if [ "$MIRROR" = "1" ]; then
+    runref="$(mirror_ref "$image")"
   else
-    log "[$n] $label — pulling $image"
+    runref="$image"
+  fi
+
+  # Pull only if not already present locally (fast, cache-friendly re-runs). On
+  # a rate limit, back off and retry; if the mirror can't serve it, fall back to
+  # the original ref once. A scenario that still can't be pulled is SKIPPED (not
+  # fatal) so one unavailable image never aborts a 50-image survey.
+  if "$DOCKER" image inspect "$runref" >/dev/null 2>&1; then
+    log "[$n] $label — cached $runref"
+  else
+    log "[$n] $label — pulling $runref"
     tries=0
-    until "$DOCKER" pull -q "$image" >/dev/null 2>pull.err; do
+    until "$DOCKER" pull -q "$runref" >/dev/null 2>pull.err; do
       tries=$((tries+1))
       if grep -qi "rate limit" pull.err && [ "$tries" -lt 5 ]; then
         wait=$((tries*30))
@@ -118,25 +157,49 @@ while IFS= read -r line; do
         sleep "$wait"
         continue
       fi
-      cat pull.err >&2; rm -f pull.err
-      die "pull failed for $image (see above; 'docker login' lifts anon rate limits)"
+      if [ "$MIRROR" = "1" ] && [ "$runref" != "$image" ]; then
+        log "[$n] $label — mirror miss, falling back to $image"
+        runref="$image"
+        continue
+      fi
+      log "[$n] $label — SKIP: pull failed ($(head -1 pull.err))"
+      rm -f pull.err
+      runref=""
+      break
     done
     rm -f pull.err
+    [ -z "$runref" ] && continue
   fi
 
   "$DOCKER" rm -f "$cname" >/dev/null 2>&1 || true
   log "[$n] $label — docker run $flags --entrypoint sleep <image>"
   # shellcheck disable=SC2086
-  "$DOCKER" run -d --name "$cname" $flags --entrypoint sleep "$image" 86400 >/dev/null
+  if ! "$DOCKER" run -d --name "$cname" $flags --entrypoint sleep "$runref" 86400 >/dev/null 2>run.err; then
+    log "[$n] $label — SKIP: docker run failed ($(head -1 run.err))"; rm -f run.err
+    continue
+  fi
+  rm -f run.err
   CREATED+=("$cname")
 
+  # The exact bits we scanned, by manifest digest — recorded for provenance so a
+  # scorecard page always names the digest it graded (RepoDigests is empty only
+  # for locally-built images, never for a pulled one).
+  digest="$("$DOCKER" image inspect "$runref" --format '{{if .RepoDigests}}{{index .RepoDigests 0}}{{end}}' 2>/dev/null || true)"
+  digest="${digest#*@}"
+
   scanfile="$(mktemp)"
-  "$IRONCTL" scan "$cname" --json > "$scanfile"
+  if ! "$IRONCTL" scan "$cname" --json > "$scanfile" 2>scan.err; then
+    log "[$n] $label — SKIP: scan failed ($(head -1 scan.err))"; rm -f scan.err "$scanfile"
+    "$DOCKER" rm -f "$cname" >/dev/null 2>&1 || true
+    continue
+  fi
+  rm -f scan.err
   score="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["score"])' "$scanfile")"
   grade="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["grade"])' "$scanfile")"
   log "[$n] $label — ${score}/100 grade ${grade}"
-  append_record "$label" "$image" "$flags" "$scanfile"
+  append_record "$label" "$image" "$flags" "$digest" "$scanfile"
   rm -f "$scanfile"
+  scanned=$((scanned+1))
 
   if [ "$KEEP" -eq 0 ]; then
     "$DOCKER" rm -f "$cname" >/dev/null 2>&1 || true
@@ -144,9 +207,10 @@ while IFS= read -r line; do
   fi
 done < "$MANIFEST"
 
-[ "$n" -gt 0 ] || die "no scenarios found in $MANIFEST"
+[ "${scanned:-0}" -gt 0 ] || die "no scenarios scanned from $MANIFEST"
+log "scanned ${scanned}/${n} scenarios"
 
-log "rendering results.json + results.md ($n scenarios)…"
+log "rendering results.json + results.md (${scanned} scenarios)…"
 python3 "$SCRIPT_DIR/render.py" "$RESULTS_JSON" "$RESULTS_MD" < "$RECORDS"
 
 log "done: $RESULTS_JSON"
