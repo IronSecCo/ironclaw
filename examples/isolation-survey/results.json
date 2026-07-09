@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-09T10:13:17Z",
-  "ironctlVersion": "v0.1.179-0.20260704091530-f48951d3f70f+dirty",
+  "generatedAt": "2026-07-09T17:37:22Z",
+  "ironctlVersion": "dev",
   "report": "ironclaw-isolation-survey",
-  "scenarioCount": 58,
+  "scenarioCount": 68,
   "scenarios": [
     {
       "failedDimensions": [
@@ -74,7 +74,7 @@
             "verdict": "FAIL"
           }
         ],
-        "generatedAt": "2026-07-09T10:15:45Z",
+        "generatedAt": "2026-07-09T17:30:01Z",
         "grade": "F",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -83,7 +83,7 @@
         "score": 19,
         "source": "docker",
         "target": "ic-survey-naive-privileged",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:399babc8b49529dabfd9c922f2b5eea81d611e4512e3ed250d75bd2e7683f4b0",
       "runFlags": "--privileged",
@@ -158,7 +158,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:15:34Z",
+        "generatedAt": "2026-07-09T17:29:50Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -167,7 +167,7 @@
         "score": 33,
         "source": "docker",
         "target": "ic-survey-naive-ci-docker-sock",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2",
       "runFlags": "-v /var/run/docker.sock:/var/run/docker.sock",
@@ -243,7 +243,7 @@
             "verdict": "FAIL"
           }
         ],
-        "generatedAt": "2026-07-09T10:15:57Z",
+        "generatedAt": "2026-07-09T17:30:13Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -252,7 +252,7 @@
         "score": 34,
         "source": "docker",
         "target": "ic-survey-naive-host-ns",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99",
       "runFlags": "--network host --pid host",
@@ -326,7 +326,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:21:08Z",
+        "generatedAt": "2026-07-09T17:35:27Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -335,7 +335,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-alpine",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d",
       "runFlags": "",
@@ -409,7 +409,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:22:16Z",
+        "generatedAt": "2026-07-09T17:36:58Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -418,9 +418,175 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-amazonlinux",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:2a6e72177eb52cf10cacb59f4920e48d33871a168ebf5a02bd7ae0369f73dcc6",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "authelia/authelia:4.38",
+      "label": "default-authelia",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T18:10:23Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-authelia",
+        "version": "dev"
+      },
+      "resolvedDigest": "sha256:46021dc20efdcc5cdc38a29e3050b8835429a155ae6215388ed3b793a02eb0ab",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "prom/blackbox-exporter:v0.25.0",
+      "label": "default-blackbox",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T18:12:22Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-blackbox",
+        "version": "dev"
+      },
+      "resolvedDigest": "sha256:67847e8aaec3c4852a2c7d84d5344e7931521962988c48df00cd980cd1b490a2",
       "runFlags": "",
       "score": 48
     },
@@ -492,7 +658,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:21:42Z",
+        "generatedAt": "2026-07-09T17:36:24Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -501,7 +667,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-busybox",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0",
       "runFlags": "",
@@ -575,7 +741,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:17:31Z",
+        "generatedAt": "2026-07-09T17:31:46Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -584,9 +750,258 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-caddy",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "cassandra:5.0",
+      "label": "default-cassandra",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T17:44:34Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-cassandra",
+        "version": "dev"
+      },
+      "resolvedDigest": "sha256:b89056c366c4b807380cd9a4ac865ad558c0b4d5aac342f69087d0169ca1ddcd",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "chronograf:1.10",
+      "label": "default-chronograf",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T18:13:34Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-chronograf",
+        "version": "dev"
+      },
+      "resolvedDigest": "sha256:2f587075ca6b101681e6588b762acebb2c53b6b66a358581119d0e85c1c8db3e",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "clickhouse:24.8",
+      "label": "default-clickhouse",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T17:52:19Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-clickhouse",
+        "version": "dev"
+      },
+      "resolvedDigest": "sha256:1b41b544da2428cc0df6632a38af8f0fef28658cce772fbd1f051ac2d8c74245",
       "runFlags": "",
       "score": 48
     },
@@ -658,7 +1073,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:19:47Z",
+        "generatedAt": "2026-07-09T17:34:06Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -667,7 +1082,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-consul",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:200471c74bc0965cd20c81eacc31a209873d5d9e599fe637ceb856b0cbbc518d",
       "runFlags": "",
@@ -741,7 +1156,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:16:22Z",
+        "generatedAt": "2026-07-09T17:30:37Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -750,7 +1165,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-couchdb",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:6c5046c5e71559d43247120c8d2cb88e40ffa5155820e52b58238acdf9466f87",
       "runFlags": "",
@@ -824,7 +1239,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:21:30Z",
+        "generatedAt": "2026-07-09T17:35:51Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -833,7 +1248,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-debian",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:1def178129dfb5f24db43afbf2fcac04530012e3264ba4ff81c71184e17a9ee4",
       "runFlags": "",
@@ -907,7 +1322,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:23:02Z",
+        "generatedAt": "2026-07-09T17:37:45Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -916,7 +1331,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-drupal",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:11748f3fba287c1e8927d64c6f805115e8bedcb95715e19be9c0c0f3adeeef8a",
       "runFlags": "",
@@ -990,7 +1405,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:21:53Z",
+        "generatedAt": "2026-07-09T17:36:35Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -999,7 +1414,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-fedora",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:68bb1ba893be0c05991b2df55bc6571862bab7526fd6053b1ebacd53a2a75366",
       "runFlags": "",
@@ -1073,7 +1488,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:23:13Z",
+        "generatedAt": "2026-07-09T17:37:57Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1082,7 +1497,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ghost",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:2341e27e1f3f8496f677f77d0620c1d514e2f4111708bbc03e8bc7c9d39a36fb",
       "runFlags": "",
@@ -1156,7 +1571,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:23:36Z",
+        "generatedAt": "2026-07-09T17:38:20Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1165,7 +1580,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gitea",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:538658de667c5d098a274f2f63aa6ec891d88f670cdd5282cf27221ba747dda4",
       "runFlags": "",
@@ -1239,7 +1654,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:14:37Z",
+        "generatedAt": "2026-07-09T17:28:53Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1248,7 +1663,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-golang",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f",
       "runFlags": "",
@@ -1322,7 +1737,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:14:48Z",
+        "generatedAt": "2026-07-09T17:29:04Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1331,7 +1746,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-httpd",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:1b766f17b84026429b7cb243317b142921b24432336e798bc881c43f45ed9567",
       "runFlags": "",
@@ -1405,7 +1820,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:16:34Z",
+        "generatedAt": "2026-07-09T17:30:48Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1414,7 +1829,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-influxdb",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:991673dc2d237bd79b15d6627410d72de111387e7dac673dbb92cf3333ffcc8c",
       "runFlags": "",
@@ -1488,7 +1903,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:23:24Z",
+        "generatedAt": "2026-07-09T17:38:08Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1497,7 +1912,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-joomla",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:469a69f1f7284b5d45f06a51c7bca26178953fc4f12428e958bc239741d2979c",
       "runFlags": "",
@@ -1571,7 +1986,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:16:11Z",
+        "generatedAt": "2026-07-09T17:30:26Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1580,7 +1995,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mariadb",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:09336a8c0cff9f363e133d8a245cca5ad3eeb326e0ffaedf74d49214c4571486",
       "runFlags": "",
@@ -1654,7 +2069,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:14:03Z",
+        "generatedAt": "2026-07-09T17:28:19Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1663,7 +2078,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mongo",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:486795b20c58fd338291e1552118a59a810a4c30dd7f56c690198085797b6c70",
       "runFlags": "",
@@ -1737,7 +2152,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:23:47Z",
+        "generatedAt": "2026-07-09T17:38:31Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1746,7 +2161,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mosquitto",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:6dba0f1b2795ddcbe0d41bdfb8b8d56a423acca23ccde4342a4652be54639b11",
       "runFlags": "",
@@ -1820,7 +2235,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:13:51Z",
+        "generatedAt": "2026-07-09T17:28:08Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1829,7 +2244,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mysql",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:02aa6476f6b675e5d4d19c5b437798b1b8a4048ae39383eac609814998ed15b8",
       "runFlags": "",
@@ -1903,7 +2318,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:16:45Z",
+        "generatedAt": "2026-07-09T17:31:00Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1912,9 +2327,92 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nats",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:7e2f895a12d5bc4586191452f5dd20968e8c800d53622073a2730c38d6b0eccb",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "neo4j:5",
+      "label": "default-neo4j",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T17:52:45Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-neo4j",
+        "version": "dev"
+      },
+      "resolvedDigest": "sha256:32e6325c6f2160747d68601b6e1a38e556deca66524cf95cf0e6c1ee29b1596b",
       "runFlags": "",
       "score": 48
     },
@@ -1986,7 +2484,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:13:17Z",
+        "generatedAt": "2026-07-09T17:27:33Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1995,7 +2493,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nginx",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:62223d644fa234c3a1cc785ee14242ec47a77364226f1c811d2f669f96dc2ac8",
       "runFlags": "",
@@ -2069,7 +2567,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:14:14Z",
+        "generatedAt": "2026-07-09T17:28:30Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2078,7 +2576,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-node",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2",
       "runFlags": "",
@@ -2152,7 +2650,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:18:28Z",
+        "generatedAt": "2026-07-09T17:32:44Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2161,7 +2659,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-openresty",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:49db7235f2f94aa179c1242882619aea258c112b20f48ba45aefba010a1d0607",
       "runFlags": "",
@@ -2235,7 +2733,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:20:56Z",
+        "generatedAt": "2026-07-09T17:35:15Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2244,7 +2742,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-perl",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:5a61ff1daad0a27fdd26b337152e36a1516ec5da032560cd2ce53aaae560e584",
       "runFlags": "",
@@ -2318,7 +2816,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:20:22Z",
+        "generatedAt": "2026-07-09T17:34:40Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2327,7 +2825,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-php",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:12d26bcc36a7866fd92ac6154adb59f776cce77774cdf0599ef50b3390a12891",
       "runFlags": "",
@@ -2401,7 +2899,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:22:50Z",
+        "generatedAt": "2026-07-09T17:37:34Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2410,7 +2908,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-phpmyadmin",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:9d4365ec568e04d5feb6988612e355d4f6d68b0c5995997f96a0f89352f38767",
       "runFlags": "",
@@ -2484,7 +2982,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:13:28Z",
+        "generatedAt": "2026-07-09T17:27:45Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2493,7 +2991,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-postgres",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:67f624a4ad70edba8d65c82341124fab7054b277b4f7dea4b04be6f939ce2314",
       "runFlags": "",
@@ -2567,7 +3065,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:14:25Z",
+        "generatedAt": "2026-07-09T17:28:42Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2576,9 +3074,92 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-python",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:399babc8b49529dabfd9c922f2b5eea81d611e4512e3ed250d75bd2e7683f4b0",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "questdb/questdb:8.2.1",
+      "label": "default-questdb",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T18:06:47Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-questdb",
+        "version": "dev"
+      },
+      "resolvedDigest": "sha256:17148f1b0acd4903ee1ad656aa9de9b75d8d179bde2731b5df1d499fa17d978b",
       "runFlags": "",
       "score": 48
     },
@@ -2650,7 +3231,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:15:00Z",
+        "generatedAt": "2026-07-09T17:29:16Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2659,7 +3240,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rabbitmq",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:05ea3d1ce60612ce7bb359f4786087bea339b9329f7b5c77a29feb01c641dff8",
       "runFlags": "",
@@ -2733,7 +3314,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:13:40Z",
+        "generatedAt": "2026-07-09T17:27:56Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2742,7 +3323,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-redis",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99",
       "runFlags": "",
@@ -2816,7 +3397,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:22:27Z",
+        "generatedAt": "2026-07-09T17:37:10Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2825,9 +3406,92 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-registry",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "rethinkdb:2.4",
+      "label": "default-rethinkdb",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T18:01:56Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-rethinkdb",
+        "version": "dev"
+      },
+      "resolvedDigest": "sha256:2ba16bd0687bf2c6b4c7d5cf8c672a2658ff4f65bc181d9aa1672d3af276c804",
       "runFlags": "",
       "score": 48
     },
@@ -2899,7 +3563,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:22:05Z",
+        "generatedAt": "2026-07-09T17:36:47Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2908,7 +3572,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rockylinux",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:d644d203142cd5b54ad2a83a203e1dee68af2229f8fe32f52a30c6e1d3c3a9e0",
       "runFlags": "",
@@ -2982,7 +3646,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:20:11Z",
+        "generatedAt": "2026-07-09T17:34:29Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2991,7 +3655,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ruby",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:c5a5064d190055633011c03aa800170cc36945ff3afb5f6c915329f92d6f1e00",
       "runFlags": "",
@@ -3065,7 +3729,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:20:45Z",
+        "generatedAt": "2026-07-09T17:35:04Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3074,7 +3738,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rust",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:0ac946ed7597a9f053a1be2ce38c09aa88b3d7079a91ea491493615294b1f699",
       "runFlags": "",
@@ -3148,7 +3812,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:19:36Z",
+        "generatedAt": "2026-07-09T17:33:54Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3157,7 +3821,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-telegraf",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:3ea0664bed1cacec5e6b463882dc43da9b33c9742d436ace35f157843aca9e40",
       "runFlags": "",
@@ -3231,7 +3895,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:20:34Z",
+        "generatedAt": "2026-07-09T17:34:52Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3240,7 +3904,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-temurin",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:3f08b13888f595cc49edabea7250ba69499ba25602b267da591720769400e08c",
       "runFlags": "",
@@ -3314,7 +3978,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:17:54Z",
+        "generatedAt": "2026-07-09T17:32:10Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3323,7 +3987,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tomcat",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:5b1091b520c45e26b9a3ab50d74f367892cfbe0f4ad056e66bf63d35afe75683",
       "runFlags": "",
@@ -3397,7 +4061,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:17:08Z",
+        "generatedAt": "2026-07-09T17:31:23Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3406,7 +4070,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-traefik",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:684cb01614fc38240a5f13e302920a12ba3c6d604ff90d0a6c0ade9a1294a712",
       "runFlags": "",
@@ -3480,7 +4144,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:21:19Z",
+        "generatedAt": "2026-07-09T17:35:39Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3489,9 +4153,92 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ubuntu",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90",
+      "runFlags": "",
+      "score": 48
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Non-root user (uid != 0)",
+        "Read-only root filesystem"
+      ],
+      "grade": "D",
+      "image": "valkey/valkey:8",
+      "label": "default-valkey",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as root (user \"0 (default)\"); a container escape starts with host-uid 0",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 0,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T18:10:15Z",
+        "grade": "D",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 48,
+        "source": "docker",
+        "target": "ic-survey-default-valkey",
+        "version": "dev"
+      },
+      "resolvedDigest": "sha256:2e5a314659c893edee4530d6844aae75e533648187bbbe13c09b7bbb20711240",
       "runFlags": "",
       "score": 48
     },
@@ -3563,7 +4310,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:19:59Z",
+        "generatedAt": "2026-07-09T17:34:17Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3572,7 +4319,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-vault",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:750bb37c1638fa194ab37053a81618c61bb0491ddec6fccac87c07a8e6cd8166",
       "runFlags": "",
@@ -3646,7 +4393,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:23:59Z",
+        "generatedAt": "2026-07-09T17:38:43Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3655,7 +4402,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-vaultwarden",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:7a0aa23c0947be3582898deb5170ea4359493ed9a76af2badf60a7eb45ac36af",
       "runFlags": "",
@@ -3729,7 +4476,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:15:23Z",
+        "generatedAt": "2026-07-09T17:29:39Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3738,7 +4485,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-wordpress",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:5d2c212561c4b5442ebc4d98933a9cbadcf3dee8888ed3fd9ed44667c27cc905",
       "runFlags": "",
@@ -3812,7 +4559,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:16:57Z",
+        "generatedAt": "2026-07-09T17:31:12Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3821,7 +4568,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-zookeeper",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:4c6f15fbd5491a3e01b0108c046891125553329a4956848ba3014cedff5386ee",
       "runFlags": "",
@@ -3894,7 +4641,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:22:39Z",
+        "generatedAt": "2026-07-09T17:37:22Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3903,7 +4650,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-adminer",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:34d37131366c5aa84e1693dbed48593ed6f95fb450b576c1a7a59d3a9c9e8802",
       "runFlags": "",
@@ -3976,7 +4723,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:19:13Z",
+        "generatedAt": "2026-07-09T17:33:31Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3985,7 +4732,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-alertmanager",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:9139cd2c7ab7ff951e5ed9ffc4f70122a7de9678fb51065061a5f72549c91bab",
       "runFlags": "",
@@ -4058,7 +4805,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:18:50Z",
+        "generatedAt": "2026-07-09T17:33:07Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4067,7 +4814,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-grafana",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:8d938a1c52b018c60cb3583657e038054387aa18a74f09a865c99a522481f7ac",
       "runFlags": "",
@@ -4140,7 +4887,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:17:19Z",
+        "generatedAt": "2026-07-09T17:31:34Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4149,9 +4896,91 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-haproxy",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:475863a372c92c3dab3d59eafbbf8019dceebcd0c456594551b160ecdba4bdb9",
+      "runFlags": "",
+      "score": 63
+    },
+    {
+      "failedDimensions": [
+        "Dropped capabilities",
+        "Read-only root filesystem"
+      ],
+      "grade": "C",
+      "image": "jaegertracing/jaeger:2.1.0",
+      "label": "default-jaeger",
+      "report": {
+        "dimensions": [
+          {
+            "detail": "runs as 10001 (uid != 0)",
+            "key": "user.nonroot",
+            "max": 15,
+            "score": 15,
+            "title": "Non-root user (uid != 0)",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, \u2026)",
+            "key": "caps.dropped",
+            "max": 20,
+            "score": 4,
+            "title": "Dropped capabilities",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "seccomp profile active (syscall surface filtered)",
+            "key": "seccomp",
+            "max": 15,
+            "score": 15,
+            "title": "Seccomp profile",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "network=bridge: outbound egress is possible; prefer network=none",
+            "key": "network.isolated",
+            "max": 15,
+            "score": 4,
+            "title": "Network isolation / egress",
+            "verdict": "WARN"
+          },
+          {
+            "detail": "root filesystem is writable: tamper/persistence surface",
+            "key": "rootfs.readonly",
+            "max": 10,
+            "score": 0,
+            "title": "Read-only root filesystem",
+            "verdict": "FAIL"
+          },
+          {
+            "detail": "no docker.sock / OCI control socket mounted",
+            "key": "docker.sock",
+            "max": 15,
+            "score": 15,
+            "title": "No docker.sock exposure",
+            "verdict": "PASS"
+          },
+          {
+            "detail": "no host PID/IPC/network namespace sharing",
+            "key": "namespaces.host",
+            "max": 10,
+            "score": 10,
+            "title": "No shared host namespaces",
+            "verdict": "PASS"
+          }
+        ],
+        "generatedAt": "2026-07-09T18:13:34Z",
+        "grade": "C",
+        "max": 100,
+        "report": "ironclaw-containment-scan",
+        "runtime": "oci",
+        "schemaVersion": "1.0",
+        "score": 63,
+        "source": "docker",
+        "target": "ic-survey-default-jaeger",
+        "version": "dev"
+      },
+      "resolvedDigest": "sha256:105b3915b1b176540980a82f96f4cf814484ca637ac4043db2da527779fedf25",
       "runFlags": "",
       "score": 63
     },
@@ -4222,7 +5051,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:18:05Z",
+        "generatedAt": "2026-07-09T17:32:21Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4231,7 +5060,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-jetty",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:a7b9f19032f2974e2e981826832d0bb37e843fdbba3bd2042a1b6c17b38011a7",
       "runFlags": "",
@@ -4304,7 +5133,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:18:16Z",
+        "generatedAt": "2026-07-09T17:32:33Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4313,7 +5142,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-kong",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:0dbd72dc596763758e9f8ada732648ef087f256da07b304efca269d50545de00",
       "runFlags": "",
@@ -4386,7 +5215,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:15:11Z",
+        "generatedAt": "2026-07-09T17:29:27Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4395,7 +5224,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-memcached",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:dfacdbd93e7a6f1ad63801753a1fc959dc678a5a1d2141ff438d57e6d8793fc3",
       "runFlags": "",
@@ -4468,7 +5297,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:18:39Z",
+        "generatedAt": "2026-07-09T17:32:56Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4477,7 +5306,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-nginx-unpriv",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:28d91bdce70ad09025ea901458fdd149259d8e05982ade79d4ef2c0d9470eb48",
       "runFlags": "",
@@ -4550,7 +5379,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:19:25Z",
+        "generatedAt": "2026-07-09T17:33:43Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4559,7 +5388,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-node-exporter",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:065914c03336590ebed517e7df38520f0efb44465fde4123c3f6b7328f5a9396",
       "runFlags": "",
@@ -4632,7 +5461,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:19:02Z",
+        "generatedAt": "2026-07-09T17:33:19Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4641,7 +5470,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-prometheus",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:6559acbd5d770b15bb3c954629ce190ac3cbbdb2b7f1c30f0385c4e05104e218",
       "runFlags": "",
@@ -4714,7 +5543,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:17:42Z",
+        "generatedAt": "2026-07-09T17:31:57Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4723,7 +5552,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-varnish",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:eb21e9f988be93f33ff9a0025d0a00617d49f3cc0cf59e0f2167bde7724eae6a",
       "runFlags": "",
@@ -4795,7 +5624,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-09T10:15:59Z",
+        "generatedAt": "2026-07-09T17:30:14Z",
         "grade": "B",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4804,7 +5633,7 @@
         "score": 84,
         "source": "docker",
         "target": "ic-survey-hardened-reference",
-        "version": "v0.1.179-0.20260704091530-f48951d3f70f+dirty"
+        "version": "dev"
       },
       "resolvedDigest": "sha256:62223d644fa234c3a1cc785ee14242ec47a77364226f1c811d2f669f96dc2ac8",
       "runFlags": "--user 65532:65532 --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp --network none",
