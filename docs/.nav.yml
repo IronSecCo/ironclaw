@@ -23,6 +23,7 @@ nav:
       - FAQ: faq.md
   - Scan any container: scan.md
   - Scan in CI (GitHub Action): scan-action.md
+  - Container isolation scores: scores
   - Model providers: providers
   - Tutorials: tutorials
   - Examples & use cases: examples.md

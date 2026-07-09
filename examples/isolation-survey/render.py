@@ -34,6 +34,7 @@ def main():
         rows.append({
             "label": rec["label"],
             "image": rec["image"],
+            "resolvedDigest": rec.get("resolvedDigest", ""),
             "runFlags": rec.get("runFlags", "").strip(),
             "score": rep.get("score", 0),
             "grade": rep.get("grade", "?"),

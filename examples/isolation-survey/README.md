@@ -39,10 +39,12 @@ as insecure, never silently passed. Grades map A (>=90) down to F (<50).
 The scenarios are captured in a versioned manifest,
 [`images.txt`](./images.txt), in three families:
 
-1. **`default-*`** — a popular image (nginx, postgres, redis, mysql, mongo,
-   node, python, golang, httpd, rabbitmq, memcached, wordpress) run with a plain
+1. **`default-*`** — **50+ of the most-pulled public images** (nginx, postgres,
+   redis, mysql, mongo, node, python, golang, mariadb, elasticsearch, grafana,
+   prometheus, traefik, vault, alpine, ubuntu, busybox, …) run with a plain
    `docker run` and **zero hardening flags**. This is the baseline the survey is
-   about: what you get from a copy-pasted run command.
+   about: what you get from a copy-pasted run command, and the set that backs the
+   per-image scorecard directory under [`docs/scores/`](../../docs/scores/).
 2. **`naive-*`** — a common but dangerous CI / ops pattern applied to a popular
    base image: a bind-mounted `docker.sock` ("build images in CI"), `--privileged`
    ("docker-in-docker"), and shared host namespaces ("a monitoring sidecar").
@@ -50,13 +52,20 @@ The scenarios are captured in a versioned manifest,
    `--user 65532 --cap-drop ALL --security-opt no-new-privileges --read-only
    --tmpfs /tmp --network none`.
 
-Every image is pinned by its **multi-arch manifest-list digest**, so
-`docker pull` resolves byte-identical bits on amd64 and arm64. Digests were
-captured with:
+The original core set is pinned by its **multi-arch manifest-list digest**, so
+`docker pull` resolves byte-identical bits on amd64 and arm64 (digests captured
+with `docker buildx imagetools inspect <tag> --format '{{.Manifest.Digest}}'`).
+The expanded long tail is referenced by tag; `survey.sh` **records the manifest
+digest it actually scanned** into `results.json` (`.scenarios[].resolvedDigest`),
+so every scorecard names the exact bits it graded while re-runs pick up the
+current published tag.
 
-```bash
-docker buildx imagetools inspect <tag> --format '{{.Manifest.Digest}}'
-```
+**Mirror-first pulls.** By default every image is resolved through
+`mirror.gcr.io` (Google's pull-through cache for Docker Hub), which is not
+anonymously rate-limited — the single biggest cause of a partial survey once the
+set grows past a couple dozen images. Set `MIRROR=0` to pull straight from the
+original registry. A scenario whose image cannot be pulled or run is **skipped**,
+never fatal, so one unavailable image never aborts the survey.
 
 ## Methodology (so the numbers are defensible)
 
@@ -92,21 +101,40 @@ IRONCTL=/path/to/ironctl examples/isolation-survey/survey.sh   # use a prebuilt 
 examples/isolation-survey/survey.sh --keep          # leave containers up for poking
 ```
 
-**Docker Hub rate limits.** Pulling ~12 public images anonymously can hit Docker
-Hub's unauthenticated pull-rate limit (HTTP 429). The harness skips the pull for
-any digest already cached locally and backs off/retries on a 429, but if you hit
-it repeatedly, run `docker login` first (a free account lifts the anonymous
-limit). Nothing in the survey needs a paid or private registry.
+**Docker Hub rate limits.** Pulling 50+ public images anonymously would blow
+past Docker Hub's unauthenticated pull-rate limit (HTTP 429), which is exactly
+why the harness resolves everything through `mirror.gcr.io` by default (see
+"Mirror-first pulls" above). It also skips the pull for any image already cached
+locally and backs off/retries on a 429. If you set `MIRROR=0` and hit the limit,
+run `docker login` first (a free account lifts the anonymous limit). Nothing in
+the survey needs a paid or private registry.
+
+## The per-image scorecard directory
+
+[`gen_scorecards.py`](./gen_scorecards.py) turns `results.json` into an
+evergreen SEO directory under [`docs/scores/`](../../docs/scores/): one indexable
+page per image with the default-config grade, the full per-dimension breakdown,
+the highest-value hardening fixes, and a "scan your own container" CTA. It is
+pure stdlib and deterministic — pages are keyed by image slug and regenerating
+over the same `results.json` is byte-identical.
+
+```bash
+# regenerate the committed scorecard pages from the dataset:
+examples/isolation-survey/gen_scorecards.py \
+    examples/isolation-survey/results.json docs/scores
+```
+
+Adding an image is a one-liner: append it to `images.txt`, rerun `survey.sh`,
+then rerun `gen_scorecards.py`. The docs `.nav.yml` `*.md` glob auto-includes the
+new page — no manual nav edit.
 
 ## Files
 
 | File | What it is |
 |------|-----------|
-| [`images.txt`](./images.txt) | the pinned, versioned manifest of scenarios |
+| [`images.txt`](./images.txt) | the versioned manifest of scenarios |
 | [`survey.sh`](./survey.sh) | the harness: pull -> run -> `ironctl scan --json` -> aggregate |
 | [`render.py`](./render.py) | stdlib aggregation of scan JSON into `results.{json,md}` |
+| [`gen_scorecards.py`](./gen_scorecards.py) | renders `results.json` into `docs/scores/` scorecard pages |
 | [`results.json`](./results.json) | the committed machine-readable dataset |
 | [`results.md`](./results.md) | the committed rendered table |
-
-Handing off to Growth for the "State of Container Isolation" writeup that builds
-on `results.md`.
