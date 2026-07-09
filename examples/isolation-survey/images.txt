@@ -115,3 +115,140 @@ default-joomla           | joomla:5-apache                         |
 default-gitea            | gitea/gitea:1.22                        |
 default-mosquitto        | eclipse-mosquitto:2                     |
 default-vaultwarden      | vaultwarden/server:1.32.7               |
+
+# ---------------------------------------------------------------------------
+# family 1 (long-tail expansion, IRO-449) — grow the scored directory from ~54
+# toward the top ~150 most-pulled PUBLIC images so every "is <image> isolated /
+# container isolation score" search intent lands on a page. All Docker Hub refs
+# (mirror.gcr.io serves library/* + hub namespaces with no anon rate limit); a
+# few non-official repos fall back to the original ref. Tag-only, so a re-run /
+# the weekly refresh Action picks up the current published bits and records the
+# manifest digest it actually graded (results.json .resolvedDigest). Any image
+# that can't be pulled/run is SKIPPED, never fatal, so the set self-heals.
+# ---------------------------------------------------------------------------
+# databases / data stores
+default-cassandra        | cassandra:5.0                           |
+default-clickhouse       | clickhouse:24.8                         |
+default-neo4j            | neo4j:5                                 |
+default-percona          | percona:8.0                             |
+default-rethinkdb        | rethinkdb:2.4                           |
+default-solr             | solr:9                                  |
+default-opensearch       | opensearchproject/opensearch:2          |
+default-cockroach        | cockroachdb/cockroach:latest            |
+default-arangodb         | arangodb:3.12                           |
+default-postgis          | postgis/postgis:17-3.5                  |
+default-pgvector         | pgvector/pgvector:pg17                  |
+default-postgresql       | bitnami/postgresql:17                    |
+default-mongodb          | bitnami/mongodb:8.0                     |
+default-scylla           | scylladb/scylla:6.2                     |
+default-questdb          | questdb/questdb:8.2.1                   |
+default-couchbase        | couchbase:community-7.6.3               |
+# caches / kv / vector / search
+default-redis-stack      | redis/redis-stack-server:7.4.0-v3       |
+default-keydb            | eqalpha/keydb:latest                    |
+default-dragonfly        | docker.dragonflydb.io/dragonflydb/dragonfly:latest |
+default-valkey           | valkey/valkey:8                         |
+default-qdrant           | qdrant/qdrant:v1.12.4                   |
+default-meilisearch      | getmeili/meilisearch:v1.11             |
+default-typesense        | typesense/typesense:27.1               |
+default-weaviate         | semitechnologies/weaviate:1.28.1       |
+default-chroma           | chromadb/chroma:0.5.23                  |
+default-etcd             | bitnami/etcd:3.5                        |
+# messaging / streaming
+default-kafka            | apache/kafka:3.9.0                      |
+default-pulsar           | apachepulsar/pulsar:3.3.2               |
+default-emqx             | emqx:5                                  |
+default-redpanda         | redpandadata/redpanda:v24.2.11          |
+default-cp-kafka         | confluentinc/cp-kafka:7.8.0             |
+# web / app servers / proxies / gateways
+default-envoy            | envoyproxy/envoy:v1.32-latest           |
+default-unit             | unit:1.34.1-minimal                     |
+default-apisix           | apache/apisix:3.11.0                    |
+default-krakend          | krakend:2.8                             |
+# language runtimes / build tools
+default-amazoncorretto   | amazoncorretto:21                       |
+default-maven            | maven:3.9-eclipse-temurin-21            |
+default-gradle           | gradle:8-jdk21                          |
+default-gcc              | gcc:14                                  |
+default-elixir           | elixir:1.18-alpine                      |
+default-erlang           | erlang:27-alpine                        |
+default-haskell          | haskell:9.8                             |
+default-julia            | julia:1.11                              |
+default-r-base           | r-base:4.4                              |
+default-dart             | dart:3.6                                |
+default-groovy           | groovy:4                                |
+default-pypy             | pypy:3.10-slim                          |
+default-clojure          | clojure:temurin-21-tools-deps           |
+default-deno             | denoland/deno:2.1.4                     |
+default-bun              | oven/bun:1.1                            |
+# ci / cd / dev / vcs
+default-jenkins          | jenkins/jenkins:lts                     |
+default-sonarqube        | sonarqube:community                     |
+default-verdaccio        | verdaccio/verdaccio:6                   |
+default-gogs             | gogs/gogs:0.13                          |
+default-forgejo          | codeberg.org/forgejo/forgejo:9          |
+default-drone            | drone/drone:2                           |
+default-nexus3           | sonatype/nexus3:3.75.0                  |
+# observability
+default-loki             | grafana/loki:3.3.2                      |
+default-promtail         | grafana/promtail:3.3.2                  |
+default-tempo            | grafana/tempo:2.6.1                     |
+default-mimir            | grafana/mimir:2.14.0                    |
+default-alloy            | grafana/alloy:latest                    |
+default-jaeger           | jaegertracing/jaeger:2.1.0              |
+default-pushgateway      | prom/pushgateway:v1.10.0                |
+default-blackbox         | prom/blackbox-exporter:v0.25.0          |
+default-victoriametrics  | victoriametrics/victoria-metrics:v1.107.0 |
+default-netdata          | netdata/netdata:stable                  |
+default-uptime-kuma      | louislam/uptime-kuma:1                  |
+default-vector           | timberio/vector:0.43.0-alpine           |
+default-fluentd          | fluent/fluentd:v1.17                    |
+default-fluent-bit       | fluent/fluent-bit:3.2                   |
+default-graylog          | graylog/graylog:6.1                     |
+default-chronograf       | chronograf:1.10                         |
+default-kapacitor        | kapacitor:1.7                           |
+# cms / apps / self-hosted
+default-nextcloud        | nextcloud:30-apache                     |
+default-mediawiki        | mediawiki:1.43                          |
+default-matomo           | matomo:5                                |
+default-wiki             | requarks/wiki:2                         |
+default-rocketchat       | rocketchat/rocket.chat:6                |
+default-mattermost       | mattermost/mattermost-team-edition:10.2 |
+default-n8n              | n8nio/n8n:1.71.3                        |
+default-node-red         | nodered/node-red:4                      |
+default-pihole           | pihole/pihole:2024.07.0                 |
+default-jellyfin         | jellyfin/jellyfin:10.10.3               |
+default-metabase         | metabase/metabase:v0.52.4               |
+default-redmine          | redmine:6                               |
+default-roundcube        | roundcube/roundcubemail:1.6             |
+default-snipe-it         | snipe/snipe-it:v7.0.13                  |
+# storage / infra / devops
+default-minio            | minio/minio:latest                      |
+default-localstack       | localstack/localstack:4                 |
+default-portainer        | portainer/portainer-ce:2.21             |
+default-watchtower       | containrrr/watchtower:latest            |
+default-terraform        | hashicorp/terraform:1.10                |
+default-nomad            | hashicorp/nomad:1.9                     |
+default-flink            | flink:1.20                              |
+default-docker-dind      | docker:27-dind                          |
+# auth / identity / secrets
+default-keycloak         | bitnami/keycloak:26                     |
+default-authelia         | authelia/authelia:4.38                  |
+default-hydra            | oryd/hydra:v2.2.0                       |
+# networking / dns / mail / tools
+default-coredns          | coredns/coredns:1.12.0                  |
+default-adguardhome      | adguard/adguardhome:latest              |
+default-mailhog          | mailhog/mailhog:v1.0.1                  |
+default-mailpit          | axllent/mailpit:latest                  |
+default-swagger-ui       | swaggerapi/swagger-ui:latest            |
+default-tika             | apache/tika:latest                      |
+# db admin / tooling
+default-mongo-express    | mongo-express:1.0                       |
+default-pgadmin          | dpage/pgadmin4:8                        |
+default-redisinsight     | redis/redisinsight:latest               |
+# OS base images (long tail)
+default-oraclelinux      | oraclelinux:9                           |
+default-almalinux        | almalinux:9                             |
+default-archlinux        | archlinux:latest                        |
+default-opensuse-leap    | opensuse/leap:15.6                      |
+default-photon           | photon:5.0                              |
