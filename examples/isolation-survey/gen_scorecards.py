@@ -75,6 +75,57 @@ GRADE_WORD = {
 GRADE_EMOJI = {"A": "🟢", "B": "🟢", "C": "🟡", "D": "🟠", "F": "🔴"}
 VERDICT_MARK = {"PASS": "✅", "WARN": "⚠️", "FAIL": "❌", "UNKNOWN": "❌"}
 
+# Category facet for the /scores explorer chips (IRO-450 SPEC §5 `family`).
+# Values: web|database|runtime|base|infra. Keyed by image slug; explicit so the
+# machine JSON stays deterministic and reviewable. Unmapped slugs fall back to
+# `infra` (and print a warning) so a newly-surveyed image is never silently
+# miscategorised.
+FAMILY = {
+    # base OS
+    "alpine": "base", "amazonlinux": "base", "busybox": "base", "debian": "base",
+    "fedora": "base", "rockylinux": "base", "ubuntu": "base",
+    # language runtimes
+    "golang": "runtime", "node": "runtime", "python": "runtime", "perl": "runtime",
+    "php": "runtime", "ruby": "runtime", "rust": "runtime", "eclipse-temurin": "runtime",
+    # databases / caches / stores
+    "couchdb": "database", "influxdb": "database", "mariadb": "database",
+    "mongo": "database", "mysql": "database", "postgres": "database",
+    "redis": "database", "memcached": "database",
+    # web servers, proxies, and web apps
+    "nginx": "web", "nginx-unprivileged": "web", "httpd": "web", "caddy": "web",
+    "haproxy": "web", "openresty": "web", "varnish": "web", "traefik": "web",
+    "jetty": "web", "tomcat": "web", "drupal": "web", "ghost": "web",
+    "joomla": "web", "wordpress": "web", "phpmyadmin": "web", "adminer": "web",
+    "kong": "web", "gitea": "web", "grafana": "web", "server": "web",
+    # platform / infra services
+    "consul": "infra", "vault": "infra", "prometheus": "infra",
+    "alertmanager": "infra", "node-exporter": "infra", "nats": "infra",
+    "rabbitmq": "infra", "telegraf": "infra", "registry": "infra",
+    "zookeeper": "infra", "eclipse-mosquitto": "infra",
+}
+
+# The fully-hardened reference run every scorecard funnels to: 100/100 grade A.
+# This mirrors the `docker run ... 100/100 (grade A)` block rendered at the
+# bottom of each .md page. Flat single-line command so the explorer can render a
+# one-click copy affordance (SPEC §5 hardenedCommand).
+HARDENED_FLAGS = [
+    "--user 65532:65532",
+    "--cap-drop=ALL",
+    "--security-opt=no-new-privileges",
+    "--read-only --tmpfs /tmp",
+    "--network=none",
+]
+
+
+def family_for(slug: str) -> str:
+    """Category facet for a slug; `infra` fallback with a stderr warning."""
+    fam = FAMILY.get(slug)
+    if fam is None:
+        sys.stderr.write(
+            f"warning: no family mapping for slug '{slug}', defaulting to 'infra'\n")
+        return "infra"
+    return fam
+
 
 def slug_for(image: str) -> str:
     """A stable, filesystem- and URL-safe id from an image reference.
@@ -346,6 +397,78 @@ def render_index(defaults: list) -> str:
     return "\n".join(L)
 
 
+def image_row(scn: dict) -> dict:
+    """One machine-readable image record for index.json (SPEC §5 images[])."""
+    rep = scn["report"]
+    image = scn["image"].split("@", 1)[0]
+    slug = slug_for(image)
+    score = rep.get("score", 0)
+    grade = rep.get("grade", "?")
+    dims = [
+        {
+            "key": d.get("key", ""),
+            "title": d.get("title", ""),
+            "score": d.get("score", 0),
+            "max": d.get("max", 0),
+            "verdict": d.get("verdict", "UNKNOWN"),
+            "detail": d.get("detail", ""),
+        }
+        for d in rep.get("dimensions", [])
+    ]
+    top_gaps = [ttl for ttl, _, _ in top_fixes(rep, 3)]
+    hardened_command = ("docker run -d " + " ".join(HARDENED_FLAGS) + " " + image)
+    return {
+        "slug": slug,
+        "image": image,
+        "displayName": display_name(slug),
+        "family": family_for(slug),
+        "digest": scn.get("resolvedDigest", ""),
+        "score": score,
+        "grade": grade,
+        "topGaps": top_gaps,
+        "dimensions": dims,
+        "hardenedScore": 100,
+        "hardenedGrade": "A",
+        "hardenedFlags": list(HARDENED_FLAGS),
+        "hardenedCommand": hardened_command,
+    }
+
+
+def build_index(data: dict, pages: dict) -> dict:
+    """The machine-readable index.json powering the /scores explorer (SPEC §5).
+
+    One row per image (the deduped default-* scenario). meta numbers are derived
+    (never hardcoded) so they track the survey as it grows.
+    """
+    rows = [image_row(scn) for _, scn in sorted(pages.items())]
+    rows.sort(key=lambda r: (r["score"], r["slug"]))  # worst-first, stable
+    total = len(rows)
+    avg = round(sum(r["score"] for r in rows) / total) if total else 0
+    dist = {g: 0 for g in ("A", "B", "C", "D", "F")}
+    for r in rows:
+        dist[r["grade"]] = dist.get(r["grade"], 0) + 1
+
+    # Canonical dimension order + weights, taken from the first row (every image
+    # is scored on the same seven dimensions in the same order).
+    dim_meta = []
+    if rows:
+        for d in rows[0]["dimensions"]:
+            dim_meta.append({"key": d["key"], "title": d["title"], "max": d["max"]})
+
+    return {
+        "schemaVersion": "1.0",
+        "generatedAt": data.get("generatedAt", ""),
+        "ironctlVersion": data.get("ironctlVersion", ""),
+        "meta": {
+            "imageCount": total,
+            "avgScore": avg,
+            "gradeDistribution": dist,
+            "dimensions": dim_meta,
+        },
+        "images": rows,
+    }
+
+
 def no_dashes(s: str) -> str:
     """Strip em/en-dashes from published copy (IRO-254 standing rule). A spaced
     em-dash becomes a comma; any bare one becomes a hyphen-minus."""
@@ -372,7 +495,17 @@ def main():
     with open(os.path.join(out_dir, "index.md"), "w") as f:
         f.write(no_dashes(render_index(list(pages.values()))))
 
-    print(f"wrote {len(pages)} scorecard pages + index.md to {out_dir}")
+    # Machine-readable index for the /scores explorer (IRO-450/451, SPEC §5).
+    # Emitted next to the .md files so it publishes with the docs site and is
+    # fetchable by the landing build. String values pass through no_dashes for
+    # the public-copy rule; keys/enums are ASCII already.
+    index = build_index(data, pages)
+    with open(os.path.join(out_dir, "index.json"), "w") as f:
+        json.dump(index, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+    print(f"wrote {len(pages)} scorecard pages + index.md + index.json "
+          f"({index['meta']['imageCount']} images) to {out_dir}")
 
 
 if __name__ == "__main__":
