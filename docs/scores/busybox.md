@@ -7,7 +7,7 @@ description: "How isolated is busybox:1.37 by default? IronClaw scores its sandb
 
 Run with plain `docker run busybox:1.37` defaults, no hardening flags, the **busybox** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `busybox:1.37` at digest `sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `busybox:1.37` at digest `sha256:9532d8c39891ca2ecde4d30d7710e01fb739c87a8b9299685c63704296b16028`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

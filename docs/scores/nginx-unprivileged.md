@@ -7,7 +7,7 @@ description: "How isolated is nginx-unprivileged:1.27-alpine by default? IronCla
 
 Run with plain `docker run nginxinc/nginx-unprivileged:1.27-alpine` defaults, no hardening flags, the **nginx unprivileged** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `nginxinc/nginx-unprivileged:1.27-alpine` at digest `sha256:28d91bdce70ad09025ea901458fdd149259d8e05982ade79d4ef2c0d9470eb48`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `nginxinc/nginx-unprivileged:1.27-alpine` at digest `sha256:65e3e85dbaed8ba248841d9d58a899b6197106c23cb0ff1a132b7bfe0547e4c0`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

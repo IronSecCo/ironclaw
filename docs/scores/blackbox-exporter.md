@@ -7,7 +7,7 @@ description: "How isolated is blackbox-exporter:v0.25.0 by default? IronClaw sco
 
 Run with plain `docker run prom/blackbox-exporter:v0.25.0` defaults, no hardening flags, the **blackbox exporter** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `prom/blackbox-exporter:v0.25.0` at digest `sha256:67847e8aaec3c4852a2c7d84d5344e7931521962988c48df00cd980cd1b490a2`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `prom/blackbox-exporter:v0.25.0` at digest `sha256:b04a9fef4fa086a02fc7fcd8dcdbc4b7b35cc30cdee860fdc6a19dd8b208d63e`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

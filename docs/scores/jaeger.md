@@ -7,7 +7,7 @@ description: "How isolated is jaeger:2.1.0 by default? IronClaw scores its sandb
 
 Run with plain `docker run jaegertracing/jaeger:2.1.0` defaults, no hardening flags, the **jaeger** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `jaegertracing/jaeger:2.1.0` at digest `sha256:105b3915b1b176540980a82f96f4cf814484ca637ac4043db2da527779fedf25`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `jaegertracing/jaeger:2.1.0` at digest `sha256:778b0f45d1cb4f94abcfdb86e5ad83155e16c0bce86d5fc2b6bb1cbd5b7386bc`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is rethinkdb:2.4 by default? IronClaw scores its sand
 
 Run with plain `docker run rethinkdb:2.4` defaults, no hardening flags, the **rethinkdb** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `rethinkdb:2.4` at digest `sha256:2ba16bd0687bf2c6b4c7d5cf8c672a2658ff4f65bc181d9aa1672d3af276c804`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `rethinkdb:2.4` at digest `sha256:81d2e8735009eb687696e090c092499fae9ca0bcec3c9022435d51fc4564ac3e`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

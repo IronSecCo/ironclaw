@@ -7,7 +7,7 @@ description: "How isolated is node-exporter:v1.8.2 by default? IronClaw scores i
 
 Run with plain `docker run prom/node-exporter:v1.8.2` defaults, no hardening flags, the **node exporter** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `prom/node-exporter:v1.8.2` at digest `sha256:065914c03336590ebed517e7df38520f0efb44465fde4123c3f6b7328f5a9396`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `prom/node-exporter:v1.8.2` at digest `sha256:4032c6d5bfd752342c3e631c2f1de93ba6b86c41db6b167b9a35372c139e7706`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

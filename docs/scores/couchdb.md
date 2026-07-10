@@ -7,7 +7,7 @@ description: "How isolated is couchdb:3.4 by default? IronClaw scores its sandbo
 
 Run with plain `docker run couchdb:3.4` defaults, no hardening flags, the **couchdb** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `couchdb:3.4` at digest `sha256:6c5046c5e71559d43247120c8d2cb88e40ffa5155820e52b58238acdf9466f87`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `couchdb:3.4` at digest `sha256:b1d84a34afba114d6e9f4fe3fad210e60eaaadab8fd9cd1d218d7d2cad663874`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
