@@ -7,7 +7,7 @@ description: "How isolated is grafana:11.4.0 by default? IronClaw scores its san
 
 Run with plain `docker run grafana/grafana:11.4.0` defaults, no hardening flags, the **grafana** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `grafana/grafana:11.4.0` at digest `sha256:8d938a1c52b018c60cb3583657e038054387aa18a74f09a865c99a522481f7ac`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `grafana/grafana:11.4.0` at digest `sha256:d8ea37798ccc41061a62ab080f2676dda6bf7815558499f901bdb0f533a456fb`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

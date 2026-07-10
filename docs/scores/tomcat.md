@@ -7,7 +7,7 @@ description: "How isolated is tomcat:10.1-jre21-temurin by default? IronClaw sco
 
 Run with plain `docker run tomcat:10.1-jre21-temurin` defaults, no hardening flags, the **tomcat** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `tomcat:10.1-jre21-temurin` at digest `sha256:5b1091b520c45e26b9a3ab50d74f367892cfbe0f4ad056e66bf63d35afe75683`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `tomcat:10.1-jre21-temurin` at digest `sha256:f6e69a64d90e3b71b22e77fdfa87b3df9fa86be393cd01912e9bf34d0076b335`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

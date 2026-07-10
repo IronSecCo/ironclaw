@@ -7,7 +7,7 @@ description: "How isolated is alertmanager:v0.28.0 by default? IronClaw scores i
 
 Run with plain `docker run prom/alertmanager:v0.28.0` defaults, no hardening flags, the **alertmanager** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `prom/alertmanager:v0.28.0` at digest `sha256:9139cd2c7ab7ff951e5ed9ffc4f70122a7de9678fb51065061a5f72549c91bab`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `prom/alertmanager:v0.28.0` at digest `sha256:d5155cfac40a6d9250ffc97c19db2c5e190c7bc57c6b67125c94903358f8c7d8`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is clickhouse:24.8 by default? IronClaw scores its sa
 
 Run with plain `docker run clickhouse:24.8` defaults, no hardening flags, the **clickhouse** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `clickhouse:24.8` at digest `sha256:1b41b544da2428cc0df6632a38af8f0fef28658cce772fbd1f051ac2d8c74245`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `clickhouse:24.8` at digest `sha256:9eb59796efe815711207122267e407dd3b42efd90d01537e1c80118bfc642a11`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

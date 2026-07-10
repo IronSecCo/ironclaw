@@ -7,7 +7,7 @@ description: "How isolated is ghost:5-alpine by default? IronClaw scores its san
 
 Run with plain `docker run ghost:5-alpine` defaults, no hardening flags, the **ghost** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `ghost:5-alpine` at digest `sha256:2341e27e1f3f8496f677f77d0620c1d514e2f4111708bbc03e8bc7c9d39a36fb`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `ghost:5-alpine` at digest `sha256:a0506f3f05f5bdc6c950c5113cdcdb1e1f96fbf15f6dc0a39fc093c25348bdb5`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

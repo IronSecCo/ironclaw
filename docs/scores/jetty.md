@@ -7,7 +7,7 @@ description: "How isolated is jetty:12-jre21 by default? IronClaw scores its san
 
 Run with plain `docker run jetty:12-jre21` defaults, no hardening flags, the **jetty** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `jetty:12-jre21` at digest `sha256:a7b9f19032f2974e2e981826832d0bb37e843fdbba3bd2042a1b6c17b38011a7`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `jetty:12-jre21` at digest `sha256:cfd57c89498e1c90d99102a4f3ef67ba2f1d959be7c49c6378fa175e474bf7a1`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

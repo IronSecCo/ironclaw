@@ -7,7 +7,7 @@ description: "How isolated is rabbitmq:4-alpine by default? IronClaw scores its 
 
 Run with plain `docker run rabbitmq:4-alpine` defaults, no hardening flags, the **rabbitmq** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `rabbitmq:4-alpine` at digest `sha256:05ea3d1ce60612ce7bb359f4786087bea339b9329f7b5c77a29feb01c641dff8`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `rabbitmq:4-alpine` at digest `sha256:835cbc6fabceedef7a3b0ce3195a17adccb753a3ba645bdd61c5557b6e4bf580`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

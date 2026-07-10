@@ -7,7 +7,7 @@ description: "How isolated is nats:2.10-alpine by default? IronClaw scores its s
 
 Run with plain `docker run nats:2.10-alpine` defaults, no hardening flags, the **nats** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `nats:2.10-alpine` at digest `sha256:7e2f895a12d5bc4586191452f5dd20968e8c800d53622073a2730c38d6b0eccb`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `nats:2.10-alpine` at digest `sha256:b83efabe3e7def1e0a4a31ec6e078999bb17c80363f881df35edc70fcb6bb927`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

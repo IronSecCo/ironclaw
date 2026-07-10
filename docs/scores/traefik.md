@@ -7,7 +7,7 @@ description: "How isolated is traefik:v3.2 by default? IronClaw scores its sandb
 
 Run with plain `docker run traefik:v3.2` defaults, no hardening flags, the **traefik** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `traefik:v3.2` at digest `sha256:684cb01614fc38240a5f13e302920a12ba3c6d604ff90d0a6c0ade9a1294a712`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `traefik:v3.2` at digest `sha256:e561a37f8710d9cf41c78bdf421d822b2c0b48267ec0552e644565fb55466ea9`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

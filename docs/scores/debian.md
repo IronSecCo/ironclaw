@@ -7,7 +7,7 @@ description: "How isolated is debian:12-slim by default? IronClaw scores its san
 
 Run with plain `docker run debian:12-slim` defaults, no hardening flags, the **debian** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `debian:12-slim` at digest `sha256:1def178129dfb5f24db43afbf2fcac04530012e3264ba4ff81c71184e17a9ee4`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `debian:12-slim` at digest `sha256:60eac759739651111db372c07be67863818726f754804b8707c90979bda511df`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
