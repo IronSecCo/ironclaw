@@ -19,6 +19,8 @@ docs. No hero numbers from machines you cannot inspect.
 
 | File | Channel | Format |
 | --- | --- | --- |
+| [`reddit-devops.md`](reddit-devops.md) | r/devops | self-post (scores-data angle) |
+| [`reddit-kubernetes.md`](reddit-kubernetes.md) | r/kubernetes | self-post (scores-data angle) |
 | [`reddit-localllama.md`](reddit-localllama.md) | r/LocalLLaMA | self-post |
 | [`reddit-programming.md`](reddit-programming.md) | r/programming | link + comment |
 | [`reddit-selfhosted.md`](reddit-selfhosted.md) | r/selfhosted | self-post |
