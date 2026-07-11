@@ -50,3 +50,57 @@ func TestOpenRouterFactoryOverrides(t *testing.T) {
 		t.Fatalf("openrouter override url = %q, want the overridden host standard /v1 path", op.url)
 	}
 }
+
+func TestOpenRouterFactoryHostOnlyOverride(t *testing.T) {
+	const host = "gateway.example.test"
+
+	pv, err := New(Config{Kind: KindOpenRouter, UpstreamHost: host})
+	if err != nil {
+		t.Fatalf("openrouter host-only override: %v", err)
+	}
+	op, ok := pv.(*OpenAIProvider)
+	if !ok {
+		t.Fatalf("openrouter kind = %T, want *OpenAIProvider", pv)
+	}
+	if op.cfg.UpstreamHost != host {
+		t.Fatalf("openrouter upstream host = %q, want overridden %q", op.cfg.UpstreamHost, host)
+	}
+	if op.cfg.Model != defaultOpenRouterModel {
+		t.Fatalf("openrouter model = %q, want default %q", op.cfg.Model, defaultOpenRouterModel)
+	}
+	if !strings.Contains(op.url, host+"/v1/chat/completions") {
+		t.Fatalf("openrouter host-only override url = %q, want the overridden host standard /v1 path", op.url)
+	}
+}
+
+func TestOpenRouterFactoryModelOnlyOverride(t *testing.T) {
+	const model = "meta-llama/llama-3.1-8b-instruct"
+
+	pv, err := New(Config{Kind: KindOpenRouter, Model: model})
+	if err != nil {
+		t.Fatalf("openrouter model-only override: %v", err)
+	}
+	op, ok := pv.(*OpenAIProvider)
+	if !ok {
+		t.Fatalf("openrouter kind = %T, want *OpenAIProvider", pv)
+	}
+	if op.cfg.UpstreamHost != openRouterUpstreamHost {
+		t.Fatalf("openrouter upstream host = %q, want default %q", op.cfg.UpstreamHost, openRouterUpstreamHost)
+	}
+	if op.cfg.Model != model {
+		t.Fatalf("openrouter model = %q, want overridden %q", op.cfg.Model, model)
+	}
+	if !strings.Contains(op.url, openRouterUpstreamHost+"/api/v1/chat/completions") {
+		t.Fatalf("openrouter model-only override url = %q, want the %s /api/v1 path", op.url, openRouterUpstreamHost)
+	}
+}
+
+func TestOpenRouterFactoryRegistered(t *testing.T) {
+	pv, err := New(Config{Kind: KindOpenRouter})
+	if err != nil {
+		t.Fatalf("openrouter registry discovery: %v", err)
+	}
+	if pv == nil {
+		t.Fatal("openrouter registry discovery = nil, want non-nil provider")
+	}
+}
