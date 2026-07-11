@@ -8,4 +8,5 @@
 # index is pinned first; everything else is alphabetical by the glob.
 nav:
   - All container isolation scores: index.md
+  - Leaderboard: leaderboard.md
   - "*.md"

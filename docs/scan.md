@@ -11,7 +11,9 @@ silently passed.
 
 Curious how the images you already pull score? Browse the public
 [Container Isolation Scores directory](scores/index.md): the default-config
-grade for 50+ of the most-pulled public images, then scan your own in 10 seconds.
+grade for 150+ of the most-pulled public images, then scan your own in 10 seconds.
+See the full ranking, best to worst, on the
+[Container Isolation Leaderboard](scores/leaderboard.md).
 
 ```
 $ ironctl scan my-container
@@ -147,8 +149,9 @@ reasoning behind the committed-file design, see the blog post
 [Add a live Sandbox Isolation Score badge to your repo](blog/add-a-sandbox-isolation-score-badge-to-your-repo.md).
 
 Want to see how your grade stacks up? Compare it against the
-[Container Isolation Scores directory](scores/index.md), where 50+ of the most-pulled
-public images are graded in their default configuration.
+[Container Isolation Scores directory](scores/index.md), where 150+ of the most-pulled
+public images are graded in their default configuration, or the ranked
+[leaderboard](scores/leaderboard.md).
 
 ## GitHub code scanning (Security tab)
 

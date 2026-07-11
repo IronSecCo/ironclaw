@@ -63,6 +63,18 @@ ironctl scan my-gitea
 - [The State of Container Isolation, 2026 &rarr;](../blog/state-of-container-isolation-2026.md), the full survey this directory is built from.
 - [Run untrusted code in a real sandbox &rarr;](../index.md), IronClaw wraps every AI-agent session in a gVisor/Kata isolation boundary with `network=none` by default.
 
+## Badge this image
+
+Maintain **gitea** (or run it)? Show its default-config isolation score with a badge that links back to this scorecard:
+
+[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/gitea/)
+
+```markdown
+[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/gitea/)
+```
+
+The badge is a plain [shields.io](https://shields.io) URL: no server, no build step, nothing to host. It reflects this page's default-configuration grade. Hardened your own deployment? Generate a live badge of *your* config with [`ironctl scan --badge-json`](../blog/add-a-sandbox-isolation-score-badge-to-your-repo.md), or compare every image on the [leaderboard](leaderboard.md).
+
 ---
 
 *Part of the [Container Isolation Scores](index.md) directory, default-configuration containment grades for the most-pulled public images.*
