@@ -221,8 +221,11 @@ README with `ironctl scan --badge scan.svg`, or gate CI with `ironctl scan --min
 See the [scan reference](https://ironsecco.github.io/ironclaw/scan/) for all seven dimensions
 and every flag. Or browse the
 [Container Isolation Scores directory](https://ironsecco.github.io/ironclaw/scores/): the
-default-config grade for 50+ of the most-pulled public images, so you can see how the
-containers you already run stack up.
+default-config grade for 150+ of the most-pulled public images, so you can see how the
+containers you already run stack up. Rankings live on the
+[Container Isolation Leaderboard](https://ironsecco.github.io/ironclaw/scores/leaderboard/)
+(Hall of Fame vs worst offenders), and the interactive
+[scores explorer](https://nivardsec.com/scores) lets you filter and grab a badge for your repo.
 
 ### Show your score
 
