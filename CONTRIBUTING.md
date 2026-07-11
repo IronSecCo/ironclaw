@@ -43,6 +43,26 @@ that's all the setup there is. A maintainer reviews and merges.
 [**Discussions**](https://github.com/IronSecCo/ironclaw/discussions). The rest of this
 guide covers the ground rules, the frozen contract, and the code layout in detail.
 
+### Good places to start
+
+Two subsystems are deliberately self-contained — you can make a real, mergeable change
+in either without loading the whole architecture in your head:
+
+- **`ironctl scan`** (`internal/host/scan/`, `cmd/ironctl/scan.go`) — grades a container's
+  containment posture 0-100 across seven dimensions. Pure, table-testable scoring logic and
+  a small CLI surface. Good for test coverage, new flags, and output polish. See
+  [`docs/scan.md`](https://ironsecco.github.io/ironclaw/scan/).
+- **The isolation scores dataset** (`examples/isolation-survey/`) — the data behind the public
+  [container isolation scores](https://ironsecco.github.io/ironclaw/scores/) directory. Adding
+  images to `images.txt` is a data-only change (no Go, no build); the weekly CI survey grades
+  and publishes them for you.
+
+Filter the open issues for these areas with the
+[**`area:cli`**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22area%3Acli%22),
+[**`area:sandbox`**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22area%3Asandbox%22),
+and [**`category:test`**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22category%3Atest%22)
+labels.
+
 ## Ground rules
 
 - **Open an issue first** for anything non-trivial, so we can agree on the approach
