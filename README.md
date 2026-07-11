@@ -1081,7 +1081,11 @@ home for Q&A, design discussion, and show-and-tell, and it's where maintainers a
   [ready to claim](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22+label%3A%22help+wanted%22)
   (`good first issue` + `help wanted`). They are small, self-contained, and mentored, and every one
   carries the standard labels that contributor boards such as [up-for-grabs.net](https://up-for-grabs.net)
-  and [goodfirstissue.dev](https://goodfirstissue.dev) index by. See [Contributing](#contributing) for the workflow.
+  and [goodfirstissue.dev](https://goodfirstissue.dev) index by. The friendliest starting points are the
+  two most self-contained subsystems — [**`ironctl scan`**](https://ironsecco.github.io/ironclaw/scan/)
+  (containment scoring; `internal/host/scan/`) and the
+  [**isolation scores dataset**](https://ironsecco.github.io/ironclaw/scores/) (`examples/isolation-survey/`,
+  a data-only change). See [Contributing](#contributing) for the workflow.
 - **First time here?** Everyone interacting with the project is expected to follow our
   [**Code of Conduct**](CODE_OF_CONDUCT.md) — be excellent to each other.
 
