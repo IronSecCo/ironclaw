@@ -11,6 +11,8 @@ How isolated is the container you just `docker run`? This directory grades **151
 
 > **Scan your own container:** `brew install ironsecco/ironclaw/ironclaw && ironctl scan my-container`. See [Scan any container](../scan.md).
 
+> **New:** the [Container Isolation Leaderboard](leaderboard.md) ranks every image best-to-worst, with a Hall of Fame and a Worst-offenders cut. Each scorecard now carries a copy-paste [shields.io badge](leaderboard.md) you can embed in your repo.
+
 ## Every image, worst-isolated first
 
 | Image | Score | Grade | Top gaps (default config) |

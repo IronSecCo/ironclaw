@@ -75,6 +75,40 @@ GRADE_WORD = {
 GRADE_EMOJI = {"A": "🟢", "B": "🟢", "C": "🟡", "D": "🟠", "F": "🔴"}
 VERDICT_MARK = {"PASS": "✅", "WARN": "⚠️", "FAIL": "❌", "UNKNOWN": "❌"}
 
+# Grade -> shields.io color (6-hex, no leading '#'). Mirrors gradeColor() in
+# internal/host/scan/render.go so the committed per-image badges match the
+# `ironctl scan --badge-json` palette exactly.
+GRADE_COLOR = {"A": "3fb950", "B": "9acd32", "C": "d4a72c", "D": "e8873a", "F": "d1242f"}
+
+# Published site root (mkdocs site_url). Per-image scorecard pages live at
+# `${SITE_URL}/scores/<slug>/`; the embeddable badge links back here so a
+# maintainer who badges their repo hands us an inbound backlink (IRO-459).
+SITE_URL = "https://ironsecco.github.io/ironclaw"
+
+
+def scorecard_url(slug: str) -> str:
+    """Canonical published URL for an image's scorecard page."""
+    return f"{SITE_URL}/scores/{slug}/"
+
+
+def badge_url(score: int, grade: str) -> str:
+    """A committed-file-free shields.io STATIC badge for an image's default score.
+
+    No server and no per-image JSON file: shields renders the score straight from
+    the URL, colored to match `ironctl scan --badge-json`. `/` and space are
+    percent-escaped; the message carries no literal dash/underscore so shields'
+    `--`/`__` escaping is not needed.
+    """
+    color = GRADE_COLOR.get(grade, GRADE_COLOR["F"])
+    return (f"https://img.shields.io/badge/"
+            f"container%20isolation-{score}%2F100%20{grade}-{color}")
+
+
+def badge_markdown(slug: str, score: int, grade: str) -> str:
+    """Copy-paste markdown: the shields badge wrapped in a link to the scorecard."""
+    alt = f"Container Isolation Score: {score}/100 {grade}"
+    return f"[![{alt}]({badge_url(score, grade)})]({scorecard_url(slug)})"
+
 # Category facet for the /scores explorer chips (IRO-450 SPEC §5 `family`).
 # Values: web|database|runtime|base|infra. Keyed by image slug; explicit so the
 # machine JSON stays deterministic and reviewable. Unmapped slugs fall back to
@@ -307,6 +341,29 @@ def render_page(scn: dict) -> str:
              "IronClaw wraps every AI-agent session in a gVisor/Kata isolation "
              "boundary with `network=none` by default.")
     L.append("")
+
+    # Embeddable badge. A committed-file-free shields.io static badge maintainers
+    # can paste into their README; clicking it lands here, an inbound backlink
+    # (IRO-459). Rendered live + as a copy-paste markdown snippet.
+    L.append("## Badge this image")
+    L.append("")
+    L.append(f"Maintain **{name}** (or run it)? Show its default-config isolation "
+             f"score with a badge that links back to this scorecard:")
+    L.append("")
+    L.append(badge_markdown(slug, score, grade))
+    L.append("")
+    L.append("```markdown")
+    L.append(badge_markdown(slug, score, grade))
+    L.append("```")
+    L.append("")
+    L.append("The badge is a plain [shields.io](https://shields.io) URL: no server, "
+             "no build step, nothing to host. It reflects this page's "
+             "default-configuration grade. Hardened your own deployment? Generate a "
+             "live badge of *your* config with "
+             "[`ironctl scan --badge-json`](../blog/"
+             "add-a-sandbox-isolation-score-badge-to-your-repo.md), or compare every "
+             "image on the [leaderboard](leaderboard.md).")
+    L.append("")
     L.append("---")
     L.append("")
     L.append("*Part of the [Container Isolation Scores](index.md) directory — "
@@ -353,6 +410,11 @@ def render_index(defaults: list) -> str:
              "`brew install ironsecco/ironclaw/ironclaw && ironctl scan my-container`. "
              "See [Scan any container](../scan.md).")
     L.append("")
+    L.append("> **New:** the [Container Isolation Leaderboard](leaderboard.md) ranks "
+             "every image best-to-worst, with a Hall of Fame and a Worst-offenders "
+             "cut. Each scorecard now carries a copy-paste "
+             "[shields.io badge](leaderboard.md) you can embed in your repo.")
+    L.append("")
     L.append("## Every image, worst-isolated first")
     L.append("")
     L.append("| Image | Score | Grade | Top gaps (default config) |")
@@ -397,6 +459,172 @@ def render_index(defaults: list) -> str:
     return "\n".join(L)
 
 
+# Family slug -> human label for the leaderboard's grouped cut.
+FAMILY_LABEL = {
+    "base": "Base OS images",
+    "runtime": "Language runtimes",
+    "database": "Databases, caches, and stores",
+    "web": "Web servers, proxies, and apps",
+    "infra": "Platform and infra services",
+}
+MEDAL = {1: "🥇", 2: "🥈", 3: "🥉"}
+
+
+def _leaderboard_row(rank, scn, medals=True):
+    """One `| rank | image | score | grade | gaps |` row for a leaderboard table.
+    Medals decorate the top three only when `medals` is set (best-first tables);
+    the worst-offenders table passes medals=False so a gold medal never lands on
+    the least-isolated image."""
+    rep = scn["report"]
+    slug = slug_for(scn["image"])
+    grade = rep.get("grade", "?")
+    emoji = GRADE_EMOJI.get(grade, "")
+    medal = MEDAL.get(rank, "") if medals else ""
+    gaps = ", ".join(t for t, _, _ in top_fixes(rep, 3)) or "none, fully hardened"
+    img = scn["image"].split("@")[0]
+    rank_cell = f"{medal} {rank}".strip()
+    return (f"| {rank_cell} | [`{img}`]({slug}.md) | {rep.get('score',0)}/100 | "
+            f"{emoji} **{grade}** | {gaps} |")
+
+
+def render_leaderboard(defaults: list) -> str:
+    """The ranked, shareable leaderboard: best-to-worst, plus a Hall of Fame,
+    a Worst-offenders cut, and a best-in-category group. Generated from the same
+    scenarios as the scorecards, so the weekly refresh keeps it in sync.
+    """
+    # Best-first, ties broken by slug for determinism.
+    rows = sorted(defaults, key=lambda s: (-s["report"].get("score", 0), slug_for(s["image"])))
+    total = len(rows)
+    avg = round(sum(s["report"].get("score", 0) for s in rows) / total) if total else 0
+    best = rows[0]["report"].get("score", 0) if rows else 0
+    worst = rows[-1]["report"].get("score", 0) if rows else 0
+
+    # Hall of Fame: any grade-A defaults if they exist, else the top decile
+    # (min 5, capped at 15). Worst offenders: the mirror-image bottom cut.
+    cut = max(5, min(15, total // 10))
+    grade_a = [s for s in rows if s["report"].get("grade") == "A"]
+    hall = grade_a if grade_a else rows[:cut]
+    worst_off = list(reversed(rows[-cut:]))  # worst first
+
+    L = []
+    L.append("---")
+    L.append('title: "Container Isolation Leaderboard: the most (and least) isolated Docker images"')
+    L.append("description: A ranked leaderboard of the default container isolation "
+             f"score for {total} of the most-pulled public Docker images, graded "
+             "0-100 by ironctl scan. Hall of Fame and worst offenders included.")
+    L.append("---")
+    L.append("")
+    L.append("# Container Isolation Leaderboard")
+    L.append("")
+    L.append(f"Every one of **{total} of the most-pulled public Docker images**, "
+             f"ranked by how isolated it is when you `docker run` it with plain "
+             f"defaults, no hardening flags. Scores run **{worst}/100 to {best}/100** "
+             f"(average **{avg}/100**), graded across IronClaw's seven containment "
+             f"dimensions by `ironctl scan`. Higher is safer. Regenerated with the "
+             f"[weekly survey refresh](index.md), so this ranking never goes stale.")
+    L.append("")
+    L.append("> The uncomfortable headline: **no popular image ships isolated.** "
+             "Even the leaders leave capabilities, egress, and a writable root "
+             "filesystem wide open. The gap between any image here and a clean "
+             "**100/100 grade A** is a handful of `docker run` flags, shown on every "
+             "scorecard.")
+    L.append("")
+
+    # Hall of Fame.
+    L.append("## 🏆 Hall of Fame")
+    L.append("")
+    if grade_a:
+        L.append("Images that reach **grade A (100/100)** in their default "
+                 "configuration, out of the box:")
+    else:
+        L.append(f"No image ships at grade A, so this is the next best thing: the "
+                 f"**{len(hall)} best-isolated images by default**, the ones that "
+                 f"start you closest to a hardened posture.")
+    L.append("")
+    L.append("| Rank | Image | Score | Grade | Remaining gaps (default config) |")
+    L.append("|-----:|-------|------:|:-----:|---------------------------------|")
+    for i, s in enumerate(hall, 1):
+        L.append(_leaderboard_row(i, s))
+    L.append("")
+
+    # Worst offenders.
+    L.append("## 🚨 Worst offenders")
+    L.append("")
+    L.append(f"The **{len(worst_off)} least-isolated images** in the survey. Pulling "
+             f"one of these unhardened puts a container escape one step from host "
+             f"uid 0. Each links to the exact flags that fix it.")
+    L.append("")
+    L.append("| # | Image | Score | Grade | Top gaps (default config) |")
+    L.append("|--:|-------|------:|:-----:|---------------------------|")
+    for i, s in enumerate(worst_off, 1):
+        L.append(_leaderboard_row(i, s, medals=False))
+    L.append("")
+
+    # Best-in-category grouped cut.
+    L.append("## Best in each category")
+    L.append("")
+    L.append("The most-isolated default image in every family. Comparing like with "
+             "like, a database against a database, a base OS against a base OS:")
+    L.append("")
+    L.append("| Category | Best-isolated image | Score | Grade |")
+    L.append("|----------|---------------------|------:|:-----:|")
+    for fam in ("base", "runtime", "database", "web", "infra"):
+        fam_rows = [s for s in rows if family_for(slug_for(s["image"])) == fam]
+        if not fam_rows:
+            continue
+        top = fam_rows[0]  # rows already best-first
+        rep = top["report"]
+        slug = slug_for(top["image"])
+        grade = rep.get("grade", "?")
+        emoji = GRADE_EMOJI.get(grade, "")
+        img = top["image"].split("@")[0]
+        L.append(f"| {FAMILY_LABEL[fam]} | [`{img}`]({slug}.md) | "
+                 f"{rep.get('score',0)}/100 | {emoji} **{grade}** |")
+    L.append("")
+
+    # Full ranking.
+    L.append("## Full ranking, best to worst")
+    L.append("")
+    L.append("Every graded image, most-isolated first. Click any image for its "
+             "per-dimension breakdown, the exact hardening flags, and a copy-paste "
+             "score badge you can embed in your repo.")
+    L.append("")
+    L.append("| Rank | Image | Score | Grade | Top gaps (default config) |")
+    L.append("|-----:|-------|------:|:-----:|---------------------------|")
+    for i, s in enumerate(rows, 1):
+        L.append(_leaderboard_row(i, s))
+    L.append("")
+
+    # CTA / cross-links.
+    L.append("## Move up the leaderboard")
+    L.append("")
+    L.append("Every gap on this page closes with `docker run` flags. Audit your own "
+             "container, or one you maintain, with the same credential-free command "
+             "that produced these grades:")
+    L.append("")
+    L.append("```bash")
+    L.append("brew install ironsecco/ironclaw/ironclaw")
+    L.append("ironctl scan my-container")
+    L.append("```")
+    L.append("")
+    L.append("- [Container Isolation Scores directory](index.md) — every scorecard, "
+             "worst-isolated first.")
+    L.append("- [Scan any container &rarr;](../scan.md) — the full command reference.")
+    L.append("- [Add an isolation-score badge to your repo &rarr;]"
+             "(../blog/add-a-sandbox-isolation-score-badge-to-your-repo.md)")
+    L.append("- [The State of Container Isolation, 2026 &rarr;]"
+             "(../blog/state-of-container-isolation-2026.md) — the full survey.")
+    L.append("")
+    L.append("---")
+    L.append("")
+    L.append("*Generated from a reproducible survey by "
+             "`examples/isolation-survey/gen_scorecards.py`. Grades reflect each "
+             "image's default configuration, not a limit of the image itself: every "
+             "one reaches grade A with the right `docker run` flags.*")
+    L.append("")
+    return "\n".join(L)
+
+
 def image_row(scn: dict) -> dict:
     """One machine-readable image record for index.json (SPEC §5 images[])."""
     rep = scn["report"]
@@ -431,6 +659,12 @@ def image_row(scn: dict) -> dict:
         "hardenedGrade": "A",
         "hardenedFlags": list(HARDENED_FLAGS),
         "hardenedCommand": hardened_command,
+        # Embeddable shields.io badge for this image (IRO-459). Server-free static
+        # URL + copy-paste markdown that links back to the scorecard page, so the
+        # explorer can render the same copy affordance as the .md scorecard.
+        "pageUrl": scorecard_url(slug),
+        "badgeUrl": badge_url(score, grade),
+        "badgeMarkdown": badge_markdown(slug, score, grade),
     }
 
 
@@ -494,6 +728,8 @@ def main():
             f.write(no_dashes(render_page(scn)))
     with open(os.path.join(out_dir, "index.md"), "w") as f:
         f.write(no_dashes(render_index(list(pages.values()))))
+    with open(os.path.join(out_dir, "leaderboard.md"), "w") as f:
+        f.write(no_dashes(render_leaderboard(list(pages.values()))))
 
     # Machine-readable index for the /scores explorer (IRO-450/451, SPEC §5).
     # Emitted next to the .md files so it publishes with the docs site and is
@@ -504,8 +740,8 @@ def main():
         json.dump(index, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
-    print(f"wrote {len(pages)} scorecard pages + index.md + index.json "
-          f"({index['meta']['imageCount']} images) to {out_dir}")
+    print(f"wrote {len(pages)} scorecard pages + index.md + leaderboard.md + "
+          f"index.json ({index['meta']['imageCount']} images) to {out_dir}")
 
 
 if __name__ == "__main__":

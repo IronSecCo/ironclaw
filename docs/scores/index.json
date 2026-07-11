@@ -131,7 +131,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none adguard/adguardhome:latest"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none adguard/adguardhome:latest",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/adguardhome/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/adguardhome/)"
     },
     {
       "slug": "alloy",
@@ -213,7 +216,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none grafana/alloy:latest"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none grafana/alloy:latest",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/alloy/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/alloy/)"
     },
     {
       "slug": "almalinux",
@@ -295,7 +301,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none almalinux:9"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none almalinux:9",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/almalinux/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/almalinux/)"
     },
     {
       "slug": "alpine",
@@ -377,7 +386,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none alpine:3.21"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none alpine:3.21",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/alpine/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/alpine/)"
     },
     {
       "slug": "amazoncorretto",
@@ -459,7 +471,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none amazoncorretto:21"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none amazoncorretto:21",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/amazoncorretto/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/amazoncorretto/)"
     },
     {
       "slug": "amazonlinux",
@@ -541,7 +556,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none amazonlinux:2023"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none amazonlinux:2023",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/amazonlinux/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/amazonlinux/)"
     },
     {
       "slug": "arangodb",
@@ -623,7 +641,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none arangodb:3.12"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none arangodb:3.12",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/arangodb/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/arangodb/)"
     },
     {
       "slug": "archlinux",
@@ -705,7 +726,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none archlinux:latest"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none archlinux:latest",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/archlinux/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/archlinux/)"
     },
     {
       "slug": "authelia",
@@ -787,7 +811,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none authelia/authelia:4.38"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none authelia/authelia:4.38",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/authelia/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/authelia/)"
     },
     {
       "slug": "blackbox-exporter",
@@ -869,7 +896,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none prom/blackbox-exporter:v0.25.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none prom/blackbox-exporter:v0.25.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/blackbox-exporter/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/blackbox-exporter/)"
     },
     {
       "slug": "bun",
@@ -951,7 +981,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none oven/bun:1.1"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none oven/bun:1.1",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/bun/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/bun/)"
     },
     {
       "slug": "busybox",
@@ -1033,7 +1066,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none busybox:1.37"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none busybox:1.37",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/busybox/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/busybox/)"
     },
     {
       "slug": "caddy",
@@ -1115,7 +1151,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none caddy:2-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none caddy:2-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/caddy/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/caddy/)"
     },
     {
       "slug": "cassandra",
@@ -1197,7 +1236,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none cassandra:5.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none cassandra:5.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/cassandra/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/cassandra/)"
     },
     {
       "slug": "chroma",
@@ -1279,7 +1321,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none chromadb/chroma:0.5.23"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none chromadb/chroma:0.5.23",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/chroma/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/chroma/)"
     },
     {
       "slug": "chronograf",
@@ -1361,7 +1406,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none chronograf:1.10"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none chronograf:1.10",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/chronograf/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/chronograf/)"
     },
     {
       "slug": "clickhouse",
@@ -1443,7 +1491,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none clickhouse:24.8"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none clickhouse:24.8",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/clickhouse/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/clickhouse/)"
     },
     {
       "slug": "clojure",
@@ -1525,7 +1576,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none clojure:temurin-21-tools-deps"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none clojure:temurin-21-tools-deps",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/clojure/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/clojure/)"
     },
     {
       "slug": "cockroach",
@@ -1607,7 +1661,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none cockroachdb/cockroach:latest"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none cockroachdb/cockroach:latest",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/cockroach/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/cockroach/)"
     },
     {
       "slug": "consul",
@@ -1689,7 +1746,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none hashicorp/consul:1.20"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none hashicorp/consul:1.20",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/consul/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/consul/)"
     },
     {
       "slug": "couchdb",
@@ -1771,7 +1831,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none couchdb:3.4"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none couchdb:3.4",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/couchdb/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/couchdb/)"
     },
     {
       "slug": "dart",
@@ -1853,7 +1916,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none dart:3.6"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none dart:3.6",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/dart/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/dart/)"
     },
     {
       "slug": "debian",
@@ -1935,7 +2001,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none debian:12-slim"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none debian:12-slim",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/debian/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/debian/)"
     },
     {
       "slug": "deno",
@@ -2017,7 +2086,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none denoland/deno:2.1.4"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none denoland/deno:2.1.4",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/deno/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/deno/)"
     },
     {
       "slug": "docker",
@@ -2099,7 +2171,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none docker:27-dind"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none docker:27-dind",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/docker/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/docker/)"
     },
     {
       "slug": "dragonfly",
@@ -2181,7 +2256,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none docker.dragonflydb.io/dragonflydb/dragonfly:latest"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none docker.dragonflydb.io/dragonflydb/dragonfly:latest",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/dragonfly/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/dragonfly/)"
     },
     {
       "slug": "drone",
@@ -2263,7 +2341,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none drone/drone:2"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none drone/drone:2",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/drone/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/drone/)"
     },
     {
       "slug": "drupal",
@@ -2345,7 +2426,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none drupal:11-apache"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none drupal:11-apache",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/drupal/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/drupal/)"
     },
     {
       "slug": "eclipse-mosquitto",
@@ -2427,7 +2511,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none eclipse-mosquitto:2"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none eclipse-mosquitto:2",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/eclipse-mosquitto/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/eclipse-mosquitto/)"
     },
     {
       "slug": "eclipse-temurin",
@@ -2509,7 +2596,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none eclipse-temurin:21-jre-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none eclipse-temurin:21-jre-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/eclipse-temurin/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/eclipse-temurin/)"
     },
     {
       "slug": "elixir",
@@ -2591,7 +2681,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none elixir:1.18-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none elixir:1.18-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/elixir/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/elixir/)"
     },
     {
       "slug": "envoy",
@@ -2673,7 +2766,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none envoyproxy/envoy:v1.32-latest"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none envoyproxy/envoy:v1.32-latest",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/envoy/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/envoy/)"
     },
     {
       "slug": "erlang",
@@ -2755,7 +2851,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none erlang:27-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none erlang:27-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/erlang/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/erlang/)"
     },
     {
       "slug": "fedora",
@@ -2837,7 +2936,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none fedora:41"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none fedora:41",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/fedora/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/fedora/)"
     },
     {
       "slug": "flink",
@@ -2919,7 +3021,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none flink:1.20"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none flink:1.20",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/flink/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/flink/)"
     },
     {
       "slug": "forgejo",
@@ -3001,7 +3106,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none codeberg.org/forgejo/forgejo:9"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none codeberg.org/forgejo/forgejo:9",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/forgejo/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/forgejo/)"
     },
     {
       "slug": "gcc",
@@ -3083,7 +3191,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none gcc:14"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none gcc:14",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/gcc/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/gcc/)"
     },
     {
       "slug": "ghost",
@@ -3165,7 +3276,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none ghost:5-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none ghost:5-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/ghost/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/ghost/)"
     },
     {
       "slug": "gitea",
@@ -3247,7 +3361,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none gitea/gitea:1.22"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none gitea/gitea:1.22",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/gitea/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/gitea/)"
     },
     {
       "slug": "gogs",
@@ -3329,7 +3446,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none gogs/gogs:0.13"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none gogs/gogs:0.13",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/gogs/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/gogs/)"
     },
     {
       "slug": "golang",
@@ -3411,7 +3531,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none golang:1.23-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none golang:1.23-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/golang/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/golang/)"
     },
     {
       "slug": "gradle",
@@ -3493,7 +3616,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none gradle:8-jdk21"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none gradle:8-jdk21",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/gradle/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/gradle/)"
     },
     {
       "slug": "haskell",
@@ -3575,7 +3701,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none haskell:9.8"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none haskell:9.8",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/haskell/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/haskell/)"
     },
     {
       "slug": "httpd",
@@ -3657,7 +3786,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none httpd:2.4-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none httpd:2.4-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/httpd/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/httpd/)"
     },
     {
       "slug": "influxdb",
@@ -3739,7 +3871,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none influxdb:2.7-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none influxdb:2.7-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/influxdb/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/influxdb/)"
     },
     {
       "slug": "jellyfin",
@@ -3821,7 +3956,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none jellyfin/jellyfin:10.10.3"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none jellyfin/jellyfin:10.10.3",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/jellyfin/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/jellyfin/)"
     },
     {
       "slug": "joomla",
@@ -3903,7 +4041,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none joomla:5-apache"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none joomla:5-apache",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/joomla/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/joomla/)"
     },
     {
       "slug": "julia",
@@ -3985,7 +4126,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none julia:1.11"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none julia:1.11",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/julia/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/julia/)"
     },
     {
       "slug": "kapacitor",
@@ -4067,7 +4211,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none kapacitor:1.7"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none kapacitor:1.7",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/kapacitor/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/kapacitor/)"
     },
     {
       "slug": "keydb",
@@ -4149,7 +4296,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none eqalpha/keydb:latest"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none eqalpha/keydb:latest",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/keydb/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/keydb/)"
     },
     {
       "slug": "leap",
@@ -4231,7 +4381,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none opensuse/leap:15.6"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none opensuse/leap:15.6",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/leap/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/leap/)"
     },
     {
       "slug": "localstack",
@@ -4313,7 +4466,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none localstack/localstack:4"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none localstack/localstack:4",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/localstack/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/localstack/)"
     },
     {
       "slug": "mailpit",
@@ -4395,7 +4551,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none axllent/mailpit:latest"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none axllent/mailpit:latest",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/mailpit/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/mailpit/)"
     },
     {
       "slug": "mariadb",
@@ -4477,7 +4636,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mariadb:11"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mariadb:11",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/mariadb/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/mariadb/)"
     },
     {
       "slug": "matomo",
@@ -4559,7 +4721,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none matomo:5"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none matomo:5",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/matomo/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/matomo/)"
     },
     {
       "slug": "maven",
@@ -4641,7 +4806,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none maven:3.9-eclipse-temurin-21"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none maven:3.9-eclipse-temurin-21",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/maven/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/maven/)"
     },
     {
       "slug": "mediawiki",
@@ -4723,7 +4891,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mediawiki:1.43"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mediawiki:1.43",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/mediawiki/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/mediawiki/)"
     },
     {
       "slug": "meilisearch",
@@ -4805,7 +4976,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none getmeili/meilisearch:v1.11"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none getmeili/meilisearch:v1.11",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/meilisearch/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/meilisearch/)"
     },
     {
       "slug": "metabase",
@@ -4887,7 +5061,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none metabase/metabase:v0.52.4"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none metabase/metabase:v0.52.4",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/metabase/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/metabase/)"
     },
     {
       "slug": "minio",
@@ -4969,7 +5146,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none minio/minio:latest"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none minio/minio:latest",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/minio/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/minio/)"
     },
     {
       "slug": "mongo",
@@ -5051,7 +5231,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mongo:7"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mongo:7",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/mongo/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/mongo/)"
     },
     {
       "slug": "mongo-express",
@@ -5133,7 +5316,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mongo-express:1.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mongo-express:1.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/mongo-express/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/mongo-express/)"
     },
     {
       "slug": "mysql",
@@ -5215,7 +5401,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mysql:8.4"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mysql:8.4",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/mysql/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/mysql/)"
     },
     {
       "slug": "nats",
@@ -5297,7 +5486,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none nats:2.10-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none nats:2.10-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/nats/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/nats/)"
     },
     {
       "slug": "neo4j",
@@ -5379,7 +5571,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none neo4j:5"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none neo4j:5",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/neo4j/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/neo4j/)"
     },
     {
       "slug": "netdata",
@@ -5461,7 +5656,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none netdata/netdata:stable"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none netdata/netdata:stable",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/netdata/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/netdata/)"
     },
     {
       "slug": "nextcloud",
@@ -5543,7 +5741,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none nextcloud:30-apache"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none nextcloud:30-apache",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/nextcloud/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/nextcloud/)"
     },
     {
       "slug": "nginx",
@@ -5625,7 +5826,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none nginx:1.27-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none nginx:1.27-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/nginx/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/nginx/)"
     },
     {
       "slug": "node",
@@ -5707,7 +5911,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none node:22-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none node:22-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/node/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/node/)"
     },
     {
       "slug": "nomad",
@@ -5789,7 +5996,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none hashicorp/nomad:1.9"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none hashicorp/nomad:1.9",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/nomad/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/nomad/)"
     },
     {
       "slug": "openresty",
@@ -5871,7 +6081,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none openresty/openresty:alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none openresty/openresty:alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/openresty/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/openresty/)"
     },
     {
       "slug": "oraclelinux",
@@ -5953,7 +6166,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none oraclelinux:9"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none oraclelinux:9",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/oraclelinux/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/oraclelinux/)"
     },
     {
       "slug": "perl",
@@ -6035,7 +6251,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none perl:5.40-slim"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none perl:5.40-slim",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/perl/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/perl/)"
     },
     {
       "slug": "pgvector",
@@ -6117,7 +6336,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none pgvector/pgvector:pg17"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none pgvector/pgvector:pg17",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/pgvector/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/pgvector/)"
     },
     {
       "slug": "photon",
@@ -6199,7 +6421,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none photon:5.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none photon:5.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/photon/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/photon/)"
     },
     {
       "slug": "php",
@@ -6281,7 +6506,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none php:8.4-apache"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none php:8.4-apache",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/php/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/php/)"
     },
     {
       "slug": "phpmyadmin",
@@ -6363,7 +6591,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none phpmyadmin:5.2"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none phpmyadmin:5.2",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/phpmyadmin/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/phpmyadmin/)"
     },
     {
       "slug": "pihole",
@@ -6445,7 +6676,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none pihole/pihole:2024.07.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none pihole/pihole:2024.07.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/pihole/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/pihole/)"
     },
     {
       "slug": "postgis",
@@ -6527,7 +6761,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none postgis/postgis:17-3.5"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none postgis/postgis:17-3.5",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/postgis/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/postgis/)"
     },
     {
       "slug": "postgres",
@@ -6609,7 +6846,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none postgres:17-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none postgres:17-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/postgres/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/postgres/)"
     },
     {
       "slug": "promtail",
@@ -6691,7 +6931,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none grafana/promtail:3.3.2"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none grafana/promtail:3.3.2",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/promtail/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/promtail/)"
     },
     {
       "slug": "pypy",
@@ -6773,7 +7016,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none pypy:3.10-slim"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none pypy:3.10-slim",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/pypy/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/pypy/)"
     },
     {
       "slug": "python",
@@ -6855,7 +7101,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none python:3.13-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none python:3.13-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/python/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/python/)"
     },
     {
       "slug": "qdrant",
@@ -6937,7 +7186,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none qdrant/qdrant:v1.12.4"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none qdrant/qdrant:v1.12.4",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/qdrant/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/qdrant/)"
     },
     {
       "slug": "questdb",
@@ -7019,7 +7271,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none questdb/questdb:8.2.1"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none questdb/questdb:8.2.1",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/questdb/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/questdb/)"
     },
     {
       "slug": "rabbitmq",
@@ -7101,7 +7356,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none rabbitmq:4-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none rabbitmq:4-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/rabbitmq/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/rabbitmq/)"
     },
     {
       "slug": "redis",
@@ -7183,7 +7441,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none redis:7-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none redis:7-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/redis/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/redis/)"
     },
     {
       "slug": "redis-stack-server",
@@ -7265,7 +7526,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none redis/redis-stack-server:7.4.0-v3"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none redis/redis-stack-server:7.4.0-v3",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/redis-stack-server/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/redis-stack-server/)"
     },
     {
       "slug": "redmine",
@@ -7347,7 +7611,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none redmine:6"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none redmine:6",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/redmine/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/redmine/)"
     },
     {
       "slug": "registry",
@@ -7429,7 +7696,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none registry:2.8.3"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none registry:2.8.3",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/registry/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/registry/)"
     },
     {
       "slug": "rethinkdb",
@@ -7511,7 +7781,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none rethinkdb:2.4"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none rethinkdb:2.4",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/rethinkdb/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/rethinkdb/)"
     },
     {
       "slug": "rockylinux",
@@ -7593,7 +7866,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none rockylinux:9"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none rockylinux:9",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/rockylinux/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/rockylinux/)"
     },
     {
       "slug": "ruby",
@@ -7675,7 +7951,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none ruby:3.4-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none ruby:3.4-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/ruby/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/ruby/)"
     },
     {
       "slug": "rust",
@@ -7757,7 +8036,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none rust:1.83-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none rust:1.83-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/rust/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/rust/)"
     },
     {
       "slug": "scylla",
@@ -7839,7 +8121,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none scylladb/scylla:6.2"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none scylladb/scylla:6.2",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/scylla/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/scylla/)"
     },
     {
       "slug": "server",
@@ -7921,7 +8206,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none vaultwarden/server:1.32.7"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none vaultwarden/server:1.32.7",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/server/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/server/)"
     },
     {
       "slug": "snipe-it",
@@ -8003,7 +8291,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none snipe/snipe-it:v7.0.13"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none snipe/snipe-it:v7.0.13",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/snipe-it/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/snipe-it/)"
     },
     {
       "slug": "swagger-ui",
@@ -8085,7 +8376,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none swaggerapi/swagger-ui:latest"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none swaggerapi/swagger-ui:latest",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/swagger-ui/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/swagger-ui/)"
     },
     {
       "slug": "telegraf",
@@ -8167,7 +8461,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none telegraf:1.33-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none telegraf:1.33-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/telegraf/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/telegraf/)"
     },
     {
       "slug": "terraform",
@@ -8249,7 +8546,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none hashicorp/terraform:1.10"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none hashicorp/terraform:1.10",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/terraform/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/terraform/)"
     },
     {
       "slug": "tomcat",
@@ -8331,7 +8631,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none tomcat:10.1-jre21-temurin"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none tomcat:10.1-jre21-temurin",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/tomcat/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/tomcat/)"
     },
     {
       "slug": "traefik",
@@ -8413,7 +8716,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none traefik:v3.2"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none traefik:v3.2",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/traefik/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/traefik/)"
     },
     {
       "slug": "typesense",
@@ -8495,7 +8801,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none typesense/typesense:27.1"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none typesense/typesense:27.1",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/typesense/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/typesense/)"
     },
     {
       "slug": "ubuntu",
@@ -8577,7 +8886,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none ubuntu:24.04"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none ubuntu:24.04",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/ubuntu/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/ubuntu/)"
     },
     {
       "slug": "unit",
@@ -8659,7 +8971,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none unit:1.34.1-minimal"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none unit:1.34.1-minimal",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/unit/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/unit/)"
     },
     {
       "slug": "uptime-kuma",
@@ -8741,7 +9056,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none louislam/uptime-kuma:1"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none louislam/uptime-kuma:1",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/uptime-kuma/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/uptime-kuma/)"
     },
     {
       "slug": "valkey",
@@ -8823,7 +9141,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none valkey/valkey:8"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none valkey/valkey:8",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/valkey/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/valkey/)"
     },
     {
       "slug": "vault",
@@ -8905,7 +9226,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none hashicorp/vault:1.18"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none hashicorp/vault:1.18",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/vault/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/vault/)"
     },
     {
       "slug": "vector",
@@ -8987,7 +9311,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none timberio/vector:0.43.0-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none timberio/vector:0.43.0-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/vector/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/vector/)"
     },
     {
       "slug": "victoria-metrics",
@@ -9069,7 +9396,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none victoriametrics/victoria-metrics:v1.107.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none victoriametrics/victoria-metrics:v1.107.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/victoria-metrics/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/victoria-metrics/)"
     },
     {
       "slug": "weaviate",
@@ -9151,7 +9481,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none semitechnologies/weaviate:1.28.1"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none semitechnologies/weaviate:1.28.1",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/weaviate/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/weaviate/)"
     },
     {
       "slug": "wordpress",
@@ -9233,7 +9566,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none wordpress:6-php8.3-apache"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none wordpress:6-php8.3-apache",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/wordpress/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/wordpress/)"
     },
     {
       "slug": "zookeeper",
@@ -9315,7 +9651,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none zookeeper:3.9"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none zookeeper:3.9",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/zookeeper/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a",
+      "badgeMarkdown": "[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/zookeeper/)"
     },
     {
       "slug": "adminer",
@@ -9397,7 +9736,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none adminer:4.8.1"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none adminer:4.8.1",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/adminer/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/adminer/)"
     },
     {
       "slug": "alertmanager",
@@ -9479,7 +9821,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none prom/alertmanager:v0.28.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none prom/alertmanager:v0.28.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/alertmanager/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/alertmanager/)"
     },
     {
       "slug": "cp-kafka",
@@ -9561,7 +9906,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none confluentinc/cp-kafka:7.8.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none confluentinc/cp-kafka:7.8.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/cp-kafka/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/cp-kafka/)"
     },
     {
       "slug": "emqx",
@@ -9643,7 +9991,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none emqx:5"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none emqx:5",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/emqx/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/emqx/)"
     },
     {
       "slug": "fluentd",
@@ -9725,7 +10076,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none fluent/fluentd:v1.17"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none fluent/fluentd:v1.17",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/fluentd/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/fluentd/)"
     },
     {
       "slug": "grafana",
@@ -9807,7 +10161,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none grafana/grafana:11.4.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none grafana/grafana:11.4.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/grafana/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/grafana/)"
     },
     {
       "slug": "graylog",
@@ -9889,7 +10246,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none graylog/graylog:6.1"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none graylog/graylog:6.1",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/graylog/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/graylog/)"
     },
     {
       "slug": "groovy",
@@ -9971,7 +10331,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none groovy:4"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none groovy:4",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/groovy/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/groovy/)"
     },
     {
       "slug": "haproxy",
@@ -10053,7 +10416,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none haproxy:3.1-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none haproxy:3.1-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/haproxy/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/haproxy/)"
     },
     {
       "slug": "hydra",
@@ -10135,7 +10501,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none oryd/hydra:v2.2.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none oryd/hydra:v2.2.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/hydra/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/hydra/)"
     },
     {
       "slug": "jaeger",
@@ -10217,7 +10586,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none jaegertracing/jaeger:2.1.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none jaegertracing/jaeger:2.1.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/jaeger/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/jaeger/)"
     },
     {
       "slug": "jenkins",
@@ -10299,7 +10671,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none jenkins/jenkins:lts"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none jenkins/jenkins:lts",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/jenkins/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/jenkins/)"
     },
     {
       "slug": "jetty",
@@ -10381,7 +10756,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none jetty:12-jre21"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none jetty:12-jre21",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/jetty/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/jetty/)"
     },
     {
       "slug": "kafka",
@@ -10463,7 +10841,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none apache/kafka:3.9.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none apache/kafka:3.9.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/kafka/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/kafka/)"
     },
     {
       "slug": "kong",
@@ -10545,7 +10926,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none kong:3.8"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none kong:3.8",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/kong/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/kong/)"
     },
     {
       "slug": "loki",
@@ -10627,7 +11011,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none grafana/loki:3.3.2"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none grafana/loki:3.3.2",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/loki/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/loki/)"
     },
     {
       "slug": "mailhog",
@@ -10709,7 +11096,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mailhog/mailhog:v1.0.1"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mailhog/mailhog:v1.0.1",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/mailhog/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/mailhog/)"
     },
     {
       "slug": "mattermost-team-edition",
@@ -10791,7 +11181,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mattermost/mattermost-team-edition:10.2"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none mattermost/mattermost-team-edition:10.2",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/mattermost-team-edition/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/mattermost-team-edition/)"
     },
     {
       "slug": "memcached",
@@ -10873,7 +11266,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none memcached:1.6-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none memcached:1.6-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/memcached/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/memcached/)"
     },
     {
       "slug": "n8n",
@@ -10955,7 +11351,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none n8nio/n8n:1.71.3"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none n8nio/n8n:1.71.3",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/n8n/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/n8n/)"
     },
     {
       "slug": "nexus3",
@@ -11037,7 +11436,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none sonatype/nexus3:3.75.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none sonatype/nexus3:3.75.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/nexus3/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/nexus3/)"
     },
     {
       "slug": "nginx-unprivileged",
@@ -11119,7 +11521,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none nginxinc/nginx-unprivileged:1.27-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none nginxinc/nginx-unprivileged:1.27-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/nginx-unprivileged/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/nginx-unprivileged/)"
     },
     {
       "slug": "node-exporter",
@@ -11201,7 +11606,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none prom/node-exporter:v1.8.2"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none prom/node-exporter:v1.8.2",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/node-exporter/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/node-exporter/)"
     },
     {
       "slug": "opensearch",
@@ -11283,7 +11691,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none opensearchproject/opensearch:2"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none opensearchproject/opensearch:2",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/opensearch/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/opensearch/)"
     },
     {
       "slug": "percona",
@@ -11365,7 +11776,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none percona:8.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none percona:8.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/percona/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/percona/)"
     },
     {
       "slug": "pgadmin4",
@@ -11447,7 +11861,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none dpage/pgadmin4:8"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none dpage/pgadmin4:8",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/pgadmin4/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/pgadmin4/)"
     },
     {
       "slug": "prometheus",
@@ -11529,7 +11946,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none prom/prometheus:v3.1.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none prom/prometheus:v3.1.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/prometheus/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/prometheus/)"
     },
     {
       "slug": "pulsar",
@@ -11611,7 +12031,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none apachepulsar/pulsar:3.3.2"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none apachepulsar/pulsar:3.3.2",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/pulsar/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/pulsar/)"
     },
     {
       "slug": "pushgateway",
@@ -11693,7 +12116,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none prom/pushgateway:v1.10.0"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none prom/pushgateway:v1.10.0",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/pushgateway/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/pushgateway/)"
     },
     {
       "slug": "redisinsight",
@@ -11775,7 +12201,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none redis/redisinsight:latest"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none redis/redisinsight:latest",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/redisinsight/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/redisinsight/)"
     },
     {
       "slug": "redpanda",
@@ -11857,7 +12286,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none redpandadata/redpanda:v24.2.11"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none redpandadata/redpanda:v24.2.11",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/redpanda/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/redpanda/)"
     },
     {
       "slug": "solr",
@@ -11939,7 +12371,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none solr:9"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none solr:9",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/solr/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/solr/)"
     },
     {
       "slug": "sonarqube",
@@ -12021,7 +12456,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none sonarqube:community"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none sonarqube:community",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/sonarqube/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/sonarqube/)"
     },
     {
       "slug": "tempo",
@@ -12103,7 +12541,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none grafana/tempo:2.6.1"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none grafana/tempo:2.6.1",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/tempo/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/tempo/)"
     },
     {
       "slug": "tika",
@@ -12185,7 +12626,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none apache/tika:latest"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none apache/tika:latest",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/tika/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/tika/)"
     },
     {
       "slug": "varnish",
@@ -12267,7 +12711,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none varnish:7.6-alpine"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none varnish:7.6-alpine",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/varnish/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/varnish/)"
     },
     {
       "slug": "verdaccio",
@@ -12349,7 +12796,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none verdaccio/verdaccio:6"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none verdaccio/verdaccio:6",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/verdaccio/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/verdaccio/)"
     },
     {
       "slug": "wiki",
@@ -12431,7 +12881,10 @@
         "--read-only --tmpfs /tmp",
         "--network=none"
       ],
-      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none requarks/wiki:2"
+      "hardenedCommand": "docker run -d --user 65532:65532 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp --network=none requarks/wiki:2",
+      "pageUrl": "https://ironsecco.github.io/ironclaw/scores/wiki/",
+      "badgeUrl": "https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c",
+      "badgeMarkdown": "[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/wiki/)"
     }
   ]
 }
