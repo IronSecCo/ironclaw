@@ -1,19 +1,19 @@
 ---
-title: "haskell:9.8 container isolation score: 48/100 (grade D)"
-description: "How isolated is haskell:9.8 by default? IronClaw scores its sandbox posture 48/100 (D): retains default capabilities, runs as root. Scan any container in 10s."
+title: "opensearch-dashboards:2.18.0 container isolation score: 63/100 (grade C)"
+description: "How isolated is opensearch-dashboards:2.18.0 by default? IronClaw scores its sandbox posture 63/100 (C): retains default capabilities. Scan any container in..."
 ---
 
-# haskell:9.8 container isolation score: 48/100 (grade D)
+# opensearch-dashboards:2.18.0 container isolation score: 63/100 (grade C)
 
-Run with plain `docker run haskell:9.8` defaults, no hardening flags, the **haskell** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
+Run with plain `docker run opensearchproject/opensearch-dashboards:2.18.0` defaults, no hardening flags, the **opensearch dashboards** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `haskell:9.8` at digest `sha256:2fa0c6b9ad5aafb44e0f28e24c5a7d91b8446820bab885ba020a6773dcdb7f12`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `opensearchproject/opensearch-dashboards:2.18.0` at digest `sha256:0ecd8444add2926cb6c52e03f910160138b6e331522237561da0b82e159b134f`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
 | Dimension | Verdict | Score | What the scan found |
 |-----------|:-------:|------:|---------------------|
-| Non-root user (uid != 0) | ❌ FAIL | 0/15 | runs as root (user "0 (default)"); a container escape starts with host-uid 0 |
+| Non-root user (uid != 0) | ✅ PASS | 15/15 | runs as 1000 (uid != 0) |
 | Dropped capabilities | ❌ FAIL | 4/20 | default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, …) |
 | Seccomp profile | ✅ PASS | 15/15 | seccomp profile active (syscall surface filtered) |
 | Network isolation / egress | ⚠️ WARN | 4/15 | network=bridge: outbound egress is possible; prefer network=none |
@@ -23,12 +23,10 @@ Run with plain `docker run haskell:9.8` defaults, no hardening flags, the **hask
 
 ## Harden it: the highest-value fixes
 
-Applying these to your `docker run haskell` closes the biggest gaps first (most points recovered first):
+Applying these to your `docker run opensearch-dashboards` closes the biggest gaps first (most points recovered first):
 
 - **Dropped capabilities**, `--cap-drop=ALL`  
   Drop every Linux capability; add back only what the workload provably needs.
-- **Non-root user (uid != 0)**, `--user 65532:65532`  
-  Pin a non-root uid so a container escape does not begin as host uid 0.
 - **Network isolation / egress**, `--network=none`  
   Cut egress so a compromised workload cannot reach the network or exfiltrate.
 - **Read-only root filesystem**, `--read-only --tmpfs /tmp`  
@@ -37,13 +35,13 @@ Applying these to your `docker run haskell` closes the biggest gaps first (most 
 A fully hardened run scores **100/100 (grade A)**:
 
 ```bash
-docker run -d --name haskell-hardened \
+docker run -d --name opensearch-dashboards-hardened \
   --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \
   --network=none \
-  haskell:9.8
+  opensearchproject/opensearch-dashboards:2.18.0
 ```
 
 ## Scan your own container
@@ -54,8 +52,8 @@ These grades come from `ironctl scan`, a single, credential-free command that au
 # install (Homebrew)
 brew install ironsecco/ironclaw/ironclaw
 
-# grade your own haskell the same way this page was generated
-ironctl scan my-haskell
+# grade your own opensearch-dashboards the same way this page was generated
+ironctl scan my-opensearch-dashboards
 ```
 
 - [Scan any container &rarr;](../scan.md), the full command reference.
@@ -65,12 +63,12 @@ ironctl scan my-haskell
 
 ## Badge this image
 
-Maintain **haskell** (or run it)? Show its default-config isolation score with a badge that links back to this scorecard:
+Maintain **opensearch dashboards** (or run it)? Show its default-config isolation score with a badge that links back to this scorecard:
 
-[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/haskell/)
+[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/opensearch-dashboards/)
 
 ```markdown
-[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/haskell/)
+[![Container Isolation Score: 63/100 C](https://img.shields.io/badge/container%20isolation-63%2F100%20C-d4a72c)](https://ironsecco.github.io/ironclaw/scores/opensearch-dashboards/)
 ```
 
 The badge is a plain [shields.io](https://shields.io) URL: no server, no build step, nothing to host. It reflects this page's default-configuration grade. Hardened your own deployment? Generate a live badge of *your* config with [`ironctl scan --badge-json`](../blog/add-a-sandbox-isolation-score-badge-to-your-repo.md), or compare every image on the [leaderboard](leaderboard.md).
