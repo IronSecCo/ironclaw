@@ -1,13 +1,13 @@
 ---
-title: "haskell:9.8 container isolation score: 48/100 (grade D)"
-description: "How isolated is haskell:9.8 by default? IronClaw scores its sandbox posture 48/100 (D): retains default capabilities, runs as root. Scan any container in 10s."
+title: "aerospike-server:7.2.0.1 container isolation score: 48/100 (grade D)"
+description: "How isolated is aerospike-server:7.2.0.1 by default? IronClaw scores its sandbox posture 48/100 (D): retains default capabilities. Scan any container in 10s."
 ---
 
-# haskell:9.8 container isolation score: 48/100 (grade D)
+# aerospike-server:7.2.0.1 container isolation score: 48/100 (grade D)
 
-Run with plain `docker run haskell:9.8` defaults, no hardening flags, the **haskell** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
+Run with plain `docker run aerospike/aerospike-server:7.2.0.1` defaults, no hardening flags, the **aerospike server** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `haskell:9.8` at digest `sha256:2fa0c6b9ad5aafb44e0f28e24c5a7d91b8446820bab885ba020a6773dcdb7f12`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `aerospike/aerospike-server:7.2.0.1` at digest `sha256:200067011b2c73ce2809d93e16de2f2581333a0109303dcbc1b9534c1875b483`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
@@ -23,7 +23,7 @@ Run with plain `docker run haskell:9.8` defaults, no hardening flags, the **hask
 
 ## Harden it: the highest-value fixes
 
-Applying these to your `docker run haskell` closes the biggest gaps first (most points recovered first):
+Applying these to your `docker run aerospike-server` closes the biggest gaps first (most points recovered first):
 
 - **Dropped capabilities**, `--cap-drop=ALL`  
   Drop every Linux capability; add back only what the workload provably needs.
@@ -37,13 +37,13 @@ Applying these to your `docker run haskell` closes the biggest gaps first (most 
 A fully hardened run scores **100/100 (grade A)**:
 
 ```bash
-docker run -d --name haskell-hardened \
+docker run -d --name aerospike-server-hardened \
   --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \
   --network=none \
-  haskell:9.8
+  aerospike/aerospike-server:7.2.0.1
 ```
 
 ## Scan your own container
@@ -54,8 +54,8 @@ These grades come from `ironctl scan`, a single, credential-free command that au
 # install (Homebrew)
 brew install ironsecco/ironclaw/ironclaw
 
-# grade your own haskell the same way this page was generated
-ironctl scan my-haskell
+# grade your own aerospike-server the same way this page was generated
+ironctl scan my-aerospike-server
 ```
 
 - [Scan any container &rarr;](../scan.md), the full command reference.
@@ -65,12 +65,12 @@ ironctl scan my-haskell
 
 ## Badge this image
 
-Maintain **haskell** (or run it)? Show its default-config isolation score with a badge that links back to this scorecard:
+Maintain **aerospike server** (or run it)? Show its default-config isolation score with a badge that links back to this scorecard:
 
-[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/haskell/)
+[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/aerospike-server/)
 
 ```markdown
-[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/haskell/)
+[![Container Isolation Score: 48/100 D](https://img.shields.io/badge/container%20isolation-48%2F100%20D-e8873a)](https://ironsecco.github.io/ironclaw/scores/aerospike-server/)
 ```
 
 The badge is a plain [shields.io](https://shields.io) URL: no server, no build step, nothing to host. It reflects this page's default-configuration grade. Hardened your own deployment? Generate a live badge of *your* config with [`ironctl scan --badge-json`](../blog/add-a-sandbox-isolation-score-badge-to-your-repo.md), or compare every image on the [leaderboard](leaderboard.md).
