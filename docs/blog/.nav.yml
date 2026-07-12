@@ -11,4 +11,7 @@ nav:
   - We graded 151 popular Docker images for isolation: container-isolation-leaderboard-what-151-images-scored.md
   - Escape suite vs Docker, gVisor, E2B, Daytona: containment-benchmark-docker-gvisor-e2b-daytona.md
   - Add a Sandbox Isolation Score badge to your repo: add-a-sandbox-isolation-score-badge-to-your-repo.md
+  - "Alpine vs Debian vs Ubuntu: base image and isolation": alpine-vs-debian-vs-ubuntu-container-isolation.md
+  - "Docker default vs hardened: the isolation score gap": docker-default-vs-hardened-container-isolation.md
+  - "gVisor vs runc: containment compared": gvisor-vs-runc-container-isolation-compared.md
   - "*.md"

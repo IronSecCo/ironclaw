@@ -28,3 +28,19 @@ adjectives standing in for numbers.
   generate a shields.io endpoint JSON with `ironctl scan --badge-json`, commit it as a
   static file, and render a live 0 to 100 A-to-F containment grade in your README. No
   server, no scan on every badge hit.
+
+## Comparisons
+
+Head-to-head reads, each backed by the same scan data, for the questions people
+actually search.
+
+- [Alpine vs Debian vs Ubuntu: does your base image change container isolation?](alpine-vs-debian-vs-ubuntu-container-isolation.md) -
+  we scored the seven most-pulled base OS images. Every one landed on the same 48
+  of 100. Base image choice barely moves the isolation needle; runtime flags do.
+- [Docker default vs hardened: the container isolation score gap, measured](docker-default-vs-hardened-container-isolation.md) -
+  151 images averaged 52 of 100 on defaults and 100 of 100 hardened. The exact
+  48-point jump, dimension by dimension, and the six flags that produce it.
+- [gVisor vs runc: container isolation compared](gvisor-vs-runc-container-isolation-compared.md) -
+  they score identically on a config scan yet block a different number of real
+  escape attempts. When hardened runc is enough and when you need a user-space
+  kernel.
