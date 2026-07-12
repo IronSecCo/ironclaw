@@ -105,7 +105,46 @@ the runtime name. The dimension scorers remain the authority on the score.
 | `--badge-json badge.json` | a [shields.io endpoint](https://shields.io/badges/endpoint-badge) JSON file for a live, self-updating README badge |
 | `--sarif scan.sarif` | a SARIF 2.1.0 log you can upload to GitHub code scanning (findings land in the repo Security tab) |
 | `--md` | a shareable markdown block for a README or blog post |
+| `--compare A B` | grade two containers and print a side-by-side isolation-posture diff |
 | `--min-score N` | exit non-zero when the score is below N (a CI gate) |
+
+## Compare two containers
+
+`--compare` grades two running containers and prints a side-by-side diff: each of
+the seven dimensions with both scores, a per-dimension winner marker, the overall
+grade and point delta, and a one-line verdict naming the more hardened target and
+why. It reuses the same adapters and scorer as a single scan, so the numbers match
+what `ironctl scan <container>` reports for each side.
+
+Use it to pick a base image (alpine vs distroless), to prove a hardening change
+moved the needle, or to generate the data behind an "X vs Y container isolation"
+comparison page.
+
+```bash
+ironctl scan --compare my-hardened-ctr my-default-ctr
+```
+
+```
+IronClaw containment scan: comparison
+
+  A: my-hardened-ctr (docker)  90/100 grade A
+  B: my-default-ctr (docker)  40/100 grade F
+
+DIMENSION                   A          B         WINNER
+Non-root user (uid != 0)    [+] 15/15  [x] 0/15  < A
+Dropped capabilities        [+] 20/20  [x] 4/20  < A
+...
+OVERALL                     90/100 A   40/100 F  A (+50)
+
+  Verdict: A (`my-hardened-ctr`) is more hardened: 90/100 (grade A) vs 40/100
+  (grade F), a 50-point lead; it leads on Dropped capabilities, ...
+```
+
+Add `--json` for the machine-readable diff (each side is a full scan report under
+`a`/`b`, plus a `dimensions` delta array, `scoreDelta`, `winner`, and `verdict`),
+or `--md` for a markdown table you can drop straight into a blog post or README.
+The two targets must be distinct; either target failing to inspect fails the whole
+compare (fail-closed) rather than printing a half diff.
 
 ## Sandbox Isolation Score badge
 

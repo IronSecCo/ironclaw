@@ -35,6 +35,7 @@ func cmdScan(args []string) error {
 	md := fs.Bool("md", false, "print a shareable markdown block (README/blog section)")
 	fix := fs.Bool("fix", false, "emit concrete remediation config for each failed dimension")
 	remediate := fs.Bool("remediate", false, "alias for --fix")
+	compareFlag := fs.Bool("compare", false, "compare two containers side-by-side (takes two positional targets)")
 	compose := fs.String("compose", "", "grade a service in this docker-compose file")
 	service := fs.String("service", "", "compose service name (required if the file has >1 service)")
 	k8s := fs.String("k8s", "", "grade the first container in this Kubernetes pod/workload manifest")
@@ -59,6 +60,19 @@ func cmdScan(args []string) error {
 		}
 		positional = append(positional, rest[0])
 		rest = rest[1:]
+	}
+
+	// --compare A B: grade two live containers and print a side-by-side diff.
+	// Reuses the same adapters and scorer as a single scan; only the presentation
+	// differs, so it returns early with its own renderers.
+	if *compareFlag {
+		return runCompare(compareArgs{
+			targets: positional,
+			runtime: *runtime,
+			bins:    runtimeBins{docker: *dockerBin, podman: *podmanBin, nerdctl: *nerdctlBin},
+			asJSON:  *asJSON,
+			md:      *md,
+		})
 	}
 
 	// Resolve the source and build a normalized Spec. configFile/configRaw carry
@@ -161,6 +175,57 @@ func cmdScan(args []string) error {
 	// CI gate: fail-closed below the requested threshold.
 	if *minScore > 0 && report.Score < *minScore {
 		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, *minScore)
+	}
+	return nil
+}
+
+// compareArgs carries the resolved inputs for a `scan --compare` run.
+type compareArgs struct {
+	targets []string
+	runtime string
+	bins    runtimeBins
+	asJSON  bool
+	md      bool
+}
+
+// runCompare grades exactly two live containers and prints a side-by-side diff.
+// It reuses containerSpec (the same docker/podman/nerdctl adapters as a single
+// scan) and scan.Score, then defers to the comparison renderers. It fails closed:
+// if either target cannot be inspected, the whole compare errors rather than
+// printing a half diff.
+func runCompare(a compareArgs) error {
+	if len(a.targets) != 2 {
+		scanUsage(os.Stderr)
+		return fmt.Errorf("scan --compare needs exactly two targets; got %d", len(a.targets))
+	}
+	if a.targets[0] == a.targets[1] {
+		return fmt.Errorf("scan --compare needs two distinct targets; both are %q", a.targets[0])
+	}
+
+	reports := make([]scan.Report, 2)
+	for i, target := range a.targets {
+		spec, err := containerSpec(a.runtime, a.bins, target)
+		if err != nil {
+			return fmt.Errorf("scan target %q: %w", target, err)
+		}
+		r := scan.Score(spec)
+		r.Version = version.String()
+		r.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+		reports[i] = r
+	}
+
+	cmp := scan.Compare(reports[0], reports[1])
+	switch {
+	case a.asJSON:
+		if err := scan.RenderComparisonJSON(os.Stdout, cmp); err != nil {
+			return err
+		}
+	default:
+		scan.RenderComparisonTable(os.Stdout, cmp)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderComparisonMarkdown(cmp))
 	}
 	return nil
 }
@@ -281,9 +346,11 @@ USAGE:
   ironctl scan <container>                    grade a running container (docker|podman|nerdctl)
   ironctl scan --compose FILE [--service N]   grade a docker-compose service
   ironctl scan --k8s FILE                     grade a Kubernetes pod/workload manifest
+  ironctl scan --compare A B                   diff two containers' isolation posture
 
 FLAGS:
   --runtime NAME      container runtime: auto|docker|podman|nerdctl (default: auto)
+  --compare           compare two positional targets side-by-side (score/verdict diff)
   --json              emit the scorecard as JSON
   --fix               emit concrete remediation config for each failed dimension
   --remediate         alias for --fix
