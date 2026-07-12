@@ -415,6 +415,13 @@ def render_index(defaults: list) -> str:
              "cut. Each scorecard now carries a copy-paste "
              "[shields.io badge](leaderboard.md) you can embed in your repo.")
     L.append("")
+    L.append("> **Browse by category:** ranked collection pages compare like with "
+             "like, [most secure databases](collections/databases.md), "
+             "[language runtimes](collections/language-runtimes.md), "
+             "[web servers](collections/web-servers.md), "
+             "[CI/CD](collections/ci-cd-git.md), and "
+             "[more](collections/index.md).")
+    L.append("")
     L.append("## Every image, worst-isolated first")
     L.append("")
     L.append("| Image | Score | Grade | Top gaps (default config) |")
@@ -609,6 +616,8 @@ def render_leaderboard(defaults: list) -> str:
     L.append("")
     L.append("- [Container Isolation Scores directory](index.md) — every scorecard, "
              "worst-isolated first.")
+    L.append("- [Scores by category](collections/index.md) — ranked collection pages "
+             "for databases, language runtimes, web servers, CI/CD, and more.")
     L.append("- [Scan any container &rarr;](../scan.md) — the full command reference.")
     L.append("- [Add an isolation-score badge to your repo &rarr;]"
              "(../blog/add-a-sandbox-isolation-score-badge-to-your-repo.md)")
@@ -703,6 +712,383 @@ def build_index(data: dict, pages: dict) -> dict:
     }
 
 
+# --- Collection / ranking pages (IRO-476) --------------------------------
+#
+# High-intent long-tail SEO surface built from the same default-* scenarios as
+# the per-image scorecards: one ranked page per topical collection ("most secure
+# database images", "Node.js / Python / Go runtime isolation ranking", ...).
+#
+# Membership is keyword-driven, not a hand-maintained per-image list, so the
+# weekly survey refresh auto-classifies newly surveyed images with zero ongoing
+# labor. Each image lands in at most one collection (first match wins, in
+# priority order) so a topic page is a clean, deduped ranking. Images that match
+# no collection still appear in the directory index + leaderboard; collections
+# are curated high-intent groupings, not an exhaustive partition.
+#
+# This never touches the index.json `family` enum (base|database|runtime|web|
+# infra) the /scores explorer filters on: collections are a docs-only taxonomy,
+# so the explorer contract stays stable.
+
+# Ordered, priority-first. `kw` matches a slug token (slug split on -/_, or the
+# whole slug); `sub` matches a substring anywhere in the slug (for families like
+# nginx-* / *-exporter). First collection that matches claims the image.
+COLLECTIONS = [
+    {
+        "slug": "vector-databases",
+        "label": "vector database",
+        "title": "Most secure vector database container images, ranked by isolation score",
+        "intro": "vector databases and embedding stores (Chroma, Qdrant, Weaviate, Milvus, pgvector)",
+        "kw": {"chroma", "qdrant", "weaviate", "milvus", "pgvector"},
+        "sub": [],
+    },
+    {
+        "slug": "search-engines",
+        "label": "search engine",
+        "title": "Most secure search engine container images, ranked by isolation score",
+        "intro": "search and indexing engines (Elasticsearch, OpenSearch, Solr, Meilisearch, Typesense)",
+        "kw": {"elasticsearch", "opensearch", "solr", "meilisearch", "typesense",
+                "manticore", "vespa", "tika"},
+        "sub": ["opensearch"],
+    },
+    {
+        "slug": "observability",
+        "label": "monitoring and observability",
+        "title": "Most secure monitoring and observability container images, ranked by isolation score",
+        "intro": "metrics, logging, and tracing stacks (Prometheus, Grafana, Loki, Jaeger, exporters)",
+        "kw": {"prometheus", "grafana", "loki", "tempo", "jaeger", "zipkin", "thanos",
+                "cortex", "alertmanager", "cadvisor", "statsd", "telegraf", "promtail",
+                "vector", "fluentd", "logstash", "graylog", "kibana", "netdata",
+                "chronograf", "kapacitor", "alloy", "mimir", "pushgateway"},
+        "sub": ["exporter", "victoria", "uptime"],
+    },
+    {
+        "slug": "message-queues",
+        "label": "message queue and streaming",
+        "title": "Most secure message queue and streaming container images, ranked by isolation score",
+        "intro": "brokers and streaming platforms (Kafka, RabbitMQ, NATS, Pulsar, Redpanda)",
+        "kw": {"kafka", "rabbitmq", "nats", "pulsar", "redpanda", "emqx", "mosquitto",
+                "nsq", "vernemq", "activemq", "artemis", "zookeeper", "centrifugo"},
+        "sub": ["kafka", "mosquitto"],
+    },
+    {
+        "slug": "databases",
+        "label": "database",
+        "title": "Most secure database container images, ranked by isolation score",
+        "intro": "relational, document, key-value, and time-series databases (Postgres, MySQL, MongoDB, Redis)",
+        "kw": {"postgres", "postgis", "timescaledb", "mysql", "mariadb", "percona",
+                "mongo", "redis", "keydb", "valkey", "dragonfly", "cassandra", "scylla",
+                "cockroach", "clickhouse", "couchdb", "couchbase", "rethinkdb",
+                "arangodb", "neo4j", "dgraph", "orientdb", "influxdb", "questdb",
+                "tidb", "yugabyte", "firebird", "aerospike", "tarantool", "hazelcast", "ignite",
+                "druid", "memcached", "adminer", "phpmyadmin"},
+        "sub": ["postgres", "mysql", "mongo", "redis", "pgadmin"],
+    },
+    {
+        "slug": "ci-cd-git",
+        "label": "CI/CD and Git",
+        "title": "Most secure CI/CD and Git container images, ranked by isolation score",
+        "intro": "build runners, CI servers, and Git forges (Jenkins, GitLab, Gitea, Drone, Concourse)",
+        "kw": {"jenkins", "drone", "concourse", "packer", "argocd", "pulumi",
+                "terraform", "gogs", "gitea", "forgejo", "nexus3", "sonarqube",
+                "rancher"},
+        "sub": ["gitlab", "runner", "harbor", "teamcity"],
+    },
+    {
+        "slug": "language-runtimes",
+        "label": "language runtime",
+        "title": "Node.js, Python, Go and more: language runtime container images ranked by isolation score",
+        "intro": "programming language runtimes and build images (Node.js, Python, Go, Ruby, Java, Rust)",
+        "kw": {"node", "bun", "deno", "python", "pypy", "anaconda3", "golang", "ruby",
+                "php", "perl", "rust", "mono", "aspnet", "erlang", "elixir", "clojure",
+                "groovy", "haskell", "julia", "dart", "swift", "crystal", "nim", "lua",
+                "gcc", "maven", "gradle", "ibmjava"},
+        "sub": ["openjdk", "temurin", "corretto", "graalvm", "-sbt"],
+    },
+    {
+        "slug": "web-servers",
+        "label": "web server and proxy",
+        "title": "Most secure web server and reverse proxy container images, ranked by isolation score",
+        "intro": "web servers, reverse proxies, and load balancers (nginx, Apache, Caddy, HAProxy, Traefik)",
+        "kw": {"httpd", "caddy", "haproxy", "traefik", "envoy", "openresty", "varnish",
+                "unit", "tomcat", "tomee", "jetty", "kong"},
+        "sub": ["nginx"],
+    },
+    {
+        "slug": "base-os",
+        "label": "base OS",
+        "title": "Most secure base OS container images, ranked by isolation score",
+        "intro": "base operating system images (Alpine, Debian, Ubuntu, Fedora, Rocky Linux)",
+        "kw": {"alpine", "debian", "ubuntu", "fedora", "rockylinux", "almalinux",
+                "oraclelinux", "amazonlinux", "archlinux", "busybox", "photon", "leap"},
+        "sub": [],
+    },
+    {
+        "slug": "identity-sso",
+        "label": "identity and SSO",
+        "title": "Most secure identity and SSO container images, ranked by isolation score",
+        "intro": "identity providers and single-sign-on servers (Keycloak, Authelia, Dex, Hydra)",
+        "kw": {"keycloak", "authelia", "dex", "hydra", "zitadel"},
+        "sub": [],
+    },
+    {
+        "slug": "object-storage",
+        "label": "object storage",
+        "title": "Most secure object storage container images, ranked by isolation score",
+        "intro": "S3-compatible and distributed object stores (MinIO, Ceph, SeaweedFS)",
+        "kw": {"minio", "ceph", "seaweedfs", "rclone", "garage"},
+        "sub": [],
+    },
+    {
+        "slug": "data-ml",
+        "label": "data engineering and ML",
+        "title": "Most secure data engineering and ML container images, ranked by isolation score",
+        "intro": "data pipelines, analytics, and ML platforms (Airflow, Spark, Flink, MLflow, Jupyter)",
+        "kw": {"airflow", "spark", "flink", "storm", "nifi", "zeppelin", "mlflow",
+                "tensorflow", "jupyterhub", "superset", "metabase", "rstudio", "dagster",
+                "ollama"},
+        "sub": ["notebook"],
+    },
+    {
+        "slug": "infra-networking",
+        "label": "infrastructure and networking",
+        "title": "Most secure infrastructure and networking container images, ranked by isolation score",
+        "intro": "service discovery, secrets, orchestration, and networking (Consul, Vault, Nomad, k3s)",
+        "kw": {"consul", "vault", "nomad", "k3s", "tailscale", "wireguard", "registry",
+                "docker"},
+        "sub": [],
+    },
+    {
+        "slug": "self-hosted-apps",
+        "label": "self-hosted app",
+        "title": "Most secure self-hosted app container images, ranked by isolation score",
+        "intro": "self-hosted applications (Nextcloud, Jellyfin, Immich, WordPress, Ghost, Gitea alternatives)",
+        "kw": {"nextcloud", "jellyfin", "wordpress", "drupal", "ghost", "joomla",
+                "mediawiki", "wiki", "navidrome", "audiobookshelf", "freshrss",
+                "miniflux", "wallabag", "outline", "homepage", "heimdall", "dashy",
+                "synapse", "ntfy", "planka", "wekan", "nocodb", "baserow", "directus",
+                "appwrite", "redmine", "matomo", "umami", "pihole", "adguardhome",
+                "syncthing", "duplicati"},
+        "sub": ["immich", "paperless", "snipe", "actual-server", "mattermost",
+                "home-assistant"],
+    },
+]
+
+
+def _slug_tokens(slug):
+    return set(re.split(r"[-_]", slug)) | {slug}
+
+
+def collection_of(slug):
+    """The one collection a slug belongs to, or None. First match wins."""
+    toks = _slug_tokens(slug)
+    for coll in COLLECTIONS:
+        if toks & coll["kw"]:
+            return coll["slug"]
+        if any(sub in slug for sub in coll["sub"]):
+            return coll["slug"]
+    return None
+
+
+def _members(coll_slug, pages):
+    """Scenarios in a collection, ranked best-isolated first (ties by slug)."""
+    rows = [scn for _slug, scn in pages.items() if collection_of(_slug) == coll_slug]
+    rows.sort(key=lambda s: (-s["report"].get("score", 0), slug_for(s["image"])))
+    return rows
+
+
+def _collection_desc(coll, total, avg, best, worst):
+    """Unique, <=160-char meta description, no em/en-dash (IRO-254/IRO-446)."""
+    d = (f"Ranked isolation scores for {total} {coll['label']} container images, "
+         f"graded 0-100 by ironctl scan. Best {best}/100, average {avg}/100. "
+         f"See which ship hardened.")
+    if len(d) <= 160:
+        return d
+    d = (f"Ranked isolation scores for {total} {coll['label']} container images, "
+         f"graded 0-100 by ironctl scan. Average {avg}/100.")
+    return d if len(d) <= 160 else d[:157].rstrip() + "..."
+
+
+def render_collection(coll, members) -> str:
+    """One ranked collection page: best-to-worst table linking to each scorecard,
+    plus the scan CTA and the usual cross-links. Lives under scores/collections/,
+    so scorecard links are `../<slug>.md` and site links climb one extra level."""
+    total = len(members)
+    avg = round(sum(s["report"].get("score", 0) for s in members) / total) if total else 0
+    best = members[0]["report"].get("score", 0) if members else 0
+    worst = members[-1]["report"].get("score", 0) if members else 0
+    label = coll["label"]
+
+    L = []
+    L.append("---")
+    L.append(f'title: "{coll["title"]}"')
+    L.append(f'description: "{_collection_desc(coll, total, avg, best, worst)}"')
+    L.append("---")
+    L.append("")
+    L.append(f"# {coll['title']}")
+    L.append("")
+    L.append(f"How isolated are the most-pulled **{label}** container images when you "
+             f"`docker run` them with plain defaults, no hardening flags? This page "
+             f"ranks **{total} {coll['intro']}** on IronClaw's seven-dimension "
+             f"container containment scale (0-100), best-isolated first. Scores run "
+             f"**{worst}/100 to {best}/100** (average **{avg}/100**). Higher is safer. "
+             f"Every score comes from `ironctl scan`, a credential-free audit you can "
+             f"run on your own containers in ten seconds.")
+    L.append("")
+    L.append(f"> No {label} image ships fully isolated by default: the leaders still "
+             f"leave capabilities, egress, or a writable root filesystem open. The gap "
+             f"between any image here and a clean **100/100 grade A** is a handful of "
+             f"`docker run` flags, shown on every scorecard.")
+    L.append("")
+    L.append("## Ranked best to worst")
+    L.append("")
+    L.append("| Rank | Image | Score | Grade | Top gaps (default config) |")
+    L.append("|-----:|-------|------:|:-----:|---------------------------|")
+    for i, s in enumerate(members, 1):
+        rep = s["report"]
+        slug = slug_for(s["image"])
+        grade = rep.get("grade", "?")
+        emoji = GRADE_EMOJI.get(grade, "")
+        medal = MEDAL.get(i, "")
+        gaps = ", ".join(t for t, _, _ in top_fixes(rep, 3)) or "none, fully hardened"
+        img = s["image"].split("@")[0]
+        rank_cell = f"{medal} {i}".strip()
+        L.append(f"| {rank_cell} | [`{img}`](../{slug}.md) | {rep.get('score',0)}/100 | "
+                 f"{emoji} **{grade}** | {gaps} |")
+    L.append("")
+    L.append(f"## Scan your own {label} container")
+    L.append("")
+    L.append(f"These grades come from `ironctl scan`, one credential-free command that "
+             f"audits any running container, docker-compose service, or Kubernetes "
+             f"manifest, not just the {label} images ranked above:")
+    L.append("")
+    L.append("```bash")
+    L.append("# install (Homebrew)")
+    L.append("brew install ironsecco/ironclaw/ironclaw")
+    L.append("")
+    L.append("# grade your own container the same way this page was generated")
+    L.append("ironctl scan my-container")
+    L.append("```")
+    L.append("")
+    L.append("- [All container isolation scores &rarr;](../index.md) — every scorecard, "
+             "worst-isolated first.")
+    L.append("- [Browse every category &rarr;](index.md) — the full set of ranked "
+             "collection pages.")
+    L.append("- [Container Isolation Leaderboard &rarr;](../leaderboard.md) — the whole "
+             "dataset ranked, with a Hall of Fame and worst offenders.")
+    L.append("- [Scan any container &rarr;](../../scan.md) — the full command reference.")
+    L.append("- [The State of Container Isolation, 2026 &rarr;]"
+             "(../../blog/state-of-container-isolation-2026.md) — the survey these "
+             "grades are built from.")
+    L.append("")
+    L.append("---")
+    L.append("")
+    L.append(f"*Part of the [Container Isolation Scores](../index.md) directory. "
+             f"Generated from a reproducible survey by "
+             f"`examples/isolation-survey/gen_scorecards.py` and refreshed weekly, so "
+             f"this ranking never goes stale. Grades reflect each image's default "
+             f"configuration, not a limit of the image itself: every one reaches grade "
+             f"A with the right `docker run` flags.*")
+    L.append("")
+    return "\n".join(L)
+
+
+CARD_LABEL = {
+    "vector-databases": "Vector databases",
+    "search-engines": "Search engines",
+    "observability": "Monitoring and observability",
+    "message-queues": "Message queues and streaming",
+    "databases": "Databases",
+    "ci-cd-git": "CI/CD and Git",
+    "language-runtimes": "Language runtimes (Node.js, Python, Go, ...)",
+    "web-servers": "Web servers and proxies",
+    "base-os": "Base OS images",
+    "identity-sso": "Identity and SSO",
+    "object-storage": "Object storage",
+    "data-ml": "Data engineering and ML",
+    "infra-networking": "Infrastructure and networking",
+    "self-hosted-apps": "Self-hosted apps",
+}
+
+
+def render_collections_index(groups) -> str:
+    """The hub page linking every collection: a table of category, image count,
+    average score, and the best-isolated image in each. `groups` is a list of
+    (coll, members) already filtered to non-empty collections."""
+    all_imgs = sum(len(m) for _c, m in groups)
+    L = []
+    L.append("---")
+    L.append("title: Container isolation scores by category")
+    L.append("description: Ranked container isolation scores by category: databases, "
+             "language runtimes, web servers, CI/CD, observability, and more. Graded "
+             "0-100 by ironctl scan.")
+    L.append("---")
+    L.append("")
+    L.append("# Container isolation scores by category")
+    L.append("")
+    L.append(f"The [container isolation scores directory](../index.md) grades hundreds "
+             f"of the most-pulled public Docker images as they ship. These **{len(groups)} "
+             f"category pages** rank them by topic, so you can compare like with like: "
+             f"a database against a database, a language runtime against a runtime. "
+             f"Every page is regenerated on the weekly survey refresh, so the rankings "
+             f"never go stale.")
+    L.append("")
+    L.append("| Category | Images | Avg score | Best-isolated (default config) |")
+    L.append("|----------|-------:|----------:|--------------------------------|")
+    for coll, members in groups:
+        total = len(members)
+        avg = round(sum(s["report"].get("score", 0) for s in members) / total) if total else 0
+        best = members[0]
+        rep = best["report"]
+        bslug = slug_for(best["image"])
+        grade = rep.get("grade", "?")
+        emoji = GRADE_EMOJI.get(grade, "")
+        bimg = best["image"].split("@")[0]
+        L.append(f"| [{CARD_LABEL.get(coll['slug'], coll['label'])}]({coll['slug']}.md) "
+                 f"| {total} | {avg}/100 | [`{bimg}`](../{bslug}.md) "
+                 f"{rep.get('score',0)}/100 {emoji} {grade} |")
+    L.append("")
+    L.append(f"Across these categories, **{all_imgs} images** are ranked. Every grade "
+             f"comes from `ironctl scan`; run it on your own containers in ten seconds:")
+    L.append("")
+    L.append("```bash")
+    L.append("brew install ironsecco/ironclaw/ironclaw")
+    L.append("ironctl scan my-container")
+    L.append("```")
+    L.append("")
+    L.append("- [All container isolation scores &rarr;](../index.md) — every scorecard, "
+             "worst-isolated first.")
+    L.append("- [Container Isolation Leaderboard &rarr;](../leaderboard.md) — the whole "
+             "dataset ranked best to worst.")
+    L.append("- [Scan any container &rarr;](../../scan.md) — the full command reference.")
+    L.append("")
+    L.append("---")
+    L.append("")
+    L.append("*Generated from a reproducible survey by "
+             "`examples/isolation-survey/gen_scorecards.py`. Categories are keyword "
+             "classified from the survey, so new images join the right ranking "
+             "automatically on each weekly refresh.*")
+    L.append("")
+    return "\n".join(L)
+
+
+def write_collections(pages, out_dir):
+    """Emit scores/collections/index.md + one ranked page per non-empty collection.
+    Returns the number of collection pages written (excluding the hub index)."""
+    coll_dir = os.path.join(out_dir, "collections")
+    os.makedirs(coll_dir, exist_ok=True)
+    groups = []
+    for coll in COLLECTIONS:
+        members = _members(coll["slug"], pages)
+        if len(members) < 3:  # a ranking needs a few rows to be worth a page
+            continue
+        groups.append((coll, members))
+        with open(os.path.join(coll_dir, f"{coll['slug']}.md"), "w") as f:
+            f.write(no_dashes(render_collection(coll, members)))
+    with open(os.path.join(coll_dir, "index.md"), "w") as f:
+        f.write(no_dashes(render_collections_index(groups)))
+    return len(groups)
+
+
 def no_dashes(s: str) -> str:
     """Strip em/en-dashes from published copy (IRO-254 standing rule). A spaced
     em-dash becomes a comma; any bare one becomes a hyphen-minus."""
@@ -740,8 +1126,14 @@ def main():
         json.dump(index, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
+    # Collection / ranking pages: high-intent long-tail SEO surface grouped by
+    # topic (databases, language runtimes, web servers, CI/CD, ...). Keyword
+    # classified from the survey so new images join automatically (IRO-476).
+    n_coll = write_collections(pages, out_dir)
+
     print(f"wrote {len(pages)} scorecard pages + index.md + leaderboard.md + "
-          f"index.json ({index['meta']['imageCount']} images) to {out_dir}")
+          f"index.json ({index['meta']['imageCount']} images) + "
+          f"{n_coll} collection pages to {out_dir}")
 
 
 if __name__ == "__main__":

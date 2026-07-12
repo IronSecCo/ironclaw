@@ -334,6 +334,7 @@ ironctl scan my-container
 ```
 
 - [Container Isolation Scores directory](index.md), every scorecard, worst-isolated first.
+- [Scores by category](collections/index.md), ranked collection pages for databases, language runtimes, web servers, CI/CD, and more.
 - [Scan any container &rarr;](../scan.md), the full command reference.
 - [Add an isolation-score badge to your repo &rarr;](../blog/add-a-sandbox-isolation-score-badge-to-your-repo.md)
 - [The State of Container Isolation, 2026 &rarr;](../blog/state-of-container-isolation-2026.md), the full survey.

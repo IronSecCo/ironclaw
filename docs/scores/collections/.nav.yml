@@ -1,0 +1,10 @@
+# Navigation for the "Scores by category" collection pages (IRO-476).
+#
+# High-intent, ranked collection pages generated from the isolation-survey
+# dataset by `examples/isolation-survey/gen_scorecards.py` (write_collections).
+# The hub index is pinned first; the `*.md` glob auto-includes every generated
+# `<category>.md` (titled from its H1) with ZERO edit here, so a new collection
+# appears in nav automatically on the weekly refresh.
+nav:
+  - Scores by category: index.md
+  - "*.md"
