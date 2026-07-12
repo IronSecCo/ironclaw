@@ -709,6 +709,9 @@ def build_index(data: dict, pages: dict) -> dict:
             "dimensions": dim_meta,
         },
         "images": rows,
+        # Topical collection/leaderboard groupings (IRO-476/477). Docs-only
+        # taxonomy; does not affect each image's `family` facet above.
+        "collections": build_collections(pages),
     }
 
 
@@ -896,6 +899,62 @@ def _members(coll_slug, pages):
     return rows
 
 
+# Short plural display label per collection for the landing SSG template
+# (IRO-477 SPEC §7 `collections[].labelPlural`). Kept separate from CARD_LABEL
+# (which carries the longer docs-hub card text) so the crawlable /scores
+# category nav reads cleanly.
+LABEL_PLURAL = {
+    "vector-databases": "Vector databases",
+    "search-engines": "Search engines",
+    "observability": "Monitoring & observability",
+    "message-queues": "Message queues & streaming",
+    "databases": "Databases",
+    "ci-cd-git": "CI/CD & Git",
+    "language-runtimes": "Language runtimes",
+    "web-servers": "Web servers & proxies",
+    "base-os": "Base OS images",
+    "identity-sso": "Identity & SSO",
+    "object-storage": "Object storage",
+    "data-ml": "Data engineering & ML",
+    "infra-networking": "Infrastructure & networking",
+    "self-hosted-apps": "Self-hosted apps",
+}
+
+# Minimum members for a collection to earn a page/index entry. Shared by
+# write_collections() and build_collections() so the docs pages and the
+# index.json `collections[]` array stay in lockstep (same N collections).
+COLLECTION_MIN = 3
+
+
+def build_collections(pages) -> list:
+    """The machine-readable `collections[]` array for index.json (IRO-477 SPEC
+    §7): one entry per non-empty collection, `imageSlugs` PRE-SORTED best-first
+    (score desc, slug asc) so the landing SSG leaderboard template renders the
+    ranking with zero client-side sorting. Keyword-classified from the survey,
+    so new images join the right collection automatically on the weekly refresh.
+    """
+    out = []
+    for coll in COLLECTIONS:
+        members = _members(coll["slug"], pages)
+        if len(members) < COLLECTION_MIN:
+            continue
+        total = len(members)
+        avg = round(sum(s["report"].get("score", 0) for s in members) / total)
+        best = members[0]["report"]
+        out.append({
+            "slug": coll["slug"],
+            "label": coll["label"],
+            "labelPlural": LABEL_PLURAL.get(coll["slug"], coll["label"]),
+            "title": coll["title"],
+            "count": total,
+            "avgScore": avg,
+            "bestGrade": best.get("grade", "?"),
+            "bestScore": best.get("score", 0),
+            "imageSlugs": [slug_for(s["image"]) for s in members],
+        })
+    return out
+
+
 def _collection_desc(coll, total, avg, best, worst):
     """Unique, <=160-char meta description, no em/en-dash (IRO-254/IRO-446)."""
     d = (f"Ranked isolation scores for {total} {coll['label']} container images, "
@@ -1079,7 +1138,7 @@ def write_collections(pages, out_dir):
     groups = []
     for coll in COLLECTIONS:
         members = _members(coll["slug"], pages)
-        if len(members) < 3:  # a ranking needs a few rows to be worth a page
+        if len(members) < COLLECTION_MIN:  # a ranking needs a few rows to be worth a page
             continue
         groups.append((coll, members))
         with open(os.path.join(coll_dir, f"{coll['slug']}.md"), "w") as f:
