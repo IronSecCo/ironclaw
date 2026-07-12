@@ -13,6 +13,8 @@ How isolated is the container you just `docker run`? This directory grades **252
 
 > **New:** the [Container Isolation Leaderboard](leaderboard.md) ranks every image best-to-worst, with a Hall of Fame and a Worst-offenders cut. Each scorecard now carries a copy-paste [shields.io badge](leaderboard.md) you can embed in your repo.
 
+> **Browse by category:** ranked collection pages compare like with like, [most secure databases](collections/databases.md), [language runtimes](collections/language-runtimes.md), [web servers](collections/web-servers.md), [CI/CD](collections/ci-cd-git.md), and [more](collections/index.md).
+
 ## Every image, worst-isolated first
 
 | Image | Score | Grade | Top gaps (default config) |

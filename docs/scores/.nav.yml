@@ -9,4 +9,5 @@
 nav:
   - All container isolation scores: index.md
   - Leaderboard: leaderboard.md
+  - Scores by category: collections
   - "*.md"
