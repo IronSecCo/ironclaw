@@ -17,7 +17,7 @@ signed releases with an SBOM and build provenance. The remaining work to 1.0 is
 **product surface and ecosystem**, not the core.
 
 - ✅ Isolation (gVisor + Kata), encrypted queues, approval gateway, egress broker
-- ✅ 11 channel adapters + an in-product web chat playground (12 delivery surfaces)
+- ✅ 12 channel adapters + an in-product web chat playground (13 delivery surfaces)
 - ✅ Multi-provider models (Anthropic · OpenAI · OpenRouter · Codex · Gemini · Vertex · local OpenAI-compatible)
 - ✅ Embedded mesh-only web console (approvals inbox, sessions, logs, chat playground)
 - ✅ Signed releases + SBOM + provenance; threat model; OpenAPI spec; docs site
@@ -49,8 +49,10 @@ areas where outside contributions land best:
   packages; fuzz targets for parsers.
 - **Developer experience** — onboarding friction, `ironctl` ergonomics, build and
   tooling polish.
-- **Reproducible builds** — help close the control-plane reproducibility gap (the
-  `ironctl` and `sandbox` binaries already reproduce).
+- **Reproducible builds** — all three binaries (control-plane, `ironctl`, and
+  `sandbox`) already reproduce bit-for-bit on Linux, same-runner and cross-machine.
+  Help extend verified reproducibility to more platforms and independently
+  rebuild-and-verify a published release against its `SHA256SUMS`.
 
 The fastest way in is a
 [**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)

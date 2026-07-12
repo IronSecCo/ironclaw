@@ -79,6 +79,7 @@ widening the network posture — ships embedded in the control-plane binary:
 | Channel adapter: Email / Gmail | ✅ |
 | Channel adapter: Matrix | ✅ |
 | Channel adapter: Google Chat | ✅ |
+| Channel adapter: Mattermost | ✅ |
 | Channel adapters: Microsoft Teams, Signal, iMessage | ✅ |
 | First-class persona / identity surface | ✅ |
 | Observability CLI (`ironctl status` / `doctor` / usage) | ✅ |
@@ -86,8 +87,8 @@ widening the network posture — ships embedded in the control-plane binary:
 | Multi-provider model support | ✅ |
 
 IronClaw now speaks Slack, Discord, Telegram, Microsoft Teams, Signal, iMessage,
-Webhook, WhatsApp, Email/SMTP, Matrix, and Google Chat — plus the in-product web
-chat playground, for twelve delivery surfaces in all.
+Webhook, WhatsApp, Email/SMTP, Matrix, Google Chat, and Mattermost — plus the
+in-product web chat playground, for thirteen delivery surfaces in all.
 
 ## Wave 8 — Trust, supply-chain & ecosystem
 
@@ -101,7 +102,7 @@ Press the security advantage — several of these are wins neither peer has clai
 | Signed releases + SBOM + provenance | ✅ |
 | Supply-chain hygiene (Dependabot / CodeQL / secret scanning / pinned actions) | ✅ |
 | OpenSSF Scorecard + Best-Practices badges | 🚧 (Scorecard workflow live) |
-| Reproducible builds | 🚧 (`ironctl` / `sandbox` reproducible; control-plane tracked) |
+| Reproducible builds | ✅ (all three binaries reproduce bit-for-bit, same-runner + cross-machine) |
 | Examples gallery + templates | ✅ |
 | Public roadmap + comparison (this page) | ✅ |
 | Third-party security audit | 👤 |
@@ -130,7 +131,7 @@ will evolve — corrections welcome via an issue.
 | Container isolation | Docker / opt-in host access | gVisor + `network=none` + Kata backend | ✅ **stronger** |
 | Approval / permissions | role checks / host access | mandatory **deterministic gateway** with a human-approval floor | ✅ **stronger** |
 | Encrypted per-session queues | single-writer SQLite | SQLCipher-encrypted, read-only inbound | ✅ **stronger** |
-| Channels | broad | Slack · Discord · Telegram · Teams · Signal · iMessage · Webhook · WhatsApp · Email · Matrix · Google Chat · web chat | ✅ **at parity** (was a gap; closed) |
+| Channels | broad | Slack · Discord · Telegram · Teams · Signal · iMessage · Webhook · WhatsApp · Email · Matrix · Google Chat · Mattermost · web chat | ✅ **at parity** (was a gap; closed) |
 | Outbound + interactive tools | yes | send / file / ask / schedule / tasks / a2a `create_agent` | ✅ at parity |
 | Scheduling & multi-agent (a2a) | yes | yes (RFC-0004, gateway-gated `create_agent`) | ✅ at parity |
 | Published threat model | partial / none | full STRIDE + data-flow + privilege matrix | ✅ **ahead** |
@@ -142,15 +143,15 @@ will evolve — corrections welcome via an issue.
 | Credential vault (arbitrary APIs) | yes | logical-name `vault://` injection via a separate host-side injector behind the gateway-approved egress broker (per-group deny-by-default, agent never holds a key) | ✅ **shipped** (1.0) |
 | Multiple LLM providers | drop-in modules | Anthropic / OpenAI / OpenRouter / Codex via host proxy | ✅ at parity |
 | In-product diagnostics | `/status` `/usage` | Prometheus metrics + audit + `ironctl status`/`doctor` | ✅ at parity |
-| **Signed releases + SBOM + provenance** | neither peer | cosign-signed releases + SBOM + build provenance, reproducible `ironctl`/`sandbox` | ✅ **shipped** (a win neither peer has claimed) |
+| **Signed releases + SBOM + provenance** | neither peer | cosign-signed releases + SBOM + build provenance, bit-for-bit reproducible builds | ✅ **shipped** (a win neither peer has claimed) |
 
 **The short version:** IronClaw is *ahead on the security spine* — provable
 isolation, a mandatory approval gateway, encrypted queues, and a published threat
 model — and has *closed most of the product-surface gap* (channels, an embedded web
 console, skills, and multi-provider support are all shipped). The supply-chain trust
 items — cosign-signed releases, an SBOM, and build provenance — have now shipped too;
-they're differentiators neither peer has claimed, and reproducible builds are landing
-component by component.
+they're differentiators neither peer has claimed, and all three binaries now build
+bit-for-bit reproducibly.
 
 ---
 
