@@ -227,6 +227,14 @@ containers you already run stack up. Rankings live on the
 (Hall of Fame vs worst offenders), and the interactive
 [scores explorer](https://nivardsec.com/scores) lets you filter and grab a badge for your repo.
 
+Head-to-head reads backed by the same scan data:
+[Alpine vs Debian vs Ubuntu](https://ironsecco.github.io/ironclaw/blog/alpine-vs-debian-vs-ubuntu-container-isolation/)
+(does the base image change isolation?),
+[Docker default vs hardened](https://ironsecco.github.io/ironclaw/blog/docker-default-vs-hardened-container-isolation/)
+(the 48-point gap, flag by flag), and
+[gVisor vs runc](https://ironsecco.github.io/ironclaw/blog/gvisor-vs-runc-container-isolation-compared/)
+(when a shared host kernel is the weak link).
+
 ### Show your score
 
 Put your containment grade in your README, the same way a coverage or build badge does.

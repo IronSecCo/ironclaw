@@ -294,3 +294,15 @@ shared host namespaces, on a gVisor (runsc) runtime. See
 [Security and isolation](security-isolation.md) and the
 [containment benchmark](compare/sandbox-containment-benchmark.md) for how that
 posture is built and proven.
+
+## Compare with real scan data
+
+Head-to-head reads that answer common questions using the same seven-dimension
+grade this page describes:
+
+- [Alpine vs Debian vs Ubuntu](blog/alpine-vs-debian-vs-ubuntu-container-isolation.md):
+  does the base image change isolation? (Spoiler: all seven base images tie at 48.)
+- [Docker default vs hardened](blog/docker-default-vs-hardened-container-isolation.md):
+  the 48-point jump from a D to an A, flag by flag, across 151 images.
+- [gVisor vs runc](blog/gvisor-vs-runc-container-isolation-compared.md): why they
+  score the same on a config scan yet block a different number of live escape attempts.
