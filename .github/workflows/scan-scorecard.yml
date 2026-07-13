@@ -1,9 +1,13 @@
 name: Sandbox scan scorecard (dogfood)
 
-# Green-run proof + live example for the reusable `IronClaw sandbox scan` action
-# (.github/actions/scan). It runs the exact thing an external adopter runs —
-# `uses: <the action>` against real containers — so a broken action surfaces here
-# before an adopter hits it, and this PR itself renders the scorecard comments.
+# Green-run proof + live example for the reusable `IronClaw sandbox scan` action.
+# It runs the exact thing an external adopter runs — `uses: <the action>` against
+# real containers — so a broken action surfaces here before an adopter hits it,
+# and this PR itself renders the scorecard comments.
+#
+# It exercises BOTH entry points so neither can rot:
+#   * the subdir ref  `./.github/actions/scan`  (existing users' path)
+#   * the root ref     `./`                      (the Marketplace action.yml)
 #
 # Two contrasting targets prove the grader both ways:
 #   * a HARDENED container  -> ~100/A, gated at min-score 90 (must pass)
@@ -17,10 +21,12 @@ on:
   push:
     branches: [main]
     paths:
+      - "action.yml"
       - ".github/actions/scan/**"
       - ".github/workflows/scan-scorecard.yml"
   pull_request:
     paths:
+      - "action.yml"
       - ".github/actions/scan/**"
       - ".github/workflows/scan-scorecard.yml"
   workflow_dispatch:
@@ -70,11 +76,28 @@ jobs:
           mode: container
           min-score: 0
 
-      - name: Assert the hardened container graded A
+      # Prove the Marketplace root action.yml runs end-to-end via the root ref
+      # `uses: ./`. Same hardened target; comment off so it does not fight the
+      # subdir run over the sticky scorecard (same mode+target marker).
+      - name: Scan the hardened sandbox via the ROOT action (uses ./)
+        id: root
+        uses: ./
+        with:
+          target: hardened-sandbox
+          mode: container
+          min-score: 90
+          comment: false
+
+      - name: Assert both entry points graded the hardened container A
         env:
           SCORE: ${{ steps.hardened.outputs.score }}
           GRADE: ${{ steps.hardened.outputs.grade }}
+          ROOT_SCORE: ${{ steps.root.outputs.score }}
+          ROOT_GRADE: ${{ steps.root.outputs.grade }}
         run: |
-          echo "hardened score=${SCORE} grade=${GRADE}"
+          echo "subdir score=${SCORE} grade=${GRADE}"
+          echo "root   score=${ROOT_SCORE} grade=${ROOT_GRADE}"
           test "${GRADE}" = "A" \
-            || { echo "::error::expected the hardened container to grade A"; exit 1; }
+            || { echo "::error::expected the subdir action to grade the hardened container A"; exit 1; }
+          test "${ROOT_GRADE}" = "A" \
+            || { echo "::error::expected the root action.yml to grade the hardened container A"; exit 1; }
