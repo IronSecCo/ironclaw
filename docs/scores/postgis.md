@@ -7,7 +7,7 @@ description: "How isolated is postgis:17-3.5 by default? IronClaw scores its san
 
 Run with plain `docker run postgis/postgis:17-3.5` defaults, no hardening flags, the **postgis** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `postgis/postgis:17-3.5` at digest `sha256:6916f5cc87001fa99bc44dbaa3f906d60ef7c813074e943ae4a3cd5a94a16947`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `postgis/postgis:17-3.5` at digest `sha256:4e8c30197f7ce4190cf11a1b8c44bea35a58507558cffa48570814beba77b099`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

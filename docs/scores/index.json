@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-07-12T02:57:13Z",
-  "ironctlVersion": "dev+ebc627a3fc2d",
+  "generatedAt": "2026-07-13T09:18:14Z",
+  "ironctlVersion": "dev+fbfaded9ccdd",
   "meta": {
     "imageCount": 252,
     "avgScore": 52,
@@ -7111,7 +7111,7 @@
       "image": "nickblah/lua:5.4",
       "displayName": "lua",
       "family": "infra",
-      "digest": "sha256:bd772a2a19ae2b528054b6a6c081f3417c3b570cae317357a4a8b60b8bef0e3a",
+      "digest": "sha256:667bfc78f9ee9393c52ef1e13d5d53ec0cef22f07d644a0d41feeb5815a6df35",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10681,7 +10681,7 @@
       "image": "postgis/postgis:17-3.5",
       "displayName": "postgis",
       "family": "infra",
-      "digest": "sha256:6916f5cc87001fa99bc44dbaa3f906d60ef7c813074e943ae4a3cd5a94a16947",
+      "digest": "sha256:4e8c30197f7ce4190cf11a1b8c44bea35a58507558cffa48570814beba77b099",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -16121,7 +16121,7 @@
       "image": "quay.io/jupyter/base-notebook:latest",
       "displayName": "base notebook",
       "family": "infra",
-      "digest": "sha256:e05d822dd352876fe6ab9ef25d87ffd2f0727ad45fc6fca8f28b82d8d912e21f",
+      "digest": "sha256:8d7b4aa98028bc183fab42963d16aabbecd5c1d161981e27f54126c5b8534370",
       "score": 63,
       "grade": "C",
       "topGaps": [

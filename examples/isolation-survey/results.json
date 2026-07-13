@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-12T02:57:13Z",
-  "ironctlVersion": "dev+ebc627a3fc2d",
+  "generatedAt": "2026-07-13T09:18:14Z",
+  "ironctlVersion": "dev+fbfaded9ccdd",
   "report": "ironclaw-isolation-survey",
   "scenarioCount": 256,
   "scenarios": [
@@ -74,7 +74,7 @@
             "verdict": "FAIL"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:19Z",
+        "generatedAt": "2026-07-13T09:19:18Z",
         "grade": "F",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -83,7 +83,7 @@
         "score": 19,
         "source": "docker",
         "target": "ic-survey-naive-privileged",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:399babc8b49529dabfd9c922f2b5eea81d611e4512e3ed250d75bd2e7683f4b0",
       "runFlags": "--privileged",
@@ -158,7 +158,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:17Z",
+        "generatedAt": "2026-07-13T09:19:16Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -167,7 +167,7 @@
         "score": 33,
         "source": "docker",
         "target": "ic-survey-naive-ci-docker-sock",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2",
       "runFlags": "-v /var/run/docker.sock:/var/run/docker.sock",
@@ -243,7 +243,7 @@
             "verdict": "FAIL"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:21Z",
+        "generatedAt": "2026-07-13T09:19:21Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -252,7 +252,7 @@
         "score": 34,
         "source": "docker",
         "target": "ic-survey-naive-host-ns",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99",
       "runFlags": "--network host --pid host",
@@ -326,7 +326,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:29:20Z",
+        "generatedAt": "2026-07-13T09:48:47Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -335,7 +335,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-act-runner",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:c57233403eff970945cfb8b13f0e622d2124f4dbc623af3e2c74f061d05e8f60",
       "runFlags": "",
@@ -409,7 +409,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:36:59Z",
+        "generatedAt": "2026-07-13T09:57:02Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -418,7 +418,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-actual-server",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:0cf0300ed4905045ed87e8892c26fbd83cd08e8499bb81dc28deef6afeb162fb",
       "runFlags": "",
@@ -492,7 +492,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:16:21Z",
+        "generatedAt": "2026-07-13T09:36:47Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -501,7 +501,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-adguardhome",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:e6f2b8bcda06064ab055b44933a4f0e983c35558b9cdb8d2e7ab1efcee36d890",
       "runFlags": "",
@@ -575,7 +575,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:23:05Z",
+        "generatedAt": "2026-07-13T09:42:54Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -584,7 +584,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-aerospike",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:200067011b2c73ce2809d93e16de2f2581333a0109303dcbc1b9534c1875b483",
       "runFlags": "",
@@ -658,7 +658,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:10:28Z",
+        "generatedAt": "2026-07-13T09:31:06Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -667,7 +667,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-alloy",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:4f6ddc56ffdcf8a6316748fc5162972e20cb301523cac1bb4a31957df733ae9b",
       "runFlags": "",
@@ -741,7 +741,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:17:31Z",
+        "generatedAt": "2026-07-13T09:37:53Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -750,7 +750,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-almalinux",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:d2515c769e7b73f95c4fde38c0a505336ff38f14990c0b7253b77060a049a743",
       "runFlags": "",
@@ -824,7 +824,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:00:42Z",
+        "generatedAt": "2026-07-13T09:21:40Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -833,7 +833,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-alpine",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d",
       "runFlags": "",
@@ -907,7 +907,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:06:54Z",
+        "generatedAt": "2026-07-13T09:27:44Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -916,7 +916,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-amazoncorretto",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:9c3e09f59a5c2319a161cef94c7295ce28d6a5a98ed1773088a73778807676e6",
       "runFlags": "",
@@ -990,7 +990,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:01:06Z",
+        "generatedAt": "2026-07-13T09:22:03Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -999,7 +999,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-amazonlinux",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:f590f33787c76bee9c42cc6826ee887bc1f3b60ba5ed137af450a6c0a79cdb57",
       "runFlags": "",
@@ -1073,7 +1073,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:50:28Z",
+        "generatedAt": "2026-07-13T10:10:27Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1082,7 +1082,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-anaconda3",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:b2c5350cc4e2338a1705c15dcca4fff520b1728f49752d390d92aaec02cf8c3a",
       "runFlags": "",
@@ -1156,7 +1156,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:31:52Z",
+        "generatedAt": "2026-07-13T09:51:32Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1165,7 +1165,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-appwrite",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:269f8953594890a62f015e29c6343f7f2119468180d0dcecdfdc331bcbadf845",
       "runFlags": "",
@@ -1239,7 +1239,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:04:26Z",
+        "generatedAt": "2026-07-13T09:25:17Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1248,7 +1248,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-arangodb",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:bf5eabc0fb3a16a13d0d4de00cddfbf2209e3d25630e5331832efb206519ff8f",
       "runFlags": "",
@@ -1322,7 +1322,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:17:39Z",
+        "generatedAt": "2026-07-13T09:38:01Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1331,7 +1331,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-archlinux",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:681569955d1d17313ef7134acc8b5cd8adcda2fc24709bed472d95e1cf3d71a1",
       "runFlags": "",
@@ -1405,7 +1405,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:24:37Z",
+        "generatedAt": "2026-07-13T09:44:25Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1414,7 +1414,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-aspnet",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:193650562ae3ccfcdbb00a6bccbef2ef5bd71d4ceb25e971475ae4c0a23271fd",
       "runFlags": "",
@@ -1488,7 +1488,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:35:01Z",
+        "generatedAt": "2026-07-13T09:54:54Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1497,7 +1497,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-audiobookshelf",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:aa88c9f4652872a2a72043511a87d17ec743b60f53e8024e9868ebec5aae59bd",
       "runFlags": "",
@@ -1571,7 +1571,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:16:10Z",
+        "generatedAt": "2026-07-13T09:36:38Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1580,7 +1580,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-authelia",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:46021dc20efdcc5cdc38a29e3050b8835429a155ae6215388ed3b793a02eb0ab",
       "runFlags": "",
@@ -1654,7 +1654,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:32:54Z",
+        "generatedAt": "2026-07-13T09:52:39Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1663,7 +1663,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-baserow",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:df0c42eb67e86a5b3f3e608e904f18db98650aaa701098d1d437ef5170979a8e",
       "runFlags": "",
@@ -1737,7 +1737,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:10:38Z",
+        "generatedAt": "2026-07-13T09:31:16Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1746,7 +1746,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-blackbox",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:b04a9fef4fa086a02fc7fcd8dcdbc4b7b35cc30cdee860fdc6a19dd8b208d63e",
       "runFlags": "",
@@ -1820,7 +1820,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:09:08Z",
+        "generatedAt": "2026-07-13T09:29:51Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1829,7 +1829,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-bun",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:d6ad4d3280d3e7e92b793a924105d68766d60b1f36709f4cee11bc8737782621",
       "runFlags": "",
@@ -1903,7 +1903,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:00:49Z",
+        "generatedAt": "2026-07-13T09:21:48Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1912,7 +1912,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-busybox",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:9532d8c39891ca2ecde4d30d7710e01fb739c87a8b9299685c63704296b16028",
       "runFlags": "",
@@ -1986,7 +1986,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:00Z",
+        "generatedAt": "2026-07-13T09:19:58Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -1995,7 +1995,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-caddy",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
       "runFlags": "",
@@ -2069,7 +2069,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:29:42Z",
+        "generatedAt": "2026-07-13T09:49:11Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2078,7 +2078,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-cadvisor",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:f40e65878e25c2e78ea037f73a449527a0fb994e303dc3e34cb6b187b4b91435",
       "runFlags": "",
@@ -2152,7 +2152,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:02:50Z",
+        "generatedAt": "2026-07-13T09:23:42Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2161,7 +2161,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-cassandra",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:b89056c366c4b807380cd9a4ac865ad558c0b4d5aac342f69087d0169ca1ddcd",
       "runFlags": "",
@@ -2235,7 +2235,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:23:24Z",
+        "generatedAt": "2026-07-13T09:43:13Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2244,7 +2244,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-centrifugo",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:dc3a829ab2e26070df6802138ebfd4ce3929e8fdc970fa56e4fa14b68e321164",
       "runFlags": "",
@@ -2318,7 +2318,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:37:17Z",
+        "generatedAt": "2026-07-13T09:57:21Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2327,7 +2327,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ceph",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:6ac7f923aa1d23b43248ce0ddec7e1388855ee3d00813b52c3172b0b23b37906",
       "runFlags": "",
@@ -2401,7 +2401,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:05:53Z",
+        "generatedAt": "2026-07-13T09:26:43Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2410,7 +2410,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-chroma",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:18e67eecc172abbcd9413d751bde64983b3d167fe497c98f979083eb24c0c942",
       "runFlags": "",
@@ -2484,7 +2484,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:11:36Z",
+        "generatedAt": "2026-07-13T09:32:11Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2493,7 +2493,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-chronograf",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:2f587075ca6b101681e6588b762acebb2c53b6b66a358581119d0e85c1c8db3e",
       "runFlags": "",
@@ -2567,7 +2567,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:02:58Z",
+        "generatedAt": "2026-07-13T09:23:50Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2576,7 +2576,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-clickhouse",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:9eb59796efe815711207122267e407dd3b42efd90d01537e1c80118bfc642a11",
       "runFlags": "",
@@ -2650,7 +2650,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:08:56Z",
+        "generatedAt": "2026-07-13T09:29:39Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2659,7 +2659,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-clojure",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:cb2aac3f97387620a09c56613fa1d270edc7218bb515e977a3d5d63752a11045",
       "runFlags": "",
@@ -2733,7 +2733,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:04:16Z",
+        "generatedAt": "2026-07-13T09:25:07Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2742,7 +2742,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-cockroach",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:1073844226a6291b8a44fcb9cab5cb02035bb8fea3266dcc5dd021c0b34484a0",
       "runFlags": "",
@@ -2816,7 +2816,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:28:50Z",
+        "generatedAt": "2026-07-13T09:48:15Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2825,7 +2825,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-concourse",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:3a432faa505de02f6d6592f4b727a1e2683a7adbf42e4fcc052e30f0a144efc6",
       "runFlags": "",
@@ -2899,7 +2899,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:59Z",
+        "generatedAt": "2026-07-13T09:20:57Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2908,7 +2908,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-consul",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:200471c74bc0965cd20c81eacc31a209873d5d9e599fe637ceb856b0cbbc518d",
       "runFlags": "",
@@ -2982,7 +2982,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:46:28Z",
+        "generatedAt": "2026-07-13T10:06:42Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -2991,7 +2991,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-cortex",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:b2c37512c56294f6f648eabd9833adbbfd37b453aaae4390b7f5334bc57f136e",
       "runFlags": "",
@@ -3065,7 +3065,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:37Z",
+        "generatedAt": "2026-07-13T09:19:36Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3074,7 +3074,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-couchdb",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:b1d84a34afba114d6e9f4fe3fad210e60eaaadab8fd9cd1d218d7d2cad663874",
       "runFlags": "",
@@ -3148,7 +3148,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:25:26Z",
+        "generatedAt": "2026-07-13T09:45:16Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3157,7 +3157,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-crystal",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:e1356b557c098ae5b7956ed58edb6d0c081c3c4d588c56cec11f6bbb7caeea2c",
       "runFlags": "",
@@ -3231,7 +3231,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:08:34Z",
+        "generatedAt": "2026-07-13T09:29:19Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3240,7 +3240,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-dart",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:7a6a4ad2560e46cb6979bd73f46edec0fa7bc092146f5fafefdf3c6568a77e75",
       "runFlags": "",
@@ -3314,7 +3314,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:36:38Z",
+        "generatedAt": "2026-07-13T09:56:39Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3323,7 +3323,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-dashy",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:e0e4d344f9be6d6f0061bb4f5368efd5034e8f2cec886d8afefc89a76be830d4",
       "runFlags": "",
@@ -3397,7 +3397,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:00:47Z",
+        "generatedAt": "2026-07-13T09:21:46Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3406,7 +3406,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-debian",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:60eac759739651111db372c07be67863818726f754804b8707c90979bda511df",
       "runFlags": "",
@@ -3480,7 +3480,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:09:01Z",
+        "generatedAt": "2026-07-13T09:29:44Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3489,7 +3489,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-deno",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:3bf75873714baa410dcf7fabaf76d806d20f0ac8a7579df11577b4ed97416e34",
       "runFlags": "",
@@ -3563,7 +3563,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:20:57Z",
+        "generatedAt": "2026-07-13T09:40:51Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3572,7 +3572,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-dgraph",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:73db2307831ef1229c6b2aaa432ba8cbc0f525002318713d4e3392bf56199c3a",
       "runFlags": "",
@@ -3646,7 +3646,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:16:01Z",
+        "generatedAt": "2026-07-13T09:36:28Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3655,7 +3655,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-docker-dind",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce",
       "runFlags": "",
@@ -3729,7 +3729,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:05:17Z",
+        "generatedAt": "2026-07-13T09:26:07Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3738,7 +3738,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-dragonfly",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:0fa01a2b929e704c7a9300d23e7f52002ebd39e90996fb8bb63826aed92fa06f",
       "runFlags": "",
@@ -3812,7 +3812,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:09:55Z",
+        "generatedAt": "2026-07-13T09:30:35Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3821,7 +3821,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-drone",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:55897c8fb22ddc5dff6be4c85b7fbc3ce07c34fe1f03d7cf2cbbfd095833fca6",
       "runFlags": "",
@@ -3895,7 +3895,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:01:44Z",
+        "generatedAt": "2026-07-13T09:22:39Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3904,7 +3904,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-drupal",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:c1967d378713a384864cf48f826548276aabcb4dc464b02ad1a280396a57c3be",
       "runFlags": "",
@@ -3978,7 +3978,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:37:38Z",
+        "generatedAt": "2026-07-13T09:57:39Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -3987,7 +3987,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-duplicati",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:ea0fc5050e0369e3d6736ac4633c65a977668889aed949aaa312ba4c73c8c772",
       "runFlags": "",
@@ -4061,7 +4061,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:07:36Z",
+        "generatedAt": "2026-07-13T09:28:25Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4070,7 +4070,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-elixir",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:768e2c3c1831e221c7fb60ec11b8bf02cc8f6bb1db6ffe8715a4935c0aba235c",
       "runFlags": "",
@@ -4144,7 +4144,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:06:40Z",
+        "generatedAt": "2026-07-13T09:27:30Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4153,7 +4153,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-envoy",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:6bf0d37dd5e8eac4b37effe89a1aec4760f7f2ce860d1fd6af22147eb87a5058",
       "runFlags": "",
@@ -4227,7 +4227,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:07:41Z",
+        "generatedAt": "2026-07-13T09:28:29Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4236,7 +4236,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-erlang",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:068162a593db370cea47991df530effda4cf2e24e26a05541835f1c1cd2a6daa",
       "runFlags": "",
@@ -4310,7 +4310,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:00:55Z",
+        "generatedAt": "2026-07-13T09:21:52Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4319,7 +4319,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-fedora",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:f1a3fab47bcb3c3ddf3135d5ee7ba8b7b25f2e809a47440936212a3a50957f3d",
       "runFlags": "",
@@ -4393,7 +4393,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:20:37Z",
+        "generatedAt": "2026-07-13T09:40:35Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4402,7 +4402,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-firebird",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:b89818b7017398ac1808ede3985685b95f936a8d884a786425faa774505d5a03",
       "runFlags": "",
@@ -4476,7 +4476,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:15:56Z",
+        "generatedAt": "2026-07-13T09:36:23Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4485,7 +4485,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-flink",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:35d8399ac4ad5cfd73adb674c77e5f83541f4faf96221e116421542fb63ee8f0",
       "runFlags": "",
@@ -4559,7 +4559,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:09:51Z",
+        "generatedAt": "2026-07-13T09:30:31Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4568,7 +4568,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-forgejo",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:3c34f11fe8b9983096eef3f8f25c2d2c21c4ae7504960cb203f0b075d1d8ed73",
       "runFlags": "",
@@ -4642,7 +4642,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:35:09Z",
+        "generatedAt": "2026-07-13T09:55:02Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4651,7 +4651,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-freshrss",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:baedf173d60b63c72f93fdb8480ee002d4622cd34103aac6510f45fdff41effe",
       "runFlags": "",
@@ -4725,7 +4725,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:07:32Z",
+        "generatedAt": "2026-07-13T09:28:20Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4734,7 +4734,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gcc",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:df8990c2f53aa9ef57808e755aa8f580dd86b9b34c6233715de23e89f7e06b65",
       "runFlags": "",
@@ -4808,7 +4808,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:02:14Z",
+        "generatedAt": "2026-07-13T09:23:07Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4817,7 +4817,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ghost",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:a0506f3f05f5bdc6c950c5113cdcdb1e1f96fbf15f6dc0a39fc093c25348bdb5",
       "runFlags": "",
@@ -4891,7 +4891,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:02:35Z",
+        "generatedAt": "2026-07-13T09:23:29Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4900,7 +4900,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gitea",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:538658de667c5d098a274f2f63aa6ec891d88f670cdd5282cf27221ba747dda4",
       "runFlags": "",
@@ -4974,7 +4974,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:27:51Z",
+        "generatedAt": "2026-07-13T09:47:33Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -4983,7 +4983,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gitlab-ce",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:8a464787956c4b9c13f33b69f9db9b928aa354770f6d2b5dd1dbe5040dc3c076",
       "runFlags": "",
@@ -5057,7 +5057,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:28:09Z",
+        "generatedAt": "2026-07-13T09:47:48Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -5066,7 +5066,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gitlab-runner",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:11e3a44e7df21a32691a6975c7824c682787f742776d705ce89a74a780e3809f",
       "runFlags": "",
@@ -5140,7 +5140,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:09:45Z",
+        "generatedAt": "2026-07-13T09:30:24Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -5149,7 +5149,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gogs",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:2fed2f7ce8dcf7bfdde3e6c309d934254ae8eb1cf8053a3f394baa184461dbfa",
       "runFlags": "",
@@ -5223,7 +5223,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:57:54Z",
+        "generatedAt": "2026-07-13T09:18:54Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -5232,7 +5232,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-golang",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f",
       "runFlags": "",
@@ -5306,7 +5306,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:26:23Z",
+        "generatedAt": "2026-07-13T09:46:16Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -5315,7 +5315,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-graalvm-community",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:6e46c711c90bdbc24e23ccdb6e3fba837d660e68dd4ffeb87abbd3d08e115653",
       "runFlags": "",
@@ -5389,7 +5389,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:07:11Z",
+        "generatedAt": "2026-07-13T09:28:00Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -5398,7 +5398,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gradle",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:dae150d9066fc04a791ec7f0adc1a0eb4e867f11d76d03063ee0a60e5da56149",
       "runFlags": "",
@@ -5472,7 +5472,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:08:09Z",
+        "generatedAt": "2026-07-13T09:28:55Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -5481,7 +5481,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-haskell",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:2fa0c6b9ad5aafb44e0f28e24c5a7d91b8446820bab885ba020a6773dcdb7f12",
       "runFlags": "",
@@ -5555,7 +5555,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:21:22Z",
+        "generatedAt": "2026-07-13T09:41:14Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -5564,7 +5564,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-hasura",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:4d34476840601fa0c372bce9b1ed15aac6ffc3f0a0db677e81062764c08e1dc5",
       "runFlags": "",
@@ -5638,7 +5638,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:36:48Z",
+        "generatedAt": "2026-07-13T09:56:50Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -5647,7 +5647,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-heimdall",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:71597f4461e4f01350bc9cd257ccf23e0041e666ff31bcb7c1671b5eac20b279",
       "runFlags": "",
@@ -5721,7 +5721,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:36:10Z",
+        "generatedAt": "2026-07-13T09:56:07Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -5730,7 +5730,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-home-assistant",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:132ef461504be5c5ebd6e34e5d3fb3d7958bb6758a5136107eea9f84c299254a",
       "runFlags": "",
@@ -5804,7 +5804,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:36:18Z",
+        "generatedAt": "2026-07-13T09:56:16Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -5813,7 +5813,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-homepage",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:b6d732817572f9af99ec168b10641b8f7820f30cfa5a5cc5c68f1e291804bec8",
       "runFlags": "",
@@ -5887,7 +5887,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:57:58Z",
+        "generatedAt": "2026-07-13T09:18:57Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -5896,7 +5896,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-httpd",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:1b766f17b84026429b7cb243317b142921b24432336e798bc881c43f45ed9567",
       "runFlags": "",
@@ -5970,7 +5970,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:26:37Z",
+        "generatedAt": "2026-07-13T09:46:28Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -5979,7 +5979,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ibmjava",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:c15361471b31ad587358bb3c388242b2d84d8f1ce17f6cb56f81e72ef84163cf",
       "runFlags": "",
@@ -6053,7 +6053,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:22:58Z",
+        "generatedAt": "2026-07-13T09:42:48Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -6062,7 +6062,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ignite",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:9f32983b771957be8956e1855cfd7a649bbb137a6b011702088480f3e37b3aa9",
       "runFlags": "",
@@ -6136,7 +6136,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:34:16Z",
+        "generatedAt": "2026-07-13T09:54:07Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -6145,7 +6145,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-immich-server",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:666ce77995230ff7327da5d285c861895576977237de08564e3c3ddf842877eb",
       "runFlags": "",
@@ -6219,7 +6219,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:42Z",
+        "generatedAt": "2026-07-13T09:19:41Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -6228,7 +6228,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-influxdb",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:991673dc2d237bd79b15d6627410d72de111387e7dac673dbb92cf3333ffcc8c",
       "runFlags": "",
@@ -6302,7 +6302,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:14:09Z",
+        "generatedAt": "2026-07-13T09:34:39Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -6311,7 +6311,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-jellyfin",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:17c3a8d9dddb97789b5f37112840ebf96566442c14d4754193a6c2eb154bc221",
       "runFlags": "",
@@ -6385,7 +6385,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:02:31Z",
+        "generatedAt": "2026-07-13T09:23:23Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -6394,7 +6394,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-joomla",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:0d463083a3d60b3dde9d767d860687cad73386a4e1b9f41bfcb28e22e3979230",
       "runFlags": "",
@@ -6468,7 +6468,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:08:23Z",
+        "generatedAt": "2026-07-13T09:29:08Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -6477,7 +6477,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-julia",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:d242c42055283a079c84a580fb761d111000e9aab5c29f2abfcf19715ea11fab",
       "runFlags": "",
@@ -6551,7 +6551,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:49:07Z",
+        "generatedAt": "2026-07-13T10:09:13Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -6560,7 +6560,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-jupyterhub",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:ed9ab780bb3171883cca1b1492301bf5cbb00d34766149a796b49b0bc5ac3530",
       "runFlags": "",
@@ -6634,7 +6634,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:38:10Z",
+        "generatedAt": "2026-07-13T09:58:11Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -6643,7 +6643,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-k3s",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:627fc392e5e7992fb8aa738fb04bc0c9ae9a068999cb4cfbea5858661cd79d04",
       "runFlags": "",
@@ -6717,7 +6717,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:11:41Z",
+        "generatedAt": "2026-07-13T09:32:17Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -6726,7 +6726,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-kapacitor",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:78b54b3281c73e8466ece51712e4d1047fe3ff11b9a3a580439d8440bb25eaa1",
       "runFlags": "",
@@ -6800,7 +6800,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:05:14Z",
+        "generatedAt": "2026-07-13T09:26:04Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -6809,7 +6809,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-keydb",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:6537505c42355ca1f571276bddf83f5b750f760f07b2a185a676481791e388ac",
       "runFlags": "",
@@ -6883,7 +6883,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:15:30Z",
+        "generatedAt": "2026-07-13T09:35:56Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -6892,7 +6892,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-localstack",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:3ebc37595918b8accb852f8048fef2aff047d465167edd655528065b07bc364a",
       "runFlags": "",
@@ -6966,7 +6966,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:25:54Z",
+        "generatedAt": "2026-07-13T09:45:46Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -6975,9 +6975,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-lua",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
-      "resolvedDigest": "sha256:bd772a2a19ae2b528054b6a6c081f3417c3b570cae317357a4a8b60b8bef0e3a",
+      "resolvedDigest": "sha256:667bfc78f9ee9393c52ef1e13d5d53ec0cef22f07d644a0d41feeb5815a6df35",
       "runFlags": "",
       "score": 48
     },
@@ -7049,7 +7049,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:16:32Z",
+        "generatedAt": "2026-07-13T09:36:58Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -7058,7 +7058,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mailpit",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:5a49a77c5bdbe7c5474450b4f46348d09949df3695257729c93a30369382d4f6",
       "runFlags": "",
@@ -7132,7 +7132,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:21:32Z",
+        "generatedAt": "2026-07-13T09:41:23Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -7141,7 +7141,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-manticore",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:767c48291e48fdff47f08772e1cc0340f389fb008663a60142825b314710121f",
       "runFlags": "",
@@ -7215,7 +7215,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:30Z",
+        "generatedAt": "2026-07-13T09:19:29Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -7224,7 +7224,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mariadb",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:efb4959ef2c835cd735dbc388eb9ad6aab0c78dd64febcd51bc17481111890c4",
       "runFlags": "",
@@ -7298,7 +7298,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:12:41Z",
+        "generatedAt": "2026-07-13T09:33:14Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -7307,7 +7307,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-matomo",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:e7164a53def1847cc51e10a921cd3bb1fac24493d6cff349a5e62b5a1e95279b",
       "runFlags": "",
@@ -7381,7 +7381,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:07:01Z",
+        "generatedAt": "2026-07-13T09:27:50Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -7390,7 +7390,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-maven",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:2b4496088e7b80ae10a8c9f74e574ea21380325a006ec684532ad6bad5bc7273",
       "runFlags": "",
@@ -7464,7 +7464,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:12:27Z",
+        "generatedAt": "2026-07-13T09:33:00Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -7473,7 +7473,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mediawiki",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:eff46919001ed16bb3071db58abf9361b215aa2b6b7242d4b5acd37828e80b19",
       "runFlags": "",
@@ -7547,7 +7547,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:05:30Z",
+        "generatedAt": "2026-07-13T09:26:20Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -7556,7 +7556,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-meilisearch",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:6f8f1fc29d1ff67b4d8d503bb4e0a69b55c8d42600decafde951344218193a27",
       "runFlags": "",
@@ -7630,7 +7630,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:14:21Z",
+        "generatedAt": "2026-07-13T09:34:50Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -7639,7 +7639,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-metabase",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:ea0229a63116ea625ef09085a84ee0d2618311fd34a6e72cc527ae2eb003a5f9",
       "runFlags": "",
@@ -7713,7 +7713,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:21:14Z",
+        "generatedAt": "2026-07-13T09:41:08Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -7722,7 +7722,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-milvus",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:d86c9d19d4559e6d5481895f3c307193290ac07178499ed108082826f4336387",
       "runFlags": "",
@@ -7796,7 +7796,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:15:04Z",
+        "generatedAt": "2026-07-13T09:35:32Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -7805,7 +7805,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-minio",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
       "runFlags": "",
@@ -7879,7 +7879,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:47:28Z",
+        "generatedAt": "2026-07-13T10:07:39Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -7888,7 +7888,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mlflow",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:e68e3089108faf453681319dc7ae6e746b6f25c28243167dcead391c051871ae",
       "runFlags": "",
@@ -7962,7 +7962,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:57:43Z",
+        "generatedAt": "2026-07-13T09:18:43Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -7971,7 +7971,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mongo",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:d5b3ca8c3f3cdce78d44870dc0871b76d5235e9b2ad4ea6bea5d1fbff8027703",
       "runFlags": "",
@@ -8045,7 +8045,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:16:51Z",
+        "generatedAt": "2026-07-13T09:37:15Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -8054,7 +8054,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mongo-express",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:1b23d7976f0210dbec74045c209e52fbb26d29b2e873d6c6fa3d3f0ae32c2a64",
       "runFlags": "",
@@ -8128,7 +8128,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:24:48Z",
+        "generatedAt": "2026-07-13T09:44:37Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -8137,7 +8137,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mono",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:34d816779b1248b5cfd095770b64ecbaf1798e2aca693a91c11a018dce9c7ad5",
       "runFlags": "",
@@ -8211,7 +8211,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:02:38Z",
+        "generatedAt": "2026-07-13T09:23:31Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -8220,7 +8220,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mosquitto",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:6f8d8a947c506f8a2290ec65cd4bd2bc7cb4d43fb5f6271f861cb013e2ef9797",
       "runFlags": "",
@@ -8294,7 +8294,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:57:33Z",
+        "generatedAt": "2026-07-13T09:18:33Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -8303,7 +8303,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mysql",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:d36d39a64cd12a5c1cc9e6aa2bfb5f8d4c81a2f6586e0a04a9ae13939db02209",
       "runFlags": "",
@@ -8377,7 +8377,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:44Z",
+        "generatedAt": "2026-07-13T09:19:43Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -8386,7 +8386,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nats",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:b83efabe3e7def1e0a4a31ec6e078999bb17c80363f881df35edc70fcb6bb927",
       "runFlags": "",
@@ -8460,7 +8460,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:34:52Z",
+        "generatedAt": "2026-07-13T09:54:43Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -8469,7 +8469,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-navidrome",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:4915ec6ad11ff76167491654184dfb7bbf341042fea498c20b2534af3dde587f",
       "runFlags": "",
@@ -8543,7 +8543,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:03:06Z",
+        "generatedAt": "2026-07-13T09:23:58Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -8552,7 +8552,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-neo4j",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:4bae36aff76271e27fd6a6ed0835413f86a284cd179cfb1cb7d188f5f7533aca",
       "runFlags": "",
@@ -8626,7 +8626,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:10:54Z",
+        "generatedAt": "2026-07-13T09:31:31Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -8635,7 +8635,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-netdata",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:bcc822ec685dd7ee488e9f99b957f479b66301be04f13f346df692ad7de94151",
       "runFlags": "",
@@ -8709,7 +8709,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:12:03Z",
+        "generatedAt": "2026-07-13T09:32:38Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -8718,7 +8718,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nextcloud",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:fb966733647ea03f0446b0c22eac9733c8eb616d37b960caca9d4c3010e14a08",
       "runFlags": "",
@@ -8792,7 +8792,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:57:13Z",
+        "generatedAt": "2026-07-13T09:18:14Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -8801,7 +8801,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nginx",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
       "runFlags": "",
@@ -8875,7 +8875,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:24:16Z",
+        "generatedAt": "2026-07-13T09:44:03Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -8884,7 +8884,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nginx-proxy",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:5dd14e68ea81f33692b810d096ac8ebe7aa789d75ce91e05f09d56d044ed8ee3",
       "runFlags": "",
@@ -8958,7 +8958,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:24:09Z",
+        "generatedAt": "2026-07-13T09:43:56Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -8967,7 +8967,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nginx-proxy-manager",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:b7168e5f6828cbbd3622fa19965007e4611cf42b5f3c603008377ffd45a4fe00",
       "runFlags": "",
@@ -9041,7 +9041,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:25:48Z",
+        "generatedAt": "2026-07-13T09:45:40Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -9050,7 +9050,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nim",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:614cfede24453ceaa28100f7daf4be65d80bfba19df2861486266b2273a564e3",
       "runFlags": "",
@@ -9124,7 +9124,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:32:05Z",
+        "generatedAt": "2026-07-13T09:51:46Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -9133,7 +9133,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nocodb",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:eef22659895da3fe85e85338c1b3f7fe6a44a1604f40fac8935597ac5b3116e4",
       "runFlags": "",
@@ -9207,7 +9207,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:57:45Z",
+        "generatedAt": "2026-07-13T09:18:44Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -9216,7 +9216,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-node",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2",
       "runFlags": "",
@@ -9290,7 +9290,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:15:43Z",
+        "generatedAt": "2026-07-13T09:36:09Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -9299,7 +9299,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nomad",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:dc909e89cbace7e45aae811b2fbb1a5810d1bb0620c79513e964f18255aed25b",
       "runFlags": "",
@@ -9373,7 +9373,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:23:09Z",
+        "generatedAt": "2026-07-13T09:42:58Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -9382,7 +9382,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nsq",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:1a369c146af71bc95c25d54b375a2b98452478c1eaf4e85f8fcb01da20f2c78a",
       "runFlags": "",
@@ -9456,7 +9456,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:33:46Z",
+        "generatedAt": "2026-07-13T09:53:33Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -9465,7 +9465,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ntfy",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:4a7d0f0adc6d5d9fc36e64ab55ef676e76e124a2bdd50ce115b6d9c1c7430294",
       "runFlags": "",
@@ -9539,7 +9539,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:48:57Z",
+        "generatedAt": "2026-07-13T10:09:04Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -9548,7 +9548,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ollama",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:18bfb1d605604fd53dcad20d0556df4c781e560ebebcd923454d627c994a0e37",
       "runFlags": "",
@@ -9622,7 +9622,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:25Z",
+        "generatedAt": "2026-07-13T09:20:24Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -9631,7 +9631,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-openresty",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:99b32fe3e411c98033114dd471440fb702992d0953ce8b6e6b5c016285ac2ab9",
       "runFlags": "",
@@ -9705,7 +9705,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:17:44Z",
+        "generatedAt": "2026-07-13T09:38:06Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -9714,7 +9714,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-opensuse-leap",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:79be7751205ea84559990fb76b1bec71e38d6fad41c70a4f6c921b803b58f421",
       "runFlags": "",
@@ -9788,7 +9788,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:17:25Z",
+        "generatedAt": "2026-07-13T09:37:48Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -9797,7 +9797,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-oraclelinux",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:ba090b1c989c459fa6b0c547605591e563fb6fab2891eac6072c9ab5502bdfa0",
       "runFlags": "",
@@ -9871,7 +9871,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:20:31Z",
+        "generatedAt": "2026-07-13T09:40:30Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -9880,7 +9880,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-orientdb",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:c7978496bc63a08b36f65c7c763bfbd1938134dac009fa03fec35ac144e9b431",
       "runFlags": "",
@@ -9954,7 +9954,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:38:58Z",
+        "generatedAt": "2026-07-13T09:59:04Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -9963,7 +9963,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-packer",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:12c441b8a3994e7df9f0e2692d9298f14c387e70bcc06139420977dbf80a137b",
       "runFlags": "",
@@ -10037,7 +10037,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:34:40Z",
+        "generatedAt": "2026-07-13T09:54:35Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -10046,7 +10046,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-paperless-ngx",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:2a6d9f6461ad7e8335f5b2123a173b9e6002fda209af8a66483b0c00629569ab",
       "runFlags": "",
@@ -10120,7 +10120,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:00:39Z",
+        "generatedAt": "2026-07-13T09:21:38Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -10129,7 +10129,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-perl",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:5a61ff1daad0a27fdd26b337152e36a1516ec5da032560cd2ce53aaae560e584",
       "runFlags": "",
@@ -10203,7 +10203,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:04:43Z",
+        "generatedAt": "2026-07-13T09:25:33Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -10212,7 +10212,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-pgvector",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:d2ef61f42ef767baa5a1475393303cc235bcd92febd9d7014eddb48b41f3bad0",
       "runFlags": "",
@@ -10286,7 +10286,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:17:48Z",
+        "generatedAt": "2026-07-13T09:38:09Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -10295,7 +10295,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-photon",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:6db86de5ffc11d5c55e59d23790ad526b68e5bca4f030cb6a94e6136280866dd",
       "runFlags": "",
@@ -10369,7 +10369,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:00:19Z",
+        "generatedAt": "2026-07-13T09:21:17Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -10378,7 +10378,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-php",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:1d8a39a120898814820a5eb90f28751fb72ed6342754189014f17bc60a54c0d0",
       "runFlags": "",
@@ -10452,7 +10452,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:01:26Z",
+        "generatedAt": "2026-07-13T09:22:22Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -10461,7 +10461,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-phpmyadmin",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:f30eafced05930560bdb2394bee5a7dd847524e406205787025212e3dca49b9d",
       "runFlags": "",
@@ -10535,7 +10535,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:13:57Z",
+        "generatedAt": "2026-07-13T09:34:28Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -10544,7 +10544,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-pihole",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:0def896a596e8d45780b6359dbf82fc8c75ef05b97e095452e67a0a4ccc95377",
       "runFlags": "",
@@ -10618,7 +10618,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:04:36Z",
+        "generatedAt": "2026-07-13T09:25:25Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -10627,9 +10627,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-postgis",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
-      "resolvedDigest": "sha256:6916f5cc87001fa99bc44dbaa3f906d60ef7c813074e943ae4a3cd5a94a16947",
+      "resolvedDigest": "sha256:4e8c30197f7ce4190cf11a1b8c44bea35a58507558cffa48570814beba77b099",
       "runFlags": "",
       "score": 48
     },
@@ -10701,7 +10701,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:57:18Z",
+        "generatedAt": "2026-07-13T09:18:19Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -10710,7 +10710,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-postgres",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:67f624a4ad70edba8d65c82341124fab7054b277b4f7dea4b04be6f939ce2314",
       "runFlags": "",
@@ -10784,7 +10784,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:10:13Z",
+        "generatedAt": "2026-07-13T09:30:52Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -10793,7 +10793,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-promtail",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:cb4990801ec58975c5e231057c2bcf204c85fac428eec65ad66e0016c64b9608",
       "runFlags": "",
@@ -10867,7 +10867,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:40:52Z",
+        "generatedAt": "2026-07-13T10:01:11Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -10876,7 +10876,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-pulumi",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:093f4e36a0b6800e3c08c1ba704c88a0799372095d4afdda83e92ea8db24fe3e",
       "runFlags": "",
@@ -10950,7 +10950,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:08:46Z",
+        "generatedAt": "2026-07-13T09:29:30Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -10959,7 +10959,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-pypy",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:5d18aa0232059c991ff8d52f1b528a6ff8f55c86154ba248a270a6eb90975f3a",
       "runFlags": "",
@@ -11033,7 +11033,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:57:47Z",
+        "generatedAt": "2026-07-13T09:18:47Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -11042,7 +11042,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-python",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:399babc8b49529dabfd9c922f2b5eea81d611e4512e3ed250d75bd2e7683f4b0",
       "runFlags": "",
@@ -11116,7 +11116,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:05:26Z",
+        "generatedAt": "2026-07-13T09:26:15Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -11125,7 +11125,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-qdrant",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:241edb9d7778327516ef218f8c74e1bd61b5ea42cd4f193cb8d0896199705636",
       "runFlags": "",
@@ -11199,7 +11199,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:05:02Z",
+        "generatedAt": "2026-07-13T09:25:51Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -11208,7 +11208,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-questdb",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:17148f1b0acd4903ee1ad656aa9de9b75d8d179bde2731b5df1d499fa17d978b",
       "runFlags": "",
@@ -11282,7 +11282,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:02Z",
+        "generatedAt": "2026-07-13T09:19:01Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -11291,7 +11291,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rabbitmq",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:835cbc6fabceedef7a3b0ce3195a17adccb753a3ba645bdd61c5557b6e4bf580",
       "runFlags": "",
@@ -11365,7 +11365,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:38:48Z",
+        "generatedAt": "2026-07-13T09:58:54Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -11374,7 +11374,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rancher",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:a05127d7084ba04a383bd8896b3fcbe2dcf287b1ae26f785c81c99dceff06d9e",
       "runFlags": "",
@@ -11448,7 +11448,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:37:41Z",
+        "generatedAt": "2026-07-13T09:57:43Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -11457,7 +11457,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rclone",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:74c51b8817e5431bd6d7ed27cb2a50d8ee78d77f6807b72a41ef6f898845942b",
       "runFlags": "",
@@ -11531,7 +11531,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:57:20Z",
+        "generatedAt": "2026-07-13T09:18:21Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -11540,7 +11540,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-redis",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99",
       "runFlags": "",
@@ -11614,7 +11614,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:05:10Z",
+        "generatedAt": "2026-07-13T09:25:59Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -11623,7 +11623,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-redis-stack",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:7d8e657d60d525534d6abe96e7645ab30ef1b4f1ffedc6eeb2d4d4283b3a49b9",
       "runFlags": "",
@@ -11697,7 +11697,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:14:34Z",
+        "generatedAt": "2026-07-13T09:35:02Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -11706,7 +11706,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-redmine",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:373d6bf743571a6984f9459c072bab138a55d4f74652a408165d39bf71f239c3",
       "runFlags": "",
@@ -11780,7 +11780,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:01:09Z",
+        "generatedAt": "2026-07-13T09:22:06Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -11789,7 +11789,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-registry",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
       "runFlags": "",
@@ -11863,7 +11863,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:37:29Z",
+        "generatedAt": "2026-07-13T09:57:31Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -11872,7 +11872,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rest-server",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:8668c235a932745585fef5cabbab9eccb501035f90138085a6e74963dcd1a71f",
       "runFlags": "",
@@ -11946,7 +11946,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:03:39Z",
+        "generatedAt": "2026-07-13T09:24:30Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -11955,7 +11955,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rethinkdb",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:81d2e8735009eb687696e090c092499fae9ca0bcec3c9022435d51fc4564ac3e",
       "runFlags": "",
@@ -12029,7 +12029,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:01:00Z",
+        "generatedAt": "2026-07-13T09:21:58Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -12038,7 +12038,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rockylinux",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:d7be1c094cc5845ee815d4632fe377514ee6ebcf8efaed6892889657e5ddaaa6",
       "runFlags": "",
@@ -12112,7 +12112,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:47:56Z",
+        "generatedAt": "2026-07-13T10:08:04Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -12121,7 +12121,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rstudio",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:6bfc87fb66d0072e28d88d684a1f7b3e42a1c20360ee5eca5b43168a4eba3945",
       "runFlags": "",
@@ -12195,7 +12195,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:00:10Z",
+        "generatedAt": "2026-07-13T09:21:09Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -12204,7 +12204,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ruby",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:c5a5064d190055633011c03aa800170cc36945ff3afb5f6c915329f92d6f1e00",
       "runFlags": "",
@@ -12278,7 +12278,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:00:34Z",
+        "generatedAt": "2026-07-13T09:21:33Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -12287,7 +12287,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rust",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:0ac946ed7597a9f053a1be2ce38c09aa88b3d7079a91ea491493615294b1f699",
       "runFlags": "",
@@ -12361,7 +12361,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:26:10Z",
+        "generatedAt": "2026-07-13T09:46:02Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -12370,7 +12370,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-scala-sbt",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:23d41e6f000835e317e33ab2f44e4aedc0bfb23e96bd1046fbafd21406755496",
       "runFlags": "",
@@ -12444,7 +12444,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:04:57Z",
+        "generatedAt": "2026-07-13T09:25:46Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -12453,7 +12453,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-scylla",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:a9d904089abe9a4f8b5b893ebb5b5bf8b5a1bd0dc6658921cf05f89d3712289c",
       "runFlags": "",
@@ -12527,7 +12527,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:37:22Z",
+        "generatedAt": "2026-07-13T09:57:26Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -12536,7 +12536,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-seaweedfs",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:1055999e08eed1789b0ae45d235126e4495e23d3fb9d6396293fd42539b1ae6a",
       "runFlags": "",
@@ -12610,7 +12610,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:14:59Z",
+        "generatedAt": "2026-07-13T09:35:27Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -12619,7 +12619,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-snipe-it",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:076e98033e0beb4dfad6c3d8eef0f5b5f73c1be86ccb0f64e5752c1ebec4fd2a",
       "runFlags": "",
@@ -12693,7 +12693,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:30:19Z",
+        "generatedAt": "2026-07-13T09:49:46Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -12702,7 +12702,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-statsd",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:d8c65ebadf4ec6857314a17673da1d0ab2027865d620512ee17d0910e0d53d50",
       "runFlags": "",
@@ -12776,7 +12776,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:46:24Z",
+        "generatedAt": "2026-07-13T10:06:39Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -12785,7 +12785,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-storm",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:aaef90ab49ac3615e8c79c87d59ec3c77413a9d331f211d65487fcd3c7471cb7",
       "runFlags": "",
@@ -12859,7 +12859,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:24:32Z",
+        "generatedAt": "2026-07-13T09:44:20Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -12868,7 +12868,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-swag",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:29957b056c5670801b6131d77ec4188dfb6d06a0a8c49cba0e944c88d98abe74",
       "runFlags": "",
@@ -12942,7 +12942,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:16:36Z",
+        "generatedAt": "2026-07-13T09:37:02Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -12951,7 +12951,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-swagger-ui",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:1ece6f19ca5709fb5fbab9bf43adee2916144fb21e82b7bafba568124e8c8930",
       "runFlags": "",
@@ -13025,7 +13025,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:25:14Z",
+        "generatedAt": "2026-07-13T09:45:04Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -13034,7 +13034,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-swift",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:7aaea8cfbebc90f34aeacaabbfb51a905dbef9839fcd2f528621dd515f228128",
       "runFlags": "",
@@ -13108,7 +13108,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:33:43Z",
+        "generatedAt": "2026-07-13T09:53:29Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -13117,7 +13117,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-synapse",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:39ac223adee67024d9d5aecd679fdaeacaa1e348a6c4c999cb7270868486cbb5",
       "runFlags": "",
@@ -13191,7 +13191,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:37:45Z",
+        "generatedAt": "2026-07-13T09:57:46Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -13200,7 +13200,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-syncthing",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:1f55fa811ad3903c4b421129966e0eea4b21d53d2471158288dc4a353e273a0a",
       "runFlags": "",
@@ -13274,7 +13274,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:38:01Z",
+        "generatedAt": "2026-07-13T09:58:03Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -13283,7 +13283,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tailscale",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:9d4c17a8451e2d1282c22aee1f08d28dc106979c39c7b5a35ec6313d4682a43e",
       "runFlags": "",
@@ -13357,7 +13357,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:20:43Z",
+        "generatedAt": "2026-07-13T09:40:39Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -13366,7 +13366,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tarantool",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:f5d064db32692de19adfb7fd4795457b90a480377e1ea107d1516664d66e16c3",
       "runFlags": "",
@@ -13440,7 +13440,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:54Z",
+        "generatedAt": "2026-07-13T09:20:52Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -13449,7 +13449,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-telegraf",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:3ea0664bed1cacec5e6b463882dc43da9b33c9742d436ace35f157843aca9e40",
       "runFlags": "",
@@ -13523,7 +13523,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:00:23Z",
+        "generatedAt": "2026-07-13T09:21:21Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -13532,7 +13532,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-temurin",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:3f08b13888f595cc49edabea7250ba69499ba25602b267da591720769400e08c",
       "runFlags": "",
@@ -13606,7 +13606,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:48:21Z",
+        "generatedAt": "2026-07-13T10:08:29Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -13615,7 +13615,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tensorflow",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:f3be5db24f080b3b228a23eb24f586058b3bec445d81500f95167c70e5473d4e",
       "runFlags": "",
@@ -13689,7 +13689,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:15:38Z",
+        "generatedAt": "2026-07-13T09:36:04Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -13698,7 +13698,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-terraform",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:679ac5e095bf550bc726742cd12efa6050f0913080df479fdabfeb202953af28",
       "runFlags": "",
@@ -13772,7 +13772,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:20:22Z",
+        "generatedAt": "2026-07-13T09:40:23Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -13781,7 +13781,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tidb",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:490861bd4a2fa643dbe76b77ffecafcad66e6a42774e580b82f4ec2429a80e57",
       "runFlags": "",
@@ -13855,7 +13855,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:20:11Z",
+        "generatedAt": "2026-07-13T09:40:12Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -13864,7 +13864,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-timescaledb",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:3324f81ca7f84cdc2dc4497863b3798ababa8ce130c5b59d73f0b40e3a34148e",
       "runFlags": "",
@@ -13938,7 +13938,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:09Z",
+        "generatedAt": "2026-07-13T09:20:08Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -13947,7 +13947,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tomcat",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:f6e69a64d90e3b71b22e77fdfa87b3df9fa86be393cd01912e9bf34d0076b335",
       "runFlags": "",
@@ -14021,7 +14021,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:23:32Z",
+        "generatedAt": "2026-07-13T09:43:20Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -14030,7 +14030,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tomee",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:7dc4d8f661bdee3d782f58ba328f5bd51bde13f9d8d2fa24acd5aa198289e975",
       "runFlags": "",
@@ -14104,7 +14104,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:54Z",
+        "generatedAt": "2026-07-13T09:19:52Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -14113,7 +14113,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-traefik",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:e561a37f8710d9cf41c78bdf421d822b2c0b48267ec0552e644565fb55466ea9",
       "runFlags": "",
@@ -14187,7 +14187,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:05:38Z",
+        "generatedAt": "2026-07-13T09:26:28Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -14196,7 +14196,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-typesense",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:5c12af89130b8ee0be11541321ba8a3a7c7a538d7c6cd95e0409dc2d75ca6455",
       "runFlags": "",
@@ -14270,7 +14270,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:00:43Z",
+        "generatedAt": "2026-07-13T09:21:42Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -14279,7 +14279,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ubuntu",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90",
       "runFlags": "",
@@ -14353,7 +14353,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:06:44Z",
+        "generatedAt": "2026-07-13T09:27:35Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -14362,7 +14362,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-unit",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:65727e45ecc51f85b81aacf6621b7362f639419fc1d73541244a6745680a94c1",
       "runFlags": "",
@@ -14436,7 +14436,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:11:08Z",
+        "generatedAt": "2026-07-13T09:31:45Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -14445,7 +14445,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-uptime-kuma",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:3d632903e6af34139a37f18055c4f1bfd9b7205ae1138f1e5e8940ddc1d176f9",
       "runFlags": "",
@@ -14519,7 +14519,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:05:21Z",
+        "generatedAt": "2026-07-13T09:26:11Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -14528,7 +14528,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-valkey",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:2e5a314659c893edee4530d6844aae75e533648187bbbe13c09b7bbb20711240",
       "runFlags": "",
@@ -14602,7 +14602,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:00:06Z",
+        "generatedAt": "2026-07-13T09:21:06Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -14611,7 +14611,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-vault",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:750bb37c1638fa194ab37053a81618c61bb0491ddec6fccac87c07a8e6cd8166",
       "runFlags": "",
@@ -14685,7 +14685,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:02:44Z",
+        "generatedAt": "2026-07-13T09:23:36Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -14694,7 +14694,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-vaultwarden",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:7a0aa23c0947be3582898deb5170ea4359493ed9a76af2badf60a7eb45ac36af",
       "runFlags": "",
@@ -14768,7 +14768,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:11:13Z",
+        "generatedAt": "2026-07-13T09:31:50Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -14777,7 +14777,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-vector",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:7bcb75f71f93d312d928182e6a07f6df14a18d030785bb3197ac01128bd287a3",
       "runFlags": "",
@@ -14851,7 +14851,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:10:41Z",
+        "generatedAt": "2026-07-13T09:31:19Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -14860,7 +14860,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-victoriametrics",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:b6ea7d78fb46986533439d6131b0ef3f0ddaec39270bb58c6cc2b74b3d9195d0",
       "runFlags": "",
@@ -14934,7 +14934,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:35:25Z",
+        "generatedAt": "2026-07-13T09:55:17Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -14943,7 +14943,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-wallabag",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:8854765d299d8e93f962d4be02ceb5703ed2ee24ec6c884f870bb7a18de41378",
       "runFlags": "",
@@ -15017,7 +15017,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:05:43Z",
+        "generatedAt": "2026-07-13T09:26:33Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -15026,7 +15026,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-weaviate",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:f78e60524c759dffa41ccfce54ebc58072078f0c9d6f6138fbb139f340837bf0",
       "runFlags": "",
@@ -15100,7 +15100,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:37:52Z",
+        "generatedAt": "2026-07-13T09:57:54Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -15109,7 +15109,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-wireguard",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:ee2db24277b43ec4e7529e93967dc3cea00a02bf81b749c680b2b102a6e4aa5b",
       "runFlags": "",
@@ -15183,7 +15183,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:15Z",
+        "generatedAt": "2026-07-13T09:19:14Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -15192,7 +15192,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-wordpress",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:5d2c212561c4b5442ebc4d98933a9cbadcf3dee8888ed3fd9ed44667c27cc905",
       "runFlags": "",
@@ -15266,7 +15266,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:19:40Z",
+        "generatedAt": "2026-07-13T09:39:40Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -15275,7 +15275,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-yugabyte",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:1d743191e0ab021b4d955b882bce18df4758b621d44e72bd3d0d35e2d4327564",
       "runFlags": "",
@@ -15349,7 +15349,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:49Z",
+        "generatedAt": "2026-07-13T09:19:48Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -15358,7 +15358,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-zookeeper",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:4c6f15fbd5491a3e01b0108c046891125553329a4956848ba3014cedff5386ee",
       "runFlags": "",
@@ -15432,7 +15432,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:26:31Z",
+        "generatedAt": "2026-07-13T09:46:23Z",
         "grade": "D",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -15441,7 +15441,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-zulu-openjdk",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:f85ae0e53d1d0e8d50bbf9ae09e0a001509cb39e303e4c2479def3136b6291bd",
       "runFlags": "",
@@ -15514,7 +15514,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:29:39Z",
+        "generatedAt": "2026-07-13T09:49:08Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -15523,7 +15523,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-actions-runner",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:27f3f74ec6f88026491d761270525ccf630a53ce9cd5db1d5f44cd2470abe380",
       "runFlags": "",
@@ -15596,7 +15596,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:23:15Z",
+        "generatedAt": "2026-07-13T09:43:04Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -15605,7 +15605,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-activemq-artemis",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:fc17d2b82112d87c0a17a38874f3464eb162249f1e289ca25386b7b900047bd0",
       "runFlags": "",
@@ -15678,7 +15678,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:01:16Z",
+        "generatedAt": "2026-07-13T09:22:12Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -15687,7 +15687,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-adminer",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:34d37131366c5aa84e1693dbed48593ed6f95fb450b576c1a7a59d3a9c9e8802",
       "runFlags": "",
@@ -15760,7 +15760,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:41:50Z",
+        "generatedAt": "2026-07-13T10:02:18Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -15769,7 +15769,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-airflow",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:04e7fba174eb5c77057f59ef18c1215179181cd5dd7189afbc39b1146f54540f",
       "runFlags": "",
@@ -15842,7 +15842,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:46Z",
+        "generatedAt": "2026-07-13T09:20:44Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -15851,7 +15851,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-alertmanager",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:d5155cfac40a6d9250ffc97c19db2c5e190c7bc57c6b67125c94903358f8c7d8",
       "runFlags": "",
@@ -15924,7 +15924,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:29:26Z",
+        "generatedAt": "2026-07-13T09:48:54Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -15933,7 +15933,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-argocd",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:1322e91b758b9d44db3af44f457c298831c57a8e1d635118910d35e71f822646",
       "runFlags": "",
@@ -16006,7 +16006,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:47:14Z",
+        "generatedAt": "2026-07-13T10:07:25Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16015,9 +16015,9 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-base-notebook",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
-      "resolvedDigest": "sha256:e05d822dd352876fe6ab9ef25d87ffd2f0727ad45fc6fca8f28b82d8d912e21f",
+      "resolvedDigest": "sha256:8d7b4aa98028bc183fab42963d16aabbecd5c1d161981e27f54126c5b8534370",
       "runFlags": "",
       "score": 63
     },
@@ -16088,7 +16088,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:06:35Z",
+        "generatedAt": "2026-07-13T09:27:26Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16097,7 +16097,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-cp-kafka",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:adc392d28a1e99e8c9a1ec7f087e9e91041837b35b8b7cc8b8a691b82dd581b0",
       "runFlags": "",
@@ -16170,7 +16170,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:41:07Z",
+        "generatedAt": "2026-07-13T10:01:33Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16179,7 +16179,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-dex",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:bc7cfce7c17f52864e2bb2a4dc1d2f86a41e3019f6d42e81d92a301fad0c8a1d",
       "runFlags": "",
@@ -16252,7 +16252,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:31:25Z",
+        "generatedAt": "2026-07-13T09:51:02Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16261,7 +16261,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-directus",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:6bc79ef2f0daa224d84b4da22ea3831e60697d399589d54067cb3681c2f94514",
       "runFlags": "",
@@ -16334,7 +16334,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:42:25Z",
+        "generatedAt": "2026-07-13T10:02:53Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16343,7 +16343,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-druid",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:738d6e8f5d543483c56fca98d7a4c465e2a5f123953c26d2d684f19ee2af14fc",
       "runFlags": "",
@@ -16416,7 +16416,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:18:06Z",
+        "generatedAt": "2026-07-13T09:38:24Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16425,7 +16425,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-elasticsearch",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:e5ee5f8dacbf18fa3ab59a098cc7d4d69f73e61637eb45f1c029e74b1cb200a1",
       "runFlags": "",
@@ -16498,7 +16498,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:06:13Z",
+        "generatedAt": "2026-07-13T09:27:04Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16507,7 +16507,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-emqx",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:2eb7ca866279e39883a77e15af3fc6a8cef8399d590be76bd5439aca3897366d",
       "runFlags": "",
@@ -16580,7 +16580,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:11:16Z",
+        "generatedAt": "2026-07-13T09:31:53Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16589,7 +16589,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-fluentd",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:c795c1bf9918c77a5415e2fda5825f9341f2dd0645d9adfb91f8cae3a3e6b240",
       "runFlags": "",
@@ -16662,7 +16662,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:38Z",
+        "generatedAt": "2026-07-13T09:20:36Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16671,7 +16671,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-grafana",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:d8ea37798ccc41061a62ab080f2676dda6bf7815558499f901bdb0f533a456fb",
       "runFlags": "",
@@ -16744,7 +16744,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:11:31Z",
+        "generatedAt": "2026-07-13T09:32:06Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16753,7 +16753,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-graylog",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:c43d68d0af1d4decc7fa63effe0a065d04f1eca4b7b13d160ac8c501452cf3fe",
       "runFlags": "",
@@ -16826,7 +16826,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:08:41Z",
+        "generatedAt": "2026-07-13T09:29:25Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16835,7 +16835,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-groovy",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:ae895be0ed7584713f2316a5b619dc14477c61f5509117bf01bcffa4b718adfb",
       "runFlags": "",
@@ -16908,7 +16908,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:57Z",
+        "generatedAt": "2026-07-13T09:19:55Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16917,7 +16917,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-haproxy",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:475863a372c92c3dab3d59eafbbf8019dceebcd0c456594551b160ecdba4bdb9",
       "runFlags": "",
@@ -16990,7 +16990,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:38:54Z",
+        "generatedAt": "2026-07-13T09:59:00Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -16999,7 +16999,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-harbor-core",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:0d5499810373c66674bf7f83310bff2224fbae73bba731a807ecadb3b9aa0c2b",
       "runFlags": "",
@@ -17072,7 +17072,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:22:49Z",
+        "generatedAt": "2026-07-13T09:42:40Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -17081,7 +17081,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-hazelcast",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:5dd5d31c7a0685d832f02eba03556898689ce85796c6b030132e93b7c0d77bd9",
       "runFlags": "",
@@ -17154,7 +17154,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:16:14Z",
+        "generatedAt": "2026-07-13T09:36:41Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -17163,7 +17163,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-hydra",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:2c93beb5e5f260cb5ed5ab579d8a1c133b0ec503c933244370522a2a53695ce7",
       "runFlags": "",
@@ -17236,7 +17236,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:10:32Z",
+        "generatedAt": "2026-07-13T09:31:11Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -17245,7 +17245,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-jaeger",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:778b0f45d1cb4f94abcfdb86e5ad83155e16c0bce86d5fc2b6bb1cbd5b7386bc",
       "runFlags": "",
@@ -17318,7 +17318,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:09:16Z",
+        "generatedAt": "2026-07-13T09:29:59Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -17327,7 +17327,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-jenkins",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:f4f65e6cd1405cd889b7f5ac33f9d5cdc2a099de6b87fe8a3933b9c5d53d1d02",
       "runFlags": "",
@@ -17400,7 +17400,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:16Z",
+        "generatedAt": "2026-07-13T09:20:14Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -17409,7 +17409,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-jetty",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:cfd57c89498e1c90d99102a4f3ef67ba2f1d959be7c49c6378fa175e474bf7a1",
       "runFlags": "",
@@ -17482,7 +17482,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:06:00Z",
+        "generatedAt": "2026-07-13T09:26:50Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -17491,7 +17491,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-kafka",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:fbc7d7c428e3755cf36518d4976596002477e4c052d1f80b5b9eafd06d0fff2f",
       "runFlags": "",
@@ -17564,7 +17564,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:16:06Z",
+        "generatedAt": "2026-07-13T09:36:34Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -17573,7 +17573,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-keycloak",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:4388e2379b7e870a447adbe7b80bd61f5fbf04e925832b19669fda4957f05a81",
       "runFlags": "",
@@ -17646,7 +17646,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:18:53Z",
+        "generatedAt": "2026-07-13T09:38:59Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -17655,7 +17655,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-kibana",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:e18c1f6d92e819b1c577a1af9a02bfcae6e8b63596368eec3b40e9ad98fa3caa",
       "runFlags": "",
@@ -17728,7 +17728,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:21Z",
+        "generatedAt": "2026-07-13T09:20:20Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -17737,7 +17737,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-kong",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:dd6cd1d94a7aae8c5a4d245ccbee6b81230d41a4312d76d076c4e9c6db65611c",
       "runFlags": "",
@@ -17810,7 +17810,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:19:12Z",
+        "generatedAt": "2026-07-13T09:39:16Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -17819,7 +17819,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-logstash",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:dca706ef2cf7b0ea326f49bec73647c04270fc763d73eabf93408161955793a0",
       "runFlags": "",
@@ -17892,7 +17892,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:10:09Z",
+        "generatedAt": "2026-07-13T09:30:48Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -17901,7 +17901,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-loki",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:8af2de1abbdd7aa92b27c9bcc96f0f4140c9096b507c77921ffddf1c6ad6c48f",
       "runFlags": "",
@@ -17974,7 +17974,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:16:30Z",
+        "generatedAt": "2026-07-13T09:36:55Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -17983,7 +17983,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-mailhog",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:8d76a3d4ffa32a3661311944007a415332c4bb855657f4f6c57996405c009bea",
       "runFlags": "",
@@ -18056,7 +18056,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:13:22Z",
+        "generatedAt": "2026-07-13T09:33:54Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -18065,7 +18065,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-mattermost",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:2dc077d4f2c88dda8a89cc8fd2dd55f65554894c088719a042d7f9ff58cca908",
       "runFlags": "",
@@ -18138,7 +18138,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:04Z",
+        "generatedAt": "2026-07-13T09:19:03Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -18147,7 +18147,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-memcached",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:dfacdbd93e7a6f1ad63801753a1fc959dc678a5a1d2141ff438d57e6d8793fc3",
       "runFlags": "",
@@ -18220,7 +18220,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:35:12Z",
+        "generatedAt": "2026-07-13T09:55:05Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -18229,7 +18229,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-miniflux",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:e21953092096579daaad39ba69729f01b08380b03bae4544a943f549c8e11a67",
       "runFlags": "",
@@ -18302,7 +18302,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:13:47Z",
+        "generatedAt": "2026-07-13T09:34:18Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -18311,7 +18311,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-n8n",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:4846eb2f4b874ab04cde7fc1e249d2ddaec66e9aea64439beb2972cfea88e3c0",
       "runFlags": "",
@@ -18384,7 +18384,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:10:05Z",
+        "generatedAt": "2026-07-13T09:30:44Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -18393,7 +18393,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-nexus3",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:cdf8d3b1d7251183dfe43e208a87060a8b410e0e1b25254ac40a1391caf19c5b",
       "runFlags": "",
@@ -18466,7 +18466,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:29Z",
+        "generatedAt": "2026-07-13T09:20:27Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -18475,7 +18475,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-nginx-unpriv",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:65e3e85dbaed8ba248841d9d58a899b6197106c23cb0ff1a132b7bfe0547e4c0",
       "runFlags": "",
@@ -18548,7 +18548,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:42:45Z",
+        "generatedAt": "2026-07-13T10:03:15Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -18557,7 +18557,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-nifi",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:cf8f4ce74cf34712766c8aba016c0c5efb8f73d6c2392e2108a809fff242875c",
       "runFlags": "",
@@ -18630,7 +18630,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:48Z",
+        "generatedAt": "2026-07-13T09:20:46Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -18639,7 +18639,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-node-exporter",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:4032c6d5bfd752342c3e631c2f1de93ba6b86c41db6b167b9a35372c139e7706",
       "runFlags": "",
@@ -18712,7 +18712,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:04:08Z",
+        "generatedAt": "2026-07-13T09:24:59Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -18721,7 +18721,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-opensearch",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:b485da5f7f7bcb174523954bae1303c8c2ddaae9f1c2c89f10d625c98544e7cd",
       "runFlags": "",
@@ -18794,7 +18794,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:22:36Z",
+        "generatedAt": "2026-07-13T09:42:29Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -18803,7 +18803,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-opensearch-dashboards",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:0ecd8444add2926cb6c52e03f910160138b6e331522237561da0b82e159b134f",
       "runFlags": "",
@@ -18876,7 +18876,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:30:55Z",
+        "generatedAt": "2026-07-13T09:50:27Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -18885,7 +18885,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-outline",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:494dfb9249a6799ca3d38e2bb1bdf3c9f63632634737bd996ce0b3509fe93499",
       "runFlags": "",
@@ -18958,7 +18958,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:23:46Z",
+        "generatedAt": "2026-07-13T09:43:31Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -18967,7 +18967,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-payara",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:611d9b440cdcb64354999e31258a579ec8ded2a14c89ec73b129f363de8912ce",
       "runFlags": "",
@@ -19040,7 +19040,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:03:33Z",
+        "generatedAt": "2026-07-13T09:24:25Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -19049,7 +19049,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-percona",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:29801a0596540131d8d29c95d8d1bb5d93c8956c234efb70e4aa7b6fd18997b0",
       "runFlags": "",
@@ -19122,7 +19122,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:17:05Z",
+        "generatedAt": "2026-07-13T09:37:29Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -19131,7 +19131,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-pgadmin",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:8a68677a97b8c8d1427dc915672a26d2c4a04376916a68256f53d669d6171be7",
       "runFlags": "",
@@ -19204,7 +19204,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:33:32Z",
+        "generatedAt": "2026-07-13T09:53:17Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -19213,7 +19213,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-planka",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:aed25499a1139b3464f924d07f416e257595c3bf83e0dfa28ab22549f1520ee8",
       "runFlags": "",
@@ -19286,7 +19286,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:42Z",
+        "generatedAt": "2026-07-13T09:20:41Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -19295,7 +19295,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-prometheus",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:6559acbd5d770b15bb3c954629ce190ac3cbbdb2b7f1c30f0385c4e05104e218",
       "runFlags": "",
@@ -19368,7 +19368,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:06:08Z",
+        "generatedAt": "2026-07-13T09:26:59Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -19377,7 +19377,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-pulsar",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:1640b0a6e7dc255820372864016e3892e4cfa04ab7c17e1d11e52e0214793cad",
       "runFlags": "",
@@ -19450,7 +19450,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:10:35Z",
+        "generatedAt": "2026-07-13T09:31:13Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -19459,7 +19459,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-pushgateway",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:7a4d0696a24ef4e8bad62bee5656855a0aff2f26416d8cb32009dc28d6263604",
       "runFlags": "",
@@ -19532,7 +19532,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:17:18Z",
+        "generatedAt": "2026-07-13T09:37:41Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -19541,7 +19541,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-redisinsight",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:aa21bbd198455b4ad964f76782db951155aa0d712321f599972d1525f031f0e6",
       "runFlags": "",
@@ -19614,7 +19614,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:06:19Z",
+        "generatedAt": "2026-07-13T09:27:11Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -19623,7 +19623,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-redpanda",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:e51aa0f712861f8d4fc8e37ec5685ef96167434bb687e5ff6907e0b4994c2ce4",
       "runFlags": "",
@@ -19696,7 +19696,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:03:49Z",
+        "generatedAt": "2026-07-13T09:24:39Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -19705,7 +19705,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-solr",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:f4d36b957707a7a8d3876cb45a9f0b4c2bba3aea460e5798f9eeca7d979a66fa",
       "runFlags": "",
@@ -19778,7 +19778,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:09:33Z",
+        "generatedAt": "2026-07-13T09:30:12Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -19787,7 +19787,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-sonarqube",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:160bd2f6a3485bd09b655ef22dd63c02bd1fa7ba82aa5d9973fd010b8bcca0b3",
       "runFlags": "",
@@ -19860,7 +19860,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:41:24Z",
+        "generatedAt": "2026-07-13T10:01:50Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -19869,7 +19869,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-spark",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:d0f5d63bfbbffdbec08debb4911554ba671a2fa7398374db8db314d80328f576",
       "runFlags": "",
@@ -19942,7 +19942,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:46:51Z",
+        "generatedAt": "2026-07-13T10:07:05Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -19951,7 +19951,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-standalone-chrome",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:ee194f1bce288cc17ff02a8b63a2be33ec1185e064586b744cbf5678221e8332",
       "runFlags": "",
@@ -20024,7 +20024,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:42:08Z",
+        "generatedAt": "2026-07-13T10:02:37Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -20033,7 +20033,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-superset",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:1d1fdaaeb19ce9cdba71620ee1cc6117d73813b2f3b422ce5a1bf752c247b7c0",
       "runFlags": "",
@@ -20106,7 +20106,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:29:16Z",
+        "generatedAt": "2026-07-13T09:48:43Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -20115,7 +20115,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-teamcity-server",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:2defd16d7b690268483b81df01c6d0cef2ff22eff2258873422e66107af41dfa",
       "runFlags": "",
@@ -20188,7 +20188,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:10:17Z",
+        "generatedAt": "2026-07-13T09:30:56Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -20197,7 +20197,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-tempo",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:ef4384fce6e8ad22b95b243d8fc165628cda655376fd50e7850536ad89d71d50",
       "runFlags": "",
@@ -20270,7 +20270,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:29:47Z",
+        "generatedAt": "2026-07-13T09:49:14Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -20279,7 +20279,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-thanos",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:4ec6df40fdb921de162677b321057caa8fb8324c65f4cfae9568ed55c4469e2c",
       "runFlags": "",
@@ -20352,7 +20352,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:16:43Z",
+        "generatedAt": "2026-07-13T09:37:08Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -20361,7 +20361,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-tika",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973",
       "runFlags": "",
@@ -20434,7 +20434,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:31:05Z",
+        "generatedAt": "2026-07-13T09:50:39Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -20443,7 +20443,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-umami",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:54ccf9903edf09791889504360e776b52c358ebddf5a5e8662257b2555608f27",
       "runFlags": "",
@@ -20516,7 +20516,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:59:04Z",
+        "generatedAt": "2026-07-13T09:20:03Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -20525,7 +20525,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-varnish",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:eb21e9f988be93f33ff9a0025d0a00617d49f3cc0cf59e0f2167bde7724eae6a",
       "runFlags": "",
@@ -20598,7 +20598,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:09:40Z",
+        "generatedAt": "2026-07-13T09:30:19Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -20607,7 +20607,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-verdaccio",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:e3ac7e335e69504cd0b09616aa52066399868282313c34762d2a77b8169a3575",
       "runFlags": "",
@@ -20680,7 +20680,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:23:21Z",
+        "generatedAt": "2026-07-13T09:43:10Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -20689,7 +20689,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-vernemq",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:f1b7ca7fb68c1cb2d1f459bb6f919d0a5910b49a3d34d2d82f097e4819d3e4c5",
       "runFlags": "",
@@ -20762,7 +20762,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:21:56Z",
+        "generatedAt": "2026-07-13T09:41:42Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -20771,7 +20771,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-vespa",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:97ad86256424a4f9cc3ebf9ac55f0249935ac30610d9ac5bc6b8356361c9ba24",
       "runFlags": "",
@@ -20844,7 +20844,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:33:22Z",
+        "generatedAt": "2026-07-13T09:53:07Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -20853,7 +20853,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-wekan",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:20a60935337393b4c6d3a60661f84d72a0cce4c808c80e1fe6ef11dd77c43cf2",
       "runFlags": "",
@@ -20926,7 +20926,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:13:05Z",
+        "generatedAt": "2026-07-13T09:33:36Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -20935,7 +20935,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-wiki",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:68f0d1848261ae76492ba358e30a96a76fed5d97a3fff381656082bf90f70d7e",
       "runFlags": "",
@@ -21008,7 +21008,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:45:53Z",
+        "generatedAt": "2026-07-13T10:06:16Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -21017,7 +21017,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-zeppelin",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:42abb8a82ca074c5a419beb69b4f714dc15dfefedb4c4f2a9fa5eb26377a1c30",
       "runFlags": "",
@@ -21090,7 +21090,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T03:29:59Z",
+        "generatedAt": "2026-07-13T09:49:23Z",
         "grade": "C",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -21099,7 +21099,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-zipkin",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:966cf6ba77938e3f40922964b47513bec7d10b617f96aea4921e1a887989c6f9",
       "runFlags": "",
@@ -21169,7 +21169,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-07-12T02:58:24Z",
+        "generatedAt": "2026-07-13T09:19:24Z",
         "grade": "A",
         "max": 100,
         "report": "ironclaw-containment-scan",
@@ -21178,7 +21178,7 @@
         "score": 100,
         "source": "docker",
         "target": "ic-survey-hardened-reference",
-        "version": "dev+ebc627a3fc2d"
+        "version": "dev+fbfaded9ccdd"
       },
       "resolvedDigest": "sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
       "runFlags": "--user 65532:65532 --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp --network none",

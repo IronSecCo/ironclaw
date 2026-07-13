@@ -7,7 +7,7 @@ description: "How isolated is lua:5.4 by default? IronClaw scores its sandbox po
 
 Run with plain `docker run nickblah/lua:5.4` defaults, no hardening flags, the **lua** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `nickblah/lua:5.4` at digest `sha256:bd772a2a19ae2b528054b6a6c081f3417c3b570cae317357a4a8b60b8bef0e3a`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `nickblah/lua:5.4` at digest `sha256:667bfc78f9ee9393c52ef1e13d5d53ec0cef22f07d644a0d41feeb5815a6df35`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
