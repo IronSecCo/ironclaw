@@ -749,12 +749,19 @@ jobs:
           # current main tip every release is always cleanly rebased onto main, so the
           # tracking PR can never conflict, and there is never more than one open.
           branch="brew/track"
-          base_sha="$(git rev-parse HEAD)"
-          # Blob OID of the formula already on main == the Contents API `sha` we must
-          # pass to replace it. Git's blob hash and GitHub's content sha are the same.
-          # After the reset below the rolling branch == main, so this is the blob to
-          # replace on the branch too.
-          file_sha="$(git rev-parse "HEAD:Formula/ironclaw.rb")"
+          # Resolve the LIVE default-branch tip at PR-open time, not the release
+          # build commit this job checked out. Using git rev-parse HEAD would pin
+          # the rolling branch to the release tag's ancestor, so if another commit
+          # (e.g. a prior release's formula bump) lands on main before this PR
+          # merges, brew/track and main both rewrite the same formula lines from a
+          # common ancestor → CONFLICT that update-branch cannot auto-resolve
+          # (IRO-482). Fetching via the API gives us the true current tip.
+          base_sha="$(gh api "repos/${REPO}/git/ref/heads/main" --jq .object.sha)"
+          # Blob OID of the formula on the LIVE main, not the release checkout.
+          # The Contents API `sha` must match the file being replaced on the branch;
+          # after the reset below brew/track == live main, so we need live main's
+          # blob sha, not the release tag's blob sha.
+          file_sha="$(gh api "repos/${REPO}/contents/Formula/ironclaw.rb?ref=main" --jq .sha)"
           content_b64="$(base64 -w0 < Formula/ironclaw.rb)"
 
           # Create the rolling branch at the current main tip, or force-reset it there
@@ -866,6 +873,26 @@ jobs:
             else
               emit_manual_fallback "gh pr create failed for ${branch}: ${out}"
             fi
+          fi
+
+          # Guardrail (IRO-482): assert the rolling PR is actually MERGEABLE after
+          # the branch reset + formula commit. If a race still causes a conflict the
+          # job fails LOUD here with the manual runbook instead of silently leaving a
+          # CONFLICTING PR for the next operator to discover.
+          # Poll up to ~30 s — GitHub computes mergeability asynchronously.
+          pr_num="$(gh pr list --repo "${REPO}" --head "${branch}" --state open \
+            --json number -q '.[0].number' 2>/dev/null || true)"
+          if [ -n "${pr_num:-}" ]; then
+            mergeable="UNKNOWN"
+            for _i in 1 2 3 4 5 6; do
+              mergeable="$(gh api "repos/${REPO}/pulls/${pr_num}" --jq .mergeable 2>/dev/null || echo "UNKNOWN")"
+              [ "${mergeable}" != "null" ] && [ "${mergeable}" != "UNKNOWN" ] && break
+              sleep 5
+            done
+            if [ "${mergeable}" != "true" ]; then
+              emit_manual_fallback "brew/track PR #${pr_num} is not MERGEABLE after reset (mergeable=${mergeable}). Force-reset brew/track to live main and re-run, or merge manually."
+            fi
+            echo "brew/track PR #${pr_num} is MERGEABLE — conflict-free."
           fi
 
           # Housekeeping: close any legacy per-tag bump PRs the pre-IRO-270 flow left
