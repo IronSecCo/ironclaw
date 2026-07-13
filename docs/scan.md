@@ -345,3 +345,10 @@ grade this page describes:
   the 48-point jump from a D to an A, flag by flag, across 151 images.
 - [gVisor vs runc](blog/gvisor-vs-runc-container-isolation-compared.md): why they
   score the same on a config scan yet block a different number of live escape attempts.
+
+Per-image hardening walkthroughs, default grade to hardened, with the exact `--fix` flags:
+
+- [Harden a Postgres container](blog/harden-postgres-container-isolation.md): `postgres:17-alpine`, 48 to 100.
+- [Harden a Redis container](blog/harden-redis-container-isolation.md): `redis:7-alpine`, 48 to 100.
+- [Run untrusted Node.js code safely](blog/run-untrusted-nodejs-code-safely.md): `node:22-alpine`, 48 to 100.
+- [Harden an nginx container](blog/harden-nginx-container-isolation.md): `nginx:1.27-alpine`, 48 to 89 (the honest proxy ceiling).

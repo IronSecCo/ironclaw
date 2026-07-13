@@ -29,6 +29,24 @@ adjectives standing in for numbers.
   static file, and render a live 0 to 100 A-to-F containment grade in your README. No
   server, no scan on every badge hit.
 
+## Hardening guides
+
+Per-image, data-driven walkthroughs: the default isolation grade, the exact dimensions that
+fail, and the precise `ironctl scan --fix` flags that close the gap, with before and after scores.
+
+- [How to harden a Postgres container](harden-postgres-container-isolation.md) -
+  `postgres:17-alpine` scores 48 of 100 (D) on defaults: root, full capabilities, writable
+  rootfs. Four flags take it to 100 of 100 (A). Is it safe for untrusted workloads?
+- [How to harden a Redis container](harden-redis-container-isolation.md) -
+  `redis:7-alpine` scores 48 of 100 (D). A read-only rootfs and dropped capabilities take the
+  classic `CONFIG SET dir` file-write RCE off the table before auth. To 100 of 100 (A).
+- [How to run untrusted Node.js code safely](run-untrusted-nodejs-code-safely.md) -
+  the container is the sandbox, not the `vm` module. `node:22-alpine` is 48 of 100 (D) by
+  default; `network=none` plus five flags make it a 100 of 100 (A) boundary for untrusted JS.
+- [How to harden an nginx container](harden-nginx-container-isolation.md) -
+  `nginx:1.27-alpine` scores 48 of 100 (D). The honest hardened ceiling for an internet-facing
+  proxy is 89 of 100 (B), because it must reach its upstreams. Here is exactly why.
+
 ## Comparisons
 
 Head-to-head reads, each backed by the same scan data, for the questions people
