@@ -1,0 +1,133 @@
+# IronClaw sandbox scan — Marketplace entry point (root action).
+#
+# This is a THIN wrapper around .github/actions/scan so the action is
+# discoverable on the GitHub Marketplace, which requires a root-level
+# action.yml. It does not duplicate any scan logic: it runs the exact same
+# scan.sh that ships under .github/actions/scan, and re-uses the same
+# SARIF/badge upload steps. The subdir action stays valid for existing users.
+#
+# Grades the isolation posture of a running container, a docker-compose service,
+# or a Kubernetes manifest 0-100 with `ironctl scan`, posts the scorecard as a
+# sticky pull-request comment (create-or-update, never spam), and optionally
+# fails the check when the score drops below a threshold.
+#
+# It is LOCAL and read-only: it inspects configuration (docker inspect / a
+# compose or k8s file), never talks to any control-plane, and needs no
+# credentials. The only network access is downloading the released `ironctl`
+# binary from GitHub Releases. Fail-closed: any dimension it cannot determine is
+# graded as insecure.
+#
+# Usage (in a consumer repo):
+#
+#   - uses: IronSecCo/ironclaw@v1
+#     with:
+#       target: my-container          # container name/id, or file path for compose/k8s
+#       mode: container               # container | compose | k8s
+#       min-score: 0                  # 0 = report-only; >0 fails the check below it
+#
+# The subdir ref `IronSecCo/ironclaw/.github/actions/scan@v1` keeps working as a
+# fallback. See docs/scan-action.md for the full guide.
+name: 'IronClaw sandbox scan'
+description: 'Grade a container / compose / k8s sandbox isolation posture 0-100 and post a sticky PR scorecard.'
+author: 'IronSec Co.'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  target:
+    description: 'What to scan: a running container name/id (mode=container), or a path to a compose/k8s file (mode=compose|k8s).'
+    required: true
+  mode:
+    description: 'Scan mode: container | compose | k8s.'
+    required: false
+    default: 'container'
+  service:
+    description: 'Compose service name (required only when mode=compose and the file has more than one service).'
+    required: false
+    default: ''
+  min-score:
+    description: 'Fail the check when the containment score is below this (0-100). 0 = report-only (default).'
+    required: false
+    default: '0'
+  comment:
+    description: 'Post the scorecard as a sticky comment on the pull request (true/false).'
+    required: false
+    default: 'true'
+  badge:
+    description: 'Write and upload the shareable SVG badge as a build artifact (true/false).'
+    required: false
+    default: 'false'
+  upload-sarif:
+    description: 'Emit SARIF and upload it to GitHub code scanning so failed dimensions appear in the Security tab (true/false). Requires `permissions: security-events: write` in the calling workflow. Default false so the action needs no extra permission unless you opt in.'
+    required: false
+    default: 'false'
+  version:
+    description: 'ironctl release to use: a tag like v0.1.252, or "latest" (default).'
+    required: false
+    default: 'latest'
+  github-token:
+    description: 'Token used to post the PR comment and resolve the latest release. Defaults to the workflow token.'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  score:
+    description: 'The overall containment score (0-100).'
+    value: ${{ steps.scan.outputs.score }}
+  grade:
+    description: 'The letter grade (A-F).'
+    value: ${{ steps.scan.outputs.grade }}
+  scorecard:
+    description: 'Path to the rendered markdown scorecard.'
+    value: ${{ steps.scan.outputs.scorecard }}
+  badge-path:
+    description: 'Path to the SVG badge (only when badge=true).'
+    value: ${{ steps.scan.outputs.badge-path }}
+  sarif-path:
+    description: 'Path to the SARIF log (only when upload-sarif=true).'
+    value: ${{ steps.scan.outputs.sarif-path }}
+  passed:
+    description: 'true when the score met min-score (or min-score was 0).'
+    value: ${{ steps.scan.outputs.passed }}
+
+runs:
+  using: 'composite'
+  steps:
+    # Single source of truth: run the same scan.sh that ships under
+    # .github/actions/scan. GITHUB_ACTION_PATH is this repo's root when consumed
+    # as `IronSecCo/ironclaw@v1`, so the subdir script resolves without copying.
+    - id: scan
+      shell: bash
+      env:
+        IC_TARGET: ${{ inputs.target }}
+        IC_MODE: ${{ inputs.mode }}
+        IC_SERVICE: ${{ inputs.service }}
+        IC_MIN_SCORE: ${{ inputs.min-score }}
+        IC_COMMENT: ${{ inputs.comment }}
+        IC_BADGE: ${{ inputs.badge }}
+        IC_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
+        IC_VERSION: ${{ inputs.version }}
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: bash "${GITHUB_ACTION_PATH}/.github/actions/scan/scan.sh"
+
+    # Opt-in SARIF upload: surfaces failed isolation dimensions in the repo's
+    # Security > Code scanning tab. Gated on upload-sarif so the action needs no
+    # security-events permission unless the consumer opts in. always() so a SARIF
+    # written before a min-score gate failure still uploads. codeql-action pinned
+    # by commit SHA (supply-chain).
+    - if: ${{ always() && inputs.upload-sarif == 'true' && steps.scan.outputs.sarif-path != '' }}
+      uses: github/codeql-action/upload-sarif@02c5e83432fe5497fd85b873b6c9f16a8578e1d9 # v3.37.0
+      with:
+        sarif_file: ${{ steps.scan.outputs.sarif-path }}
+        category: ironclaw-scan
+
+    # Uploaded as a separate composite step, with always(), so the artifact
+    # survives even when the scan step fails the min-score gate after the badge
+    # file is already written.
+    - if: ${{ always() && inputs.badge == 'true' && steps.scan.outputs.badge-path != '' }}
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ironclaw-scan-badge
+        path: ${{ steps.scan.outputs.badge-path }}
+        if-no-files-found: warn

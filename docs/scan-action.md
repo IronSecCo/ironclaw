@@ -23,11 +23,16 @@ jobs:
       - name: Start the container you want to grade
         run: docker run -d --name my-sandbox my-image:latest sleep 3600
 
-      - uses: IronSecCo/ironclaw/.github/actions/scan@v1
+      - uses: IronSecCo/ironclaw@v1
         with:
           target: my-sandbox
           min-score: 90        # omit / 0 = report-only, never blocks the check
 ```
+
+`IronSecCo/ironclaw@v1` is the [Marketplace](https://github.com/marketplace/actions/ironclaw-sandbox-scan)
+listing (root `action.yml`). The subdir ref
+`IronSecCo/ironclaw/.github/actions/scan@v1` runs the exact same grader and stays
+supported as a fallback — both point at one `scan.sh`, so they never diverge.
 
 On the pull request you get a scorecard comment that updates in place on every
 push:
@@ -50,14 +55,14 @@ The file modes need no Docker daemon — the action reads the file directly:
 
 ```yaml
 # a docker-compose service
-- uses: IronSecCo/ironclaw/.github/actions/scan@v1
+- uses: IronSecCo/ironclaw@v1
   with:
     mode: compose
     target: docker-compose.yml
     service: app            # required only if the file has >1 service
 
 # a Kubernetes pod / workload manifest
-- uses: IronSecCo/ironclaw/.github/actions/scan@v1
+- uses: IronSecCo/ironclaw@v1
   with:
     mode: k8s
     target: deploy/pod.yaml
@@ -97,7 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: IronSecCo/ironclaw/.github/actions/scan@v1
+      - uses: IronSecCo/ironclaw@v1
         with:
           mode: compose
           target: docker-compose.yml

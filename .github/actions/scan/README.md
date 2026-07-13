@@ -10,6 +10,10 @@ file) and **never talks to any control-plane or needs credentials**. The only
 network access is downloading the released `ironctl` binary. Fail-closed: any
 dimension it cannot determine is graded as insecure.
 
+> **Marketplace shortcut:** the same action is published at the repo root, so you
+> can also write the shorter `uses: IronSecCo/ironclaw@v1`. Both refs run one
+> `scan.sh` and never diverge; this subdir path stays supported as a fallback.
+
 ## Quick start
 
 ```yaml
