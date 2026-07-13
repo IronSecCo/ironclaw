@@ -28,6 +28,10 @@ adjectives standing in for numbers.
   generate a shields.io endpoint JSON with `ironctl scan --badge-json`, commit it as a
   static file, and render a live 0 to 100 A-to-F containment grade in your README. No
   server, no scan on every badge hit.
+- [IronClaw scan is now a GitHub Action on the Marketplace](ironclaw-scan-github-action-marketplace.md) -
+  add `uses: IronSecCo/ironclaw@v1` to any workflow and every pull request gets a 0 to
+  100 sandbox isolation scorecard as a sticky comment. Same grader as the CLI: local,
+  read-only, credential-free.
 
 ## Hardening guides
 
