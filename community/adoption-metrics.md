@@ -44,6 +44,42 @@ revise after the first real launch-week data lands.
 > Newest first. Append a new block each Monday by running the refresh command and pasting
 > its output above the previous block.
 
+### Snapshot — 2026-07-13 (steady-state baseline, IRO-483)
+
+| Metric | Value | Notes |
+| --- | --- | --- |
+| Stars | 14 | +1 vs 2026-07-06 (13) — first move off the four-snapshot flat plateau |
+| Forks | 9 | **+7 vs 2026-07-06 (2)** — largest single-week jump on record |
+| Watchers / subscribers | 0 | |
+| Open issues | 26 | +8 vs 2026-07-06 (18); incl. tracked work + open PRs + GFIs |
+| Views (14d) | 335 | 50 unique visitors (-4 vs 2026-07-06's 54) |
+| Clones (14d) | 25388 | 804 unique, **CI-inflated** (release-per-push) |
+| Release downloads (all-time) | 4099 | +1069 vs 2026-07-06, across 203 releases (all CI) |
+| Latest release | v0.1.298 | 23 downloads |
+| Top referrers | — | github.com (13u) · **linkedin.com (10u) + com.linkedin.android (5u)** · goodfirstissues.com (2u) |
+
+**Delta readout vs 2026-07-06:**
+
+- **Forks jumped 2 → 9 (+7), the largest single-week fork gain on record.** Forks lead stars
+  as the contributor-intent signal: this is the first snapshot where the good-first-issue and
+  scan/scores on-ramp work (IRO-422 GFIs, external PR #441) shows up as durable repo activity
+  rather than one-off referrer blips. Fork growth outpacing star growth means people are cloning
+  to *build on* IronClaw, not just bookmarking it.
+- **Stars ticked 13 → 14, breaking a four-snapshot flat line** (2026-07-02 → 07-06 all at 13).
+  Directionally positive but still small; the reach thesis (IRO-355) holds — distribution, not
+  features, remains the binding constraint. One star is noise-adjacent; the fork move is the
+  more credible external-adoption signal this week.
+- **`goodfirstissues.com` re-entered the trailing-14-day referrer window** (2u), consistent with
+  the fork jump — the GFI aggregator surfaces (IRO-464) are feeding contributor-shaped traffic.
+  LinkedIn remains the strongest live external channel (15 combined unique referrers: 10 web + 5
+  Android), roughly flat vs last week.
+- **Unique visitors eased 54 → 50 (-4); views fell 481 → 335.** Within normal week-to-week
+  noise for a pre-launch repo — not a reach regression, and offset by the fork/contributor signal.
+- **Bottleneck unchanged and board-gated:** high-intent top-of-funnel surfaces (Show HN, Reddit
+  launch threads, remaining directory submissions) still need human/board posting (IRO-290,
+  IRO-306, IRO-355). Owned growth work continues to convert on the contributor funnel (forks, GFIs)
+  but the star step-change stays gated on those human-account posts firing.
+
 ### Snapshot — 2026-07-06 (steady-state baseline, IRO-392)
 
 | Metric | Value | Notes |
