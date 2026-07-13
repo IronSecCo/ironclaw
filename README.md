@@ -33,6 +33,20 @@ inside a sealed sandbox with `network=none`: it reaches the model only through a
 **cannot change its own configuration.** It is for anyone who wants what agents can do without
 handing an autonomous program the keys to their machine.
 
+> **Now on the GitHub Marketplace.** The `ironctl scan` containment grader ships as a
+> [GitHub Action](https://github.com/marketplace/actions/ironclaw-sandbox-scan): drop one
+> line into a workflow and every pull request gets a 0 to 100 sandbox isolation scorecard as
+> a sticky comment. Local, read-only, credential-free.
+>
+> ```yaml
+> # .github/workflows/scan.yml
+> - uses: IronSecCo/ironclaw@v1
+>   with:
+>     target: my-container   # a container, compose service, or k8s manifest
+> ```
+>
+> Report-only by default; set `min-score: 90` to gate merges. See [scan in CI](https://ironsecco.github.io/ironclaw/scan-action/).
+
 <div align="center">
 
 <!--
