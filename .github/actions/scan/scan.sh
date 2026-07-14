@@ -60,6 +60,23 @@ IRONCTL="$(find "${WORK}" -maxdepth 2 -type f -name ironctl | head -1)"
 chmod +x "$IRONCTL"
 "$IRONCTL" version || true
 
+# grade_file MODE FILE SERVICE -> echoes the 0-100 score for a compose/k8s file,
+# or nothing on any failure. Used to grade the base-branch version of a scanned
+# file so the PR comment can show a delta. Fail-open by design.
+grade_file() {
+  local m="$1" f="$2" svc="$3"
+  local a=()
+  case "$m" in
+    compose) a+=(--compose "$f"); [ -n "$svc" ] && a+=(--service "$svc") ;;
+    k8s)     a+=(--k8s "$f") ;;
+    *)       return 1 ;;
+  esac
+  a+=(--md)
+  local o
+  o="$("$IRONCTL" scan "${a[@]}" 2>/dev/null)" || return 1
+  printf '%s' "$o" | sed -nE 's/.*scored \*\*([0-9]+)\/100.*/\1/p' | head -1
+}
+
 # ---------------------------------------------------------------------------
 # 2. Build the scan arguments for the requested mode.
 # ---------------------------------------------------------------------------
@@ -133,7 +150,38 @@ fi
 if [ "$COMMENT" = "true" ] && [ -n "$pr" ] && [ -n "${GH_TOKEN:-}" ]; then
   marker="<!-- ironclaw-scan-scorecard:${MODE}:${TARGET} -->"
   body="${WORK}/comment.md"
-  { echo "$marker"; cat "$scorecard"; } >"$body"
+
+  # Base-branch delta (compose/k8s file modes only). Fetch the base version of
+  # the scanned file via the contents API — no extra checkout depth needed — and
+  # grade it, so the comment shows how this PR moved the posture. Container mode
+  # has no git base to compare against, so it is skipped. Entirely fail-open: any
+  # hiccup just omits the delta line and never touches the scorecard or gate.
+  delta_line=""
+  if [ "$MODE" = "compose" ] || [ "$MODE" = "k8s" ]; then
+    base_ref="$(jq -r '.pull_request.base.ref // empty' "$GITHUB_EVENT_PATH" 2>/dev/null || true)"
+    base_sha="$(jq -r '.pull_request.base.sha // empty' "$GITHUB_EVENT_PATH" 2>/dev/null || true)"
+    if [ -n "$base_sha" ]; then
+      base_file="${WORK}/base-target"
+      if gh api "repos/${GITHUB_REPOSITORY}/contents/${TARGET}?ref=${base_sha}" \
+           --jq '.content' 2>/dev/null | base64 -d >"$base_file" 2>/dev/null && [ -s "$base_file" ]; then
+        base_score="$(grade_file "$MODE" "$base_file" "$SERVICE" || true)"
+        if [ -n "$base_score" ]; then
+          d=$(( score - base_score ))
+          if [ "$d" -gt 0 ]; then
+            delta_line="> **Δ vs base (\`${base_ref:-base}\`): +${d}** — base scored ${base_score}/100. Posture improved. :arrow_up:"
+          elif [ "$d" -lt 0 ]; then
+            delta_line="> **Δ vs base (\`${base_ref:-base}\`): ${d}** — base scored ${base_score}/100. Posture regressed. :warning:"
+          else
+            delta_line="> **Δ vs base (\`${base_ref:-base}\`): 0** — unchanged from ${base_score}/100."
+          fi
+        fi
+      else
+        delta_line="> _New file on this PR — no base version to compare against._"
+      fi
+    fi
+  fi
+
+  { echo "$marker"; cat "$scorecard"; [ -n "$delta_line" ] && { echo; echo "$delta_line"; }; } >"$body"
 
   # Find an existing comment carrying our marker and update it; else create one.
   existing="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${pr}/comments" --paginate \

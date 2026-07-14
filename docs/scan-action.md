@@ -132,6 +132,16 @@ is keyed by mode + target, so re-runs update in place instead of spamming, and
 multiple targets in one PR each keep their own comment. On non-PR events the
 scorecard goes to the job summary instead.
 
+For the file modes (`compose` / `k8s`) the comment also shows a **delta versus
+the base branch**: the action fetches the base version of the scanned file via
+the contents API, grades it, and adds a line such as
+`Δ vs base (main): +12 — base scored 88/100. Posture improved.` so a reviewer
+sees at a glance whether the change hardened or regressed the posture. A file
+that is new on the PR is noted as such, and the whole delta step is fail-open —
+if the base cannot be fetched or graded, the scorecard is still posted without a
+delta line. `container` mode has no git base to compare against, so it shows no
+delta.
+
 Everything the [scan](scan.md) command guarantees still holds: it is local and
 read-only, it never talks to a control-plane, it needs no credentials, and it is
 fail-closed. See [`.github/actions/scan`](https://github.com/IronSecCo/ironclaw/tree/main/.github/actions/scan)
