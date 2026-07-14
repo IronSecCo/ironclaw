@@ -50,6 +50,9 @@ fail, and the precise `ironctl scan --fix` flags that close the gap, with before
 - [How to harden an nginx container](harden-nginx-container-isolation.md) -
   `nginx:1.27-alpine` scores 48 of 100 (D). The honest hardened ceiling for an internet-facing
   proxy is 89 of 100 (B), because it must reach its upstreams. Here is exactly why.
+- [How to scan a Dockerfile for security issues](scan-a-dockerfile-for-security-issues.md) -
+  a deliberately bad Dockerfile (root default, unpinned base, a baked-in secret) scores 5 of
+  100 (F) on a static, daemon-free scan. The exact one-line fixes take it to 100 of 100 (A).
 
 ## Comparisons
 

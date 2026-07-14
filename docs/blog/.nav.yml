@@ -19,4 +19,5 @@ nav:
   - "How to harden a Redis container": harden-redis-container-isolation.md
   - "How to run untrusted Node.js code safely": run-untrusted-nodejs-code-safely.md
   - "How to harden an nginx container": harden-nginx-container-isolation.md
+  - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"
