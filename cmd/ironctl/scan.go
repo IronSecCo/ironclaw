@@ -39,6 +39,7 @@ func cmdScan(args []string) error {
 	compose := fs.String("compose", "", "grade a service in this docker-compose file")
 	service := fs.String("service", "", "compose service name (required if the file has >1 service)")
 	k8s := fs.String("k8s", "", "grade the first container in this Kubernetes pod/workload manifest")
+	dockerfile := fs.Bool("dockerfile", false, "statically grade the positional Dockerfile(s) authoring-time posture (daemon-free)")
 	runtime := fs.String("runtime", envOrDefault("IRONCTL_SCAN_RUNTIME", "auto"), "container runtime: auto|docker|podman|nerdctl")
 	dockerBin := fs.String("docker-bin", envOrDefault("DOCKER", "docker"), "docker binary used for `docker inspect`")
 	podmanBin := fs.String("podman-bin", envOrDefault("PODMAN", "podman"), "podman binary used for `podman inspect`")
@@ -72,6 +73,28 @@ func cmdScan(args []string) error {
 			bins:    runtimeBins{docker: *dockerBin, podman: *podmanBin, nerdctl: *nerdctlBin},
 			asJSON:  *asJSON,
 			md:      *md,
+		})
+	}
+
+	// --dockerfile: static, daemon-free posture grading of one or more Dockerfiles
+	// passed as positionals. It grades a DIFFERENT, authoring-time dimension set
+	// (see internal/host/scan/dockerfile.go) and uses its own scorer + SARIF
+	// renderer; the runtime --fix/--compare paths do not apply. Taking the files as
+	// positionals (not a --dockerfile=FILE value) lets a pre-commit hook append its
+	// matched filenames after fixed --min-score/--json args (IRO-494).
+	if *dockerfile {
+		if len(positional) == 0 {
+			scanUsage(os.Stderr)
+			return fmt.Errorf("scan --dockerfile needs at least one Dockerfile path")
+		}
+		return runDockerfileScan(dockerfileArgs{
+			paths:     positional,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
 		})
 	}
 
@@ -230,6 +253,103 @@ func runCompare(a compareArgs) error {
 	return nil
 }
 
+// dockerfileArgs carries the resolved inputs for a `scan --dockerfile` run. paths
+// holds one or more Dockerfile paths (a pre-commit hook appends every matched
+// file), each graded independently.
+type dockerfileArgs struct {
+	paths     []string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
+// runDockerfileScan grades each Dockerfile's authoring-time posture statically
+// (no daemon, no pull) and emits the requested representations. It reuses the
+// shared Report/table/json/md/badge paths and the Dockerfile-specific SARIF
+// renderer, and honors --min-score as a CI gate exactly like the live modes: the
+// gate trips (non-zero exit) if ANY graded file falls below the threshold, so a
+// pre-commit hook fails the commit on the first porous Dockerfile. The single
+// -artifact flags (--badge/--badge-json/--sarif) require exactly one path.
+func runDockerfileScan(a dockerfileArgs) error {
+	if len(a.paths) > 1 && (a.badge != "" || a.badgeJSON != "" || a.sarif != "") {
+		return fmt.Errorf("--badge/--badge-json/--sarif write a single artifact; pass one Dockerfile at a time with them (got %d)", len(a.paths))
+	}
+	var failed []string
+	for _, path := range a.paths {
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read Dockerfile: %w", err)
+		}
+		spec, err := scan.SpecFromDockerfile(raw, path)
+		if err != nil {
+			return err
+		}
+		report := scan.ScoreDockerfile(spec)
+		report.Version = version.String()
+		report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+
+		if a.asJSON {
+			if err := scan.RenderJSON(os.Stdout, report); err != nil {
+				return err
+			}
+		} else {
+			scan.RenderTable(os.Stdout, report)
+		}
+		if a.md {
+			fmt.Fprintln(os.Stdout)
+			fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+		}
+		if a.badge != "" {
+			if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+				return fmt.Errorf("write badge: %w", err)
+			}
+			if !a.asJSON {
+				fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+			}
+		}
+		if a.badgeJSON != "" {
+			if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+				return fmt.Errorf("write badge-json: %w", err)
+			}
+			if !a.asJSON {
+				fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+			}
+		}
+		if a.sarif != "" {
+			// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+			opts := scan.SARIFOptions{ConfigFile: path, AnchorLine: scan.AnchorLine(raw, "FROM")}
+			if err := writeDockerfileSARIF(a.sarif, report, opts); err != nil {
+				fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+			} else if !a.asJSON {
+				fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+			}
+		}
+		if a.minScore > 0 && report.Score < a.minScore {
+			failed = append(failed, fmt.Sprintf("%s (%d/100)", path, report.Score))
+		}
+	}
+	if len(failed) > 0 {
+		return fmt.Errorf("Dockerfile posture below the required %d: %s", a.minScore, strings.Join(failed, ", "))
+	}
+	return nil
+}
+
+// writeDockerfileSARIF renders the Dockerfile SARIF log to path, fail-open on error.
+func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	if err := scan.RenderSARIFDockerfile(f, r, opts); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
+}
+
 // writeSARIF renders the SARIF log for report r to path. It is separated so the
 // caller can fail-open on any error without leaking a half-written file into a
 // later step.
@@ -346,6 +466,7 @@ USAGE:
   ironctl scan <container>                    grade a running container (docker|podman|nerdctl)
   ironctl scan --compose FILE [--service N]   grade a docker-compose service
   ironctl scan --k8s FILE                     grade a Kubernetes pod/workload manifest
+  ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
   ironctl scan --compare A B                   diff two containers' isolation posture
 
 FLAGS:
@@ -373,5 +494,11 @@ IRO-429 scoring stays runtime-agnostic (no points for a runtime name).
 Dimensions graded: non-root user, dropped capabilities, seccomp, network
 isolation, read-only rootfs, docker.sock exposure, shared host namespaces.
 Unknown postures are graded fail-closed (as insecure).
+
+--dockerfile grades a DIFFERENT, authoring-time dimension set (non-root USER,
+pinned base image, no secrets in ENV/ARG, COPY over remote/opaque ADD, no
+world-writable files, HEALTHCHECK, layer hygiene). Runtime hardening (caps,
+seccomp, network, rootfs, docker.sock) is set at run time and is NOT expressible
+in a Dockerfile, so a high static grade still needs a runtime scan.
 `)
 }

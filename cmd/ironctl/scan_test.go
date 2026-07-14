@@ -71,3 +71,41 @@ func TestCmdScan_NoTarget(t *testing.T) {
 		t.Error("expected an error when no target is given")
 	}
 }
+
+const cliHardenedDockerfile = `FROM gcr.io/distroless/static-debian12@sha256:abc123abc123abc123abc123abc123abc123abc123abc123abc123abc123abcd
+COPY --chown=65532:65532 app /app
+HEALTHCHECK CMD ["/app","--health"]
+USER 65532:65532
+ENTRYPOINT ["/app"]
+`
+
+const cliWeakDockerfile = `FROM ubuntu:latest
+ADD https://example.com/i.sh /tmp/i.sh
+ENV API_TOKEN=deadbeefsecret
+RUN chmod 777 /app
+`
+
+// The --dockerfile mode powers the pre-commit hook (IRO-494): files are passed as
+// positionals so a hook can append its matched filenames after fixed flags, and
+// --min-score fails the commit if ANY graded file is below the threshold.
+func TestCmdScan_DockerfileGate(t *testing.T) {
+	good := writeTemp(t, "Dockerfile.good", cliHardenedDockerfile)
+	if err := cmdScan([]string{"--dockerfile", good, "--min-score", "90"}); err != nil {
+		t.Errorf("hardened Dockerfile should pass min-score 90: %v", err)
+	}
+	bad := writeTemp(t, "Dockerfile.bad", cliWeakDockerfile)
+	// A batch containing a porous Dockerfile must trip the gate (the hook use case).
+	err := cmdScan([]string{"--dockerfile", good, bad, "--min-score", "90"})
+	if err == nil || !strings.Contains(err.Error(), "below") {
+		t.Errorf("a batch with a weak Dockerfile should fail min-score 90, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "Dockerfile.bad") {
+		t.Errorf("gate error should name the offending file, got: %v", err)
+	}
+}
+
+func TestCmdScan_DockerfileNoPath(t *testing.T) {
+	if err := cmdScan([]string{"--dockerfile"}); err == nil {
+		t.Error("expected an error when --dockerfile is given no path")
+	}
+}

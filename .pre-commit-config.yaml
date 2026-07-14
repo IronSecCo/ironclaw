@@ -1,0 +1,31 @@
+# IronClaw dogfoods its own Dockerfile containment hook (IRO-494): every commit
+# that touches a Dockerfile grades its authoring-time containment posture and
+# fails below grade B (--min-score=80). The three images we ship currently score
+# 92/A, 92/A, and 86/B, so this gate runs clean and catches a regression.
+#
+# This repo uses a `repo: local` hook wired to `go run ./cmd/ironctl` so it runs
+# against the working tree with only the Go toolchain (no release/network needed).
+# EXTERNAL consumers install the published hook instead — see .pre-commit-hooks.yaml:
+#
+#   repos:
+#     - repo: https://github.com/IronSecCo/ironclaw
+#       rev: v0.1.x
+#       hooks:
+#         - id: ironclaw-scan-dockerfile
+#           args: [--min-score=80]
+minimum_pre_commit_version: "3.0.0"
+repos:
+  - repo: local
+    hooks:
+      - id: ironclaw-scan-dockerfile
+        name: ironclaw scan --dockerfile (containment posture)
+        description: >-
+          Statically grade every committed Dockerfile's authoring-time containment
+          posture (non-root USER, pinned base, no baked-in secrets, COPY over remote
+          ADD, no world-writable files, HEALTHCHECK) and fail below grade B.
+        entry: go run ./cmd/ironctl scan --dockerfile
+        language: system
+        files: (?:(?:^|/)Dockerfile[^/]*|\.[Dd]ockerfile)$
+        types: [text]
+        pass_filenames: true
+        args: [--min-score=80]

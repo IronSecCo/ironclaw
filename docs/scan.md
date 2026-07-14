@@ -44,6 +44,9 @@ ironctl scan --compose docker-compose.yml --service web
 # grade a Kubernetes pod or workload manifest (Deployment, StatefulSet, ...)
 ironctl scan --k8s pod.yaml
 
+# grade a Dockerfile statically, at authoring/CI time (no daemon, no image pull)
+ironctl scan --dockerfile Dockerfile
+
 # force a specific runtime (default is auto-detect)
 ironctl scan --runtime podman my-container
 ```
@@ -62,6 +65,7 @@ inspect data, so probe-masking from inside the container cannot change the score
 | `nerdctl` / containerd | `nerdctl inspect` | Docker-compatible schema; containerd runtime handlers (for example `io.containerd.runsc.v1`) are recognized |
 | compose | `--compose FILE` | grades a service from the file, no runtime needed |
 | Kubernetes | `--k8s FILE` | grades a pod or workload manifest, no runtime needed |
+| Dockerfile | `--dockerfile FILE` | grades authoring-time posture statically, no daemon and no image pull (see below) |
 
 Selection and binaries:
 
@@ -93,6 +97,87 @@ When a container runs under a recognized strong-isolation runtime (gVisor /
 informational line. Scoring stays runtime-agnostic on purpose: a container can
 name a hardened runtime and still be misconfigured, so no points are awarded for
 the runtime name. The dimension scorers remain the authority on the score.
+
+## Grade a Dockerfile statically
+
+`--dockerfile FILE` grades a Dockerfile with no daemon and no image pull, so it
+runs at authoring time and in CI on a pull request, before anything is built. It
+opens the shift-left surface: catch a leaked credential, an unpinned base, or a
+root default in review instead of in production.
+
+```bash
+ironctl scan --dockerfile Dockerfile
+ironctl scan --dockerfile Dockerfile --min-score 80   # CI gate
+ironctl scan --dockerfile Dockerfile --sarif df.sarif # GitHub code scanning
+```
+
+It grades a different, authoring-time dimension set, the postures a Dockerfile
+author actually controls:
+
+| Dimension | Weight | What earns the points |
+|---|---|---|
+| Non-root USER | 25 | the final stage sets a non-root `USER` (a root default means every runtime escape starts as uid 0) |
+| Pinned base image | 20 | `FROM image@sha256:...` (a mutable tag scores partial; `:latest` fails) |
+| No secrets in ENV/ARG | 20 | no secret-like literal is baked into an `ENV`/`ARG` value |
+| COPY over remote/opaque ADD | 12 | no remote `ADD` (network fetch into a layer) or archive-extracting `ADD`; use `COPY` |
+| No world-writable files | 10 | no `chmod 777` / `o+w` |
+| HEALTHCHECK defined | 8 | a `HEALTHCHECK` so an orchestrator can spot a wedged container |
+| Layer / cache hygiene | 5 | package installs prune their cache in the same layer |
+
+### The honest static ceiling
+
+A static scan cannot see runtime hardening. Dropped capabilities, seccomp,
+`network=none`, a read-only rootfs, the docker.sock mount, and shared host
+namespaces are all set at `docker run` or orchestration time and are simply not
+expressible in a Dockerfile, so this mode does not grade them and never fakes a
+pass for them. A perfect 100/A Dockerfile is necessary but not sufficient: it
+still needs a runtime scan (`ironctl scan <container>`) to grade the isolation
+the file cannot express. Every Dockerfile scorecard prints this reminder.
+
+Multi-stage builds are supported: the final stage (the shipped image) is graded
+for its `USER`, base pin, and `HEALTHCHECK`, while secret and remote-fetch checks
+run across every stage. Full multi-stage dataflow analysis is out of scope; this
+mode grades containment posture, not general Dockerfile linting.
+
+## Use as a pre-commit hook
+
+The Dockerfile mode ships as a [pre-commit](https://pre-commit.com) hook, so every
+Dockerfile is graded automatically on commit, with no daemon and no image pull.
+Add this to any repo's `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/IronSecCo/ironclaw
+    rev: v0.1.x                     # pin a released tag
+    hooks:
+      - id: ironclaw-scan-dockerfile
+        args: [--min-score=80]      # optional: fail the commit below grade B
+```
+
+Then:
+
+```bash
+pre-commit install                                   # run on every commit
+pre-commit run ironclaw-scan-dockerfile --all-files  # grade every Dockerfile now
+```
+
+The hook uses `language: golang`, so pre-commit builds the `ironctl` binary from
+source in an isolated environment the first time it runs. No separate install step
+is required, and there is nothing to keep on your `PATH`.
+
+`args: [--min-score=N]` turns the hook into a gate: the commit fails if any matched
+Dockerfile scores below `N` on the 0 to 100 scale (the grade bands are A >= 90,
+B >= 75, C >= 50, D >= 25, F below). Omit `args` to run informationally: the
+scorecard still prints on every commit, but a low score never blocks it. When
+several Dockerfiles are staged, the hook grades each and fails on the first that
+falls below the threshold, naming it.
+
+By default the hook matches `Dockerfile`, `Dockerfile.*`, and `*.Dockerfile`
+anywhere in the tree. Override `files` in your config to narrow or widen that.
+
+IronClaw dogfoods this hook on its own repository. See its
+[`.pre-commit-config.yaml`](https://github.com/IronSecCo/ironclaw/blob/main/.pre-commit-config.yaml),
+which gates the three container images it ships at `--min-score=80`.
 
 ## Output formats
 
