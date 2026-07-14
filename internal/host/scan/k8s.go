@@ -8,7 +8,9 @@ import (
 )
 
 // k8sObject is a minimal Kubernetes object: enough to locate the pod spec inside
-// a bare Pod or inside a workload template (Deployment/StatefulSet/DaemonSet/Job).
+// a bare Pod, inside a workload template (Deployment/StatefulSet/DaemonSet/Job/
+// ReplicaSet/ReplicationController via spec.template.spec), or inside a CronJob
+// (spec.jobTemplate.spec.template.spec).
 type k8sObject struct {
 	Kind     string `yaml:"kind"`
 	Metadata struct {
@@ -20,7 +22,31 @@ type k8sObject struct {
 		Template struct {
 			Spec podSpec `yaml:"spec"`
 		} `yaml:"template"`
+		// CronJob nests one level deeper: spec.jobTemplate.spec.template.spec.
+		JobTemplate struct {
+			Spec struct {
+				Template struct {
+					Spec podSpec `yaml:"spec"`
+				} `yaml:"template"`
+			} `yaml:"spec"`
+		} `yaml:"jobTemplate"`
 	} `yaml:"spec"`
+}
+
+// podSpecOf returns the graded pod spec for a parsed object, resolving the three
+// nesting shapes (bare Pod / workload template / CronJob jobTemplate), and true
+// when a pod spec with at least one container was found.
+func (obj k8sObject) podSpecOf() (podSpec, bool) {
+	if len(obj.Spec.podSpec.Containers) > 0 {
+		return obj.Spec.podSpec, true
+	}
+	if len(obj.Spec.Template.Spec.Containers) > 0 {
+		return obj.Spec.Template.Spec, true
+	}
+	if len(obj.Spec.JobTemplate.Spec.Template.Spec.Containers) > 0 {
+		return obj.Spec.JobTemplate.Spec.Template.Spec, true
+	}
+	return podSpec{}, false
 }
 
 type podSpec struct {
@@ -80,22 +106,25 @@ func SpecFromK8s(raw []byte) (Spec, error) {
 	if err := yaml.Unmarshal(raw, &obj); err != nil {
 		return Spec{}, fmt.Errorf("parse kubernetes manifest: %w", err)
 	}
-
-	ps := obj.Spec.podSpec
-	// A workload kind (Deployment, …) carries the pod under spec.template.spec.
-	if len(ps.Containers) == 0 && len(obj.Spec.Template.Spec.Containers) > 0 {
-		ps = obj.Spec.Template.Spec
-	}
-	if len(ps.Containers) == 0 {
+	ps, ok := obj.podSpecOf()
+	if !ok {
 		return Spec{}, fmt.Errorf("manifest has no containers to grade")
 	}
+	return specFromPodSpec("k8s", obj.Metadata.Name, ps), nil
+}
+
+// specFromPodSpec maps a parsed Kubernetes pod spec to a normalized Spec, grading
+// its FIRST container. source labels the origin ("k8s" or "helm"); name is the
+// workload's metadata.name (falls back to the container name). It is pure and
+// shared by the single-manifest (SpecFromK8s) and multi-document/Helm paths.
+func specFromPodSpec(source, name string, ps podSpec) Spec {
 	c := ps.Containers[0]
 
-	target := obj.Metadata.Name
+	target := name
 	if target == "" {
 		target = c.Name
 	}
-	s := Spec{Source: "k8s", Target: target, Runtime: ps.RuntimeClass}
+	s := Spec{Source: source, Target: target, Runtime: ps.RuntimeClass}
 
 	// --- user (container securityContext overrides pod-level) ---------------
 	var nonRoot *bool
@@ -211,7 +240,7 @@ func SpecFromK8s(raw []byte) (Spec, error) {
 		}
 	}
 
-	return s, nil
+	return s
 }
 
 // normalizeK8sSeccomp maps a k8s seccompProfile.type to the Spec vocabulary.
