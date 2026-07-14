@@ -139,6 +139,46 @@ for its `USER`, base pin, and `HEALTHCHECK`, while secret and remote-fetch check
 run across every stage. Full multi-stage dataflow analysis is out of scope; this
 mode grades containment posture, not general Dockerfile linting.
 
+## Use as a pre-commit hook
+
+The Dockerfile mode ships as a [pre-commit](https://pre-commit.com) hook, so every
+Dockerfile is graded automatically on commit, with no daemon and no image pull.
+Add this to any repo's `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/IronSecCo/ironclaw
+    rev: v0.1.x                     # pin a released tag
+    hooks:
+      - id: ironclaw-scan-dockerfile
+        args: [--min-score=80]      # optional: fail the commit below grade B
+```
+
+Then:
+
+```bash
+pre-commit install                                   # run on every commit
+pre-commit run ironclaw-scan-dockerfile --all-files  # grade every Dockerfile now
+```
+
+The hook uses `language: golang`, so pre-commit builds the `ironctl` binary from
+source in an isolated environment the first time it runs. No separate install step
+is required, and there is nothing to keep on your `PATH`.
+
+`args: [--min-score=N]` turns the hook into a gate: the commit fails if any matched
+Dockerfile scores below `N` on the 0 to 100 scale (the grade bands are A >= 90,
+B >= 75, C >= 50, D >= 25, F below). Omit `args` to run informationally: the
+scorecard still prints on every commit, but a low score never blocks it. When
+several Dockerfiles are staged, the hook grades each and fails on the first that
+falls below the threshold, naming it.
+
+By default the hook matches `Dockerfile`, `Dockerfile.*`, and `*.Dockerfile`
+anywhere in the tree. Override `files` in your config to narrow or widen that.
+
+IronClaw dogfoods this hook on its own repository. See its
+[`.pre-commit-config.yaml`](https://github.com/IronSecCo/ironclaw/blob/main/.pre-commit-config.yaml),
+which gates the three container images it ships at `--min-score=80`.
+
 ## Output formats
 
 | Flag | What you get |

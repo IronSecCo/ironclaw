@@ -228,6 +228,20 @@ instead of in production:
 ironctl scan --dockerfile Dockerfile --min-score 80
 ```
 
+Grade Dockerfiles automatically on every commit with the
+[pre-commit](https://pre-commit.com) hook, which builds `ironctl` from source, so
+there is nothing to install first:
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/IronSecCo/ironclaw
+    rev: v0.1.x
+    hooks:
+      - id: ironclaw-scan-dockerfile
+        args: [--min-score=80]   # fail the commit below grade B
+```
+
 A container started the usual way (root user, default caps, bridge network, `docker.sock`
 mounted in) grades **23/100, F**. An IronClaw `ic-sbx-*` session sandbox grades a clean
 **100/100, A**:

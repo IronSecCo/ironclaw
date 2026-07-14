@@ -1,0 +1,29 @@
+# IronClaw pre-commit hooks — https://github.com/IronSecCo/ironclaw
+#
+# Shift-left container hardening. Grade a Dockerfile's authoring-time containment
+# posture (0-100 / A-F) on every commit: no daemon, no image pull, pure static
+# analysis. Install in any repo by adding this to its .pre-commit-config.yaml:
+#
+#   repos:
+#     - repo: https://github.com/IronSecCo/ironclaw
+#       rev: v0.1.x                     # pin a released tag
+#       hooks:
+#         - id: ironclaw-scan-dockerfile
+#           args: [--min-score=80]      # optional: fail the commit below grade B
+#
+# The hook builds the ironctl binary from source (language: golang), so no
+# separate install step is required. Run `pre-commit run ironclaw-scan-dockerfile
+# --all-files` to grade every Dockerfile in the repo.
+
+- id: ironclaw-scan-dockerfile
+  name: ironclaw scan --dockerfile (containment posture)
+  description: >-
+    Statically grade each committed Dockerfile's authoring-time containment
+    posture: non-root USER, pinned base image, no secrets baked into ENV/ARG,
+    COPY over remote/opaque ADD, no world-writable files, HEALTHCHECK, and layer
+    hygiene. Add args [--min-score=N] to fail the commit below a 0-100 threshold.
+  entry: ironctl scan --dockerfile
+  language: golang
+  files: (?:(?:^|/)Dockerfile[^/]*|\.[Dd]ockerfile)$
+  types: [text]
+  pass_filenames: true
