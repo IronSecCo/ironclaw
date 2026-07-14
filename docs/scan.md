@@ -44,6 +44,9 @@ ironctl scan --compose docker-compose.yml --service web
 # grade a Kubernetes pod or workload manifest (Deployment, StatefulSet, ...)
 ironctl scan --k8s pod.yaml
 
+# grade a Dockerfile statically, at authoring/CI time (no daemon, no image pull)
+ironctl scan --dockerfile Dockerfile
+
 # force a specific runtime (default is auto-detect)
 ironctl scan --runtime podman my-container
 ```
@@ -62,6 +65,7 @@ inspect data, so probe-masking from inside the container cannot change the score
 | `nerdctl` / containerd | `nerdctl inspect` | Docker-compatible schema; containerd runtime handlers (for example `io.containerd.runsc.v1`) are recognized |
 | compose | `--compose FILE` | grades a service from the file, no runtime needed |
 | Kubernetes | `--k8s FILE` | grades a pod or workload manifest, no runtime needed |
+| Dockerfile | `--dockerfile FILE` | grades authoring-time posture statically, no daemon and no image pull (see below) |
 
 Selection and binaries:
 
@@ -93,6 +97,47 @@ When a container runs under a recognized strong-isolation runtime (gVisor /
 informational line. Scoring stays runtime-agnostic on purpose: a container can
 name a hardened runtime and still be misconfigured, so no points are awarded for
 the runtime name. The dimension scorers remain the authority on the score.
+
+## Grade a Dockerfile statically
+
+`--dockerfile FILE` grades a Dockerfile with no daemon and no image pull, so it
+runs at authoring time and in CI on a pull request, before anything is built. It
+opens the shift-left surface: catch a leaked credential, an unpinned base, or a
+root default in review instead of in production.
+
+```bash
+ironctl scan --dockerfile Dockerfile
+ironctl scan --dockerfile Dockerfile --min-score 80   # CI gate
+ironctl scan --dockerfile Dockerfile --sarif df.sarif # GitHub code scanning
+```
+
+It grades a different, authoring-time dimension set, the postures a Dockerfile
+author actually controls:
+
+| Dimension | Weight | What earns the points |
+|---|---|---|
+| Non-root USER | 25 | the final stage sets a non-root `USER` (a root default means every runtime escape starts as uid 0) |
+| Pinned base image | 20 | `FROM image@sha256:...` (a mutable tag scores partial; `:latest` fails) |
+| No secrets in ENV/ARG | 20 | no secret-like literal is baked into an `ENV`/`ARG` value |
+| COPY over remote/opaque ADD | 12 | no remote `ADD` (network fetch into a layer) or archive-extracting `ADD`; use `COPY` |
+| No world-writable files | 10 | no `chmod 777` / `o+w` |
+| HEALTHCHECK defined | 8 | a `HEALTHCHECK` so an orchestrator can spot a wedged container |
+| Layer / cache hygiene | 5 | package installs prune their cache in the same layer |
+
+### The honest static ceiling
+
+A static scan cannot see runtime hardening. Dropped capabilities, seccomp,
+`network=none`, a read-only rootfs, the docker.sock mount, and shared host
+namespaces are all set at `docker run` or orchestration time and are simply not
+expressible in a Dockerfile, so this mode does not grade them and never fakes a
+pass for them. A perfect 100/A Dockerfile is necessary but not sufficient: it
+still needs a runtime scan (`ironctl scan <container>`) to grade the isolation
+the file cannot express. Every Dockerfile scorecard prints this reminder.
+
+Multi-stage builds are supported: the final stage (the shipped image) is graded
+for its `USER`, base pin, and `HEALTHCHECK`, while secret and remote-fetch checks
+run across every stage. Full multi-stage dataflow analysis is out of scope; this
+mode grades containment posture, not general Dockerfile linting.
 
 ## Output formats
 

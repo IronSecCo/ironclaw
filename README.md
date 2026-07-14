@@ -220,6 +220,14 @@ it cannot observe is scored insecure, never waved through.
 ironctl scan my-container
 ```
 
+It also grades a **Dockerfile** statically, at authoring or CI time, with no daemon and no
+image pull, so you catch a leaked credential, an unpinned base, or a root default in review
+instead of in production:
+
+```bash
+ironctl scan --dockerfile Dockerfile --min-score 80
+```
+
 A container started the usual way (root user, default caps, bridge network, `docker.sock`
 mounted in) grades **23/100, F**. An IronClaw `ic-sbx-*` session sandbox grades a clean
 **100/100, A**:
