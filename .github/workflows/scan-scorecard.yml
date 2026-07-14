@@ -76,6 +76,18 @@ jobs:
           mode: container
           min-score: 0
 
+      # Dogfood the base-branch DELTA path: compose mode reads a checked-in file,
+      # so the action fetches the base version of docker-compose.yml and renders a
+      # "Δ vs base" line in the sticky comment. On PRs that do not change the file
+      # the delta is 0; a PR that hardens/regresses it shows the movement.
+      - name: Scan a compose file (delta vs base)
+        uses: ./.github/actions/scan
+        with:
+          mode: compose
+          target: docker-compose.yml
+          service: controlplane
+          min-score: 0
+
       # Prove the Marketplace root action.yml runs end-to-end via the root ref
       # `uses: ./`. Same hardened target; comment off so it does not fight the
       # subdir run over the sticky scorecard (same mode+target marker).
