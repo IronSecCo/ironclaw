@@ -242,6 +242,10 @@ repos:
         args: [--min-score=80]   # fail the commit below grade B
 ```
 
+Walkthrough:
+[How to scan a Dockerfile for security issues](https://ironsecco.github.io/ironclaw/blog/scan-a-dockerfile-for-security-issues/)
+takes a deliberately bad Dockerfile from **5/100 (F)** to **100/100 (A)**, one fix at a time.
+
 A container started the usual way (root user, default caps, bridge network, `docker.sock`
 mounted in) grades **23/100, F**. An IronClaw `ic-sbx-*` session sandbox grades a clean
 **100/100, A**:
