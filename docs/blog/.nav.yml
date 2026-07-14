@@ -19,5 +19,9 @@ nav:
   - "How to harden a Redis container": harden-redis-container-isolation.md
   - "How to run untrusted Node.js code safely": run-untrusted-nodejs-code-safely.md
   - "How to harden an nginx container": harden-nginx-container-isolation.md
+  - "How to harden a MySQL container": harden-mysql-container-isolation.md
+  - "How to harden an Elasticsearch container": harden-elasticsearch-container-isolation.md
+  - "How to harden a RabbitMQ container": harden-rabbitmq-container-isolation.md
+  - "How to harden a Memcached container": harden-memcached-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"

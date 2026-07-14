@@ -50,6 +50,18 @@ fail, and the precise `ironctl scan --fix` flags that close the gap, with before
 - [How to harden an nginx container](harden-nginx-container-isolation.md) -
   `nginx:1.27-alpine` scores 48 of 100 (D). The honest hardened ceiling for an internet-facing
   proxy is 89 of 100 (B), because it must reach its upstreams. Here is exactly why.
+- [How to harden a MySQL container](harden-mysql-container-isolation.md) -
+  `mysql:8.4` scores 48 of 100 (D) on defaults: root, full capabilities, writable rootfs. Four
+  flags take it to 100 of 100 (A). Is it safe for untrusted workloads?
+- [How to harden an Elasticsearch container](harden-elasticsearch-container-isolation.md) -
+  `elasticsearch:8.16.1` already runs non-root, so it starts at 63 of 100 (C). Three flags take a
+  single-node index to 100 of 100 (A); a multi-node cluster has an honest 89 of 100 (B) ceiling.
+- [How to harden a RabbitMQ container](harden-rabbitmq-container-isolation.md) -
+  `rabbitmq:4-alpine` scores 48 of 100 (D). The honest hardened ceiling for a broker is 89 of 100
+  (B), because clients must be able to connect to it. Here is exactly why.
+- [How to harden a Memcached container](harden-memcached-container-isolation.md) -
+  `memcached:1.6-alpine` runs non-root and holds nothing on disk, so it starts at 63 of 100 (C).
+  A read-only rootfs (no volume needed) and dropped capabilities take it to its honest 89 of 100 (B).
 - [How to scan a Dockerfile for security issues](scan-a-dockerfile-for-security-issues.md) -
   a deliberately bad Dockerfile (root default, unpinned base, a baked-in secret) scores 5 of
   100 (F) on a static, daemon-free scan. The exact one-line fixes take it to 100 of 100 (A).
