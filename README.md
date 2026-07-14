@@ -276,13 +276,18 @@ Head-to-head reads backed by the same scan data:
 (when a shared host kernel is the weak link).
 
 Per-image hardening walkthroughs, the default grade, the dimensions that fail, and the exact
-`ironctl scan --fix` flags that close the gap:
+`ironctl scan --fix` flags that close the gap. Start at the
+[**hardening guides hub**](https://ironsecco.github.io/ironclaw/blog/hardening-guides/), or jump to one:
 [Postgres](https://ironsecco.github.io/ironclaw/blog/harden-postgres-container-isolation/),
 [MySQL](https://ironsecco.github.io/ironclaw/blog/harden-mysql-container-isolation/),
+[MariaDB](https://ironsecco.github.io/ironclaw/blog/harden-mariadb-container-isolation/),
+[MongoDB](https://ironsecco.github.io/ironclaw/blog/harden-mongodb-container-isolation/),
 [Redis](https://ironsecco.github.io/ironclaw/blog/harden-redis-container-isolation/),
 [Memcached](https://ironsecco.github.io/ironclaw/blog/harden-memcached-container-isolation/),
 [Elasticsearch](https://ironsecco.github.io/ironclaw/blog/harden-elasticsearch-container-isolation/),
+[Kafka](https://ironsecco.github.io/ironclaw/blog/harden-kafka-container-isolation/),
 [RabbitMQ](https://ironsecco.github.io/ironclaw/blog/harden-rabbitmq-container-isolation/),
+[Vault](https://ironsecco.github.io/ironclaw/blog/harden-vault-container-isolation/),
 [nginx](https://ironsecco.github.io/ironclaw/blog/harden-nginx-container-isolation/), and
 [untrusted Node.js](https://ironsecco.github.io/ironclaw/blog/run-untrusted-nodejs-code-safely/).
 

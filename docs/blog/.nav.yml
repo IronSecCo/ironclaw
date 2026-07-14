@@ -15,13 +15,18 @@ nav:
   - "Alpine vs Debian vs Ubuntu: base image and isolation": alpine-vs-debian-vs-ubuntu-container-isolation.md
   - "Docker default vs hardened: the isolation score gap": docker-default-vs-hardened-container-isolation.md
   - "gVisor vs runc: containment compared": gvisor-vs-runc-container-isolation-compared.md
+  - "Container hardening guides (hub)": hardening-guides.md
   - "How to harden a Postgres container": harden-postgres-container-isolation.md
   - "How to harden a Redis container": harden-redis-container-isolation.md
   - "How to run untrusted Node.js code safely": run-untrusted-nodejs-code-safely.md
   - "How to harden an nginx container": harden-nginx-container-isolation.md
   - "How to harden a MySQL container": harden-mysql-container-isolation.md
+  - "How to harden a MariaDB container": harden-mariadb-container-isolation.md
+  - "How to harden a MongoDB container": harden-mongodb-container-isolation.md
   - "How to harden an Elasticsearch container": harden-elasticsearch-container-isolation.md
+  - "How to harden a Kafka container": harden-kafka-container-isolation.md
   - "How to harden a RabbitMQ container": harden-rabbitmq-container-isolation.md
   - "How to harden a Memcached container": harden-memcached-container-isolation.md
+  - "How to harden a Vault container": harden-vault-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"

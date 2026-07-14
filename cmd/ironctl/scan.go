@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -39,6 +41,8 @@ func cmdScan(args []string) error {
 	compose := fs.String("compose", "", "grade a service in this docker-compose file")
 	service := fs.String("service", "", "compose service name (required if the file has >1 service)")
 	k8s := fs.String("k8s", "", "grade the first container in this Kubernetes pod/workload manifest")
+	helm := fs.String("helm", "", "render a Helm chart (dir or .tgz) with `helm template` and grade the isolation posture of its workloads")
+	helmBin := fs.String("helm-bin", envOrDefault("HELM", "helm"), "helm binary used to render the chart")
 	dockerfile := fs.Bool("dockerfile", false, "statically grade the positional Dockerfile(s) authoring-time posture (daemon-free)")
 	runtime := fs.String("runtime", envOrDefault("IRONCTL_SCAN_RUNTIME", "auto"), "container runtime: auto|docker|podman|nerdctl")
 	dockerBin := fs.String("docker-bin", envOrDefault("DOCKER", "docker"), "docker binary used for `docker inspect`")
@@ -89,6 +93,25 @@ func cmdScan(args []string) error {
 		}
 		return runDockerfileScan(dockerfileArgs{
 			paths:     positional,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
+		})
+	}
+
+	// --helm: render a chart locally (`helm template`, no cluster, daemon-free)
+	// and grade the isolation posture of the rendered workloads, reusing the k8s
+	// dimension set. It renders (I/O) here, then defers to the pure
+	// SpecsFromK8sStream + AggregateHelm scorer. Fail-OPEN on a render failure
+	// (helm absent / template error) so an opt-in CI step never crashes the build;
+	// the --min-score gate still applies once the chart renders.
+	if *helm != "" {
+		return runHelmScan(helmArgs{
+			chart:     *helm,
+			helmBin:   *helmBin,
 			asJSON:    *asJSON,
 			md:        *md,
 			badge:     *badge,
@@ -337,6 +360,115 @@ func runDockerfileScan(a dockerfileArgs) error {
 	return nil
 }
 
+// helmArgs carries the resolved inputs for a `scan --helm` run.
+type helmArgs struct {
+	chart     string
+	helmBin   string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
+// runHelmScan renders a Helm chart with `helm template` (no cluster, daemon-free)
+// and grades the isolation posture of its rendered workloads, reusing the k8s
+// scorer. It fails OPEN on a render failure (helm binary absent, or `helm
+// template` errors): it prints a clear diagnostic to stderr and returns nil so
+// an opt-in CI/Action step never crashes the build over tooling or chart-render
+// issues. Once the chart renders, scoring and the --min-score CI gate apply
+// exactly like --k8s (a genuinely low posture still fails the gate).
+func runHelmScan(a helmArgs) error {
+	rendered, err := renderHelmChart(a.helmBin, a.chart)
+	if err != nil {
+		// Fail-open: surface the reason, do not error out.
+		fmt.Fprintf(os.Stderr, "  warning: scan --helm could not render %q (scan skipped, exit 0): %v\n", a.chart, err)
+		return nil
+	}
+
+	specs, err := scan.SpecsFromK8sStream(rendered)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --helm could not parse rendered chart %q (scan skipped, exit 0): %v\n", a.chart, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateHelm(specs, filepath.Base(strings.TrimRight(a.chart, "/")))
+	if err != nil {
+		// A chart that renders no gradeable workload is a fail-open skip, not a
+		// crash: nothing to grade is not the same as a low score.
+		fmt.Fprintf(os.Stderr, "  warning: scan --helm found nothing to grade in %q (scan skipped, exit 0): %v\n", a.chart, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		// Anchor at the chart with a logical location naming the weakest workload
+		// (the rendered stream has no stable source file/line to point at).
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (render succeeded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// renderHelmChart runs `helm template` against a local chart (unpacked dir or
+// .tgz) and returns the rendered multi-document manifest stream. It is offline
+// and daemon-free: no cluster connection, no network beyond helm's own local
+// dependency resolution. A fixed release name keeps output deterministic.
+func renderHelmChart(helmBin, chart string) ([]byte, error) {
+	if _, err := exec.LookPath(helmBin); err != nil {
+		return nil, fmt.Errorf("helm binary %q not found on PATH (install helm or pass --helm-bin): %w", helmBin, err)
+	}
+	cmd := exec.Command(helmBin, "template", "ironclaw-scan", chart)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	if err := cmd.Run(); err != nil {
+		msg := strings.TrimSpace(stderr.String())
+		if msg == "" {
+			msg = err.Error()
+		}
+		return nil, fmt.Errorf("helm template failed: %s", msg)
+	}
+	return stdout.Bytes(), nil
+}
+
 // writeDockerfileSARIF renders the Dockerfile SARIF log to path, fail-open on error.
 func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
 	f, err := os.Create(path)
@@ -466,6 +598,7 @@ USAGE:
   ironctl scan <container>                    grade a running container (docker|podman|nerdctl)
   ironctl scan --compose FILE [--service N]   grade a docker-compose service
   ironctl scan --k8s FILE                     grade a Kubernetes pod/workload manifest
+  ironctl scan --helm CHART                    render a Helm chart (dir or .tgz) and grade its workloads
   ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
   ironctl scan --compare A B                   diff two containers' isolation posture
 
@@ -481,6 +614,7 @@ FLAGS:
   --md                print a shareable markdown block
   --min-score N       exit non-zero if the score is below N (CI gate)
   --service NAME      compose service to grade (if the file has >1)
+  --helm-bin BIN      helm binary for `+"`helm template`"+` (default: helm)
   --docker-bin BIN    docker binary for `+"`docker inspect`"+` (default: docker)
   --podman-bin BIN    podman binary for `+"`podman inspect`"+` (default: podman)
   --nerdctl-bin BIN   nerdctl binary for `+"`nerdctl inspect`"+` (default: nerdctl)
@@ -494,6 +628,15 @@ IRO-429 scoring stays runtime-agnostic (no points for a runtime name).
 Dimensions graded: non-root user, dropped capabilities, seccomp, network
 isolation, read-only rootfs, docker.sock exposure, shared host namespaces.
 Unknown postures are graded fail-closed (as insecure).
+
+--helm renders a chart locally with `+"`helm template`"+` (no cluster, daemon-free) and
+grades the rendered workloads with the same k8s dimension set. The chart grade is
+the WEAKEST rendered workload (a chart is only as isolated as its most-exposed
+pod); every workload's score is listed in the notes. Network egress depends on a
+NetworkPolicy that a pod spec does not carry, so it is graded conservatively
+(the honest static ceiling). Rendering failures (helm absent / template error)
+fail OPEN: a clear diagnostic and exit 0, so an opt-in CI step never crashes the
+build. A successful render still trips --min-score on a low posture.
 
 --dockerfile grades a DIFFERENT, authoring-time dimension set (non-root USER,
 pinned base image, no secrets in ENV/ARG, COPY over remote/opaque ADD, no
