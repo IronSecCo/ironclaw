@@ -145,7 +145,7 @@ approval gateway, encrypted per-session queues, host-side credential custody, an
 console:
 
 [![Deploy to Fly.io](https://img.shields.io/badge/Deploy-Fly.io-8B5CF6?logo=flydotio&logoColor=white)](deploy/fly/)
-[![Deploy to Render](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=000)](https://render.com/deploy?repo=https://github.com/IronSecCo/ironclaw)
+[![Deploy to Render](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=000)](https://render.com/deploy?repo=https://github.com/IronSecCo/ironclaw&path=deploy/render/render.yaml)
 [![Deploy on Railway](https://img.shields.io/badge/Deploy-Railway-0B0D0E?logo=railway&logoColor=white)](deploy/railway/)
 
 > These PaaS paths run the **control-plane only** — a single container has no gVisor and
