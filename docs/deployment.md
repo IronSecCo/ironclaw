@@ -252,7 +252,7 @@ provisions a persistent volume, and fronts it with TLS.
 | Provider | Template | One-click |
 |---|---|---|
 | Fly.io | [`deploy/fly/fly.toml`](https://github.com/IronSecCo/ironclaw/blob/main/deploy/fly/fly.toml) | `fly launch --copy-config` |
-| Render | [`deploy/render/render.yaml`](https://github.com/IronSecCo/ironclaw/blob/main/deploy/render/render.yaml) | [Deploy to Render](https://render.com/deploy?repo=https://github.com/IronSecCo/ironclaw) |
+| Render | [`deploy/render/render.yaml`](https://github.com/IronSecCo/ironclaw/blob/main/deploy/render/render.yaml) | [Deploy to Render](https://render.com/deploy?repo=https://github.com/IronSecCo/ironclaw&path=deploy/render/render.yaml) |
 | Railway | [`deploy/railway/`](https://github.com/IronSecCo/ironclaw/tree/main/deploy/railway) | [Deploy on Railway](https://railway.com/new) |
 
 !!! warning "What the PaaS path runs — and what it doesn't"

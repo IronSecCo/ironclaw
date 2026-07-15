@@ -3,7 +3,7 @@
 One-click deploy of the IronClaw **control-plane** to [Render](https://render.com) using
 the [`render.yaml`](./render.yaml) Blueprint.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/IronSecCo/ironclaw)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/IronSecCo/ironclaw&path=deploy/render/render.yaml)
 
 > **What this runs.** Render deploys the trusted IronClaw **control-plane** (approval
 > gateway, encrypted SQLCipher per-session queues, host-side model-credential custody,
