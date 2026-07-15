@@ -45,6 +45,8 @@ func cmdScan(args []string) error {
 	helmBin := fs.String("helm-bin", envOrDefault("HELM", "helm"), "helm binary used to render the chart")
 	terraform := fs.String("terraform", "", "grade container workloads in a `terraform show -json` file (plan.json/state.json) or a Terraform dir")
 	terraformBin := fs.String("terraform-bin", envOrDefault("TERRAFORM", "terraform"), "terraform binary used to run `terraform show -json` on a dir/binary plan")
+	nomad := fs.String("nomad", "", "grade docker-driver tasks in a HashiCorp Nomad job spec (job.json, or a .hcl/.nomad file rendered via `nomad job run -output`)")
+	nomadBin := fs.String("nomad-bin", envOrDefault("NOMAD", "nomad"), "nomad binary used to render an HCL job to JSON (`nomad job run -output`)")
 	dockerfile := fs.Bool("dockerfile", false, "statically grade the positional Dockerfile(s) authoring-time posture (daemon-free)")
 	runtime := fs.String("runtime", envOrDefault("IRONCTL_SCAN_RUNTIME", "auto"), "container runtime: auto|docker|podman|nerdctl")
 	dockerBin := fs.String("docker-bin", envOrDefault("DOCKER", "docker"), "docker binary used for `docker inspect`")
@@ -139,6 +141,25 @@ func cmdScan(args []string) error {
 			badgeJSON:    *badgeJSON,
 			sarif:        *sarif,
 			minScore:     *minScore,
+		})
+	}
+
+	// --nomad: consume a Nomad job spec (JSON directly, or a .hcl/.nomad file
+	// rendered to JSON via `nomad job run -output`) and grade the docker-driver
+	// tasks it declares, reusing the same docker/compose dimension mapping and
+	// weakest-link aggregate as --helm/--terraform. It loads JSON here then defers
+	// to the pure SpecsFromNomad + AggregateNomad scorer. Fail-OPEN on a
+	// load/parse failure; --min-score still gates once tasks are graded.
+	if *nomad != "" {
+		return runNomadScan(nomadArgs{
+			path:      *nomad,
+			nomadBin:  *nomadBin,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
 		})
 	}
 
@@ -629,6 +650,120 @@ func looksLikeJSON(raw []byte) bool {
 	return len(trimmed) > 0 && trimmed[0] == '{'
 }
 
+// nomadArgs carries the resolved inputs for a `scan --nomad` run.
+type nomadArgs struct {
+	path      string
+	nomadBin  string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
+// runNomadScan grades the docker-driver tasks declared in a HashiCorp Nomad job
+// spec, reusing the same docker/compose dimension mapping and weakest-link
+// aggregate as --helm/--terraform. It fails OPEN on a load/parse failure (nomad
+// absent for an HCL file, unreadable path, malformed JSON): it prints a clear
+// diagnostic to stderr and returns nil so an opt-in CI/Action step never crashes
+// the build over tooling issues. Once tasks are graded, scoring and the
+// --min-score CI gate apply exactly like --k8s/--helm/--terraform (a genuinely
+// low posture still fails the gate).
+func runNomadScan(a nomadArgs) error {
+	raw, err := loadNomadJSON(a.nomadBin, a.path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --nomad could not load %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	specs, err := scan.SpecsFromNomad(raw)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --nomad could not parse %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateNomad(specs, filepath.Base(a.path))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --nomad found nothing to grade in %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (tasks graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// loadNomadJSON resolves a --nomad argument to Nomad job JSON bytes. A file that
+// already IS JSON (a `nomad job run -output` redirect, or a hand-authored API
+// job) is used verbatim — the daemon-free, dependency-free primary path. A
+// non-JSON file (an HCL2 `.hcl`/`.nomad` job) is converted with `nomad job run
+// -output <file>` when the nomad binary is on PATH. It is offline: `-output`
+// renders the job locally without submitting it to a cluster.
+func loadNomadJSON(nomadBin, path string) ([]byte, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	if looksLikeJSON(raw) {
+		return raw, nil
+	}
+	if _, err := exec.LookPath(nomadBin); err != nil {
+		return nil, fmt.Errorf("nomad binary %q not found on PATH (install nomad, pass --nomad-bin, or pass a `nomad job run -output` JSON file directly): %w", nomadBin, err)
+	}
+	cmd := exec.Command(nomadBin, "job", "run", "-output", path)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	if err := cmd.Run(); err != nil {
+		msg := strings.TrimSpace(stderr.String())
+		if msg == "" {
+			msg = err.Error()
+		}
+		return nil, fmt.Errorf("nomad job run -output failed: %s", msg)
+	}
+	return stdout.Bytes(), nil
+}
+
 // writeDockerfileSARIF renders the Dockerfile SARIF log to path, fail-open on error.
 func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
 	f, err := os.Create(path)
@@ -760,6 +895,7 @@ USAGE:
   ironctl scan --k8s FILE                     grade a Kubernetes pod/workload manifest
   ironctl scan --helm CHART                    render a Helm chart (dir or .tgz) and grade its workloads
   ironctl scan --terraform PATH                grade container workloads in a terraform show -json file/dir
+  ironctl scan --nomad PATH                     grade docker-driver tasks in a Nomad job spec (JSON or HCL)
   ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
   ironctl scan --compare A B                   diff two containers' isolation posture
 
@@ -777,6 +913,7 @@ FLAGS:
   --service NAME      compose service to grade (if the file has >1)
   --helm-bin BIN      helm binary for `+"`helm template`"+` (default: helm)
   --terraform-bin BIN terraform binary for `+"`terraform show -json`"+` (default: terraform)
+  --nomad-bin BIN     nomad binary for `+"`nomad job run -output`"+` (HCL->JSON; default: nomad)
   --docker-bin BIN    docker binary for `+"`docker inspect`"+` (default: docker)
   --podman-bin BIN    podman binary for `+"`podman inspect`"+` (default: podman)
   --nerdctl-bin BIN   nerdctl binary for `+"`nerdctl inspect`"+` (default: nerdctl)
@@ -806,6 +943,15 @@ workloads it declares: the kubernetes provider's pod/workload resources (mapped
 through the SAME pod-spec scorer as --k8s/--helm) and aws_ecs_task_definition
 container definitions. The plan grade is the WEAKEST workload; load/parse failures
 fail OPEN (diagnostic + exit 0). A successful parse still trips --min-score.
+
+--nomad grades the docker-driver tasks in a HashiCorp Nomad job spec, mapping each
+task's `+"`config`"+` block (privileged, cap_add/cap_drop, network_mode, volumes/mount,
+pid_mode/ipc_mode, security_opt, readonly_rootfs) through the SAME docker/compose
+dimension scorer. Pass a JSON job (a `+"`nomad job run -output`"+` redirect or an API
+job) for the daemon-free path, or a `+"`.hcl`/`.nomad`"+` file that is rendered to JSON
+via `+"`nomad job run -output`"+` when the nomad binary is on PATH. The job grade is the
+WEAKEST task; load/parse failures fail OPEN (diagnostic + exit 0). A successful
+parse still trips --min-score.
 
 --dockerfile grades a DIFFERENT, authoring-time dimension set (non-root USER,
 pinned base image, no secrets in ENV/ARG, COPY over remote/opaque ADD, no
