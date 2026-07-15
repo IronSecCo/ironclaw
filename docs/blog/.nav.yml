@@ -23,10 +23,14 @@ nav:
   - "How to harden a MySQL container": harden-mysql-container-isolation.md
   - "How to harden a MariaDB container": harden-mariadb-container-isolation.md
   - "How to harden a MongoDB container": harden-mongodb-container-isolation.md
+  - "How to harden a Cassandra container": harden-cassandra-container-isolation.md
+  - "How to harden a ClickHouse container": harden-clickhouse-container-isolation.md
   - "How to harden an Elasticsearch container": harden-elasticsearch-container-isolation.md
   - "How to harden a Kafka container": harden-kafka-container-isolation.md
   - "How to harden a RabbitMQ container": harden-rabbitmq-container-isolation.md
   - "How to harden a Memcached container": harden-memcached-container-isolation.md
   - "How to harden a Vault container": harden-vault-container-isolation.md
+  - "How to harden a Consul container": harden-consul-container-isolation.md
+  - "How to harden a MinIO container": harden-minio-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"

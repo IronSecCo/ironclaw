@@ -62,6 +62,18 @@ fail, and the precise `ironctl scan --fix` flags that close the gap, with before
 - [How to harden a Memcached container](harden-memcached-container-isolation.md) -
   `memcached:1.6-alpine` runs non-root and holds nothing on disk, so it starts at 63 of 100 (C).
   A read-only rootfs (no volume needed) and dropped capabilities take it to its honest 89 of 100 (B).
+- [How to harden a Cassandra container](harden-cassandra-container-isolation.md) -
+  `cassandra:5.0` scores 48 of 100 (D) on defaults: root, full capabilities, writable rootfs. Four
+  flags take a single-node ring to 100 of 100 (A); a gossiping cluster has an honest 89 of 100 (B) ceiling.
+- [How to harden a ClickHouse container](harden-clickhouse-container-isolation.md) -
+  `clickhouse:24.8` scores 48 of 100 (D). Cutting egress closes its remote-table reach; four flags
+  take the analytics store to 100 of 100 (A).
+- [How to harden a Consul container](harden-consul-container-isolation.md) -
+  `hashicorp/consul:1.20` scores 48 of 100 (D). The honest hardened ceiling for a service-mesh agent
+  is 89 of 100 (B), because peers and clients must connect. Unlike Vault, it does not mlock by default.
+- [How to harden a MinIO container](harden-minio-container-isolation.md) -
+  `minio/minio` scores 48 of 100 (D). The honest hardened ceiling for an object store is 89 of 100
+  (B), because S3 clients must reach the API. Here is exactly why.
 - [How to scan a Dockerfile for security issues](scan-a-dockerfile-for-security-issues.md) -
   a deliberately bad Dockerfile (root default, unpinned base, a baked-in secret) scores 5 of
   100 (F) on a static, daemon-free scan. The exact one-line fixes take it to 100 of 100 (A).
