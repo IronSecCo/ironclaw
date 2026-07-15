@@ -59,34 +59,46 @@ type podSpec struct {
 	RuntimeClass    string         `yaml:"runtimeClassName"`
 }
 
+// seccompProfile mirrors a Kubernetes securityContext.seccompProfile block. Named
+// (rather than inlined) so non-YAML adapters (e.g. Terraform JSON) can construct
+// the same graded pod spec without re-declaring an anonymous struct.
+type seccompProfile struct {
+	Type string `yaml:"type"`
+}
+
+// capabilities mirrors a container securityContext.capabilities block.
+type capabilities struct {
+	Add  []string `yaml:"add"`
+	Drop []string `yaml:"drop"`
+}
+
 type podSecCtx struct {
-	RunAsNonRoot   *bool  `yaml:"runAsNonRoot"`
-	RunAsUser      *int64 `yaml:"runAsUser"`
-	SeccompProfile *struct {
-		Type string `yaml:"type"`
-	} `yaml:"seccompProfile"`
+	RunAsNonRoot   *bool           `yaml:"runAsNonRoot"`
+	RunAsUser      *int64          `yaml:"runAsUser"`
+	SeccompProfile *seccompProfile `yaml:"seccompProfile"`
+}
+
+// containerSecCtx mirrors a container-level securityContext.
+type containerSecCtx struct {
+	RunAsNonRoot             *bool           `yaml:"runAsNonRoot"`
+	RunAsUser                *int64          `yaml:"runAsUser"`
+	Privileged               *bool           `yaml:"privileged"`
+	ReadOnlyRootFilesystem   *bool           `yaml:"readOnlyRootFilesystem"`
+	AllowPrivilegeEscalation *bool           `yaml:"allowPrivilegeEscalation"`
+	Capabilities             *capabilities   `yaml:"capabilities"`
+	SeccompProfile           *seccompProfile `yaml:"seccompProfile"`
+}
+
+// volumeMount mirrors a container volumeMounts entry.
+type volumeMount struct {
+	Name      string `yaml:"name"`
+	MountPath string `yaml:"mountPath"`
 }
 
 type k8sContainer struct {
-	Name            string `yaml:"name"`
-	SecurityContext *struct {
-		RunAsNonRoot             *bool  `yaml:"runAsNonRoot"`
-		RunAsUser                *int64 `yaml:"runAsUser"`
-		Privileged               *bool  `yaml:"privileged"`
-		ReadOnlyRootFilesystem   *bool  `yaml:"readOnlyRootFilesystem"`
-		AllowPrivilegeEscalation *bool  `yaml:"allowPrivilegeEscalation"`
-		Capabilities             *struct {
-			Add  []string `yaml:"add"`
-			Drop []string `yaml:"drop"`
-		} `yaml:"capabilities"`
-		SeccompProfile *struct {
-			Type string `yaml:"type"`
-		} `yaml:"seccompProfile"`
-	} `yaml:"securityContext"`
-	VolumeMounts []struct {
-		Name      string `yaml:"name"`
-		MountPath string `yaml:"mountPath"`
-	} `yaml:"volumeMounts"`
+	Name            string           `yaml:"name"`
+	SecurityContext *containerSecCtx `yaml:"securityContext"`
+	VolumeMounts    []volumeMount    `yaml:"volumeMounts"`
 }
 
 type k8sVolume struct {

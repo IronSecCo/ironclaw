@@ -65,6 +65,8 @@ inspect data, so probe-masking from inside the container cannot change the score
 | `nerdctl` / containerd | `nerdctl inspect` | Docker-compatible schema; containerd runtime handlers (for example `io.containerd.runsc.v1`) are recognized |
 | compose | `--compose FILE` | grades a service from the file, no runtime needed |
 | Kubernetes | `--k8s FILE` | grades a pod or workload manifest, no runtime needed |
+| Helm | `--helm CHART` | renders a chart with `helm template` and grades its workloads, no cluster needed |
+| Terraform | `--terraform PATH` | grades container workloads in a `terraform show -json` plan/state, no apply needed (see below) |
 | Dockerfile | `--dockerfile FILE` | grades authoring-time posture statically, no daemon and no image pull (see below) |
 
 Selection and binaries:
@@ -97,6 +99,39 @@ When a container runs under a recognized strong-isolation runtime (gVisor /
 informational line. Scoring stays runtime-agnostic on purpose: a container can
 name a hardened runtime and still be misconfigured, so no points are awarded for
 the runtime name. The dimension scorers remain the authority on the score.
+
+## Grade a Terraform plan
+
+`--terraform PATH` grades the container workloads a Terraform configuration
+declares, before `terraform apply` reaches a cluster or an AWS account. It
+consumes `terraform show -json` output, so it is structured and daemon-free:
+
+```bash
+terraform show -json plan.tfplan > plan.json
+ironctl scan --terraform plan.json
+ironctl scan --terraform plan.json --min-score 75   # CI gate
+ironctl scan --terraform plan.json --sarif tf.sarif # GitHub code scanning
+
+ironctl scan --terraform ./infra                    # runs `terraform show -json` for you
+```
+
+Pass a `terraform show -json` JSON file (a plan or state export) directly, or a
+Terraform directory, where `ironctl` runs `terraform show -json` against the
+current state for you. It walks the root module and every child module and grades
+two workload classes:
+
+| Source | What is graded |
+|---|---|
+| `kubernetes_*` resources | `kubernetes_pod`, `kubernetes_deployment`, `kubernetes_stateful_set`, `kubernetes_daemon_set`, `kubernetes_job`, `kubernetes_cron_job`, `kubernetes_replication_controller` (and their `_v1` aliases). The provider embeds a pod spec, graded through the same dimension set as `--k8s`. |
+| `aws_ecs_task_definition` | each entry in `container_definitions`, with the task-level `network_mode` / `pid_mode` / `ipc_mode` folded in. |
+
+The plan grade is the **weakest** workload: a plan is only as isolated as its
+most-exposed container, and every workload's score is listed in the notes.
+Network egress depends on a `NetworkPolicy` (Kubernetes) or a security group
+(ECS) that a workload spec does not carry, so it is graded conservatively, the
+honest static ceiling. Missing tooling or a malformed document fails **open** (a
+clear diagnostic and exit 0) so an opt-in CI step never crashes the build; once
+workloads are graded, `--min-score` still trips on a low posture.
 
 ## Grade a Dockerfile statically
 
