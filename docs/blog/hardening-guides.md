@@ -30,6 +30,8 @@ Two patterns show up across the set:
 | [MariaDB](harden-mariadb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs |
 | [MongoDB](harden-mongodb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs |
 | [Redis](harden-redis-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs |
+| [Cassandra](harden-cassandra-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B multi-node) |
+| [ClickHouse](harden-clickhouse-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs |
 | [Elasticsearch](harden-elasticsearch-container-isolation.md) | 63/100 C | **100/100 A** | full caps, writable rootfs (89/B multi-node) |
 | [Untrusted Node.js](run-untrusted-nodejs-code-safely.md) | 48/100 D | **100/100 A** | run untrusted code in a real sandbox |
 
@@ -44,6 +46,8 @@ These services must accept client connections, so the network dimension holds at
 | [Memcached](harden-memcached-container-isolation.md) | 63/100 C | **89/100 B** | cache: clients read and write over the network |
 | [nginx](harden-nginx-container-isolation.md) | 48/100 D | **89/100 B** | proxy: it exists to forward traffic |
 | [Vault](harden-vault-container-isolation.md) | 48/100 D | **89/100 B** | secrets server: apps must reach the API |
+| [Consul](harden-consul-container-isolation.md) | 48/100 D | **89/100 B** | service mesh: peers and clients must connect |
+| [MinIO](harden-minio-container-isolation.md) | 48/100 D | **89/100 B** | object store: S3 clients must reach the API |
 
 ## The pattern, one command
 
