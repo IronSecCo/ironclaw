@@ -43,6 +43,8 @@ func cmdScan(args []string) error {
 	k8s := fs.String("k8s", "", "grade the first container in this Kubernetes pod/workload manifest")
 	helm := fs.String("helm", "", "render a Helm chart (dir or .tgz) with `helm template` and grade the isolation posture of its workloads")
 	helmBin := fs.String("helm-bin", envOrDefault("HELM", "helm"), "helm binary used to render the chart")
+	terraform := fs.String("terraform", "", "grade container workloads in a `terraform show -json` file (plan.json/state.json) or a Terraform dir")
+	terraformBin := fs.String("terraform-bin", envOrDefault("TERRAFORM", "terraform"), "terraform binary used to run `terraform show -json` on a dir/binary plan")
 	dockerfile := fs.Bool("dockerfile", false, "statically grade the positional Dockerfile(s) authoring-time posture (daemon-free)")
 	runtime := fs.String("runtime", envOrDefault("IRONCTL_SCAN_RUNTIME", "auto"), "container runtime: auto|docker|podman|nerdctl")
 	dockerBin := fs.String("docker-bin", envOrDefault("DOCKER", "docker"), "docker binary used for `docker inspect`")
@@ -118,6 +120,25 @@ func cmdScan(args []string) error {
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
 			minScore:  *minScore,
+		})
+	}
+
+	// --terraform: consume `terraform show -json` (plan.json/state.json) and grade
+	// the container workloads it declares (kubernetes_* pods/workloads +
+	// aws_ecs_task_definition), reusing the k8s/ECS dimension mapping. It loads
+	// JSON here (reading a file, or running `terraform show -json` on a dir) then
+	// defers to the pure SpecsFromTerraform + AggregateTerraform scorer. Fail-OPEN
+	// on a load/parse failure; --min-score still gates once workloads are graded.
+	if *terraform != "" {
+		return runTerraformScan(terraformArgs{
+			path:         *terraform,
+			terraformBin: *terraformBin,
+			asJSON:       *asJSON,
+			md:           *md,
+			badge:        *badge,
+			badgeJSON:    *badgeJSON,
+			sarif:        *sarif,
+			minScore:     *minScore,
 		})
 	}
 
@@ -469,6 +490,145 @@ func renderHelmChart(helmBin, chart string) ([]byte, error) {
 	return stdout.Bytes(), nil
 }
 
+// terraformArgs carries the resolved inputs for a `scan --terraform` run.
+type terraformArgs struct {
+	path         string
+	terraformBin string
+	asJSON       bool
+	md           bool
+	badge        string
+	badgeJSON    string
+	sarif        string
+	minScore     int
+}
+
+// runTerraformScan grades the container workloads declared in a `terraform show
+// -json` document (kubernetes_* pods/workloads and aws_ecs_task_definition),
+// reusing the same k8s/ECS dimension mapping and weakest-link aggregate as
+// --helm. It fails OPEN on a load/parse failure (terraform absent, unreadable
+// path, malformed JSON): it prints a clear diagnostic to stderr and returns nil
+// so an opt-in CI/Action step never crashes the build over tooling issues. Once
+// workloads are graded, scoring and the --min-score CI gate apply exactly like
+// --k8s/--helm (a genuinely low posture still fails the gate).
+func runTerraformScan(a terraformArgs) error {
+	raw, err := loadTerraformJSON(a.terraformBin, a.path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --terraform could not load %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	specs, err := scan.SpecsFromTerraform(raw)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --terraform could not parse %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateTerraform(specs, filepath.Base(strings.TrimRight(a.path, "/")))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --terraform found nothing to grade in %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (workloads graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// loadTerraformJSON resolves a --terraform argument to `terraform show -json`
+// bytes. A directory is rendered with `terraform -chdir=<dir> show -json` (its
+// current state). A file that already IS JSON (a `terraform show -json` redirect)
+// is used verbatim — the daemon-free primary path. A non-JSON file (a binary
+// tfplan) is converted with `terraform show -json <file>` when terraform is on
+// PATH. It is offline: `terraform show` does not contact a backend for a saved
+// plan, and reads local state for a dir.
+func loadTerraformJSON(terraformBin, path string) ([]byte, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if info.IsDir() {
+		return runTerraformShow(terraformBin, "-chdir="+path, "show", "-json")
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	if looksLikeJSON(raw) {
+		return raw, nil
+	}
+	// A binary plan file: convert via `terraform show -json <file>` (needs the
+	// terraform binary and to run in the config directory).
+	dir := filepath.Dir(path)
+	return runTerraformShow(terraformBin, "-chdir="+dir, "show", "-json", filepath.Base(path))
+}
+
+// runTerraformShow runs the terraform binary with the given args and returns its
+// stdout, surfacing terraform's own stderr on failure.
+func runTerraformShow(terraformBin string, args ...string) ([]byte, error) {
+	if _, err := exec.LookPath(terraformBin); err != nil {
+		return nil, fmt.Errorf("terraform binary %q not found on PATH (install terraform, pass --terraform-bin, or pass a `terraform show -json` JSON file directly): %w", terraformBin, err)
+	}
+	cmd := exec.Command(terraformBin, args...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	if err := cmd.Run(); err != nil {
+		msg := strings.TrimSpace(stderr.String())
+		if msg == "" {
+			msg = err.Error()
+		}
+		return nil, fmt.Errorf("terraform show -json failed: %s", msg)
+	}
+	return stdout.Bytes(), nil
+}
+
+// looksLikeJSON reports whether raw begins (after leading whitespace) with a JSON
+// object — enough to distinguish a `terraform show -json` redirect from a binary
+// tfplan without a full parse.
+func looksLikeJSON(raw []byte) bool {
+	trimmed := bytes.TrimLeft(raw, " \t\r\n")
+	return len(trimmed) > 0 && trimmed[0] == '{'
+}
+
 // writeDockerfileSARIF renders the Dockerfile SARIF log to path, fail-open on error.
 func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
 	f, err := os.Create(path)
@@ -599,6 +759,7 @@ USAGE:
   ironctl scan --compose FILE [--service N]   grade a docker-compose service
   ironctl scan --k8s FILE                     grade a Kubernetes pod/workload manifest
   ironctl scan --helm CHART                    render a Helm chart (dir or .tgz) and grade its workloads
+  ironctl scan --terraform PATH                grade container workloads in a terraform show -json file/dir
   ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
   ironctl scan --compare A B                   diff two containers' isolation posture
 
@@ -615,6 +776,7 @@ FLAGS:
   --min-score N       exit non-zero if the score is below N (CI gate)
   --service NAME      compose service to grade (if the file has >1)
   --helm-bin BIN      helm binary for `+"`helm template`"+` (default: helm)
+  --terraform-bin BIN terraform binary for `+"`terraform show -json`"+` (default: terraform)
   --docker-bin BIN    docker binary for `+"`docker inspect`"+` (default: docker)
   --podman-bin BIN    podman binary for `+"`podman inspect`"+` (default: podman)
   --nerdctl-bin BIN   nerdctl binary for `+"`nerdctl inspect`"+` (default: nerdctl)
@@ -637,6 +799,13 @@ NetworkPolicy that a pod spec does not carry, so it is graded conservatively
 (the honest static ceiling). Rendering failures (helm absent / template error)
 fail OPEN: a clear diagnostic and exit 0, so an opt-in CI step never crashes the
 build. A successful render still trips --min-score on a low posture.
+
+--terraform consumes `+"`terraform show -json`"+` output (a plan.json or state.json, or a
+Terraform dir it runs `+"`terraform show -json`"+` against) and grades the container
+workloads it declares: the kubernetes provider's pod/workload resources (mapped
+through the SAME pod-spec scorer as --k8s/--helm) and aws_ecs_task_definition
+container definitions. The plan grade is the WEAKEST workload; load/parse failures
+fail OPEN (diagnostic + exit 0). A successful parse still trips --min-score.
 
 --dockerfile grades a DIFFERENT, authoring-time dimension set (non-root USER,
 pinned base image, no secrets in ENV/ARG, COPY over remote/opaque ADD, no
