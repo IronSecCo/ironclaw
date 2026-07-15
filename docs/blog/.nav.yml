@@ -32,5 +32,9 @@ nav:
   - "How to harden a Vault container": harden-vault-container-isolation.md
   - "How to harden a Consul container": harden-consul-container-isolation.md
   - "How to harden a MinIO container": harden-minio-container-isolation.md
+  - "How to harden a Grafana container": harden-grafana-container-isolation.md
+  - "How to harden a Prometheus container": harden-prometheus-container-isolation.md
+  - "How to harden a Traefik container": harden-traefik-container-isolation.md
+  - "How to harden an InfluxDB container": harden-influxdb-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"

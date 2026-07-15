@@ -1,0 +1,107 @@
+---
+title: "How to harden an InfluxDB container: influxdb:2.7 scores 48/100 by default"
+description: "influxdb:2.7 defaults score 48/100 (grade D): root, full caps, writable rootfs. The exact ironctl scan --fix flags that take a co-located time-series store to a full 100/100 grade A."
+---
+
+# How to harden an InfluxDB container (and is influxdb:2.7 safe for your metrics?)
+
+InfluxDB is where your time-series data lives: application metrics, IoT samples, sensor streams, and
+the tokens that gate write and query access to all of it. A stock `docker run influxdb:2.7` holds
+that data behind a boundary weaker than the data deserves. Graded on IronClaw's seven-dimension
+containment scale, the default configuration scores **48 of 100, grade D (porous)**. Higher is safer.
+Unlike a broker or a proxy, a time-series store that only its co-located writer and reader talk to
+can close every dimension, including the network. A few runtime flags take the same image to a full
+**100 of 100, grade A**. Here are the exact gaps and fixes from the scan data.
+
+> Every number here comes from a read-only `docker inspect` of `influxdb:2.7`, the same data behind
+> its [isolation scorecard](../scores/influxdb.md). No workload is executed.
+> [How scoring works &rarr;](../scan.md)
+
+## Where the default configuration leaks
+
+`ironctl scan` grades seven independent containment boundaries. On a default `docker run
+influxdb:2.7`, three fail and one warns:
+
+| Dimension | Verdict | Score | What the scan found |
+|-----------|:-------:|------:|---------------------|
+| Non-root user (uid != 0) | ❌ FAIL | 0/15 | runs as root (uid 0); a container escape starts with host-uid 0 |
+| Dropped capabilities | ❌ FAIL | 4/20 | default capability set retained (CAP_NET_RAW, CAP_MKNOD, and more) |
+| Seccomp profile | ✅ PASS | 15/15 | seccomp profile active |
+| Network isolation / egress | ⚠️ WARN | 4/15 | network=bridge: outbound egress is possible |
+| Read-only root filesystem | ❌ FAIL | 0/10 | root filesystem is writable |
+| No docker.sock exposure | ✅ PASS | 15/15 | no control socket mounted |
+| No shared host namespaces | ✅ PASS | 10/10 | no host PID/IPC/network sharing |
+
+The two that should worry you most are **root** and **egress**. An InfluxDB process that escapes as
+root escapes as root on the host, next to the very database files it was holding. And a database that
+can reach arbitrary destinations is one that can quietly ship your entire metrics history out the
+moment a query-parsing or plugin CVE lands code execution. The default capability set and writable
+rootfs widen and entrench that foothold.
+
+## Harden it: the exact `--fix` remediation
+
+`ironctl scan my-influxdb --fix` prints one remediation per failed dimension, then one hardened run.
+For `influxdb:2.7`:
+
+- **`--user 1000:1000`** (Non-root user, +15): pin a non-root uid so an escape does not begin as host
+  uid 0. Point the data and config directories at a volume this uid owns.
+- **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; InfluxDB needs none
+  of the default set to serve its API on a high port.
+- **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and
+  mount `/var/lib/influxdb2` as an explicit writable volume. Removes the persistence surface.
+- **`--network=none`** (Network isolation, +11 to the full 15): this is the dimension a co-located
+  store can actually max out. If the only writer and reader are on the same host or pod and reach
+  InfluxDB over the loopback of a shared network namespace, cut the NIC entirely. Nothing external
+  can connect, and the database cannot phone home.
+
+### When network=none is not honest
+
+If remote agents push metrics to InfluxDB over the network (a fleet of Telegraf collectors, for
+example), you cannot use `--network=none`; the store has to accept those connections. In that case
+put it on a user-defined network scoped to just the collectors and dashboards, with no default route
+out. That holds the network dimension at a WARN (4 of 15) and the honest ceiling becomes **89 of 100,
+grade B**, the same as a broker. Use `--network=none` only for the single-writer, co-located case.
+
+## Before and after
+
+```bash
+# Before: 48/100, grade D
+docker run -d --name influxdb influxdb:2.7
+
+# After: 100/100, grade A (co-located store, no network needed)
+docker run -d --name influxdb-hardened \
+  --user 1000:1000 \
+  --cap-drop=ALL \
+  --security-opt=no-new-privileges \
+  --read-only --tmpfs /tmp \
+  -v influxdb-data:/var/lib/influxdb2 \
+  --network=none \
+  influxdb:2.7
+```
+
+Rescan: `ironctl scan influxdb-hardened` reports `100/100 grade A`. A **52-point swing** with no
+custom image build, just the right flags. Every dimension is closed because a co-located time-series
+store does not need to talk to anything but the app on the other side of its loopback. That is the
+top grade, reserved for datastores whose clients live next to them.
+
+## Verify it on your own InfluxDB
+
+```bash
+# install (Homebrew)
+brew install ironsecco/ironclaw/ironclaw
+
+# grade your running container, then print the fixes
+ironctl scan my-influxdb
+ironctl scan my-influxdb --fix
+```
+
+`ironctl scan` also reads a `docker-compose.yml` service or a Kubernetes manifest, so you can grade
+the InfluxDB in your stack, not just a bare `docker run`.
+
+## Keep going
+
+- [All hardening guides &rarr;](hardening-guides.md): every harden-a-container walkthrough, with grade deltas.
+- [influxdb:2.7 isolation scorecard &rarr;](../scores/influxdb.md): the full dimension breakdown.
+- [How to harden a Prometheus container &rarr;](harden-prometheus-container-isolation.md): the other popular metrics store, which caps at grade B because it scrapes.
+- [Scan any container in 10 seconds &rarr;](../scan.md): the full `ironctl scan` reference.
+- [Run untrusted code in a real sandbox &rarr;](../index.md): IronClaw wraps every AI-agent session in a gVisor/Kata boundary with `network=none` by default.

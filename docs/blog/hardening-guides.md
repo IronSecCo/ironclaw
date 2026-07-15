@@ -33,6 +33,7 @@ Two patterns show up across the set:
 | [Cassandra](harden-cassandra-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B multi-node) |
 | [ClickHouse](harden-clickhouse-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs |
 | [Elasticsearch](harden-elasticsearch-container-isolation.md) | 63/100 C | **100/100 A** | full caps, writable rootfs (89/B multi-node) |
+| [InfluxDB](harden-influxdb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if fleet pushes metrics) |
 | [Untrusted Node.js](run-untrusted-nodejs-code-safely.md) | 48/100 D | **100/100 A** | run untrusted code in a real sandbox |
 
 ## Honest ceiling: grade B (89/100)
@@ -48,6 +49,9 @@ These services must accept client connections, so the network dimension holds at
 | [Vault](harden-vault-container-isolation.md) | 48/100 D | **89/100 B** | secrets server: apps must reach the API |
 | [Consul](harden-consul-container-isolation.md) | 48/100 D | **89/100 B** | service mesh: peers and clients must connect |
 | [MinIO](harden-minio-container-isolation.md) | 48/100 D | **89/100 B** | object store: S3 clients must reach the API |
+| [Grafana](harden-grafana-container-isolation.md) | 63/100 C | **89/100 B** | dashboard: browsers must reach the UI |
+| [Prometheus](harden-prometheus-container-isolation.md) | 63/100 C | **89/100 B** | metrics: it scrapes targets and serves its API |
+| [Traefik](harden-traefik-container-isolation.md) | 48/100 D | **89/100 B** | proxy: it exists to accept and forward traffic |
 
 ## The pattern, one command
 

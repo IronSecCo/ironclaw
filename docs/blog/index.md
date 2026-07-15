@@ -74,6 +74,18 @@ fail, and the precise `ironctl scan --fix` flags that close the gap, with before
 - [How to harden a MinIO container](harden-minio-container-isolation.md) -
   `minio/minio` scores 48 of 100 (D). The honest hardened ceiling for an object store is 89 of 100
   (B), because S3 clients must reach the API. Here is exactly why.
+- [How to harden a Grafana container](harden-grafana-container-isolation.md) -
+  `grafana/grafana:11.2.0` already runs non-root, so it starts at 63 of 100 (C). The honest hardened
+  ceiling for a dashboard server is 89 of 100 (B), because browsers must reach the UI.
+- [How to harden a Prometheus container](harden-prometheus-container-isolation.md) -
+  `prom/prometheus:v3.1.0` runs as `nobody`, so it starts at 63 of 100 (C). The honest hardened ceiling
+  for a metrics server is 89 of 100 (B), because it must scrape targets and serve its API.
+- [How to harden a Traefik container](harden-traefik-container-isolation.md) -
+  `traefik:v3.2` scores 48 of 100 (D). The honest hardened ceiling for an edge reverse proxy is 89 of
+  100 (B), because it exists to accept and forward traffic. Here is exactly why.
+- [How to harden an InfluxDB container](harden-influxdb-container-isolation.md) -
+  `influxdb:2.7` scores 48 of 100 (D). Four flags take a co-located time-series store to 100 of 100
+  (A); a fleet pushing metrics over the network has an honest 89 of 100 (B) ceiling.
 - [How to scan a Dockerfile for security issues](scan-a-dockerfile-for-security-issues.md) -
   a deliberately bad Dockerfile (root default, unpinned base, a baked-in secret) scores 5 of
   100 (F) on a static, daemon-free scan. The exact one-line fixes take it to 100 of 100 (A).

@@ -292,7 +292,11 @@ Per-image hardening walkthroughs, the default grade, the dimensions that fail, a
 [Vault](https://ironsecco.github.io/ironclaw/blog/harden-vault-container-isolation/),
 [Consul](https://ironsecco.github.io/ironclaw/blog/harden-consul-container-isolation/),
 [MinIO](https://ironsecco.github.io/ironclaw/blog/harden-minio-container-isolation/),
-[nginx](https://ironsecco.github.io/ironclaw/blog/harden-nginx-container-isolation/), and
+[nginx](https://ironsecco.github.io/ironclaw/blog/harden-nginx-container-isolation/),
+[Grafana](https://ironsecco.github.io/ironclaw/blog/harden-grafana-container-isolation/),
+[Prometheus](https://ironsecco.github.io/ironclaw/blog/harden-prometheus-container-isolation/),
+[Traefik](https://ironsecco.github.io/ironclaw/blog/harden-traefik-container-isolation/),
+[InfluxDB](https://ironsecco.github.io/ironclaw/blog/harden-influxdb-container-isolation/), and
 [untrusted Node.js](https://ironsecco.github.io/ironclaw/blog/run-untrusted-nodejs-code-safely/).
 
 ### Show your score
