@@ -68,6 +68,7 @@ inspect data, so probe-masking from inside the container cannot change the score
 | Helm | `--helm CHART` | renders a chart with `helm template` and grades its workloads, no cluster needed |
 | Terraform | `--terraform PATH` | grades container workloads in a `terraform show -json` plan/state, no apply needed (see below) |
 | AWS ECS | `--ecs PATH` | grades a live `aws ecs describe-task-definition` (or registered) task definition, no AWS call needed (see below) |
+| Cloud Run | `--cloudrun PATH` | grades a Google Cloud Run service spec (Knative Service YAML) or a directory of them, no account needed (see below) |
 | Dockerfile | `--dockerfile FILE` | grades authoring-time posture statically, no daemon and no image pull (see below) |
 
 Selection and binaries:
@@ -177,6 +178,48 @@ security group that a task definition does not carry, so it is graded
 conservatively, the honest static ceiling. A malformed document fails **open** (a
 clear diagnostic and exit 0) so an opt-in CI step never crashes the build; once
 containers are graded, `--min-score` still trips on a low posture.
+
+## Grade a Google Cloud Run service
+
+`--cloudrun PATH` grades a [Google Cloud Run](https://cloud.google.com/run)
+service spec — a Knative `Service` document (`serving.knative.dev/v1`) — before it
+reaches a project. Cloud Run specs are plain YAML, so it is structured and
+daemon-free, with no `gcloud` login and no external binary:
+
+```bash
+gcloud run services describe SVC --format=export > svc.yaml
+ironctl scan --cloudrun svc.yaml
+ironctl scan --cloudrun svc.yaml --min-score 80   # CI gate
+ironctl scan --cloudrun ./run-services            # a directory of service YAMLs
+```
+
+Pass a single Knative `Service` YAML (the `gcloud ... --format=export` output, or a
+hand-authored spec), a multi-document `---`-separated stream, or a directory of
+them (the weakest service governs). Cloud Run's revision template carries a
+Kubernetes-shaped pod spec at `spec.template.spec.containers[]`, so it reuses the
+same pod-spec dimension set as `--k8s`/`--helm` and then folds in Cloud Run's
+**managed-runtime guarantees**:
+
+| Dimension | How Cloud Run is graded |
+|---|---|
+| Non-root user | graded on the revision's `securityContext.runAsNonRoot` / `runAsUser`; unset means the image default (root), scored fail-closed. Cloud Run runs the container as its configured user. |
+| Dropped capabilities | the managed sandbox does not permit privileged mode or added capabilities, so the restricted managed set is credited unless the spec explicitly adds one. |
+| Seccomp | every container is sandboxed (gen1 gVisor / gen2 microVM), so the syscall surface is filtered by default — credited as confined unless the spec sets `seccompProfile: Unconfined`. |
+| Network isolation | Cloud Run egress is **managed**: allowed by default and restrictable via VPC egress settings, but never `network=none`. Graded as egress-capable (the honest ceiling). |
+| Read-only rootfs | graded on `securityContext.readOnlyRootFilesystem`; unset means writable, scored fail-closed. |
+| docker.sock | impossible on Cloud Run (no host bind mounts) — passes by construction. |
+| Host namespaces | privileged mode and host PID/IPC/network are not permitted — passes by construction. |
+
+Because the platform forbids privileged mode and host namespaces, blocks the
+docker socket, and sandboxes every container, a Cloud Run service starts from a
+strong floor. What stays your job is running as **non-root** with a **read-only
+rootfs**. A fully hardened service tops out at **89/100 (grade B)**: egress is
+managed and can never be `network=none`, the same honest ceiling any
+egress-capable managed runtime hits. The `gen1` execution environment is surfaced
+as gVisor (`runsc`) informationally; scoring stays runtime-agnostic. Load or parse
+failures fail **open** (a clear diagnostic and exit 0) so an opt-in CI step never
+crashes the build; once services are graded, `--min-score` still trips on a low
+posture.
 
 ## Grade a Dockerfile statically
 

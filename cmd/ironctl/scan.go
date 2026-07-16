@@ -48,6 +48,7 @@ func cmdScan(args []string) error {
 	nomad := fs.String("nomad", "", "grade docker-driver tasks in a HashiCorp Nomad job spec (job.json, or a .hcl/.nomad file rendered via `nomad job run -output`)")
 	nomadBin := fs.String("nomad-bin", envOrDefault("NOMAD", "nomad"), "nomad binary used to render an HCL job to JSON (`nomad job run -output`)")
 	ecs := fs.String("ecs", "", "grade an AWS ECS task definition: `aws ecs describe-task-definition` JSON, a raw registered task-def JSON, or a directory of task-def JSON files")
+	cloudrun := fs.String("cloudrun", "", "grade Google Cloud Run service specs: a Knative Service YAML (`gcloud run services describe SVC --format=export`), or a directory of them")
 	dockerfile := fs.Bool("dockerfile", false, "statically grade the positional Dockerfile(s) authoring-time posture (daemon-free)")
 	runtime := fs.String("runtime", envOrDefault("IRONCTL_SCAN_RUNTIME", "auto"), "container runtime: auto|docker|podman|nerdctl")
 	dockerBin := fs.String("docker-bin", envOrDefault("DOCKER", "docker"), "docker binary used for `docker inspect`")
@@ -173,6 +174,25 @@ func cmdScan(args []string) error {
 	if *ecs != "" {
 		return runECSScan(ecsArgs{
 			path:      *ecs,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
+		})
+	}
+
+	// --cloudrun: consume a Google Cloud Run service spec (a Knative Service YAML
+	// as emitted by `gcloud run services describe --format=export`, or a directory
+	// of them) and grade its revision containers, reusing the same pod-spec scorer
+	// as --k8s/--helm plus Cloud Run's managed-runtime guarantees. It loads YAML
+	// here (no external binary — Cloud Run specs are plain YAML) then defers to the
+	// pure SpecsFromCloudRun + AggregateCloudRun scorer. Fail-OPEN on a load/parse
+	// failure; --min-score still gates once services are graded.
+	if *cloudrun != "" {
+		return runCloudRunScan(cloudRunScanArgs{
+			path:      *cloudrun,
 			asJSON:    *asJSON,
 			md:        *md,
 			badge:     *badge,
@@ -903,6 +923,129 @@ func loadECSSpecs(path string) ([]scan.Spec, error) {
 	return specs, nil
 }
 
+// cloudRunScanArgs carries the resolved inputs for a `scan --cloudrun` run.
+type cloudRunScanArgs struct {
+	path      string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
+// runCloudRunScan grades the Google Cloud Run services declared in a Knative
+// Service YAML (or a directory of them), reusing the same pod-spec dimension
+// mapping and weakest-link aggregate as --helm/--terraform plus Cloud Run's
+// managed-runtime guarantees. Cloud Run specs are plain YAML, so there is no
+// external binary to shell out to. It fails OPEN on a load/parse failure
+// (unreadable path, malformed YAML): it prints a clear diagnostic to stderr and
+// returns nil so an opt-in CI/Action step never crashes the build. Once services
+// are graded, scoring and the --min-score CI gate apply exactly like
+// --k8s/--helm/--terraform/--nomad (a genuinely low posture still fails the gate).
+func runCloudRunScan(a cloudRunScanArgs) error {
+	raw, err := loadCloudRunYAML(a.path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --cloudrun could not load %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	specs, err := scan.SpecsFromCloudRun(raw)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --cloudrun could not parse %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateCloudRun(specs, filepath.Base(strings.TrimRight(a.path, "/")))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --cloudrun found nothing to grade in %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (services graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// loadCloudRunYAML resolves a --cloudrun argument to a Knative Service YAML stream.
+// A file is read verbatim (it may itself be a multi-document `---`-separated
+// stream). A directory is walked for *.yaml/*.yml files, concatenated into one
+// document stream (weakest-service rollup across the deployment). It is offline
+// and daemon-free: Cloud Run specs are plain YAML, so there is nothing to shell
+// out to.
+func loadCloudRunYAML(path string) ([]byte, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		return os.ReadFile(path)
+	}
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	var docs [][]byte
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(e.Name()))
+		if ext != ".yaml" && ext != ".yml" {
+			continue
+		}
+		raw, rerr := os.ReadFile(filepath.Join(path, e.Name()))
+		if rerr != nil {
+			return nil, rerr
+		}
+		docs = append(docs, raw)
+	}
+	if len(docs) == 0 {
+		return nil, fmt.Errorf("no .yaml/.yml files found in directory %q", path)
+	}
+	return bytes.Join(docs, []byte("\n---\n")), nil
+}
+
 // writeDockerfileSARIF renders the Dockerfile SARIF log to path, fail-open on error.
 func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
 	f, err := os.Create(path)
@@ -1036,6 +1179,7 @@ USAGE:
   ironctl scan --terraform PATH                grade container workloads in a terraform show -json file/dir
   ironctl scan --nomad PATH                     grade docker-driver tasks in a Nomad job spec (JSON or HCL)
   ironctl scan --ecs PATH                       grade an AWS ECS task definition (describe-task-definition JSON / dir)
+  ironctl scan --cloudrun PATH                  grade Google Cloud Run service specs (Knative Service YAML or dir)
   ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
   ironctl scan --compare A B                   diff two containers' isolation posture
 
@@ -1105,6 +1249,20 @@ the LIVE counterpart to --terraform: it grades the registered JSON that AWS-cons
 awsvpc/bridge are egress-capable NICs (not host); ECS default seccomp is confined.
 The task grade is the WEAKEST container; load/parse failures fail OPEN (diagnostic +
 exit 0). A successful parse still trips --min-score.
+
+--cloudrun grades a Google Cloud Run service spec — a Knative Service YAML
+(`+"`gcloud run services describe SVC --format=export`"+`), or a directory of them (weakest
+service governs). Cloud Run's revision template carries a Kubernetes-shaped pod
+spec, so it reuses the same pod-spec scorer as --k8s/--helm and then folds in
+Cloud Run's MANAGED-RUNTIME guarantees: the platform forbids privileged mode and
+host PID/IPC/network namespaces, never mounts a host docker.sock, and sandboxes
+every container (gen1 gVisor / gen2 microVM) so the syscall surface is filtered by
+default — those dimensions pass by construction. Non-root user and a read-only
+rootfs stay the spec's job (graded fail-closed when absent). Egress is managed
+(allowed by default, restrictable via VPC egress settings) and can never be
+network=none, so a fully hardened Cloud Run service tops out at 89/100 (grade B),
+the honest ceiling for an egress-capable managed runtime. Load/parse failures fail
+OPEN (diagnostic + exit 0). A successful parse still trips --min-score.
 
 --dockerfile grades a DIFFERENT, authoring-time dimension set (non-root USER,
 pinned base image, no secrets in ENV/ARG, COPY over remote/opaque ADD, no
