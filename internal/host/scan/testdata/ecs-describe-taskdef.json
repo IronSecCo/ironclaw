@@ -1,0 +1,25 @@
+{
+  "taskDefinition": {
+    "family": "orders-api",
+    "networkMode": "awsvpc",
+    "revision": 7,
+    "containerDefinitions": [
+      {
+        "name": "api",
+        "image": "1234.dkr.ecr.us-east-1.amazonaws.com/orders-api:1.4.2",
+        "user": "10001",
+        "readonlyRootFilesystem": true,
+        "linuxParameters": {
+          "capabilities": { "drop": ["ALL"] },
+          "initProcessEnabled": true
+        },
+        "dockerSecurityOptions": ["no-new-privileges"]
+      },
+      {
+        "name": "log-router",
+        "image": "amazon/aws-for-fluent-bit:stable",
+        "privileged": true
+      }
+    ]
+  }
+}
