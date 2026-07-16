@@ -40,5 +40,9 @@ nav:
   - "How to harden a Jenkins container": harden-jenkins-container-isolation.md
   - "How to harden a SonarQube container": harden-sonarqube-container-isolation.md
   - "How to harden a Keycloak container": harden-keycloak-container-isolation.md
+  - "How to harden a CouchDB container": harden-couchdb-container-isolation.md
+  - "How to harden a QuestDB container": harden-questdb-container-isolation.md
+  - "How to harden a NATS container": harden-nats-container-isolation.md
+  - "How to harden a Gitea container": harden-gitea-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"
