@@ -47,6 +47,7 @@ func cmdScan(args []string) error {
 	terraformBin := fs.String("terraform-bin", envOrDefault("TERRAFORM", "terraform"), "terraform binary used to run `terraform show -json` on a dir/binary plan")
 	nomad := fs.String("nomad", "", "grade docker-driver tasks in a HashiCorp Nomad job spec (job.json, or a .hcl/.nomad file rendered via `nomad job run -output`)")
 	nomadBin := fs.String("nomad-bin", envOrDefault("NOMAD", "nomad"), "nomad binary used to render an HCL job to JSON (`nomad job run -output`)")
+	ecs := fs.String("ecs", "", "grade an AWS ECS task definition: `aws ecs describe-task-definition` JSON, a raw registered task-def JSON, or a directory of task-def JSON files")
 	dockerfile := fs.Bool("dockerfile", false, "statically grade the positional Dockerfile(s) authoring-time posture (daemon-free)")
 	runtime := fs.String("runtime", envOrDefault("IRONCTL_SCAN_RUNTIME", "auto"), "container runtime: auto|docker|podman|nerdctl")
 	dockerBin := fs.String("docker-bin", envOrDefault("DOCKER", "docker"), "docker binary used for `docker inspect`")
@@ -154,6 +155,24 @@ func cmdScan(args []string) error {
 		return runNomadScan(nomadArgs{
 			path:      *nomad,
 			nomadBin:  *nomadBin,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
+		})
+	}
+
+	// --ecs: consume an AWS ECS task definition (describe-task-definition JSON, a
+	// raw registered task def, or a directory of task-def JSON files) and grade the
+	// container contract, reusing the SHARED ECS scorer that the --terraform
+	// aws_ecs_task_definition path also uses. It loads JSON here then defers to the
+	// pure SpecsFromECS + AggregateECS scorer. Fail-OPEN on a load/parse failure;
+	// --min-score still gates once containers are graded.
+	if *ecs != "" {
+		return runECSScan(ecsArgs{
+			path:      *ecs,
 			asJSON:    *asJSON,
 			md:        *md,
 			badge:     *badge,
@@ -764,6 +783,126 @@ func loadNomadJSON(nomadBin, path string) ([]byte, error) {
 	return stdout.Bytes(), nil
 }
 
+// ecsArgs carries the resolved inputs for a `scan --ecs` run.
+type ecsArgs struct {
+	path      string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
+// runECSScan grades an AWS ECS task definition's container contract, reusing the
+// SHARED ECS scorer that the --terraform aws_ecs_task_definition path also uses. It
+// accepts a `aws ecs describe-task-definition` JSON, a raw registered task-def
+// JSON, or a directory of task-def JSON files (weakest-container rollup across the
+// lot). It fails OPEN on a load/parse failure (unreadable path, malformed JSON): it
+// prints a clear diagnostic to stderr and returns nil so an opt-in CI/Action step
+// never crashes the build over tooling issues. Once containers are graded, scoring
+// and the --min-score CI gate apply exactly like --k8s/--helm/--terraform/--nomad.
+func runECSScan(a ecsArgs) error {
+	specs, err := loadECSSpecs(a.path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --ecs could not load %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateECS(specs, filepath.Base(strings.TrimRight(a.path, "/")))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --ecs found nothing to grade in %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (containers graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// loadECSSpecs resolves a --ecs argument to graded Specs. A directory is a
+// weakest-container rollup: every *.json file in it is parsed and its container
+// specs are pooled, so `AggregateECS` grades the single most-exposed container
+// across the whole set. A single file is parsed directly. It is daemon-free and
+// offline: the JSON is read from disk (the user runs the aws CLI, if at all).
+func loadECSSpecs(path string) ([]scan.Spec, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		raw, rerr := os.ReadFile(path)
+		if rerr != nil {
+			return nil, rerr
+		}
+		return scan.SpecsFromECS(raw)
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	var specs []scan.Spec
+	for _, e := range entries {
+		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), ".json") {
+			continue
+		}
+		raw, rerr := os.ReadFile(filepath.Join(path, e.Name()))
+		if rerr != nil {
+			return nil, rerr
+		}
+		fileSpecs, perr := scan.SpecsFromECS(raw)
+		if perr != nil {
+			// A single malformed file in a directory should not sink the rollup:
+			// skip it with a diagnostic and grade the rest (fail-open per file).
+			fmt.Fprintf(os.Stderr, "  warning: scan --ecs skipping %s (parse error): %v\n", e.Name(), perr)
+			continue
+		}
+		specs = append(specs, fileSpecs...)
+	}
+	return specs, nil
+}
+
 // writeDockerfileSARIF renders the Dockerfile SARIF log to path, fail-open on error.
 func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
 	f, err := os.Create(path)
@@ -896,6 +1035,7 @@ USAGE:
   ironctl scan --helm CHART                    render a Helm chart (dir or .tgz) and grade its workloads
   ironctl scan --terraform PATH                grade container workloads in a terraform show -json file/dir
   ironctl scan --nomad PATH                     grade docker-driver tasks in a Nomad job spec (JSON or HCL)
+  ironctl scan --ecs PATH                       grade an AWS ECS task definition (describe-task-definition JSON / dir)
   ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
   ironctl scan --compare A B                   diff two containers' isolation posture
 
@@ -952,6 +1092,19 @@ job) for the daemon-free path, or a `+"`.hcl`/`.nomad`"+` file that is rendered 
 via `+"`nomad job run -output`"+` when the nomad binary is on PATH. The job grade is the
 WEAKEST task; load/parse failures fail OPEN (diagnostic + exit 0). A successful
 parse still trips --min-score.
+
+--ecs grades an AWS ECS task definition's container contract, reusing the SAME ECS
+dimension mapping as the --terraform aws_ecs_task_definition path (privileged,
+readonlyRootFilesystem, user, linuxParameters.capabilities.{add,drop},
+dockerSecurityOptions, and the task-level networkMode/pidMode/ipcMode). It accepts
+the output of `+"`aws ecs describe-task-definition`"+` (a {taskDefinition:{...}}
+wrapper), a raw registered task-def JSON (containerDefinitions[] at the root), or a
+directory of task-def JSON files (weakest-container rollup across the lot). This is
+the LIVE counterpart to --terraform: it grades the registered JSON that AWS-console
+/CDK/Copilot users have but never express as terraform. networkMode host is worst;
+awsvpc/bridge are egress-capable NICs (not host); ECS default seccomp is confined.
+The task grade is the WEAKEST container; load/parse failures fail OPEN (diagnostic +
+exit 0). A successful parse still trips --min-score.
 
 --dockerfile grades a DIFFERENT, authoring-time dimension set (non-root USER,
 pinned base image, no secrets in ENV/ARG, COPY over remote/opaque ADD, no

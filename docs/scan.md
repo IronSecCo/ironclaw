@@ -67,6 +67,7 @@ inspect data, so probe-masking from inside the container cannot change the score
 | Kubernetes | `--k8s FILE` | grades a pod or workload manifest, no runtime needed |
 | Helm | `--helm CHART` | renders a chart with `helm template` and grades its workloads, no cluster needed |
 | Terraform | `--terraform PATH` | grades container workloads in a `terraform show -json` plan/state, no apply needed (see below) |
+| AWS ECS | `--ecs PATH` | grades a live `aws ecs describe-task-definition` (or registered) task definition, no AWS call needed (see below) |
 | Dockerfile | `--dockerfile FILE` | grades authoring-time posture statically, no daemon and no image pull (see below) |
 
 Selection and binaries:
@@ -132,6 +133,50 @@ Network egress depends on a `NetworkPolicy` (Kubernetes) or a security group
 honest static ceiling. Missing tooling or a malformed document fails **open** (a
 clear diagnostic and exit 0) so an opt-in CI step never crashes the build; once
 workloads are graded, `--min-score` still trips on a low posture.
+
+## Grade an AWS ECS task definition
+
+`--ecs PATH` grades the container contract of an AWS ECS task definition. This is
+the **live** counterpart to `--terraform`: Terraform grades an
+`aws_ecs_task_definition` expressed in HCL/plan, while `--ecs` grades the
+**registered** JSON that most AWS-console, CDK, and Copilot users actually have but
+never express as Terraform. No AWS API call is made by the scan itself; you feed it
+JSON you already have (or fetch once with the AWS CLI):
+
+```bash
+aws ecs describe-task-definition --task-definition webapp > taskdef.json
+ironctl scan --ecs taskdef.json
+ironctl scan --ecs taskdef.json --min-score 75    # CI gate
+ironctl scan --ecs taskdef.json --sarif ecs.sarif # GitHub code scanning
+
+ironctl scan --ecs ./taskdefs                      # weakest-container rollup over a dir
+```
+
+It accepts three input shapes:
+
+| Input | Shape |
+|---|---|
+| `aws ecs describe-task-definition` output | a top-level `{ "taskDefinition": { "containerDefinitions": [...] } }` wrapper |
+| a raw registered / authored task def | `containerDefinitions[]` at the JSON root (CDK / Copilot / hand-written API JSON) |
+| a directory | every `*.json` task def in it, graded as one **weakest-container** rollup |
+
+Each `containerDefinitions[]` entry is graded on the same dimensions as every other
+source: non-root `user`, `linuxParameters.capabilities.{add,drop}`, `privileged`,
+`readonlyRootFilesystem`, seccomp (via `dockerSecurityOptions`), and the task-level
+`networkMode` / `pidMode` / `ipcMode`. `networkMode: host` is the worst;
+`awsvpc` and `bridge` are egress-capable NICs (not host); ECS applies Docker's
+**default** seccomp profile unless a `dockerSecurityOption` disables it, so it is
+graded `confined` by default. A host volume whose source path is the Docker control
+socket is flagged as a full host-root escape primitive.
+
+The task grade is the **weakest** container: a task is only as isolated as its
+most-exposed container, and every container's score is listed in the notes. Because
+the shared ECS scorer is the same one the `--terraform` `aws_ecs_task_definition`
+path uses, the two entrypoints can never diverge. Network egress depends on a
+security group that a task definition does not carry, so it is graded
+conservatively, the honest static ceiling. A malformed document fails **open** (a
+clear diagnostic and exit 0) so an opt-in CI step never crashes the build; once
+containers are graded, `--min-score` still trips on a low posture.
 
 ## Grade a Dockerfile statically
 

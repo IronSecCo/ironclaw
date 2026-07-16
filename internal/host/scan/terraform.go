@@ -411,8 +411,10 @@ func (t *tfInt) ptr() *int64 {
 // AWS ECS task definition mapping
 //
 // container_definitions is a JSON-ENCODED STRING holding an array of container
-// definitions (camelCase, Docker-flavored). We decode the string, grade each
-// container, and fold in the task-level network_mode / pid_mode / ipc_mode.
+// definitions (camelCase, Docker-flavored). We decode the string and grade each
+// container through the SHARED ecsSpec mapper (see ecs.go), folding in the
+// task-level network_mode / pid_mode / ipc_mode. The live `--ecs` path decodes the
+// same ecsContainerDef from registered JSON, so the two entrypoints stay in sync.
 // --------------------------------------------------------------------------- //
 
 type tfEcsValues struct {
@@ -429,23 +431,10 @@ type tfEcsVol struct {
 	HostPath string `json:"host_path"`
 }
 
-type ecsContainerDef struct {
-	Name                   string `json:"name"`
-	Privileged             *bool  `json:"privileged"`
-	ReadonlyRootFilesystem *bool  `json:"readonlyRootFilesystem"`
-	User                   string `json:"user"`
-	LinuxParameters        *struct {
-		Capabilities *struct {
-			Add  []string `json:"add"`
-			Drop []string `json:"drop"`
-		} `json:"capabilities"`
-	} `json:"linuxParameters"`
-	DockerSecurityOptions []string `json:"dockerSecurityOptions"`
-}
-
 // specsFromTFECS decodes one aws_ecs_task_definition and returns a graded Spec per
 // container definition. The task-level network/pid/ipc modes and any docker.sock
-// host volume apply to every container in the task.
+// host volume apply to every container in the task. The per-container grading is
+// the SHARED ecsSpec (ecs.go), keyed with source "terraform".
 func specsFromTFECS(r tfResource) []Spec {
 	var v tfEcsValues
 	if err := json.Unmarshal(r.Values, &v); err != nil {
@@ -472,106 +461,10 @@ func specsFromTFECS(r tfResource) []Spec {
 		}
 	}
 
+	modes := ecsTaskModes{NetworkMode: v.NetworkMode, PidMode: v.PidMode, IpcMode: v.IpcMode}
 	specs := make([]Spec, 0, len(defs))
 	for _, d := range defs {
-		specs = append(specs, ecsSpec(family, d, v, dockerSock))
+		specs = append(specs, ecsSpec("terraform", family, d, modes, dockerSock))
 	}
 	return specs
-}
-
-// ecsSpec maps one ECS container definition (plus task-level modes) to a Spec.
-func ecsSpec(family string, d ecsContainerDef, task tfEcsValues, dockerSock Tristate) Spec {
-	target := "ecs/" + family
-	if strings.TrimSpace(d.Name) != "" {
-		target = "ecs/" + family + "/" + d.Name
-	}
-	s := Spec{Source: "terraform", Target: target, DockerSock: dockerSock}
-
-	// --- user ---------------------------------------------------------------
-	// ECS `user` is a string: "", "0", "root", "1000", "1000:1000", "appuser".
-	switch u := strings.TrimSpace(d.User); {
-	case u == "":
-		s.RunAsNonRoot = Unknown
-		s.Notes = append(s.Notes, "no container user set; the image default may be root")
-	case ecsUserIsRoot(u):
-		s.RunAsNonRoot = No
-		s.User = u
-	default:
-		s.RunAsNonRoot = Yes
-		s.User = u
-	}
-
-	// --- capabilities / privilege ------------------------------------------
-	s.Privileged = triFromPtr(d.Privileged)
-	if d.LinuxParameters != nil && d.LinuxParameters.Capabilities != nil {
-		caps := d.LinuxParameters.Capabilities
-		for _, dr := range caps.Drop {
-			if strings.EqualFold(strings.TrimSpace(dr), "ALL") {
-				s.CapDropAll = Yes
-			}
-		}
-		if s.CapDropAll == Unknown {
-			s.CapDropAll = No
-		}
-		for _, a := range caps.Add {
-			if a = strings.TrimSpace(a); a != "" {
-				s.CapAdd = append(s.CapAdd, strings.ToUpper(a))
-			}
-		}
-	} else {
-		// No linuxParameters.capabilities: ECS keeps Docker's default capability
-		// set (fail-closed, same as the compose/docker default).
-		s.CapDropAll = No
-	}
-
-	// --- read-only rootfs ---------------------------------------------------
-	s.ReadonlyRoot = triFromPtr(d.ReadonlyRootFilesystem)
-
-	// --- seccomp ------------------------------------------------------------
-	// ECS applies Docker's DEFAULT seccomp profile unless a dockerSecurityOption
-	// disables it. Mirror the docker/compose adapters: default profile = confined.
-	s.Seccomp = "confined"
-	for _, opt := range d.DockerSecurityOptions {
-		o := strings.ToLower(strings.TrimSpace(opt))
-		if o == "seccomp=unconfined" || o == "seccomp:unconfined" {
-			s.Seccomp = "unconfined"
-		}
-		if o == "no-new-privileges" || o == "no-new-privileges:true" {
-			s.NoNewPrivs = Yes
-		}
-	}
-
-	// --- network ------------------------------------------------------------
-	switch nm := strings.ToLower(strings.TrimSpace(task.NetworkMode)); nm {
-	case "none":
-		s.NetworkMode = "none"
-	case "host":
-		s.NetworkMode = "host"
-		s.HostNetwork = Yes
-	case "":
-		// ECS default network mode is bridge on EC2; egress-capable.
-		s.NetworkMode = "bridge"
-	default:
-		// awsvpc / bridge / default: an egress-capable NIC (not host).
-		s.NetworkMode = nm
-	}
-	if s.HostNetwork != Yes {
-		s.HostNetwork = No
-	}
-
-	// --- namespaces ---------------------------------------------------------
-	s.HostPID = boolTri(strings.EqualFold(strings.TrimSpace(task.PidMode), "host"))
-	s.HostIPC = boolTri(strings.EqualFold(strings.TrimSpace(task.IpcMode), "host"))
-
-	return s
-}
-
-// ecsUserIsRoot reports whether an ECS `user` string resolves to uid 0.
-func ecsUserIsRoot(u string) bool {
-	u = strings.TrimSpace(u)
-	// "uid[:gid]" or "name[:group]": the leading field is the user.
-	if i := strings.IndexByte(u, ':'); i >= 0 {
-		u = u[:i]
-	}
-	return u == "0" || strings.EqualFold(u, "root")
 }
