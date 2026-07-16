@@ -69,6 +69,7 @@ inspect data, so probe-masking from inside the container cannot change the score
 | Terraform | `--terraform PATH` | grades container workloads in a `terraform show -json` plan/state, no apply needed (see below) |
 | AWS ECS | `--ecs PATH` | grades a live `aws ecs describe-task-definition` (or registered) task definition, no AWS call needed (see below) |
 | Cloud Run | `--cloudrun PATH` | grades a Google Cloud Run service spec (Knative Service YAML) or a directory of them, no account needed (see below) |
+| CloudFormation | `--cloudformation PATH` | grades `AWS::ECS::TaskDefinition` resources in a CloudFormation template (YAML/JSON) or a directory, no AWS call needed (see below) |
 | Dockerfile | `--dockerfile FILE` | grades authoring-time posture statically, no daemon and no image pull (see below) |
 
 Selection and binaries:
@@ -176,6 +177,48 @@ the shared ECS scorer is the same one the `--terraform` `aws_ecs_task_definition
 path uses, the two entrypoints can never diverge. Network egress depends on a
 security group that a task definition does not carry, so it is graded
 conservatively, the honest static ceiling. A malformed document fails **open** (a
+clear diagnostic and exit 0) so an opt-in CI step never crashes the build; once
+containers are graded, `--min-score` still trips on a low posture.
+
+## Grade a CloudFormation template
+
+`--cloudformation PATH` grades the `AWS::ECS::TaskDefinition` resources declared in
+an [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html)
+template, in YAML or JSON, straight from the file. It is the infrastructure-as-code
+sibling of `--ecs`: `--ecs` grades a **registered** task definition, `--cloudformation`
+grades the **template** that will create it, so a weak task fails review before the
+stack is ever deployed. No AWS API call is made:
+
+```bash
+ironctl scan --cloudformation template.yaml
+ironctl scan --cloudformation template.yaml --min-score 75    # CI gate
+ironctl scan --cloudformation template.json --sarif cfn.sarif # GitHub code scanning
+
+ironctl scan --cloudformation ./templates                     # weakest-container rollup over a dir
+```
+
+It accepts three input shapes:
+
+| Input | Shape |
+|---|---|
+| a CloudFormation template | YAML or JSON, with one or more `AWS::ECS::TaskDefinition` resources under `Resources` |
+| a template with several task defs | every task definition is graded and rolled up to the **weakest** container |
+| a directory | every `*.yaml` / `*.yml` / `*.json` / `*.template` file in it, graded as one **weakest-container** rollup |
+
+Each `ContainerDefinitions[]` entry is graded on the exact same dimensions as the
+`--ecs` and `--terraform` `aws_ecs_task_definition` paths, through the **shared ECS
+scorer**: non-root `User`, `LinuxParameters.Capabilities.{Add,Drop}`, `Privileged`,
+`ReadonlyRootFilesystem`, seccomp (via `DockerSecurityOptions`), and the task-level
+`NetworkMode` / `PidMode` / `IpcMode`. CloudFormation's PascalCase properties map
+onto the same contract, so a template grades **identically** to the registered JSON
+of the same task, and the three entrypoints can never diverge.
+
+CloudFormation intrinsics — `!Ref`, `!Sub`, `!GetAtt`, the `Fn::*` family, and their
+`{ "Ref": ... }` long forms — cannot be resolved without the deployed stack, so any
+graded field they cover is treated as **unset** and graded fail-closed (an unknown
+posture is insecure). The scan notes when a template used intrinsics so you can
+verify the resolved stack matches. The template grade is the **weakest** container,
+with every container's score in the notes. A malformed template fails **open** (a
 clear diagnostic and exit 0) so an opt-in CI step never crashes the build; once
 containers are graded, `--min-score` still trips on a low posture.
 

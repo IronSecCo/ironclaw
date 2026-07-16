@@ -101,6 +101,19 @@ Pick the surface you have. Each card is one copy-paste command.
 
     [:octicons-arrow-right-24: Grade a Terraform plan](scan.md#grade-a-terraform-plan)
 
+-   #### :material-aws:{ .lg .middle } CloudFormation { #scan-cloudformation }
+
+    ---
+
+    Grades the `AWS::ECS::TaskDefinition` resources in a CloudFormation template (YAML or
+    JSON) with the same ECS scorer as `--ecs`, rolling up to the **weakest** container.
+
+    ```bash
+    ironctl scan --cloudformation template.yaml
+    ```
+
+    [:octicons-arrow-right-24: Grade a CloudFormation template](scan.md#grade-a-cloudformation-template)
+
 -   #### :simple-nomad:{ .lg .middle } Nomad job { #scan-nomad }
 
     ---
@@ -155,6 +168,7 @@ the container they eventually produce are all measured on one comparable scale.
 | [Kubernetes manifest](#scan-k8s) | `--k8s` | a pod spec's `securityContext` | [Scan reference](scan.md) |
 | [Helm chart](#scan-helm) | `--helm` | weakest workload from `helm template` | [Scan reference](scan.md) |
 | [Terraform plan](#scan-terraform) | `--terraform` | container workloads in a plan/state | [Grade a Terraform plan](scan.md#grade-a-terraform-plan) |
+| [CloudFormation](#scan-cloudformation) | `--cloudformation` | `AWS::ECS::TaskDefinition` in a template | [Grade a CloudFormation template](scan.md#grade-a-cloudformation-template) |
 | [Nomad job](#scan-nomad) | `--nomad` | docker-driver tasks in a job spec | [Scan reference](scan.md) |
 | [Dockerfile](#scan-dockerfile) | `--dockerfile` | authoring-time posture, no daemon | [Grade a Dockerfile statically](scan.md#grade-a-dockerfile-statically) |
 | [Alternate runtimes](#scan-runtime) | `--runtime` | Podman / nerdctl / containerd | [Supported runtimes](scan.md#supported-runtimes) |
