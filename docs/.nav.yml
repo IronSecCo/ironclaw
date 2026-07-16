@@ -21,6 +21,7 @@ nav:
       - Observability (metrics): observability.md
       - Troubleshooting: troubleshooting.md
       - FAQ: faq.md
+  - What scan can grade: scan-coverage.md
   - Scan any container: scan.md
   - Scan in CI (GitHub Action): scan-action.md
   - Container isolation scores: scores
