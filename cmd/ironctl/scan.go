@@ -49,6 +49,7 @@ func cmdScan(args []string) error {
 	nomadBin := fs.String("nomad-bin", envOrDefault("NOMAD", "nomad"), "nomad binary used to render an HCL job to JSON (`nomad job run -output`)")
 	ecs := fs.String("ecs", "", "grade an AWS ECS task definition: `aws ecs describe-task-definition` JSON, a raw registered task-def JSON, or a directory of task-def JSON files")
 	cloudrun := fs.String("cloudrun", "", "grade Google Cloud Run service specs: a Knative Service YAML (`gcloud run services describe SVC --format=export`), or a directory of them")
+	cloudformation := fs.String("cloudformation", "", "grade AWS::ECS::TaskDefinition resources in a CloudFormation template (YAML or JSON), or a directory of them")
 	dockerfile := fs.Bool("dockerfile", false, "statically grade the positional Dockerfile(s) authoring-time posture (daemon-free)")
 	runtime := fs.String("runtime", envOrDefault("IRONCTL_SCAN_RUNTIME", "auto"), "container runtime: auto|docker|podman|nerdctl")
 	dockerBin := fs.String("docker-bin", envOrDefault("DOCKER", "docker"), "docker binary used for `docker inspect`")
@@ -193,6 +194,25 @@ func cmdScan(args []string) error {
 	if *cloudrun != "" {
 		return runCloudRunScan(cloudRunScanArgs{
 			path:      *cloudrun,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
+		})
+	}
+
+	// --cloudformation: consume an AWS CloudFormation template (YAML or JSON, or a
+	// directory of them) and grade the AWS::ECS::TaskDefinition resources it
+	// declares, reusing the SHARED ECS scorer that the --ecs and --terraform
+	// aws_ecs_task_definition paths also use. It reads the template here (no external
+	// binary — CFN templates are plain YAML/JSON) then defers to the pure
+	// SpecsFromCloudFormation + AggregateCloudFormation scorer. Fail-OPEN on a
+	// load/parse failure; --min-score still gates once containers are graded.
+	if *cloudformation != "" {
+		return runCloudFormationScan(cloudFormationScanArgs{
+			path:      *cloudformation,
 			asJSON:    *asJSON,
 			md:        *md,
 			badge:     *badge,
@@ -1046,6 +1066,144 @@ func loadCloudRunYAML(path string) ([]byte, error) {
 	return bytes.Join(docs, []byte("\n---\n")), nil
 }
 
+// cloudFormationScanArgs carries the resolved inputs for a `scan --cloudformation` run.
+type cloudFormationScanArgs struct {
+	path      string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
+// runCloudFormationScan grades the AWS::ECS::TaskDefinition resources declared in a
+// CloudFormation template (YAML or JSON, or a directory of them), reusing the SHARED
+// ECS scorer that the --ecs and --terraform aws_ecs_task_definition paths also use.
+// CloudFormation templates are plain YAML/JSON, so there is no external binary to
+// shell out to. It fails OPEN on a load/parse failure (unreadable path, malformed
+// template): it prints a clear diagnostic to stderr and returns nil so an opt-in
+// CI/Action step never crashes the build. Once containers are graded, scoring and
+// the --min-score CI gate apply exactly like --ecs/--terraform. Unresolvable CFN
+// intrinsics (!Ref/!Sub/Fn::...) are graded fail-closed and noted on the report.
+func runCloudFormationScan(a cloudFormationScanArgs) error {
+	specs, usedIntrinsics, err := loadCFNSpecs(a.path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --cloudformation could not load %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateCloudFormation(specs, filepath.Base(strings.TrimRight(a.path, "/")))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --cloudformation found nothing to grade in %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+	if usedIntrinsics {
+		report.Notes = append(report.Notes, "template uses CloudFormation intrinsics (!Ref/!Sub/Fn::...): unresolved values are graded as unset (fail-closed) — verify the deployed stack matches.")
+	}
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (containers graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// loadCFNSpecs resolves a --cloudformation argument to graded Specs. A single file
+// is parsed directly. A directory is a weakest-container rollup: every
+// *.yaml/*.yml/*.json/*.template file in it is parsed and its container specs are
+// pooled, so AggregateCloudFormation grades the single most-exposed container across
+// the whole set. It is daemon-free and offline: templates are read from disk. The
+// bool reports whether any file used CloudFormation intrinsics that were skipped.
+func loadCFNSpecs(path string) ([]scan.Spec, bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, false, err
+	}
+	if !info.IsDir() {
+		raw, rerr := os.ReadFile(path)
+		if rerr != nil {
+			return nil, false, rerr
+		}
+		return scan.SpecsFromCloudFormation(raw)
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, false, err
+	}
+	var specs []scan.Spec
+	usedIntrinsics := false
+	for _, e := range entries {
+		if e.IsDir() || !isCFNTemplateExt(e.Name()) {
+			continue
+		}
+		raw, rerr := os.ReadFile(filepath.Join(path, e.Name()))
+		if rerr != nil {
+			return nil, false, rerr
+		}
+		fileSpecs, intr, perr := scan.SpecsFromCloudFormation(raw)
+		if perr != nil {
+			// A single malformed template in a directory should not sink the rollup:
+			// skip it with a diagnostic and grade the rest (fail-open per file).
+			fmt.Fprintf(os.Stderr, "  warning: scan --cloudformation skipping %s (parse error): %v\n", e.Name(), perr)
+			continue
+		}
+		specs = append(specs, fileSpecs...)
+		usedIntrinsics = usedIntrinsics || intr
+	}
+	return specs, usedIntrinsics, nil
+}
+
+// isCFNTemplateExt reports whether a filename has a CloudFormation template
+// extension (.yaml/.yml/.json/.template).
+func isCFNTemplateExt(name string) bool {
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".yaml", ".yml", ".json", ".template":
+		return true
+	default:
+		return false
+	}
+}
+
 // writeDockerfileSARIF renders the Dockerfile SARIF log to path, fail-open on error.
 func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
 	f, err := os.Create(path)
@@ -1180,6 +1338,7 @@ USAGE:
   ironctl scan --nomad PATH                     grade docker-driver tasks in a Nomad job spec (JSON or HCL)
   ironctl scan --ecs PATH                       grade an AWS ECS task definition (describe-task-definition JSON / dir)
   ironctl scan --cloudrun PATH                  grade Google Cloud Run service specs (Knative Service YAML or dir)
+  ironctl scan --cloudformation PATH            grade AWS::ECS::TaskDefinition in a CloudFormation template (YAML/JSON or dir)
   ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
   ironctl scan --compare A B                   diff two containers' isolation posture
 
@@ -1263,6 +1422,19 @@ rootfs stay the spec's job (graded fail-closed when absent). Egress is managed
 network=none, so a fully hardened Cloud Run service tops out at 89/100 (grade B),
 the honest ceiling for an egress-capable managed runtime. Load/parse failures fail
 OPEN (diagnostic + exit 0). A successful parse still trips --min-score.
+
+--cloudformation grades the AWS::ECS::TaskDefinition resources in a CloudFormation
+template (YAML or JSON), reusing the SAME ECS dimension mapping as --ecs and the
+--terraform aws_ecs_task_definition path (privileged, readonlyRootFilesystem, user,
+linuxParameters.capabilities.{add,drop}, dockerSecurityOptions, and the task-level
+networkMode/pidMode/ipcMode). CloudFormation's PascalCase properties map onto the
+same task-def contract, so a template grades identically to the registered JSON of
+the same task. Pass a single template file or a directory of them (weakest-container
+rollup across the lot). CloudFormation intrinsics (`+"`!Ref`/`!Sub`/`Fn::*`"+`) cannot be
+resolved without the deployed stack, so any graded field they cover is treated as
+unset and graded fail-closed (and noted). The template grade is the WEAKEST
+container; load/parse failures fail OPEN (diagnostic + exit 0). A successful parse
+still trips --min-score.
 
 --dockerfile grades a DIFFERENT, authoring-time dimension set (non-root USER,
 pinned base image, no secrets in ENV/ARG, COPY over remote/opaque ADD, no
