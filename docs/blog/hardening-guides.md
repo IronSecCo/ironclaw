@@ -34,6 +34,7 @@ Two patterns show up across the set:
 | [ClickHouse](harden-clickhouse-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs |
 | [Elasticsearch](harden-elasticsearch-container-isolation.md) | 63/100 C | **100/100 A** | full caps, writable rootfs (89/B multi-node) |
 | [InfluxDB](harden-influxdb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if fleet pushes metrics) |
+| [Neo4j](harden-neo4j-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if clustered or remote clients) |
 | [Untrusted Node.js](run-untrusted-nodejs-code-safely.md) | 48/100 D | **100/100 A** | run untrusted code in a real sandbox |
 
 ## Honest ceiling: grade B (89/100)
@@ -52,6 +53,9 @@ These services must accept client connections, so the network dimension holds at
 | [Grafana](harden-grafana-container-isolation.md) | 63/100 C | **89/100 B** | dashboard: browsers must reach the UI |
 | [Prometheus](harden-prometheus-container-isolation.md) | 63/100 C | **89/100 B** | metrics: it scrapes targets and serves its API |
 | [Traefik](harden-traefik-container-isolation.md) | 48/100 D | **89/100 B** | proxy: it exists to accept and forward traffic |
+| [Jenkins](harden-jenkins-container-isolation.md) | 48/100 D | **89/100 B** | CI server: agents and browsers must reach it |
+| [SonarQube](harden-sonarqube-container-isolation.md) | 48/100 D | **89/100 B** | code-quality server: scanners and browsers must reach it |
+| [Keycloak](harden-keycloak-container-isolation.md) | 48/100 D | **89/100 B** | identity provider: every app must reach its endpoints |
 
 ## The pattern, one command
 

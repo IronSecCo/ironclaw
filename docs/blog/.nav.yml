@@ -36,5 +36,9 @@ nav:
   - "How to harden a Prometheus container": harden-prometheus-container-isolation.md
   - "How to harden a Traefik container": harden-traefik-container-isolation.md
   - "How to harden an InfluxDB container": harden-influxdb-container-isolation.md
+  - "How to harden a Neo4j container": harden-neo4j-container-isolation.md
+  - "How to harden a Jenkins container": harden-jenkins-container-isolation.md
+  - "How to harden a SonarQube container": harden-sonarqube-container-isolation.md
+  - "How to harden a Keycloak container": harden-keycloak-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"
