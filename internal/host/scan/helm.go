@@ -31,6 +31,14 @@ var workloadKinds = map[string]bool{
 // containers are skipped. Empty documents are tolerated. It is pure and
 // unit-testable: the caller runs the renderer (I/O) and passes the stream here.
 func SpecsFromK8sStream(rendered []byte) ([]Spec, error) {
+	return specsFromK8sStreamSource(rendered, "helm")
+}
+
+// specsFromK8sStreamSource is the shared implementation behind SpecsFromK8sStream
+// (helm) and SpecsFromKustomize (kustomize): identical multi-doc parsing and
+// workload selection, only the Spec.Source label differs so reports name the
+// input mode that produced the stream. Scoring is unaffected by the label.
+func specsFromK8sStreamSource(rendered []byte, source string) ([]Spec, error) {
 	dec := yaml.NewDecoder(bytes.NewReader(rendered))
 	var specs []Spec
 	for {
@@ -51,7 +59,7 @@ func SpecsFromK8sStream(rendered []byte) ([]Spec, error) {
 		if !ok {
 			continue
 		}
-		s := specFromPodSpec("helm", workloadTarget(obj), ps)
+		s := specFromPodSpec(source, workloadTarget(obj), ps)
 		specs = append(specs, s)
 	}
 	return specs, nil
@@ -82,8 +90,19 @@ func workloadTarget(obj k8sObject) string {
 // pure; the caller injects Version/GeneratedAt. Fail-closed: an empty workload
 // set is an error (a chart that renders no gradeable workload is not a pass).
 func AggregateHelm(specs []Spec, chart string) (Report, Spec, error) {
+	return aggregateWeakestWorkload(specs, chart, "helm", "chart")
+}
+
+// aggregateWeakestWorkload folds a set of per-workload specs into a single
+// weakest-link Report. It backs AggregateHelm (source "helm", noun "chart") and
+// AggregateKustomize (source "kustomize", noun "kustomize build"): the rollup
+// logic is identical, only the report identity (source) and the roll-up prose
+// (noun) differ. target names the source unit for the report; a blank target
+// keeps the weakest workload's own target. Fail-closed: an empty workload set is
+// an error (a unit that renders no gradeable workload is not a pass).
+func aggregateWeakestWorkload(specs []Spec, target, source, noun string) (Report, Spec, error) {
 	if len(specs) == 0 {
-		return Report{}, Spec{}, fmt.Errorf("no gradeable workloads found in rendered chart (no Pod/Deployment/StatefulSet/DaemonSet/Job/CronJob with containers)")
+		return Report{}, Spec{}, fmt.Errorf("no gradeable workloads found in rendered %s (no Pod/Deployment/StatefulSet/DaemonSet/Job/CronJob with containers)", noun)
 	}
 
 	// Score every workload, then pick the weakest. Ties resolve to the first in
@@ -99,17 +118,17 @@ func AggregateHelm(specs []Spec, chart string) (Report, Spec, error) {
 
 	agg := all[worst].report
 	worstSpec := all[worst].spec
-	// Re-target the aggregate at the chart while keeping the weakest workload's
-	// identity visible in the notes below.
-	if strings.TrimSpace(chart) != "" {
-		agg.Target = chart
+	// Re-target the aggregate at the source unit while keeping the weakest
+	// workload's identity visible in the notes below.
+	if strings.TrimSpace(target) != "" {
+		agg.Target = target
 	}
-	agg.Source = "helm"
+	agg.Source = source
 
-	// Prepend a chart-level summary so the human/JSON output is honest about what
+	// Prepend a unit-level summary so the human/JSON output is honest about what
 	// was aggregated: how many workloads, which one set the grade, and the full
 	// per-workload roll-up. This mirrors the --dockerfile honesty pattern.
-	agg.Notes = append(chartSummaryNotes(all[worst], all), agg.Notes...)
+	agg.Notes = append(chartSummaryNotes(all[worst], all, noun), agg.Notes...)
 
 	return agg, worstSpec, nil
 }
@@ -120,12 +139,14 @@ type scoredWorkload struct {
 	report Report
 }
 
-// chartSummaryNotes builds the chart-level roll-up notes for an aggregate helm
-// report: a headline naming the weakest workload and a per-workload score list.
-func chartSummaryNotes(worst scoredWorkload, all []scoredWorkload) []string {
+// chartSummaryNotes builds the unit-level roll-up notes for an aggregate
+// weakest-link report: a headline naming the weakest workload and a per-workload
+// score list. noun names the source unit ("chart", "kustomize build") so the
+// prose is honest about what was aggregated.
+func chartSummaryNotes(worst scoredWorkload, all []scoredWorkload, noun string) []string {
 	notes := []string{
-		fmt.Sprintf("graded %d rendered workload(s); the chart grade is the WEAKEST (a chart is only as isolated as its most-exposed pod). Weakest: %s at %d/100 (grade %s).",
-			len(all), nz(worst.spec.Target, "workload"), worst.report.Score, worst.report.Grade),
+		fmt.Sprintf("graded %d rendered workload(s); the %s grade is the WEAKEST (a %s is only as isolated as its most-exposed pod). Weakest: %s at %d/100 (grade %s).",
+			len(all), noun, noun, nz(worst.spec.Target, "workload"), worst.report.Score, worst.report.Grade),
 	}
 	// Per-workload roll-up, sorted worst-first for a quick scan.
 	sorted := make([]scoredWorkload, len(all))

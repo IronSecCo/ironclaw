@@ -127,6 +127,19 @@ Pick the surface you have. Each card is one copy-paste command.
 
     [:octicons-arrow-right-24: Scan reference](scan.md)
 
+-   #### :simple-kubernetes:{ .lg .middle } Kustomize build { #scan-kustomize }
+
+    ---
+
+    Renders a kustomization with `kustomize build` (base plus overlays) and grades the
+    **weakest** flattened workload, so an overlay is graded after its patches apply.
+
+    ```bash
+    ironctl scan --kustomize ./overlays/prod
+    ```
+
+    [:octicons-arrow-right-24: Grade a kustomization](scan.md#grade-a-kustomization)
+
 -   #### :material-file-code-outline:{ .lg .middle } Dockerfile (static) { #scan-dockerfile }
 
     ---
@@ -170,6 +183,7 @@ the container they eventually produce are all measured on one comparable scale.
 | [Terraform plan](#scan-terraform) | `--terraform` | container workloads in a plan/state | [Grade a Terraform plan](scan.md#grade-a-terraform-plan) |
 | [CloudFormation](#scan-cloudformation) | `--cloudformation` | `AWS::ECS::TaskDefinition` in a template | [Grade a CloudFormation template](scan.md#grade-a-cloudformation-template) |
 | [Nomad job](#scan-nomad) | `--nomad` | docker-driver tasks in a job spec | [Scan reference](scan.md) |
+| [Kustomize build](#scan-kustomize) | `--kustomize` | weakest workload from `kustomize build` | [Grade a kustomization](scan.md#grade-a-kustomization) |
 | [Dockerfile](#scan-dockerfile) | `--dockerfile` | authoring-time posture, no daemon | [Grade a Dockerfile statically](scan.md#grade-a-dockerfile-statically) |
 | [Alternate runtimes](#scan-runtime) | `--runtime` | Podman / nerdctl / containerd | [Supported runtimes](scan.md#supported-runtimes) |
 
