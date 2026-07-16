@@ -35,6 +35,8 @@ Two patterns show up across the set:
 | [Elasticsearch](harden-elasticsearch-container-isolation.md) | 63/100 C | **100/100 A** | full caps, writable rootfs (89/B multi-node) |
 | [InfluxDB](harden-influxdb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if fleet pushes metrics) |
 | [Neo4j](harden-neo4j-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if clustered or remote clients) |
+| [CouchDB](harden-couchdb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if clustered or remote clients) |
+| [QuestDB](harden-questdb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if a fleet pushes metrics) |
 | [Untrusted Node.js](run-untrusted-nodejs-code-safely.md) | 48/100 D | **100/100 A** | run untrusted code in a real sandbox |
 
 ## Honest ceiling: grade B (89/100)
@@ -56,6 +58,8 @@ These services must accept client connections, so the network dimension holds at
 | [Jenkins](harden-jenkins-container-isolation.md) | 48/100 D | **89/100 B** | CI server: agents and browsers must reach it |
 | [SonarQube](harden-sonarqube-container-isolation.md) | 48/100 D | **89/100 B** | code-quality server: scanners and browsers must reach it |
 | [Keycloak](harden-keycloak-container-isolation.md) | 48/100 D | **89/100 B** | identity provider: every app must reach its endpoints |
+| [NATS](harden-nats-container-isolation.md) | 48/100 D | **89/100 B** | broker: publishers and subscribers must connect |
+| [Gitea](harden-gitea-container-isolation.md) | 48/100 D | **89/100 B** | git server: developers and CI must reach it |
 
 ## The pattern, one command
 
