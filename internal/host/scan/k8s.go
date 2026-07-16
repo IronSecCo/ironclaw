@@ -99,6 +99,16 @@ type k8sContainer struct {
 	Name            string           `yaml:"name"`
 	SecurityContext *containerSecCtx `yaml:"securityContext"`
 	VolumeMounts    []volumeMount    `yaml:"volumeMounts"`
+	// Resources mirrors a container resources block. Kubernetes and Cloud Run
+	// revisions both carry it; the 7-dim containment scorer does not grade it, but
+	// the Cloud Run adapter surfaces resources.limits as an informational note.
+	Resources *resourceReqs `yaml:"resources"`
+}
+
+// resourceReqs mirrors a container resources.{limits,requests} block. Only limits
+// are read (as informational evidence); requests do not bound isolation.
+type resourceReqs struct {
+	Limits map[string]string `yaml:"limits"`
 }
 
 type k8sVolume struct {
