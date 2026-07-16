@@ -70,6 +70,7 @@ inspect data, so probe-masking from inside the container cannot change the score
 | AWS ECS | `--ecs PATH` | grades a live `aws ecs describe-task-definition` (or registered) task definition, no AWS call needed (see below) |
 | Cloud Run | `--cloudrun PATH` | grades a Google Cloud Run service spec (Knative Service YAML) or a directory of them, no account needed (see below) |
 | CloudFormation | `--cloudformation PATH` | grades `AWS::ECS::TaskDefinition` resources in a CloudFormation template (YAML/JSON) or a directory, no AWS call needed (see below) |
+| Kustomize | `--kustomize DIR` | renders a kustomization with `kustomize build` (or `kubectl kustomize`) and grades its workloads, no cluster needed (see below) |
 | Dockerfile | `--dockerfile FILE` | grades authoring-time posture statically, no daemon and no image pull (see below) |
 
 Selection and binaries:
@@ -263,6 +264,37 @@ as gVisor (`runsc`) informationally; scoring stays runtime-agnostic. Load or par
 failures fail **open** (a clear diagnostic and exit 0) so an opt-in CI step never
 crashes the build; once services are graded, `--min-score` still trips on a low
 posture.
+
+## Grade a kustomization
+
+`--kustomize DIR` renders a [Kustomize](https://kustomize.io/) directory with
+`kustomize build` (falling back to `kubectl kustomize` when the standalone binary
+is absent) and grades the isolation posture of the flattened workloads. It is
+offline and daemon-free: overlays are flattened locally, with no cluster and no
+`kubectl apply`:
+
+```bash
+ironctl scan --kustomize ./overlays/prod
+ironctl scan --kustomize ./overlays/prod --min-score 80   # CI gate
+ironctl scan --kustomize ./base --sarif scan.sarif        # upload to code-scanning
+```
+
+Kustomize flattens the base plus every overlay patch into the same multi-document
+manifest stream that `--k8s`/`--helm` grade, so `--kustomize` reuses the exact
+pod-spec dimension set and the same weakest-link rollup: the **build grade is the
+weakest rendered workload** (a kustomization is only as isolated as its
+most-exposed pod), and every workload's score is listed in the report notes. This
+grades the manifests **after** overlay patches apply — the same YAML the cluster
+would receive — so a `securityContext` a production overlay strips (or one it
+adds) is reflected in the grade.
+
+As with `--helm`, network egress depends on a `NetworkPolicy` that a pod spec does
+not carry, so it is graded conservatively (the honest static ceiling). Render
+failures (neither `kustomize` nor `kubectl` on your PATH, or a `build` error) fail
+**open** — a clear diagnostic and exit 0 — so an opt-in CI step never crashes the
+build; once the kustomization renders, `--min-score` still trips on a low posture.
+Point at a non-default renderer with `--kustomize-bin` / `--kubectl-bin` (or the
+`KUSTOMIZE` / `KUBECTL` environment variables).
 
 ## Grade a Dockerfile statically
 

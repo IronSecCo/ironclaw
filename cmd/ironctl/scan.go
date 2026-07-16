@@ -50,6 +50,9 @@ func cmdScan(args []string) error {
 	ecs := fs.String("ecs", "", "grade an AWS ECS task definition: `aws ecs describe-task-definition` JSON, a raw registered task-def JSON, or a directory of task-def JSON files")
 	cloudrun := fs.String("cloudrun", "", "grade Google Cloud Run service specs: a Knative Service YAML (`gcloud run services describe SVC --format=export`), or a directory of them")
 	cloudformation := fs.String("cloudformation", "", "grade AWS::ECS::TaskDefinition resources in a CloudFormation template (YAML or JSON), or a directory of them")
+	kustomize := fs.String("kustomize", "", "render a kustomization directory with `kustomize build` (or `kubectl kustomize`) and grade the isolation posture of its workloads")
+	kustomizeBin := fs.String("kustomize-bin", envOrDefault("KUSTOMIZE", "kustomize"), "kustomize binary used to render the directory (falls back to `kubectl kustomize` if absent)")
+	kubectlBin := fs.String("kubectl-bin", envOrDefault("KUBECTL", "kubectl"), "kubectl binary used for `kubectl kustomize` when the kustomize binary is absent")
 	dockerfile := fs.Bool("dockerfile", false, "statically grade the positional Dockerfile(s) authoring-time posture (daemon-free)")
 	runtime := fs.String("runtime", envOrDefault("IRONCTL_SCAN_RUNTIME", "auto"), "container runtime: auto|docker|podman|nerdctl")
 	dockerBin := fs.String("docker-bin", envOrDefault("DOCKER", "docker"), "docker binary used for `docker inspect`")
@@ -219,6 +222,28 @@ func cmdScan(args []string) error {
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
 			minScore:  *minScore,
+		})
+	}
+
+	// --kustomize: render a kustomization locally (`kustomize build`, or
+	// `kubectl kustomize` when the standalone binary is absent — no cluster,
+	// daemon-free) and grade the isolation posture of the flattened workloads,
+	// reusing the k8s dimension set. It renders (I/O) here, then defers to the pure
+	// SpecsFromKustomize + AggregateKustomize scorer (the same weakest-link rollup
+	// as --helm). Fail-OPEN on a render failure (kustomize/kubectl absent or build
+	// error) so an opt-in CI step never crashes the build; --min-score still gates
+	// once the kustomization renders.
+	if *kustomize != "" {
+		return runKustomizeScan(kustomizeArgs{
+			dir:          *kustomize,
+			kustomizeBin: *kustomizeBin,
+			kubectlBin:   *kubectlBin,
+			asJSON:       *asJSON,
+			md:           *md,
+			badge:        *badge,
+			badgeJSON:    *badgeJSON,
+			sarif:        *sarif,
+			minScore:     *minScore,
 		})
 	}
 
@@ -566,6 +591,127 @@ func renderHelmChart(helmBin, chart string) ([]byte, error) {
 			msg = err.Error()
 		}
 		return nil, fmt.Errorf("helm template failed: %s", msg)
+	}
+	return stdout.Bytes(), nil
+}
+
+// kustomizeArgs carries the resolved inputs for a `scan --kustomize` run.
+type kustomizeArgs struct {
+	dir          string
+	kustomizeBin string
+	kubectlBin   string
+	asJSON       bool
+	md           bool
+	badge        string
+	badgeJSON    string
+	sarif        string
+	minScore     int
+}
+
+// runKustomizeScan renders a kustomization directory with `kustomize build`
+// (falling back to `kubectl kustomize` when the standalone binary is absent — no
+// cluster, daemon-free) and grades the isolation posture of its flattened
+// workloads, reusing the k8s scorer. It fails OPEN on a render failure (neither
+// binary present, or the build errors): it prints a clear diagnostic to stderr
+// and returns nil so an opt-in CI/Action step never crashes the build over
+// tooling or overlay issues. Once the kustomization renders, scoring and the
+// --min-score CI gate apply exactly like --helm (a genuinely low posture still
+// fails the gate).
+func runKustomizeScan(a kustomizeArgs) error {
+	rendered, err := renderKustomize(a.kustomizeBin, a.kubectlBin, a.dir)
+	if err != nil {
+		// Fail-open: surface the reason, do not error out.
+		fmt.Fprintf(os.Stderr, "  warning: scan --kustomize could not render %q (scan skipped, exit 0): %v\n", a.dir, err)
+		return nil
+	}
+
+	specs, err := scan.SpecsFromKustomize(rendered)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --kustomize could not parse rendered manifests for %q (scan skipped, exit 0): %v\n", a.dir, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateKustomize(specs, filepath.Base(strings.TrimRight(a.dir, "/")))
+	if err != nil {
+		// A kustomization that renders no gradeable workload is a fail-open skip,
+		// not a crash: nothing to grade is not the same as a low score.
+		fmt.Fprintf(os.Stderr, "  warning: scan --kustomize found nothing to grade in %q (scan skipped, exit 0): %v\n", a.dir, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		// Anchor at the kustomization with a logical location naming the weakest
+		// workload (the rendered stream has no stable source file/line to point at).
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (render succeeded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// renderKustomize renders a kustomization directory to a multi-document manifest
+// stream. It prefers the standalone `kustomize build <dir>` and falls back to
+// `kubectl kustomize <dir>` (the same renderer, vendored into kubectl) when the
+// kustomize binary is not on PATH. It is offline and daemon-free: no cluster
+// connection, only local overlay flattening.
+func renderKustomize(kustomizeBin, kubectlBin, dir string) ([]byte, error) {
+	if _, err := exec.LookPath(kustomizeBin); err == nil {
+		return runKustomizeRenderer(exec.Command(kustomizeBin, "build", dir), "kustomize build")
+	}
+	if _, err := exec.LookPath(kubectlBin); err == nil {
+		return runKustomizeRenderer(exec.Command(kubectlBin, "kustomize", dir), "kubectl kustomize")
+	}
+	return nil, fmt.Errorf("neither kustomize (%q) nor kubectl (%q) found on PATH (install one or pass --kustomize-bin/--kubectl-bin)", kustomizeBin, kubectlBin)
+}
+
+// runKustomizeRenderer runs a prepared render command and returns its stdout,
+// wrapping any failure with the renderer's stderr for a clear diagnostic.
+func runKustomizeRenderer(cmd *exec.Cmd, label string) ([]byte, error) {
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	if err := cmd.Run(); err != nil {
+		msg := strings.TrimSpace(stderr.String())
+		if msg == "" {
+			msg = err.Error()
+		}
+		return nil, fmt.Errorf("%s failed: %s", label, msg)
 	}
 	return stdout.Bytes(), nil
 }
@@ -1339,6 +1485,7 @@ USAGE:
   ironctl scan --ecs PATH                       grade an AWS ECS task definition (describe-task-definition JSON / dir)
   ironctl scan --cloudrun PATH                  grade Google Cloud Run service specs (Knative Service YAML or dir)
   ironctl scan --cloudformation PATH            grade AWS::ECS::TaskDefinition in a CloudFormation template (YAML/JSON or dir)
+  ironctl scan --kustomize DIR                  render a kustomization (kustomize build) and grade its workloads
   ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
   ironctl scan --compare A B                   diff two containers' isolation posture
 
@@ -1357,6 +1504,8 @@ FLAGS:
   --helm-bin BIN      helm binary for `+"`helm template`"+` (default: helm)
   --terraform-bin BIN terraform binary for `+"`terraform show -json`"+` (default: terraform)
   --nomad-bin BIN     nomad binary for `+"`nomad job run -output`"+` (HCL->JSON; default: nomad)
+  --kustomize-bin BIN kustomize binary for `+"`kustomize build`"+` (default: kustomize)
+  --kubectl-bin BIN   kubectl binary for `+"`kubectl kustomize`"+` fallback (default: kubectl)
   --docker-bin BIN    docker binary for `+"`docker inspect`"+` (default: docker)
   --podman-bin BIN    podman binary for `+"`podman inspect`"+` (default: podman)
   --nerdctl-bin BIN   nerdctl binary for `+"`nerdctl inspect`"+` (default: nerdctl)
@@ -1435,6 +1584,16 @@ resolved without the deployed stack, so any graded field they cover is treated a
 unset and graded fail-closed (and noted). The template grade is the WEAKEST
 container; load/parse failures fail OPEN (diagnostic + exit 0). A successful parse
 still trips --min-score.
+
+--kustomize renders a kustomization directory locally with `+"`kustomize build`"+` (or
+`+"`kubectl kustomize`"+` when the standalone binary is absent — no cluster, daemon-free)
+and grades the flattened workloads with the same k8s dimension set as --helm. The
+build grade is the WEAKEST rendered workload (a kustomization is only as isolated
+as its most-exposed pod); every workload's score is listed in the notes. As with
+--helm, network egress depends on a NetworkPolicy a pod spec does not carry, so it
+is graded conservatively (the honest static ceiling). Render failures (neither
+kustomize nor kubectl on PATH / build error) fail OPEN (diagnostic + exit 0); a
+successful render still trips --min-score.
 
 --dockerfile grades a DIFFERENT, authoring-time dimension set (non-root USER,
 pinned base image, no secrets in ENV/ARG, COPY over remote/opaque ADD, no
