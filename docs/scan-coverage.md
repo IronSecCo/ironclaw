@@ -209,6 +209,20 @@ no API call.
 
     [:octicons-arrow-right-24: Grade an Azure container group](scan.md#grade-an-azure-container-group)
 
+-   #### :fontawesome-brands-aws:{ .lg .middle } AWS App Runner { #scan-app-runner }
+
+    ---
+
+    Grades an App Runner service from its `aws apprunner describe-service` JSON with the
+    managed-runtime model. App Runner exposes no `securityContext`, so it grades honestly
+    on its Fargate/Firecracker floors.
+
+    ```bash
+    ironctl scan --app-runner service.json
+    ```
+
+    [:octicons-arrow-right-24: Grade an App Runner service](scan.md#grade-an-aws-app-runner-service)
+
 </div>
 
 ### Infrastructure-as-Code { #modes-iac }
@@ -279,6 +293,7 @@ the container they eventually produce are all measured on one comparable scale.
 | Cloud runtimes | [Cloud Run](#scan-cloudrun) | `--cloudrun` | a Knative Service's container config | [Grade a Cloud Run service](scan.md#grade-a-google-cloud-run-service) |
 | Cloud runtimes | [Amazon ECS](#scan-ecs) | `--ecs` | a task definition's container contract | [Grade an ECS task definition](scan.md#grade-an-aws-ecs-task-definition) |
 | Cloud runtimes | [Azure Container Instances](#scan-azure) | `--azure` | weakest container in an ARM `containerGroups` | [Grade an Azure container group](scan.md#grade-an-azure-container-group) |
+| Cloud runtimes | [AWS App Runner](#scan-app-runner) | `--app-runner` | a service's managed-runtime posture | [Grade an App Runner service](scan.md#grade-an-aws-app-runner-service) |
 | Infrastructure-as-Code | [Terraform plan](#scan-terraform) | `--terraform` | container workloads in a plan/state | [Grade a Terraform plan](scan.md#grade-a-terraform-plan) |
 | Infrastructure-as-Code | [CloudFormation](#scan-cloudformation) | `--cloudformation` | ECS task defs in a CFN template | [Grade a CloudFormation template](scan.md#grade-a-cloudformation-template) |
 | Infrastructure-as-Code | [Pulumi program](#scan-pulumi) | `--pulumi` | K8s &amp; ECS workloads in stack-export / preview JSON | [Grade a Pulumi program](scan.md#grade-a-pulumi-program) |
