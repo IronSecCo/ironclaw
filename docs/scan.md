@@ -313,6 +313,51 @@ failures fail **open** (a clear diagnostic and exit 0) so an opt-in CI step neve
 crashes the build; once services are graded, `--min-score` still trips on a low
 posture.
 
+## Grade an Azure container group
+
+`--azure PATH` grades the `Microsoft.ContainerInstance/containerGroups` declared in
+an [Azure Resource Manager](https://learn.microsoft.com/azure/container-instances/)
+template, an `az container show` / deployment JSON, or a bare containerGroup object.
+It completes the big-3 cloud coverage alongside `--cloudrun` (GCP) and `--ecs` (AWS).
+Azure output is plain JSON, so it is structured and daemon-free, with no `az` login
+and no external binary:
+
+```bash
+az container show -g rg -n mygroup > containergroup.json
+ironctl scan --azure containergroup.json
+ironctl scan --azure arm-template.json --min-score 75   # CI gate
+ironctl scan --azure ./deployments                      # a directory of *.json
+```
+
+Pass a single ARM template, an `az container show` object, or a directory of JSON
+files (the weakest container in the weakest group governs). Each container's
+`securityContext` is graded through the **same pod-spec scorer** as `--k8s` /
+`--cloudrun`, then Azure Container Instances' **managed-runtime floors** are folded
+in:
+
+| Dimension | How ACI is graded |
+|---|---|
+| Non-root user | graded on `securityContext.runAsUser`; unset means the image default (root), scored fail-closed. |
+| Dropped capabilities | graded on `securityContext.capabilities.{add,drop}`. ACI **lets a container add capabilities**, so cap-drop is NOT credited by the platform — express `capabilities.drop: [ALL]` to earn it. |
+| Seccomp | the managed runtime applies a default profile — credited as confined unless overridden; a custom `seccompProfile` string counts as applied. |
+| Network isolation | ACI egress is **managed** (public or private IP), never `network=none`. Graded as egress-capable (the honest ceiling). |
+| Read-only rootfs | **not expressible** — ACI's `securityContext` has no read-only-rootfs field, so this dimension is always graded fail-closed. |
+| docker.sock | impossible on ACI (no host bind mounts) — passes by construction. |
+| Host namespaces | each container group runs in a dedicated **Hyper-V-isolated VM**; host PID/IPC/network are unreachable — passes by construction. Privileged is not permitted on the Standard SKU. |
+
+Because the platform blocks host namespaces and the docker socket and forbids
+privileged (unless the spec explicitly sets it), an ACI container starts from a
+strong floor. What stays your job is running as **non-root** and dropping
+**capabilities**. A fully hardened ACI container tops out at **79/100 (grade B)** —
+one dimension (read-only rootfs, 10 pts) below Cloud Run's 89/B, because ACI cannot
+express a read-only root filesystem. ARM expressions (`"[parameters(...)]"` /
+`"[variables(...)]"`) cannot be resolved without the deployment, so any graded field
+they cover is treated as **unset** and graded fail-closed; the scan notes when a
+template used them. The group grade is the **weakest** container, with every
+container's score in the notes. Load or parse failures fail **open** (a clear
+diagnostic and exit 0) so an opt-in CI step never crashes the build; once containers
+are graded, `--min-score` still trips on a low posture.
+
 ## Grade a kustomization
 
 `--kustomize DIR` renders a [Kustomize](https://kustomize.io/) directory with

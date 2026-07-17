@@ -195,6 +195,20 @@ no API call.
 
     [:octicons-arrow-right-24: Grade an ECS task definition](scan.md#grade-an-aws-ecs-task-definition)
 
+-   #### :material-microsoft-azure:{ .lg .middle } Azure Container Instances { #scan-azure }
+
+    ---
+
+    Grades the `Microsoft.ContainerInstance/containerGroups` in an ARM template or
+    `az container show` JSON with the managed-runtime model, rolling up to the **weakest**
+    container in the group.
+
+    ```bash
+    ironctl scan --azure containergroup.json
+    ```
+
+    [:octicons-arrow-right-24: Grade an Azure container group](scan.md#grade-an-azure-container-group)
+
 </div>
 
 ### Infrastructure-as-Code { #modes-iac }
@@ -264,6 +278,7 @@ the container they eventually produce are all measured on one comparable scale.
 | Compose &amp; orchestrators | [Nomad job](#scan-nomad) | `--nomad` | docker-driver tasks in a job spec | [Scan reference](scan.md) |
 | Cloud runtimes | [Cloud Run](#scan-cloudrun) | `--cloudrun` | a Knative Service's container config | [Grade a Cloud Run service](scan.md#grade-a-google-cloud-run-service) |
 | Cloud runtimes | [Amazon ECS](#scan-ecs) | `--ecs` | a task definition's container contract | [Grade an ECS task definition](scan.md#grade-an-aws-ecs-task-definition) |
+| Cloud runtimes | [Azure Container Instances](#scan-azure) | `--azure` | weakest container in an ARM `containerGroups` | [Grade an Azure container group](scan.md#grade-an-azure-container-group) |
 | Infrastructure-as-Code | [Terraform plan](#scan-terraform) | `--terraform` | container workloads in a plan/state | [Grade a Terraform plan](scan.md#grade-a-terraform-plan) |
 | Infrastructure-as-Code | [CloudFormation](#scan-cloudformation) | `--cloudformation` | ECS task defs in a CFN template | [Grade a CloudFormation template](scan.md#grade-a-cloudformation-template) |
 | Infrastructure-as-Code | [Pulumi program](#scan-pulumi) | `--pulumi` | K8s &amp; ECS workloads in stack-export / preview JSON | [Grade a Pulumi program](scan.md#grade-a-pulumi-program) |
@@ -271,17 +286,6 @@ the container they eventually produce are all measured on one comparable scale.
 Every mode also emits the machine-readable outputs: a [SARIF log](scan.md#github-code-scanning-security-tab)
 for GitHub code scanning, a [shields.io badge](scan.md#sandbox-isolation-score-badge), and
 `--fix` [remediation](scan.md#fix-it-do-not-just-grade-it).
-
-## On the roadmap
-
-More input modes are in progress and will drop into the category grids above as they ship
-&mdash; the card contract adds them without a redesign:
-
-- **Azure Container Instances** &mdash; grade a container group spec, alongside Cloud Run and
-  ECS in **Cloud runtimes**.
-
-We list these as *planned*, not shipped. When they land, each moves up into a card in its
-category.
 
 ## Start with what you have
 
