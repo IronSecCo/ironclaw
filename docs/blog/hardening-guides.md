@@ -40,6 +40,10 @@ Two patterns show up across the set:
 | [CockroachDB](harden-cockroachdb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if clustered or remote clients) |
 | [TimescaleDB](harden-timescaledb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B with replicas or remote clients) |
 | [Valkey](harden-valkey-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B as a shared network cache) |
+| [Loki](harden-loki-container-isolation.md) | 63/100 C | **100/100 A** | full caps, writable rootfs (89/B if a fleet pushes logs) |
+| [Tempo](harden-tempo-container-isolation.md) | 63/100 C | **100/100 A** | full caps, writable rootfs (89/B if a fleet pushes traces) |
+| [Meilisearch](harden-meilisearch-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if remote clients) |
+| [Dragonfly](harden-dragonfly-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B as a shared network cache) |
 | [Untrusted Node.js](run-untrusted-nodejs-code-safely.md) | 48/100 D | **100/100 A** | run untrusted code in a real sandbox |
 
 ## Honest ceiling: grade B (89/100)
