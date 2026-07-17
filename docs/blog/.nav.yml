@@ -44,5 +44,9 @@ nav:
   - "How to harden a QuestDB container": harden-questdb-container-isolation.md
   - "How to harden a NATS container": harden-nats-container-isolation.md
   - "How to harden a Gitea container": harden-gitea-container-isolation.md
+  - "How to harden a CockroachDB container": harden-cockroachdb-container-isolation.md
+  - "How to harden a TimescaleDB container": harden-timescaledb-container-isolation.md
+  - "How to harden a Valkey container": harden-valkey-container-isolation.md
+  - "How to harden a HAProxy container": harden-haproxy-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"
