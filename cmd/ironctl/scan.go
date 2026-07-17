@@ -50,6 +50,7 @@ func cmdScan(args []string) error {
 	ecs := fs.String("ecs", "", "grade an AWS ECS task definition: `aws ecs describe-task-definition` JSON, a raw registered task-def JSON, or a directory of task-def JSON files")
 	cloudrun := fs.String("cloudrun", "", "grade Google Cloud Run service specs: a Knative Service YAML (`gcloud run services describe SVC --format=export`), or a directory of them")
 	cloudformation := fs.String("cloudformation", "", "grade AWS::ECS::TaskDefinition resources in a CloudFormation template (YAML or JSON), or a directory of them")
+	pulumi := fs.String("pulumi", "", "grade container workloads in a Pulumi `pulumi stack export` / `pulumi preview --json` file (or a directory of them): kubernetes:* workloads and aws ECS task definitions")
 	kustomize := fs.String("kustomize", "", "render a kustomization directory with `kustomize build` (or `kubectl kustomize`) and grade the isolation posture of its workloads")
 	kustomizeBin := fs.String("kustomize-bin", envOrDefault("KUSTOMIZE", "kustomize"), "kustomize binary used to render the directory (falls back to `kubectl kustomize` if absent)")
 	kubectlBin := fs.String("kubectl-bin", envOrDefault("KUBECTL", "kubectl"), "kubectl binary used for `kubectl kustomize` when the kustomize binary is absent")
@@ -216,6 +217,27 @@ func cmdScan(args []string) error {
 	if *cloudformation != "" {
 		return runCloudFormationScan(cloudFormationScanArgs{
 			path:      *cloudformation,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
+		})
+	}
+
+	// --pulumi: consume Pulumi program output (`pulumi stack export` checkpoint or
+	// `pulumi preview --json`, or a directory of them) and grade the container
+	// workloads it declares — kubernetes:* pods/workloads and aws ECS task
+	// definitions — reusing the SHARED k8s and ECS scorers that the --k8s/--helm and
+	// --ecs/--terraform paths also use. Pulumi output is plain JSON, so there is no
+	// external binary to shell out to. It reads the file(s) here then defers to the
+	// pure SpecsFromPulumi + AggregatePulumi scorer (the same weakest-link rollup as
+	// --terraform). Fail-OPEN on a load/parse failure so an opt-in CI/Action step
+	// never crashes the build; --min-score still gates once workloads are graded.
+	if *pulumi != "" {
+		return runPulumiScan(pulumiScanArgs{
+			path:      *pulumi,
 			asJSON:    *asJSON,
 			md:        *md,
 			badge:     *badge,
@@ -1350,6 +1372,127 @@ func isCFNTemplateExt(name string) bool {
 	}
 }
 
+// pulumiScanArgs carries the resolved inputs for a `scan --pulumi` run.
+type pulumiScanArgs struct {
+	path      string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
+// runPulumiScan grades the container workloads declared in Pulumi program output
+// (a `pulumi stack export` checkpoint or `pulumi preview --json`, or a directory
+// of them), reusing the SHARED k8s and ECS scorers that the --k8s/--helm and
+// --ecs/--terraform paths also use. Pulumi output is plain JSON, so there is no
+// external binary to shell out to. It fails OPEN on a load/parse failure
+// (unreadable path, malformed JSON): it prints a clear diagnostic to stderr and
+// returns nil so an opt-in CI/Action step never crashes the build. Once workloads
+// are graded, scoring and the --min-score CI gate apply exactly like
+// --terraform/--ecs.
+func runPulumiScan(a pulumiScanArgs) error {
+	specs, err := loadPulumiSpecs(a.path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --pulumi could not load %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregatePulumi(specs, filepath.Base(strings.TrimRight(a.path, "/")))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --pulumi found nothing to grade in %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (workloads graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// loadPulumiSpecs resolves a --pulumi argument to graded Specs. A single file is
+// parsed directly. A directory is a weakest-workload rollup: every *.json file in
+// it is parsed and its workload specs are pooled, so AggregatePulumi grades the
+// single most-exposed container across the whole set. It is daemon-free and
+// offline: Pulumi output is read from disk.
+func loadPulumiSpecs(path string) ([]scan.Spec, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		raw, rerr := os.ReadFile(path)
+		if rerr != nil {
+			return nil, rerr
+		}
+		return scan.SpecsFromPulumi(raw)
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	var specs []scan.Spec
+	for _, e := range entries {
+		if e.IsDir() || strings.ToLower(filepath.Ext(e.Name())) != ".json" {
+			continue
+		}
+		raw, rerr := os.ReadFile(filepath.Join(path, e.Name()))
+		if rerr != nil {
+			return nil, rerr
+		}
+		fileSpecs, perr := scan.SpecsFromPulumi(raw)
+		if perr != nil {
+			// A single malformed file in a directory should not sink the rollup:
+			// skip it with a diagnostic and grade the rest (fail-open per file).
+			fmt.Fprintf(os.Stderr, "  warning: scan --pulumi skipping %s (parse error): %v\n", e.Name(), perr)
+			continue
+		}
+		specs = append(specs, fileSpecs...)
+	}
+	return specs, nil
+}
+
 // writeDockerfileSARIF renders the Dockerfile SARIF log to path, fail-open on error.
 func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
 	f, err := os.Create(path)
@@ -1485,6 +1628,7 @@ USAGE:
   ironctl scan --ecs PATH                       grade an AWS ECS task definition (describe-task-definition JSON / dir)
   ironctl scan --cloudrun PATH                  grade Google Cloud Run service specs (Knative Service YAML or dir)
   ironctl scan --cloudformation PATH            grade AWS::ECS::TaskDefinition in a CloudFormation template (YAML/JSON or dir)
+  ironctl scan --pulumi PATH                     grade container workloads in Pulumi stack-export / preview --json output (or dir)
   ironctl scan --kustomize DIR                  render a kustomization (kustomize build) and grade its workloads
   ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
   ironctl scan --compare A B                   diff two containers' isolation posture
@@ -1594,6 +1738,17 @@ as its most-exposed pod); every workload's score is listed in the notes. As with
 is graded conservatively (the honest static ceiling). Render failures (neither
 kustomize nor kubectl on PATH / build error) fail OPEN (diagnostic + exit 0); a
 successful render still trips --min-score.
+
+--pulumi grades the container workloads declared in Pulumi program output — a
+`+"`pulumi stack export`"+` checkpoint or `+"`pulumi preview --json`"+` (or a directory of
+them) — reusing the SAME scorers as the other input modes. Pulumi's kubernetes
+inputs ARE the Kubernetes API object, so kubernetes:* pods/workloads map through
+the SAME pod-spec scorer as --k8s/--helm; aws ECS task definitions (classic
+`+"`aws:ecs/taskDefinition:TaskDefinition`"+` and `+"`aws-native:ecs:TaskDefinition`"+`) map
+through the SAME ECS scorer as --ecs/--terraform. A program therefore grades
+identically to the equivalent terraform/ECS/k8s input of the same workload. The
+program grade is the WEAKEST workload; load/parse failures fail OPEN (diagnostic +
+exit 0). A successful parse still trips --min-score.
 
 --dockerfile grades a DIFFERENT, authoring-time dimension set (non-root USER,
 pinned base image, no secrets in ENV/ARG, COPY over remote/opaque ADD, no
