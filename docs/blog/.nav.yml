@@ -48,5 +48,9 @@ nav:
   - "How to harden a TimescaleDB container": harden-timescaledb-container-isolation.md
   - "How to harden a Valkey container": harden-valkey-container-isolation.md
   - "How to harden a HAProxy container": harden-haproxy-container-isolation.md
+  - "How to harden a Loki container": harden-loki-container-isolation.md
+  - "How to harden a Tempo container": harden-tempo-container-isolation.md
+  - "How to harden a Meilisearch container": harden-meilisearch-container-isolation.md
+  - "How to harden a Dragonfly container": harden-dragonfly-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"
