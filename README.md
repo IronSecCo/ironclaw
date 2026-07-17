@@ -296,7 +296,11 @@ Per-image hardening walkthroughs, the default grade, the dimensions that fail, a
 [Grafana](https://ironsecco.github.io/ironclaw/blog/harden-grafana-container-isolation/),
 [Prometheus](https://ironsecco.github.io/ironclaw/blog/harden-prometheus-container-isolation/),
 [Traefik](https://ironsecco.github.io/ironclaw/blog/harden-traefik-container-isolation/),
-[InfluxDB](https://ironsecco.github.io/ironclaw/blog/harden-influxdb-container-isolation/), and
+[InfluxDB](https://ironsecco.github.io/ironclaw/blog/harden-influxdb-container-isolation/),
+[CockroachDB](https://ironsecco.github.io/ironclaw/blog/harden-cockroachdb-container-isolation/),
+[TimescaleDB](https://ironsecco.github.io/ironclaw/blog/harden-timescaledb-container-isolation/),
+[Valkey](https://ironsecco.github.io/ironclaw/blog/harden-valkey-container-isolation/),
+[HAProxy](https://ironsecco.github.io/ironclaw/blog/harden-haproxy-container-isolation/), and
 [untrusted Node.js](https://ironsecco.github.io/ironclaw/blog/run-untrusted-nodejs-code-safely/).
 
 ### Show your score

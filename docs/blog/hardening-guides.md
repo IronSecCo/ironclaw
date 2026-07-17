@@ -37,6 +37,9 @@ Two patterns show up across the set:
 | [Neo4j](harden-neo4j-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if clustered or remote clients) |
 | [CouchDB](harden-couchdb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if clustered or remote clients) |
 | [QuestDB](harden-questdb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if a fleet pushes metrics) |
+| [CockroachDB](harden-cockroachdb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if clustered or remote clients) |
+| [TimescaleDB](harden-timescaledb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B with replicas or remote clients) |
+| [Valkey](harden-valkey-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B as a shared network cache) |
 | [Untrusted Node.js](run-untrusted-nodejs-code-safely.md) | 48/100 D | **100/100 A** | run untrusted code in a real sandbox |
 
 ## Honest ceiling: grade B (89/100)
@@ -60,6 +63,7 @@ These services must accept client connections, so the network dimension holds at
 | [Keycloak](harden-keycloak-container-isolation.md) | 48/100 D | **89/100 B** | identity provider: every app must reach its endpoints |
 | [NATS](harden-nats-container-isolation.md) | 48/100 D | **89/100 B** | broker: publishers and subscribers must connect |
 | [Gitea](harden-gitea-container-isolation.md) | 48/100 D | **89/100 B** | git server: developers and CI must reach it |
+| [HAProxy](harden-haproxy-container-isolation.md) | 63/100 C | **89/100 B** | load balancer: it exists to accept and forward traffic |
 
 ## The pattern, one command
 
