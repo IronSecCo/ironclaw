@@ -272,6 +272,20 @@ roll up to the **weakest** one the code defines.
 
     [:octicons-arrow-right-24: Grade a Pulumi program](scan.md#grade-a-pulumi-program)
 
+-   #### :material-microsoft-azure:{ .lg .middle } Azure Bicep template { #scan-bicep }
+
+    ---
+
+    Compiles a `.bicep` file (or a directory of them) to ARM with `bicep build` and grades the
+    `Microsoft.ContainerInstance/containerGroups` it declares, reusing the `--azure` ACI path
+    and rolling up to the **weakest** container, so a template is graded before `az deployment`.
+
+    ```bash
+    ironctl scan --bicep main.bicep
+    ```
+
+    [:octicons-arrow-right-24: Grade an Azure Bicep template](scan.md#grade-an-azure-bicep-template)
+
 </div>
 
 ## Every mode, one engine
@@ -297,6 +311,7 @@ the container they eventually produce are all measured on one comparable scale.
 | Infrastructure-as-Code | [Terraform plan](#scan-terraform) | `--terraform` | container workloads in a plan/state | [Grade a Terraform plan](scan.md#grade-a-terraform-plan) |
 | Infrastructure-as-Code | [CloudFormation](#scan-cloudformation) | `--cloudformation` | ECS task defs in a CFN template | [Grade a CloudFormation template](scan.md#grade-a-cloudformation-template) |
 | Infrastructure-as-Code | [Pulumi program](#scan-pulumi) | `--pulumi` | K8s &amp; ECS workloads in stack-export / preview JSON | [Grade a Pulumi program](scan.md#grade-a-pulumi-program) |
+| Infrastructure-as-Code | [Azure Bicep template](#scan-bicep) | `--bicep` | weakest `containerGroups` container, compiled to ARM | [Grade an Azure Bicep template](scan.md#grade-an-azure-bicep-template) |
 
 Every mode also emits the machine-readable outputs: a [SARIF log](scan.md#github-code-scanning-security-tab)
 for GitHub code scanning, a [shields.io badge](scan.md#sandbox-isolation-score-badge), and

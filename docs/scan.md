@@ -399,6 +399,36 @@ Load or parse failures fail **open** (a clear diagnostic and exit 0) so an opt-i
 step never crashes the build; once a service is graded, `--min-score` still trips on a
 low posture.
 
+## Grade an Azure Bicep template
+
+`--bicep PATH` compiles an [Azure Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/)
+template to ARM and grades the `Microsoft.ContainerInstance/containerGroups` it
+declares. Bicep transpiles **1:1** to an ARM deployment template, so once compiled it
+is graded through the **exact same** managed-runtime path as `--azure`. Point it at a
+`.bicep` file or a directory of them:
+
+```bash
+ironctl scan --bicep main.bicep
+ironctl scan --bicep main.bicep --min-score 75   # CI gate
+ironctl scan --bicep ./infra                     # a directory of *.bicep
+```
+
+Compilation prefers the standalone `bicep build --stdout` and falls back to
+`az bicep build` (the Bicep compiler shipped as an Azure CLI extension) when the
+standalone binary is absent — pass `--bicep-bin` / `--az-bin` to override. It is
+offline and daemon-free: the compiler transpiles locally with no Azure login. Because
+the input compiles to the same ARM `containerGroups` document `--azure` grades, the
+scoring is identical: each container's `securityContext` runs through the shared
+pod-spec scorer, ACI's managed-runtime floors are folded in, and a fully hardened ACI
+container tops out at **79/100 (grade B)** — see [Grade an Azure container
+group](#grade-an-azure-container-group) for the per-dimension breakdown. The template
+grade is the **weakest** container across the compiled groups. ARM expressions that
+survive compilation (`"[parameters(...)]"`) are graded fail-closed and noted. A
+compile or parse failure (the `bicep`/`az` binary is absent or the template is
+malformed) fails **open** — a clear diagnostic and exit 0 — so an opt-in CI step never
+crashes the build; once containers are graded, `--min-score` still trips on a low
+posture.
+
 ## Grade a kustomization
 
 `--kustomize DIR` renders a [Kustomize](https://kustomize.io/) directory with
