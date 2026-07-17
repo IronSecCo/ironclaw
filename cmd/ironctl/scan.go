@@ -53,6 +53,9 @@ func cmdScan(args []string) error {
 	pulumi := fs.String("pulumi", "", "grade container workloads in a Pulumi `pulumi stack export` / `pulumi preview --json` file (or a directory of them): kubernetes:* workloads and aws ECS task definitions")
 	azure := fs.String("azure", "", "grade Microsoft.ContainerInstance/containerGroups in an Azure ARM template / `az container show` JSON, or a directory of them")
 	appRunner := fs.String("app-runner", "", "grade an AWS App Runner service: `aws apprunner describe-service` JSON, a raw Service object, or a directory of them")
+	bicep := fs.String("bicep", "", "compile an Azure Bicep template (.bicep file or a directory of them) to ARM and grade the Microsoft.ContainerInstance/containerGroups it declares")
+	bicepBin := fs.String("bicep-bin", envOrDefault("BICEP", "bicep"), "standalone bicep binary used to compile a .bicep to ARM (`bicep build --stdout`); falls back to `az bicep build` if absent")
+	azBin := fs.String("az-bin", envOrDefault("AZ", "az"), "azure-cli binary used for the `az bicep build` fallback when the standalone bicep binary is absent")
 	kustomize := fs.String("kustomize", "", "render a kustomization directory with `kustomize build` (or `kubectl kustomize`) and grade the isolation posture of its workloads")
 	kustomizeBin := fs.String("kustomize-bin", envOrDefault("KUSTOMIZE", "kustomize"), "kustomize binary used to render the directory (falls back to `kubectl kustomize` if absent)")
 	kubectlBin := fs.String("kubectl-bin", envOrDefault("KUBECTL", "kubectl"), "kubectl binary used for `kubectl kustomize` when the kustomize binary is absent")
@@ -281,6 +284,29 @@ func cmdScan(args []string) error {
 	if *appRunner != "" {
 		return runAppRunnerScan(appRunnerScanArgs{
 			path:      *appRunner,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
+		})
+	}
+
+	// --bicep: compile an Azure Bicep template (a .bicep file or a directory of
+	// them) to ARM JSON with `bicep build --stdout` (or `az bicep build` when the
+	// standalone binary is absent), then grade the
+	// Microsoft.ContainerInstance/containerGroups it declares by reusing the SAME
+	// ACI managed-runtime path as --azure. It compiles (I/O) here, then defers to the
+	// pure SpecsFromBicepARM + AggregateBicep scorer. Fail-OPEN on a compile/parse
+	// failure (bicep/az absent or a bad template) so an opt-in CI step never crashes
+	// the build; --min-score still gates once containers are graded. Unresolvable ARM
+	// expressions ("[...]") are graded fail-closed and noted on the report.
+	if *bicep != "" {
+		return runBicepScan(bicepScanArgs{
+			path:      *bicep,
+			bicepBin:  *bicepBin,
+			azBin:     *azBin,
 			asJSON:    *asJSON,
 			md:        *md,
 			badge:     *badge,
@@ -1674,6 +1700,19 @@ type appRunnerScanArgs struct {
 	minScore  int
 }
 
+// bicepScanArgs carries the resolved inputs for a `scan --bicep` run.
+type bicepScanArgs struct {
+	path      string
+	bicepBin  string
+	azBin     string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
 // runAppRunnerScan grades an AWS App Runner service, reusing the SAME pod-spec scorer
 // as --cloudrun/--azure plus App Runner's managed-runtime floors. App Runner output
 // is plain JSON, so there is no external binary to shell out to. It accepts an
@@ -1781,6 +1820,149 @@ func loadAppRunnerSpecs(path string) ([]scan.Spec, error) {
 		specs = append(specs, fileSpecs...)
 	}
 	return specs, nil
+}
+
+// runBicepScan compiles an Azure Bicep template (a .bicep file or a directory of
+// them) to ARM JSON and grades the Microsoft.ContainerInstance/containerGroups it
+// declares, reusing the SAME ACI managed-runtime scorer as --azure (Bicep transpiles
+// 1:1 to ARM). It fails OPEN on a compile/parse failure (bicep/az absent, unreadable
+// path, malformed template): it prints a clear diagnostic to stderr and returns nil so
+// an opt-in CI/Action step never crashes the build over tooling issues. Once
+// containers are graded, scoring and the --min-score CI gate apply exactly like
+// --azure. Unresolvable ARM expressions ("[...]") are graded fail-closed and noted.
+func runBicepScan(a bicepScanArgs) error {
+	specs, usedExpressions, err := loadBicepSpecs(a.bicepBin, a.azBin, a.path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --bicep could not compile/load %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateBicep(specs, filepath.Base(strings.TrimRight(a.path, "/")))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --bicep found nothing to grade in %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+	if usedExpressions {
+		report.Notes = append(report.Notes, "template uses ARM expressions (\"[parameters(...)]\"/\"[variables(...)]\") after compilation: unresolved values are graded as unset (fail-closed) — verify the deployed group matches.")
+	}
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (containers graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// loadBicepSpecs resolves a --bicep argument to graded Specs. A single .bicep file is
+// compiled to ARM and parsed directly. A directory is a weakest-container rollup:
+// every *.bicep file in it is compiled and its container specs are pooled, so
+// AggregateBicep grades the single most-exposed container across the whole set. It is
+// offline: the bicep compiler transpiles locally without contacting Azure. The bool
+// reports whether any compiled template used ARM expressions that were skipped.
+func loadBicepSpecs(bicepBin, azBin, path string) ([]scan.Spec, bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, false, err
+	}
+	if !info.IsDir() {
+		arm, cerr := compileBicep(bicepBin, azBin, path)
+		if cerr != nil {
+			return nil, false, cerr
+		}
+		return scan.SpecsFromBicepARM(arm)
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, false, err
+	}
+	var specs []scan.Spec
+	usedExpressions := false
+	compiledAny := false
+	for _, e := range entries {
+		if e.IsDir() || !isBicepFileExt(e.Name()) {
+			continue
+		}
+		arm, cerr := compileBicep(bicepBin, azBin, filepath.Join(path, e.Name()))
+		if cerr != nil {
+			// A single template that fails to compile should not sink the rollup: skip
+			// it with a diagnostic and grade the rest (fail-open per file).
+			fmt.Fprintf(os.Stderr, "  warning: scan --bicep skipping %s (compile error): %v\n", e.Name(), cerr)
+			continue
+		}
+		compiledAny = true
+		fileSpecs, expr, perr := scan.SpecsFromBicepARM(arm)
+		if perr != nil {
+			fmt.Fprintf(os.Stderr, "  warning: scan --bicep skipping %s (parse error): %v\n", e.Name(), perr)
+			continue
+		}
+		specs = append(specs, fileSpecs...)
+		usedExpressions = usedExpressions || expr
+	}
+	if !compiledAny {
+		return nil, false, fmt.Errorf("no compilable .bicep files found in directory")
+	}
+	return specs, usedExpressions, nil
+}
+
+// compileBicep transpiles a single .bicep file to ARM JSON on stdout. It prefers the
+// standalone `bicep build --stdout <file>` and falls back to `az bicep build --file
+// <file> --stdout` (the same compiler, shipped as an Azure CLI extension) when the
+// bicep binary is not on PATH. It is offline and daemon-free: compilation is local, no
+// Azure connection.
+func compileBicep(bicepBin, azBin, file string) ([]byte, error) {
+	if _, err := exec.LookPath(bicepBin); err == nil {
+		return runKustomizeRenderer(exec.Command(bicepBin, "build", "--stdout", file), "bicep build --stdout")
+	}
+	if _, err := exec.LookPath(azBin); err == nil {
+		return runKustomizeRenderer(exec.Command(azBin, "bicep", "build", "--file", file, "--stdout"), "az bicep build")
+	}
+	return nil, fmt.Errorf("neither the standalone bicep binary (%q) nor the azure-cli (%q) found on PATH (install one, or pass --bicep-bin/--az-bin)", bicepBin, azBin)
+}
+
+// isBicepFileExt reports whether a filename has the Bicep source extension (.bicep).
+// A .bicepparam parameter file is not a deployable template on its own and is excluded
+// from a directory rollup.
+func isBicepFileExt(name string) bool {
+	return strings.ToLower(filepath.Ext(name)) == ".bicep"
 }
 
 func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
