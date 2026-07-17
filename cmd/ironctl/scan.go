@@ -51,6 +51,7 @@ func cmdScan(args []string) error {
 	cloudrun := fs.String("cloudrun", "", "grade Google Cloud Run service specs: a Knative Service YAML (`gcloud run services describe SVC --format=export`), or a directory of them")
 	cloudformation := fs.String("cloudformation", "", "grade AWS::ECS::TaskDefinition resources in a CloudFormation template (YAML or JSON), or a directory of them")
 	pulumi := fs.String("pulumi", "", "grade container workloads in a Pulumi `pulumi stack export` / `pulumi preview --json` file (or a directory of them): kubernetes:* workloads and aws ECS task definitions")
+	azure := fs.String("azure", "", "grade Microsoft.ContainerInstance/containerGroups in an Azure ARM template / `az container show` JSON, or a directory of them")
 	kustomize := fs.String("kustomize", "", "render a kustomization directory with `kustomize build` (or `kubectl kustomize`) and grade the isolation posture of its workloads")
 	kustomizeBin := fs.String("kustomize-bin", envOrDefault("KUSTOMIZE", "kustomize"), "kustomize binary used to render the directory (falls back to `kubectl kustomize` if absent)")
 	kubectlBin := fs.String("kubectl-bin", envOrDefault("KUBECTL", "kubectl"), "kubectl binary used for `kubectl kustomize` when the kustomize binary is absent")
@@ -238,6 +239,26 @@ func cmdScan(args []string) error {
 	if *pulumi != "" {
 		return runPulumiScan(pulumiScanArgs{
 			path:      *pulumi,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
+		})
+	}
+
+	// --azure: consume an Azure Container Instances definition (an ARM template,
+	// an `az container show`/deployment JSON, or a directory of them) and grade the
+	// Microsoft.ContainerInstance/containerGroups it declares, reusing the SAME
+	// pod-spec scorer as --k8s/--cloudrun plus ACI's managed-runtime floors. It
+	// reads the JSON here (no external binary) then defers to the pure
+	// SpecsFromAzure + AggregateAzure scorer. Fail-OPEN on a load/parse failure;
+	// --min-score still gates once containers are graded. Unresolvable ARM
+	// expressions ("[...]") are graded fail-closed and noted on the report.
+	if *azure != "" {
+		return runAzureScan(azureScanArgs{
+			path:      *azure,
 			asJSON:    *asJSON,
 			md:        *md,
 			badge:     *badge,
@@ -1493,7 +1514,133 @@ func loadPulumiSpecs(path string) ([]scan.Spec, error) {
 	return specs, nil
 }
 
-// writeDockerfileSARIF renders the Dockerfile SARIF log to path, fail-open on error.
+// azureScanArgs carries the resolved inputs for a `scan --azure` run.
+type azureScanArgs struct {
+	path      string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
+// runAzureScan grades the Microsoft.ContainerInstance/containerGroups declared in an
+// Azure ARM template, an `az container show`/deployment JSON, or a directory of them,
+// reusing the SAME pod-spec scorer as --k8s/--cloudrun plus ACI's managed-runtime
+// floors. ARM/az output is plain JSON, so there is no external binary to shell out
+// to. It fails OPEN on a load/parse failure (unreadable path, malformed JSON): it
+// prints a clear diagnostic to stderr and returns nil so an opt-in CI/Action step
+// never crashes the build. Once containers are graded, scoring and the --min-score CI
+// gate apply exactly like --cloudrun/--ecs. Unresolvable ARM expressions ("[...]")
+// are graded fail-closed and noted on the report.
+func runAzureScan(a azureScanArgs) error {
+	specs, usedExpressions, err := loadAzureSpecs(a.path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --azure could not load %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateAzure(specs, filepath.Base(strings.TrimRight(a.path, "/")))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --azure found nothing to grade in %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+	if usedExpressions {
+		report.Notes = append(report.Notes, "template uses ARM expressions (\"[parameters(...)]\"/\"[variables(...)]\"): unresolved values are graded as unset (fail-closed) — verify the deployed group matches.")
+	}
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (containers graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// loadAzureSpecs resolves a --azure argument to graded Specs. A single file is
+// parsed directly. A directory is a weakest-container rollup: every *.json file in it
+// is parsed and its container specs are pooled, so AggregateAzure grades the single
+// most-exposed container across the whole set. It is daemon-free and offline: ARM/az
+// output is read from disk. The bool reports whether any file used ARM expressions
+// that were skipped.
+func loadAzureSpecs(path string) ([]scan.Spec, bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, false, err
+	}
+	if !info.IsDir() {
+		raw, rerr := os.ReadFile(path)
+		if rerr != nil {
+			return nil, false, rerr
+		}
+		return scan.SpecsFromAzure(raw)
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, false, err
+	}
+	var specs []scan.Spec
+	usedExpressions := false
+	for _, e := range entries {
+		if e.IsDir() || strings.ToLower(filepath.Ext(e.Name())) != ".json" {
+			continue
+		}
+		raw, rerr := os.ReadFile(filepath.Join(path, e.Name()))
+		if rerr != nil {
+			return nil, false, rerr
+		}
+		fileSpecs, expr, perr := scan.SpecsFromAzure(raw)
+		if perr != nil {
+			// A single malformed file in a directory should not sink the rollup: skip
+			// it with a diagnostic and grade the rest (fail-open per file).
+			fmt.Fprintf(os.Stderr, "  warning: scan --azure skipping %s (parse error): %v\n", e.Name(), perr)
+			continue
+		}
+		specs = append(specs, fileSpecs...)
+		usedExpressions = usedExpressions || expr
+	}
+	return specs, usedExpressions, nil
+}
+
 func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
 	f, err := os.Create(path)
 	if err != nil {
@@ -1629,6 +1776,7 @@ USAGE:
   ironctl scan --cloudrun PATH                  grade Google Cloud Run service specs (Knative Service YAML or dir)
   ironctl scan --cloudformation PATH            grade AWS::ECS::TaskDefinition in a CloudFormation template (YAML/JSON or dir)
   ironctl scan --pulumi PATH                     grade container workloads in Pulumi stack-export / preview --json output (or dir)
+  ironctl scan --azure PATH                     grade Azure Container Instances (ARM template / az container show JSON or dir)
   ironctl scan --kustomize DIR                  render a kustomization (kustomize build) and grade its workloads
   ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
   ironctl scan --compare A B                   diff two containers' isolation posture
@@ -1728,6 +1876,20 @@ resolved without the deployed stack, so any graded field they cover is treated a
 unset and graded fail-closed (and noted). The template grade is the WEAKEST
 container; load/parse failures fail OPEN (diagnostic + exit 0). A successful parse
 still trips --min-score.
+
+--azure grades the Microsoft.ContainerInstance/containerGroups declared in an Azure
+ARM template, an `+"`az container show`"+`/deployment JSON, or a directory of them,
+reusing the SAME pod-spec scorer as --k8s/--cloudrun plus Azure Container Instances'
+managed-runtime floors: each container group runs in a dedicated Hyper-V-isolated VM,
+so host PID/IPC/network namespaces and a host docker.sock are unreachable, privileged
+is not permitted on the Standard SKU, and a default seccomp profile is applied.
+Egress is managed (never network=none). ACI's securityContext does NOT express a
+read-only root filesystem, and a container may ADD capabilities, so a fully hardened
+ACI container tops out at 79/100 (grade B) — one dimension below Cloud Run's 89/B.
+ARM expressions (`+"`\"[parameters(...)]\"`"+`) cannot be resolved without the deployment, so
+any graded field they cover is treated as unset and graded fail-closed (and noted).
+The grade is the WEAKEST container in the group; load/parse failures fail OPEN
+(diagnostic + exit 0). A successful parse still trips --min-score.
 
 --kustomize renders a kustomization directory locally with `+"`kustomize build`"+` (or
 `+"`kubectl kustomize`"+` when the standalone binary is absent — no cluster, daemon-free)
