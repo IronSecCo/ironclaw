@@ -358,6 +358,47 @@ container's score in the notes. Load or parse failures fail **open** (a clear
 diagnostic and exit 0) so an opt-in CI step never crashes the build; once containers
 are graded, `--min-score` still trips on a low posture.
 
+## Grade an AWS App Runner service
+
+`--app-runner PATH` grades an [AWS App Runner](https://docs.aws.amazon.com/apprunner/)
+service straight from its `aws apprunner describe-service` JSON, a raw `Service`
+object, or a directory of them. It rounds out the AWS coverage alongside `--ecs`
+(task definitions) and joins the managed-runtime family with `--cloudrun` (GCP) and
+`--azure` (ACI). App Runner output is plain JSON, so it is structured and
+daemon-free, with no AWS call and no external binary:
+
+```bash
+aws apprunner describe-service --service-arn "$ARN" > service.json
+ironctl scan --app-runner service.json
+ironctl scan --app-runner service.json --min-score 40   # CI gate
+ironctl scan --app-runner ./services                    # a directory of *.json
+```
+
+App Runner runs every service on **AWS Fargate (a Firecracker microVM)**, graded
+through the **same managed-runtime model** as `--cloudrun` / `--azure`:
+
+| Dimension | How App Runner is graded |
+|---|---|
+| Non-root user | **not expressible** — App Runner's service config has no user field; it respects the image `USER`, which the config cannot override. Graded fail-closed. |
+| Dropped capabilities | Fargate **retains Docker's default capability set** and App Runner gives no knob to drop it — unlike Cloud Run, capabilities are NOT credited as dropped. |
+| Seccomp | Fargate applies Docker's default profile — credited as confined. |
+| Network isolation | App Runner egress is **managed** (public by default, or via a VPC connector), never `network=none`. Graded as egress-capable. |
+| Read-only rootfs | **not expressible** — App Runner has no read-only-rootfs field (like ACI). Graded fail-closed. |
+| docker.sock | impossible on App Runner (no host bind mounts) — passes by construction. |
+| Host namespaces | each service runs in a dedicated **Firecracker microVM**; host PID/IPC/network are unreachable and privileged mode is not permitted — passes by construction. |
+
+App Runner's service configuration exposes **no container `securityContext` at all**,
+so three dimensions (non-root, capabilities, read-only rootfs) cannot be hardened and
+are graded fail-closed. A fully hardened App Runner service therefore tops out at
+**48/100 (grade D)** on the managed-runtime floors alone — honestly lower than Cloud
+Run's 89/B and ACI's 79/B, because App Runner buys you strong microVM isolation but
+almost no config-expressible hardening surface. The Firecracker boundary is surfaced
+as an informational note but awards no points (scoring is runtime-agnostic). The
+deployment grade is the **weakest** service, with every service's score in the notes.
+Load or parse failures fail **open** (a clear diagnostic and exit 0) so an opt-in CI
+step never crashes the build; once a service is graded, `--min-score` still trips on a
+low posture.
+
 ## Grade a kustomization
 
 `--kustomize DIR` renders a [Kustomize](https://kustomize.io/) directory with

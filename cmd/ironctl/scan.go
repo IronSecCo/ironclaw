@@ -52,6 +52,7 @@ func cmdScan(args []string) error {
 	cloudformation := fs.String("cloudformation", "", "grade AWS::ECS::TaskDefinition resources in a CloudFormation template (YAML or JSON), or a directory of them")
 	pulumi := fs.String("pulumi", "", "grade container workloads in a Pulumi `pulumi stack export` / `pulumi preview --json` file (or a directory of them): kubernetes:* workloads and aws ECS task definitions")
 	azure := fs.String("azure", "", "grade Microsoft.ContainerInstance/containerGroups in an Azure ARM template / `az container show` JSON, or a directory of them")
+	appRunner := fs.String("app-runner", "", "grade an AWS App Runner service: `aws apprunner describe-service` JSON, a raw Service object, or a directory of them")
 	kustomize := fs.String("kustomize", "", "render a kustomization directory with `kustomize build` (or `kubectl kustomize`) and grade the isolation posture of its workloads")
 	kustomizeBin := fs.String("kustomize-bin", envOrDefault("KUSTOMIZE", "kustomize"), "kustomize binary used to render the directory (falls back to `kubectl kustomize` if absent)")
 	kubectlBin := fs.String("kubectl-bin", envOrDefault("KUBECTL", "kubectl"), "kubectl binary used for `kubectl kustomize` when the kustomize binary is absent")
@@ -259,6 +260,27 @@ func cmdScan(args []string) error {
 	if *azure != "" {
 		return runAzureScan(azureScanArgs{
 			path:      *azure,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
+		})
+	}
+
+	// --app-runner: consume an AWS App Runner service (an `aws apprunner
+	// describe-service` JSON, a raw Service object, or a directory of them) and grade
+	// it, reusing the SAME pod-spec scorer as --k8s/--cloudrun/--azure plus App
+	// Runner's managed-runtime floors. App Runner exposes no securityContext, so the
+	// user-hardenable dimensions grade fail-closed and a service tops out at 48/100
+	// (D) on the managed floors alone. It reads the JSON here (no external binary)
+	// then defers to the pure SpecsFromAppRunner + AggregateAppRunner scorer.
+	// Fail-OPEN on a load/parse failure; --min-score still gates once a service is
+	// graded.
+	if *appRunner != "" {
+		return runAppRunnerScan(appRunnerScanArgs{
+			path:      *appRunner,
 			asJSON:    *asJSON,
 			md:        *md,
 			badge:     *badge,
@@ -1641,6 +1663,126 @@ func loadAzureSpecs(path string) ([]scan.Spec, bool, error) {
 	return specs, usedExpressions, nil
 }
 
+// appRunnerScanArgs carries the resolved inputs for a `scan --app-runner` run.
+type appRunnerScanArgs struct {
+	path      string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
+// runAppRunnerScan grades an AWS App Runner service, reusing the SAME pod-spec scorer
+// as --cloudrun/--azure plus App Runner's managed-runtime floors. App Runner output
+// is plain JSON, so there is no external binary to shell out to. It accepts an
+// `aws apprunner describe-service` JSON, a raw Service object, or a directory of them
+// (weakest-service rollup). It fails OPEN on a load/parse failure (unreadable path,
+// malformed JSON): it prints a clear diagnostic to stderr and returns nil so an
+// opt-in CI/Action step never crashes the build. Once a service is graded, scoring
+// and the --min-score CI gate apply exactly like --cloudrun/--azure/--ecs.
+func runAppRunnerScan(a appRunnerScanArgs) error {
+	specs, err := loadAppRunnerSpecs(a.path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --app-runner could not load %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateAppRunner(specs, filepath.Base(strings.TrimRight(a.path, "/")))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --app-runner found nothing to grade in %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (a service was graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// loadAppRunnerSpecs resolves a --app-runner argument to graded Specs. A single file
+// is parsed directly. A directory is a weakest-service rollup: every *.json file in
+// it is parsed and its service specs are pooled, so AggregateAppRunner grades the
+// single most-exposed service across the whole set. It is daemon-free and offline:
+// App Runner output is read from disk (the user runs the aws CLI, if at all).
+func loadAppRunnerSpecs(path string) ([]scan.Spec, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		raw, rerr := os.ReadFile(path)
+		if rerr != nil {
+			return nil, rerr
+		}
+		return scan.SpecsFromAppRunner(raw)
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	var specs []scan.Spec
+	for _, e := range entries {
+		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), ".json") {
+			continue
+		}
+		raw, rerr := os.ReadFile(filepath.Join(path, e.Name()))
+		if rerr != nil {
+			return nil, rerr
+		}
+		fileSpecs, perr := scan.SpecsFromAppRunner(raw)
+		if perr != nil {
+			// A single malformed file in a directory should not sink the rollup:
+			// skip it with a diagnostic and grade the rest (fail-open per file).
+			fmt.Fprintf(os.Stderr, "  warning: scan --app-runner skipping %s (parse error): %v\n", e.Name(), perr)
+			continue
+		}
+		specs = append(specs, fileSpecs...)
+	}
+	return specs, nil
+}
+
 func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
 	f, err := os.Create(path)
 	if err != nil {
@@ -1777,6 +1919,7 @@ USAGE:
   ironctl scan --cloudformation PATH            grade AWS::ECS::TaskDefinition in a CloudFormation template (YAML/JSON or dir)
   ironctl scan --pulumi PATH                     grade container workloads in Pulumi stack-export / preview --json output (or dir)
   ironctl scan --azure PATH                     grade Azure Container Instances (ARM template / az container show JSON or dir)
+  ironctl scan --app-runner PATH                grade an AWS App Runner service (apprunner describe-service JSON / dir)
   ironctl scan --kustomize DIR                  render a kustomization (kustomize build) and grade its workloads
   ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
   ironctl scan --compare A B                   diff two containers' isolation posture
