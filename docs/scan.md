@@ -223,6 +223,54 @@ with every container's score in the notes. A malformed template fails **open** (
 clear diagnostic and exit 0) so an opt-in CI step never crashes the build; once
 containers are graded, `--min-score` still trips on a low posture.
 
+## Grade a Pulumi program
+
+`--pulumi PATH` grades the container workloads a [Pulumi](https://www.pulumi.com/)
+program declares — **before** `pulumi up` — straight from the program's own JSON
+output. It is the Pulumi sibling of `--terraform`: Terraform grades a
+`terraform show -json` plan; Pulumi grades a `pulumi stack export` checkpoint or a
+`pulumi preview --json` plan. No cloud credentials and no external binary are
+needed — the output is plain JSON you already have:
+
+```bash
+pulumi stack export > stack.json
+ironctl scan --pulumi stack.json
+ironctl scan --pulumi stack.json --min-score 75      # CI gate
+
+pulumi preview --json > preview.json
+ironctl scan --pulumi preview.json                   # grade the plan before apply
+
+ironctl scan --pulumi ./stacks                        # weakest-workload rollup over a dir
+```
+
+It accepts the shapes a Pulumi user actually has:
+
+| Input | Shape |
+|---|---|
+| `pulumi stack export` | a checkpoint whose `deployment.resources[]` carry each resource's typed inputs |
+| `pulumi preview --json` | a plan whose `steps[].newState` carry the same per-resource shape |
+| a directory | every `*.json` file in it, graded as one **weakest-workload** rollup |
+
+Two resource classes are graded, each through the **shared scorer** the matching
+input mode already uses — so a program grades **identically** to the equivalent
+Terraform / ECS / Kubernetes input of the same workload:
+
+- **Kubernetes** (`kubernetes:*:Pod` / `Deployment` / `StatefulSet` / `DaemonSet` /
+  `ReplicaSet` / `ReplicationController` / `Job` / `CronJob`). Pulumi's kubernetes
+  inputs **are** the Kubernetes API object, so they map through the same pod-spec
+  dimension set as `--k8s` / `--helm`.
+- **AWS ECS task definitions** — the classic `aws:ecs/taskDefinition:TaskDefinition`
+  (where `containerDefinitions` is a JSON-encoded string, exactly like Terraform)
+  and the native `aws-native:ecs:TaskDefinition` (a real array, like the live/CFN
+  shape). Both fold into the same ECS scorer as `--ecs` / `--terraform`.
+
+The program grade is the **weakest** workload (a program is only as isolated as its
+most-exposed container), with every workload's score in the report notes. As with
+`--k8s`/`--helm`, Kubernetes egress depends on a `NetworkPolicy` a pod spec does not
+carry, so it is graded conservatively (the honest static ceiling). A malformed file
+fails **open** (a clear diagnostic and exit 0) so an opt-in CI step never crashes
+the build; once workloads are graded, `--min-score` still trips on a low posture.
+
 ## Grade a Google Cloud Run service
 
 `--cloudrun PATH` grades a [Google Cloud Run](https://cloud.google.com/run)

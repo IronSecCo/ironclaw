@@ -230,6 +230,20 @@ roll up to the **weakest** one the code defines.
 
     [:octicons-arrow-right-24: Grade a CloudFormation template](scan.md#grade-a-cloudformation-template)
 
+-   #### :simple-pulumi:{ .lg .middle } Pulumi program { #scan-pulumi }
+
+    ---
+
+    Grades the container workloads in a `pulumi stack export` or `pulumi preview --json`
+    (Kubernetes and ECS resources) with the same scorers as `--k8s` and `--ecs`, rolling up
+    to the **weakest** workload, so a program is graded before `pulumi up`.
+
+    ```bash
+    ironctl scan --pulumi stack.json
+    ```
+
+    [:octicons-arrow-right-24: Grade a Pulumi program](scan.md#grade-a-pulumi-program)
+
 </div>
 
 ## Every mode, one engine
@@ -252,6 +266,7 @@ the container they eventually produce are all measured on one comparable scale.
 | Cloud runtimes | [Amazon ECS](#scan-ecs) | `--ecs` | a task definition's container contract | [Grade an ECS task definition](scan.md#grade-an-aws-ecs-task-definition) |
 | Infrastructure-as-Code | [Terraform plan](#scan-terraform) | `--terraform` | container workloads in a plan/state | [Grade a Terraform plan](scan.md#grade-a-terraform-plan) |
 | Infrastructure-as-Code | [CloudFormation](#scan-cloudformation) | `--cloudformation` | ECS task defs in a CFN template | [Grade a CloudFormation template](scan.md#grade-a-cloudformation-template) |
+| Infrastructure-as-Code | [Pulumi program](#scan-pulumi) | `--pulumi` | K8s &amp; ECS workloads in stack-export / preview JSON | [Grade a Pulumi program](scan.md#grade-a-pulumi-program) |
 
 Every mode also emits the machine-readable outputs: a [SARIF log](scan.md#github-code-scanning-security-tab)
 for GitHub code scanning, a [shields.io badge](scan.md#sandbox-isolation-score-badge), and
@@ -262,8 +277,6 @@ for GitHub code scanning, a [shields.io badge](scan.md#sandbox-isolation-score-b
 More input modes are in progress and will drop into the category grids above as they ship
 &mdash; the card contract adds them without a redesign:
 
-- **Pulumi** &mdash; grade container workloads in a `pulumi preview --json` program, alongside
-  Terraform and CloudFormation in **Infrastructure-as-Code**.
 - **Azure Container Instances** &mdash; grade a container group spec, alongside Cloud Run and
   ECS in **Cloud runtimes**.
 
