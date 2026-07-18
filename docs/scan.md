@@ -492,6 +492,43 @@ build; once the kustomization renders, `--min-score` still trips on a low postur
 Point at a non-default renderer with `--kustomize-bin` / `--kubectl-bin` (or the
 `KUSTOMIZE` / `KUBECTL` environment variables).
 
+## Grade a Kubernetes Admission Review
+
+`--k8s-admission FILE` moves scan from a static report to an **in-cluster
+enforcement gate**. It reads a Kubernetes [`admission.k8s.io/v1`
+AdmissionReview](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/)
+request &mdash; the exact JSON body the API server POSTs to a validating webhook
+&mdash; grades the admitted workload through the **same pod-spec scorer as
+`--k8s`**, and gates admission on `--min-score`. Pass `-` to read the request from
+stdin (the webhook shape):
+
+```bash
+# Local / CI: inspect what a webhook WOULD decide (scorecard + exit gate)
+ironctl scan --k8s-admission review.json --min-score 80
+
+# Webhook backend: emit the AdmissionReview response the API server expects
+ironctl scan --k8s-admission - --admission-response --min-score 80 < review.json
+```
+
+By default it prints the familiar scorecard (table, or `--json`/`--md`/`--sarif`)
+and exits non-zero below `--min-score`. With `--admission-response` it instead
+emits an `admission.k8s.io/v1` AdmissionReview **response** to stdout &mdash;
+`response.allowed` set from the grade, the request `uid` echoed (the API server
+rejects a mismatch), and a `403` status message on deny &mdash; so a thin
+`ValidatingWebhookConfiguration` backend can serve stdout verbatim as its HTTP
+response body. Because the object under admission is fed straight to the `--k8s`
+scorer, the admission decision is **identical** to what `ironctl scan --k8s` would
+report for the same manifest (parity is unit-tested).
+
+Unlike the fail-**open** batch modes (`--helm`, `--terraform`, `--kustomize`), an
+admission gate is fail-**closed**: an unreadable or unparseable review, a missing
+request, or an object with nothing to grade **denies** admission and exits
+non-zero (the deny JSON is still written first in `--admission-response` mode, so
+the webhook always returns a valid body). A gate must never silently admit what it
+could not inspect. As with `--k8s`, network egress depends on a `NetworkPolicy`
+not visible in the pod spec, so the honest static ceiling applies &mdash; size
+`--min-score` accordingly (a fully hardened pod tops out around a strong **B**).
+
 ## Grade a Dockerfile statically
 
 `--dockerfile FILE` grades a Dockerfile with no daemon and no image pull, so it

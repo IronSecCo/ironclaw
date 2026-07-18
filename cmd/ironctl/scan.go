@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -41,6 +42,8 @@ func cmdScan(args []string) error {
 	compose := fs.String("compose", "", "grade a service in this docker-compose file")
 	service := fs.String("service", "", "compose service name (required if the file has >1 service)")
 	k8s := fs.String("k8s", "", "grade the first container in this Kubernetes pod/workload manifest")
+	k8sAdmission := fs.String("k8s-admission", "", "grade the workload carried in a Kubernetes admission.k8s.io/v1 AdmissionReview JSON (webhook backend); '-' reads stdin")
+	admissionResponse := fs.Bool("admission-response", false, "with --k8s-admission, emit an admission.k8s.io/v1 AdmissionReview response JSON (allow/deny) to stdout instead of the scorecard")
 	helm := fs.String("helm", "", "render a Helm chart (dir or .tgz) with `helm template` and grade the isolation posture of its workloads")
 	helmBin := fs.String("helm-bin", envOrDefault("HELM", "helm"), "helm binary used to render the chart")
 	terraform := fs.String("terraform", "", "grade container workloads in a `terraform show -json` file (plan.json/state.json) or a Terraform dir")
@@ -382,6 +385,26 @@ func cmdScan(args []string) error {
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
 			minScore:  *minScore,
+		})
+	}
+
+	// --k8s-admission: grade the workload carried in a Kubernetes AdmissionReview
+	// request and gate admission on --min-score, reusing the SAME pod-spec scorer as
+	// --k8s. This turns `ironctl scan` from a static report into an in-cluster
+	// ENFORCEMENT gate: a thin ValidatingWebhook wrapper pipes the API server's
+	// request body to `scan --k8s-admission - --admission-response --min-score N`
+	// and returns stdout verbatim. Unlike the fail-OPEN batch modes, it is
+	// fail-CLOSED (unparseable input DENIES, never silently allows).
+	if *k8sAdmission != "" {
+		return runK8sAdmissionScan(k8sAdmissionArgs{
+			path:         *k8sAdmission,
+			emitResponse: *admissionResponse,
+			asJSON:       *asJSON,
+			md:           *md,
+			badge:        *badge,
+			badgeJSON:    *badgeJSON,
+			sarif:        *sarif,
+			minScore:     *minScore,
 		})
 	}
 
@@ -2369,6 +2392,143 @@ func fileExists(path string) bool {
 	return err == nil && !info.IsDir()
 }
 
+// k8sAdmissionArgs carries the resolved inputs for a `scan --k8s-admission` run.
+type k8sAdmissionArgs struct {
+	path         string
+	emitResponse bool
+	asJSON       bool
+	md           bool
+	badge        string
+	badgeJSON    string
+	sarif        string
+	minScore     int
+}
+
+// runK8sAdmissionScan grades the workload carried in a Kubernetes AdmissionReview
+// request and gates admission on --min-score, reusing the SAME pod-spec scorer as
+// --k8s. Two output modes:
+//
+//   - default (scorecard): print the table/JSON/md/badge/SARIF for the admitted
+//     workload, exactly like --k8s, and trip a non-zero exit below --min-score.
+//     This is the local/CI shape (inspect what a webhook WOULD decide).
+//   - --admission-response: emit an admission.k8s.io/v1 AdmissionReview response
+//     JSON (allow/deny, echoing the request uid) to stdout. This is the webhook
+//     backend shape: a thin HTTP wrapper serves stdout as the response body.
+//
+// It is fail-CLOSED, unlike the fail-OPEN batch modes (--helm/--terraform): an
+// admission webhook is an enforcement gate, so unreadable/unparseable input, a
+// missing request, or an object with nothing to grade DENIES admission (emits a
+// deny response in --admission-response mode) and exits non-zero. A denied gate
+// always exits non-zero; in --admission-response mode the deny JSON is still
+// written to stdout first so the webhook wrapper returns a valid response body.
+func runK8sAdmissionScan(a k8sAdmissionArgs) error {
+	raw, err := readFileOrStdin(a.path)
+	if err != nil {
+		return admissionFailClosed(a, "", fmt.Errorf("read AdmissionReview: %w", err))
+	}
+	spec, uid, err := scan.SpecFromAdmissionReview(raw)
+	if err != nil {
+		return admissionFailClosed(a, uid, err)
+	}
+
+	report := scan.Score(spec)
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+
+	target := spec.Target
+	if target == "" {
+		target = "workload"
+	}
+	allowed := a.minScore <= 0 || report.Score >= a.minScore
+
+	// --admission-response: emit the AdmissionReview response the API server expects
+	// and return. The exit code still reflects the decision (non-zero on deny) for
+	// CI callers; the JSON is written first so a webhook wrapper always has a body.
+	if a.emitResponse {
+		var msg string
+		if allowed {
+			msg = fmt.Sprintf("IronClaw containment gate: %s scored %d/100 (grade %s)", target, report.Score, report.Grade)
+		} else {
+			msg = fmt.Sprintf("IronClaw containment gate: %s scored %d/100 (grade %s), below the required %d", target, report.Score, report.Grade, a.minScore)
+		}
+		out, merr := scan.AdmissionReviewResponse(uid, allowed, msg, nil)
+		if merr != nil {
+			return merr
+		}
+		fmt.Fprintln(os.Stdout, string(out))
+		if !allowed {
+			return fmt.Errorf("k8s-admission denied: %s", msg)
+		}
+		return nil
+	}
+
+	// Scorecard mode: same representations as the other file modes.
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, spec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (workload graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// admissionFailClosed handles an input that could not be graded. As an ENFORCEMENT
+// gate this DENIES: in --admission-response mode it writes a deny AdmissionReview
+// (echoing the uid when one was recovered) to stdout so the webhook wrapper returns
+// a valid body, then returns a non-zero error in every mode.
+func admissionFailClosed(a k8sAdmissionArgs, uid string, cause error) error {
+	if a.emitResponse {
+		msg := "IronClaw containment gate denied (fail-closed): " + cause.Error()
+		if out, merr := scan.AdmissionReviewResponse(uid, false, msg, nil); merr == nil {
+			fmt.Fprintln(os.Stdout, string(out))
+		}
+	}
+	return fmt.Errorf("k8s-admission fail-closed (denied): %w", cause)
+}
+
+// readFileOrStdin reads path, or stdin when path is "-" (the webhook-backend shape,
+// where the request body is piped in).
+func readFileOrStdin(path string) ([]byte, error) {
+	if path == "-" {
+		return io.ReadAll(os.Stdin)
+	}
+	return os.ReadFile(path)
+}
+
 func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
 	f, err := os.Create(path)
 	if err != nil {
@@ -2497,6 +2657,7 @@ USAGE:
   ironctl scan <container>                    grade a running container (docker|podman|nerdctl)
   ironctl scan --compose FILE [--service N]   grade a docker-compose service
   ironctl scan --k8s FILE                     grade a Kubernetes pod/workload manifest
+  ironctl scan --k8s-admission FILE            grade the workload in a Kubernetes AdmissionReview JSON (webhook backend; '-' = stdin)
   ironctl scan --helm CHART                    render a Helm chart (dir or .tgz) and grade its workloads
   ironctl scan --terraform PATH                grade container workloads in a terraform show -json file/dir
   ironctl scan --nomad PATH                     grade docker-driver tasks in a Nomad job spec (JSON or HCL)
@@ -2522,7 +2683,8 @@ FLAGS:
   --badge-json PATH   write a shields.io endpoint JSON badge to PATH (live README badge)
   --sarif PATH        write a SARIF 2.1.0 log to PATH (GitHub code-scanning upload)
   --md                print a shareable markdown block
-  --min-score N       exit non-zero if the score is below N (CI gate)
+  --min-score N       exit non-zero if the score is below N (CI gate; the admission threshold for --k8s-admission)
+  --admission-response  with --k8s-admission, emit an AdmissionReview response JSON (allow/deny) to stdout
   --service NAME      compose service to grade (if the file has >1)
   --helm-bin BIN      helm binary for `+"`helm template`"+` (default: helm)
   --terraform-bin BIN terraform binary for `+"`terraform show -json`"+` (default: terraform)
@@ -2660,5 +2822,15 @@ pinned base image, no secrets in ENV/ARG, COPY over remote/opaque ADD, no
 world-writable files, HEALTHCHECK, layer hygiene). Runtime hardening (caps,
 seccomp, network, rootfs, docker.sock) is set at run time and is NOT expressible
 in a Dockerfile, so a high static grade still needs a runtime scan.
+
+--k8s-admission turns scan into an in-cluster ENFORCEMENT gate. It reads a
+Kubernetes admission.k8s.io/v1 AdmissionReview request ('-' = stdin), grades the
+admitted workload through the SAME pod-spec scorer as --k8s, and gates admission
+on --min-score. By default it prints the scorecard (what a webhook WOULD decide);
+with --admission-response it emits an AdmissionReview response JSON (allow/deny,
+echoing the request uid) so a thin ValidatingWebhook wrapper can serve stdout as
+the response body. Unlike the fail-OPEN batch modes, it is fail-CLOSED: an
+unparseable review or an object with nothing to grade DENIES admission and exits
+non-zero (the deny JSON is still written in --admission-response mode).
 `)
 }
