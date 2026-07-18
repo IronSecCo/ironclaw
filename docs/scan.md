@@ -429,6 +429,38 @@ malformed) fails **open** — a clear diagnostic and exit 0 — so an opt-in CI 
 crashes the build; once containers are graded, `--min-score` still trips on a low
 posture.
 
+## Grade an AWS CDK app
+
+`--cdk PATH` grades an [AWS CDK](https://docs.aws.amazon.com/cdk/) app by way of the
+CloudFormation template its `cdk synth` step emits. The CDK is a program
+(TypeScript/Python/Go/...) that **synthesizes** standard CloudFormation, so once
+synthesized it is graded through the **exact same** shared ECS scorer as
+`--cloudformation`. Point it at a CDK app directory (one containing `cdk.json`), a
+pre-synthesized template file, or a synthesized `cdk.out` cloud assembly:
+
+```bash
+ironctl scan --cdk ./my-cdk-app                  # synthesize the app, then grade
+ironctl scan --cdk ./my-cdk-app --min-score 75   # CI gate
+ironctl scan --cdk cdk.out/MyStack.template.json # a pre-synthesized template
+ironctl scan --cdk ./cdk.out                     # a synthesized cloud assembly
+```
+
+A CDK app directory is synthesized with `cdk synth` (pass `--cdk-bin` to override the
+binary); when the `aws-cdk` binary is absent it falls back to an already-synthesized
+`cdk.out` inside the app, so a CI that checks in its cloud assembly still grades with no
+Node install. It is offline and daemon-free: synthesis is local, no AWS login. Because
+the synthesized output is the same `AWS::ECS::TaskDefinition` CloudFormation
+`--cloudformation` grades, the scoring is identical: each container definition runs
+through the shared ECS scorer, and a fully hardened task definition tops out at
+**89/100 (grade B)** — see [Grade a CloudFormation
+template](#grade-a-cloudformation-template) for the per-dimension breakdown. The app
+grade is the **weakest** container across every synthesized template. Unresolved CDK
+tokens / CloudFormation intrinsics (`!Ref`/`Fn::...`/`${Token[...]}`) are graded
+fail-closed and noted. A synth or parse failure (the `cdk` binary is absent with no
+`cdk.out`, or the app is malformed) fails **open** — a clear diagnostic and exit 0 — so
+an opt-in CI step never crashes the build; once containers are graded, `--min-score`
+still trips on a low posture.
+
 ## Grade a kustomization
 
 `--kustomize DIR` renders a [Kustomize](https://kustomize.io/) directory with

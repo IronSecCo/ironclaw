@@ -56,6 +56,8 @@ func cmdScan(args []string) error {
 	bicep := fs.String("bicep", "", "compile an Azure Bicep template (.bicep file or a directory of them) to ARM and grade the Microsoft.ContainerInstance/containerGroups it declares")
 	bicepBin := fs.String("bicep-bin", envOrDefault("BICEP", "bicep"), "standalone bicep binary used to compile a .bicep to ARM (`bicep build --stdout`); falls back to `az bicep build` if absent")
 	azBin := fs.String("az-bin", envOrDefault("AZ", "az"), "azure-cli binary used for the `az bicep build` fallback when the standalone bicep binary is absent")
+	cdk := fs.String("cdk", "", "grade an AWS CDK app: a CDK app dir (synthesized with `cdk synth`) OR a pre-synthesized CloudFormation template file/dir; grades the AWS::ECS::TaskDefinition resources it emits")
+	cdkBin := fs.String("cdk-bin", envOrDefault("CDK", "cdk"), "aws-cdk binary used to run `cdk synth` on a CDK app directory (falls back to `cdk.out` templates if the app is already synthesized)")
 	kustomize := fs.String("kustomize", "", "render a kustomization directory with `kustomize build` (or `kubectl kustomize`) and grade the isolation posture of its workloads")
 	kustomizeBin := fs.String("kustomize-bin", envOrDefault("KUSTOMIZE", "kustomize"), "kustomize binary used to render the directory (falls back to `kubectl kustomize` if absent)")
 	kubectlBin := fs.String("kubectl-bin", envOrDefault("KUBECTL", "kubectl"), "kubectl binary used for `kubectl kustomize` when the kustomize binary is absent")
@@ -308,6 +310,28 @@ func cmdScan(args []string) error {
 			path:      *bicep,
 			bicepBin:  *bicepBin,
 			azBin:     *azBin,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
+		})
+	}
+
+	// --cdk: grade an AWS CDK app. The CDK is a program that SYNTHESIZES a standard
+	// CloudFormation template, so this is a thin front-door over --cloudformation: if
+	// the path is a CDK app dir it is synthesized with `cdk synth` (I/O here), and a
+	// pre-synthesized template file/dir (or a synthesized `cdk.out`) is graded directly.
+	// Either way the emitted CloudFormation is decoded by the SAME shared ECS scorer as
+	// --cloudformation/--ecs/--terraform (SpecsFromCDK -> SpecsFromCloudFormation). It
+	// fails OPEN on a synth/parse failure (cdk absent or a bad app) so an opt-in CI step
+	// never crashes the build; --min-score still gates once containers are graded.
+	// Unresolvable CDK tokens / CFN intrinsics are graded fail-closed and noted.
+	if *cdk != "" {
+		return runCDKScan(cdkScanArgs{
+			path:      *cdk,
+			cdkBin:    *cdkBin,
 			asJSON:    *asJSON,
 			md:        *md,
 			badge:     *badge,
@@ -2111,6 +2135,240 @@ func isBicepFileExt(name string) bool {
 	return strings.ToLower(filepath.Ext(name)) == ".bicep"
 }
 
+// cdkScanArgs carries the resolved inputs for a `scan --cdk` run.
+type cdkScanArgs struct {
+	path      string
+	cdkBin    string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
+// runCDKScan grades an AWS CDK app by way of the CloudFormation template its
+// `cdk synth` step emits, reusing the SAME shared ECS scorer as
+// --cloudformation/--ecs/--terraform (the CDK synthesizes standard CFN). It accepts a
+// CDK app dir (synthesized here), a pre-synthesized template file, or a synthesized
+// cdk.out / template directory. It fails OPEN on a synth/parse failure (aws-cdk absent,
+// a bad app, unreadable path): it prints a clear diagnostic to stderr and returns nil
+// so an opt-in CI/Action step never crashes the build over tooling. Once containers are
+// graded, scoring and the --min-score CI gate apply exactly like --cloudformation.
+// Unresolvable CDK tokens / CFN intrinsics are graded fail-closed and noted.
+func runCDKScan(a cdkScanArgs) error {
+	specs, usedIntrinsics, err := loadCDKSpecs(a.cdkBin, a.path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --cdk could not synth/load %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateCDK(specs, filepath.Base(strings.TrimRight(a.path, "/")))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --cdk found nothing to grade in %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+	if usedIntrinsics {
+		report.Notes = append(report.Notes, "synthesized template uses CloudFormation intrinsics / unresolved CDK tokens (!Ref/!Sub/Fn::.../${Token[...]}): unresolved values are graded as unset (fail-closed) — verify the deployed stack matches.")
+	}
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (containers graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// cdkTemplate is one synthesized CloudFormation template blob plus its source name
+// (for per-file diagnostics in a directory rollup).
+type cdkTemplate struct {
+	name string
+	raw  []byte
+}
+
+// loadCDKSpecs resolves a --cdk argument to graded Specs. A single file is treated as
+// an already-synthesized CloudFormation template and parsed directly. A directory is a
+// weakest-container rollup: a CDK app dir (one containing cdk.json) is synthesized with
+// `cdk synth`, and any other directory is read as a set of pre-synthesized templates
+// (e.g. a checked-in cdk.out cloud assembly, or a plain template dir). Every template's
+// container specs are pooled, so AggregateCDK grades the single most-exposed container
+// across the whole app. The bool reports whether any template used intrinsics/tokens
+// that were skipped (graded fail-closed).
+func loadCDKSpecs(cdkBin, path string) ([]scan.Spec, bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, false, err
+	}
+	if !info.IsDir() {
+		raw, rerr := os.ReadFile(path)
+		if rerr != nil {
+			return nil, false, rerr
+		}
+		return scan.SpecsFromCDK(raw)
+	}
+
+	templates, err := cdkTemplateBytes(cdkBin, path)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(templates) == 0 {
+		return nil, false, fmt.Errorf("no synthesized CloudFormation templates found for CDK path %q (synthesize with `cdk synth`, or point --cdk at a template file / cdk.out dir)", path)
+	}
+
+	var specs []scan.Spec
+	usedIntrinsics := false
+	for _, t := range templates {
+		fileSpecs, intr, perr := scan.SpecsFromCDK(t.raw)
+		if perr != nil {
+			// A single malformed template in the assembly should not sink the rollup:
+			// skip it with a diagnostic and grade the rest (fail-open per file).
+			fmt.Fprintf(os.Stderr, "  warning: scan --cdk skipping %s (parse error): %v\n", t.name, perr)
+			continue
+		}
+		specs = append(specs, fileSpecs...)
+		usedIntrinsics = usedIntrinsics || intr
+	}
+	return specs, usedIntrinsics, nil
+}
+
+// cdkTemplateBytes resolves a --cdk directory to the synthesized CloudFormation
+// template blobs to grade. A directory containing cdk.json is a CDK app: it is
+// synthesized with `cdk synth`, falling back to an already-synthesized cdk.out inside
+// it when the aws-cdk binary is absent (so a CI that checks in its assembly still
+// grades). Any other directory is read as a set of pre-synthesized templates (a
+// cdk.out cloud assembly, or a plain CloudFormation template dir).
+func cdkTemplateBytes(cdkBin, dir string) ([]cdkTemplate, error) {
+	if fileExists(filepath.Join(dir, "cdk.json")) {
+		synthed, serr := synthCDKApp(cdkBin, dir)
+		if serr != nil {
+			// Fall back to a checked-in cloud assembly so a synth-less environment
+			// (no aws-cdk installed) still grades an already-synthesized app.
+			if fb, ferr := readTemplateDir(filepath.Join(dir, "cdk.out"), isCDKAssemblyTemplate); ferr == nil && len(fb) > 0 {
+				return fb, nil
+			}
+			return nil, serr
+		}
+		return synthed, nil
+	}
+	// Not a CDK app dir: grade the pre-synthesized templates already present. A
+	// synthesized cdk.out contains *.template.json (plus manifest/tree/assets JSON that
+	// carry no ECS resource and grade to nothing); a plain dir may hold *.yaml/*.json.
+	if fileExists(filepath.Join(dir, "manifest.json")) || dirHasAssemblyTemplate(dir) {
+		return readTemplateDir(dir, isCDKAssemblyTemplate)
+	}
+	return readTemplateDir(dir, isCFNTemplateExt)
+}
+
+// synthCDKApp runs `cdk synth` on a CDK app directory into a throwaway output dir and
+// returns the synthesized CloudFormation templates. It is daemon-free and local: `cdk
+// synth` transpiles the app to CloudFormation without deploying. The app dir is the
+// working directory so relative cdk.json/context resolves.
+func synthCDKApp(cdkBin, appDir string) ([]cdkTemplate, error) {
+	if _, err := exec.LookPath(cdkBin); err != nil {
+		return nil, fmt.Errorf("aws-cdk binary %q not found on PATH (install aws-cdk, pass --cdk-bin, or point --cdk at a pre-synthesized template / cdk.out dir)", cdkBin)
+	}
+	outDir, err := os.MkdirTemp("", "ironctl-cdk-synth-")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(outDir)
+
+	cmd := exec.Command(cdkBin, "synth", "--output", outDir)
+	cmd.Dir = appDir
+	// `cdk synth --output` writes the cloud assembly to outDir; stdout carries the
+	// human-readable template we do not need (we read the *.template.json files).
+	if _, err := runKustomizeRenderer(cmd, "cdk synth"); err != nil {
+		return nil, err
+	}
+	return readTemplateDir(outDir, isCDKAssemblyTemplate)
+}
+
+// readTemplateDir reads every file in dir whose name matches and returns its bytes.
+func readTemplateDir(dir string, match func(string) bool) ([]cdkTemplate, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var out []cdkTemplate
+	for _, e := range entries {
+		if e.IsDir() || !match(e.Name()) {
+			continue
+		}
+		raw, rerr := os.ReadFile(filepath.Join(dir, e.Name()))
+		if rerr != nil {
+			return nil, rerr
+		}
+		out = append(out, cdkTemplate{name: e.Name(), raw: raw})
+	}
+	return out, nil
+}
+
+// dirHasAssemblyTemplate reports whether dir contains a CDK cloud-assembly template
+// (*.template.json), i.e. it is (or looks like) a synthesized cdk.out.
+func dirHasAssemblyTemplate(dir string) bool {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		if !e.IsDir() && isCDKAssemblyTemplate(e.Name()) {
+			return true
+		}
+	}
+	return false
+}
+
+// isCDKAssemblyTemplate reports whether a filename is a CDK cloud-assembly
+// CloudFormation template (`<Stack>.template.json`). Restricting to this suffix skips
+// the assembly's manifest.json / tree.json / *.assets.json sidecars.
+func isCDKAssemblyTemplate(name string) bool {
+	return strings.HasSuffix(strings.ToLower(name), ".template.json")
+}
+
+// fileExists reports whether path names an existing (non-directory) file.
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
+}
+
 func writeDockerfileSARIF(path string, r scan.Report, opts scan.SARIFOptions) error {
 	f, err := os.Create(path)
 	if err != nil {
@@ -2248,6 +2506,7 @@ USAGE:
   ironctl scan --pulumi PATH                     grade container workloads in Pulumi stack-export / preview --json output (or dir)
   ironctl scan --azure PATH                     grade Azure Container Instances (ARM template / az container show JSON or dir)
   ironctl scan --app-runner PATH                grade an AWS App Runner service (apprunner describe-service JSON / dir)
+  ironctl scan --cdk PATH                        synth an AWS CDK app (cdk synth) or grade a pre-synthesized template/cdk.out
   ironctl scan --kustomize DIR                  render a kustomization (kustomize build) and grade its workloads
   ironctl scan --openshift PATH                 grade OpenShift workloads (DeploymentConfig/Deployment/Pod) in a manifest file or dir
   ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
