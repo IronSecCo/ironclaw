@@ -50,6 +50,7 @@ func cmdScan(args []string) error {
 	ecs := fs.String("ecs", "", "grade an AWS ECS task definition: `aws ecs describe-task-definition` JSON, a raw registered task-def JSON, or a directory of task-def JSON files")
 	cloudrun := fs.String("cloudrun", "", "grade Google Cloud Run service specs: a Knative Service YAML (`gcloud run services describe SVC --format=export`), or a directory of them")
 	cloudformation := fs.String("cloudformation", "", "grade AWS::ECS::TaskDefinition resources in a CloudFormation template (YAML or JSON), or a directory of them")
+	sam := fs.String("sam", "", "grade the AWS::ECS::TaskDefinition resources declared in an AWS SAM template (Transform: AWS::Serverless-*, YAML or JSON), or a directory of them")
 	pulumi := fs.String("pulumi", "", "grade container workloads in a Pulumi `pulumi stack export` / `pulumi preview --json` file (or a directory of them): kubernetes:* workloads and aws ECS task definitions")
 	azure := fs.String("azure", "", "grade Microsoft.ContainerInstance/containerGroups in an Azure ARM template / `az container show` JSON, or a directory of them")
 	appRunner := fs.String("app-runner", "", "grade an AWS App Runner service: `aws apprunner describe-service` JSON, a raw Service object, or a directory of them")
@@ -332,6 +333,27 @@ func cmdScan(args []string) error {
 		return runCDKScan(cdkScanArgs{
 			path:      *cdk,
 			cdkBin:    *cdkBin,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
+		})
+	}
+
+	// --sam: consume an AWS SAM template (Transform: AWS::Serverless-*) and grade the
+	// AWS::ECS::TaskDefinition resources it declares. SAM is a CloudFormation superset:
+	// raw (non-AWS::Serverless::*) resources are already native CFN, so this is a thin
+	// front-door over --cloudformation with no `sam` transform step required to reach
+	// the ECS task defs. The template is decoded by the SAME shared ECS scorer as
+	// --cloudformation/--cdk/--ecs/--terraform (SpecsFromSAM -> SpecsFromCloudFormation).
+	// It fails OPEN on a load/parse failure so an opt-in CI step never crashes the build;
+	// --min-score still gates once containers are graded. Unresolvable CFN intrinsics are
+	// graded fail-closed and noted.
+	if *sam != "" {
+		return runSAMScan(samScanArgs{
+			path:      *sam,
 			asJSON:    *asJSON,
 			md:        *md,
 			badge:     *badge,
@@ -1600,6 +1622,134 @@ func loadCFNSpecs(path string) ([]scan.Spec, bool, error) {
 	return specs, usedIntrinsics, nil
 }
 
+// samScanArgs carries the resolved inputs for a `scan --sam` run.
+type samScanArgs struct {
+	path      string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
+// runSAMScan grades the AWS::ECS::TaskDefinition resources declared in an AWS SAM
+// template (Transform: AWS::Serverless-*, YAML or JSON, or a directory of them),
+// reusing the SHARED ECS scorer the --cloudformation/--ecs/--terraform paths also use.
+// SAM is a CloudFormation superset — raw ECS task defs are already native CFN — so
+// there is no `sam` transform step or external binary to shell out to. It fails OPEN on
+// a load/parse failure: it prints a clear diagnostic to stderr and returns nil so an
+// opt-in CI/Action step never crashes the build. Once containers are graded, scoring and
+// the --min-score CI gate apply exactly like --cloudformation. Unresolvable CFN
+// intrinsics (!Ref/!Sub/Fn::...) are graded fail-closed and noted on the report.
+func runSAMScan(a samScanArgs) error {
+	specs, usedIntrinsics, err := loadSAMSpecs(a.path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --sam could not load %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateSAM(specs, filepath.Base(strings.TrimRight(a.path, "/")))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --sam found nothing to grade in %q (no AWS::ECS::TaskDefinition; scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+	if usedIntrinsics {
+		report.Notes = append(report.Notes, "template uses CloudFormation intrinsics (!Ref/!Sub/Fn::...): unresolved values are graded as unset (fail-closed) — verify the deployed stack matches.")
+	}
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (containers graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// loadSAMSpecs resolves a --sam argument to graded Specs. A SAM template is a
+// CloudFormation superset, so it is parsed exactly like a CloudFormation input: a single
+// file is parsed directly, and a directory is a weakest-container rollup over every
+// *.yaml/*.yml/*.json/*.template file in it (their container specs are pooled so
+// AggregateSAM grades the single most-exposed container across the whole set). It is
+// daemon-free and offline. The bool reports whether any file used CFN intrinsics that
+// were skipped (graded fail-closed).
+func loadSAMSpecs(path string) ([]scan.Spec, bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, false, err
+	}
+	if !info.IsDir() {
+		raw, rerr := os.ReadFile(path)
+		if rerr != nil {
+			return nil, false, rerr
+		}
+		return scan.SpecsFromSAM(raw)
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, false, err
+	}
+	var specs []scan.Spec
+	usedIntrinsics := false
+	for _, e := range entries {
+		if e.IsDir() || !isCFNTemplateExt(e.Name()) {
+			continue
+		}
+		raw, rerr := os.ReadFile(filepath.Join(path, e.Name()))
+		if rerr != nil {
+			return nil, false, rerr
+		}
+		fileSpecs, intr, perr := scan.SpecsFromSAM(raw)
+		if perr != nil {
+			// A single malformed template in a directory should not sink the rollup:
+			// skip it with a diagnostic and grade the rest (fail-open per file).
+			fmt.Fprintf(os.Stderr, "  warning: scan --sam skipping %s (parse error): %v\n", e.Name(), perr)
+			continue
+		}
+		specs = append(specs, fileSpecs...)
+		usedIntrinsics = usedIntrinsics || intr
+	}
+	return specs, usedIntrinsics, nil
+}
+
 // isCFNTemplateExt reports whether a filename has a CloudFormation template
 // extension (.yaml/.yml/.json/.template).
 func isCFNTemplateExt(name string) bool {
@@ -2503,6 +2653,7 @@ USAGE:
   ironctl scan --ecs PATH                       grade an AWS ECS task definition (describe-task-definition JSON / dir)
   ironctl scan --cloudrun PATH                  grade Google Cloud Run service specs (Knative Service YAML or dir)
   ironctl scan --cloudformation PATH            grade AWS::ECS::TaskDefinition in a CloudFormation template (YAML/JSON or dir)
+  ironctl scan --sam PATH                        grade AWS::ECS::TaskDefinition in an AWS SAM template (Transform: AWS::Serverless-*, YAML/JSON or dir)
   ironctl scan --pulumi PATH                     grade container workloads in Pulumi stack-export / preview --json output (or dir)
   ironctl scan --azure PATH                     grade Azure Container Instances (ARM template / az container show JSON or dir)
   ironctl scan --app-runner PATH                grade an AWS App Runner service (apprunner describe-service JSON / dir)

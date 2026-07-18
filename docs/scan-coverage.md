@@ -314,6 +314,21 @@ roll up to the **weakest** one the code defines.
 
     [:octicons-arrow-right-24: Grade an AWS CDK app](scan.md#grade-an-aws-cdk-app)
 
+-   #### :material-aws:{ .lg .middle } AWS SAM template { #scan-sam }
+
+    ---
+
+    Grades the `AWS::ECS::TaskDefinition` resources declared in an AWS SAM template
+    (`Transform: AWS::Serverless-*`), reusing the `--cloudformation` scorer and rolling up to
+    the **weakest** container. SAM is a CloudFormation superset, so no `sam` build step is
+    needed to grade a serverless app's ECS/Fargate task definitions.
+
+    ```bash
+    ironctl scan --sam ./template.yaml
+    ```
+
+    [:octicons-arrow-right-24: Grade an AWS SAM template](scan.md#grade-an-aws-sam-template)
+
 </div>
 
 ## Every mode, one engine
@@ -342,6 +357,7 @@ the container they eventually produce are all measured on one comparable scale.
 | Infrastructure-as-Code | [Pulumi program](#scan-pulumi) | `--pulumi` | K8s &amp; ECS workloads in stack-export / preview JSON | [Grade a Pulumi program](scan.md#grade-a-pulumi-program) |
 | Infrastructure-as-Code | [Azure Bicep template](#scan-bicep) | `--bicep` | weakest `containerGroups` container, compiled to ARM | [Grade an Azure Bicep template](scan.md#grade-an-azure-bicep-template) |
 | Infrastructure-as-Code | [AWS CDK app](#scan-cdk) | `--cdk` | weakest ECS container, synthesized to CloudFormation | [Grade an AWS CDK app](scan.md#grade-an-aws-cdk-app) |
+| Infrastructure-as-Code | [AWS SAM template](#scan-sam) | `--sam` | ECS task defs in a SAM (Serverless) template | [Grade an AWS SAM template](scan.md#grade-an-aws-sam-template) |
 
 Every mode also emits the machine-readable outputs: a [SARIF log](scan.md#github-code-scanning-security-tab)
 for GitHub code scanning, a [shields.io badge](scan.md#sandbox-isolation-score-badge), and
