@@ -23,6 +23,12 @@ var workloadKinds = map[string]bool{
 	"ReplicationController": true,
 	"Job":                   true,
 	"CronJob":               true,
+	// OpenShift DeploymentConfig (apps.openshift.io/v1) embeds a standard k8s
+	// PodSpec at spec.template.spec, identical to a Deployment, so the shared
+	// pod-spec extraction grades it with no new scorer. Recognized here so an
+	// OpenShift manifest set (--openshift) and any helm/kustomize/pulumi stream
+	// that emits one grades the workload rather than silently skipping it.
+	"DeploymentConfig": true,
 }
 
 // SpecsFromK8sStream parses a multi-document Kubernetes YAML stream (the output

@@ -59,6 +59,7 @@ func cmdScan(args []string) error {
 	kustomize := fs.String("kustomize", "", "render a kustomization directory with `kustomize build` (or `kubectl kustomize`) and grade the isolation posture of its workloads")
 	kustomizeBin := fs.String("kustomize-bin", envOrDefault("KUSTOMIZE", "kustomize"), "kustomize binary used to render the directory (falls back to `kubectl kustomize` if absent)")
 	kubectlBin := fs.String("kubectl-bin", envOrDefault("KUBECTL", "kubectl"), "kubectl binary used for `kubectl kustomize` when the kustomize binary is absent")
+	openshift := fs.String("openshift", "", "grade OpenShift workloads (DeploymentConfig, Deployment, Pod) in a manifest file (`oc get -o yaml`) or a directory of them")
 	dockerfile := fs.Bool("dockerfile", false, "statically grade the positional Dockerfile(s) authoring-time posture (daemon-free)")
 	runtime := fs.String("runtime", envOrDefault("IRONCTL_SCAN_RUNTIME", "auto"), "container runtime: auto|docker|podman|nerdctl")
 	dockerBin := fs.String("docker-bin", envOrDefault("DOCKER", "docker"), "docker binary used for `docker inspect`")
@@ -335,6 +336,28 @@ func cmdScan(args []string) error {
 			badgeJSON:    *badgeJSON,
 			sarif:        *sarif,
 			minScore:     *minScore,
+		})
+	}
+
+	// --openshift: consume an OpenShift manifest set (an `oc get -o yaml` export, a
+	// raw manifest file, or a directory of them) and grade its workloads. An
+	// OpenShift DeploymentConfig embeds a standard k8s PodSpec at spec.template.spec,
+	// so this reuses the SAME pod-spec scorer as --k8s/--kustomize with the same
+	// weakest-link aggregate; plain Deployment/Pod docs in the same stream grade too
+	// and OpenShift-only kinds (Route, ImageStream, …) are skipped. Manifests are
+	// plain YAML, so there is no external binary to shell out to. It reads the
+	// file(s) here then defers to the pure SpecsFromOpenShift + AggregateOpenShift
+	// scorer. Fail-OPEN on a load/parse failure so an opt-in CI/Action step never
+	// crashes the build; --min-score still gates once workloads are graded.
+	if *openshift != "" {
+		return runOpenShiftScan(openShiftScanArgs{
+			path:      *openshift,
+			asJSON:    *asJSON,
+			md:        *md,
+			badge:     *badge,
+			badgeJSON: *badgeJSON,
+			sarif:     *sarif,
+			minScore:  *minScore,
 		})
 	}
 
@@ -1303,6 +1326,129 @@ func loadCloudRunYAML(path string) ([]byte, error) {
 	return bytes.Join(docs, []byte("\n---\n")), nil
 }
 
+// openShiftScanArgs carries the resolved inputs for a `scan --openshift` run.
+type openShiftScanArgs struct {
+	path      string
+	asJSON    bool
+	md        bool
+	badge     string
+	badgeJSON string
+	sarif     string
+	minScore  int
+}
+
+// runOpenShiftScan grades the OpenShift workloads declared in a manifest set (a
+// DeploymentConfig, a plain Deployment/Pod, or a directory of them), reusing the
+// same pod-spec dimension mapping and weakest-link aggregate as --k8s/--kustomize.
+// OpenShift manifests are plain YAML, so there is no external binary to shell out
+// to. It fails OPEN on a load/parse failure (unreadable path, malformed YAML): it
+// prints a clear diagnostic to stderr and returns nil so an opt-in CI/Action step
+// never crashes the build. Once workloads are graded, scoring and the --min-score
+// CI gate apply exactly like --k8s/--kustomize (a genuinely low posture still
+// fails the gate).
+func runOpenShiftScan(a openShiftScanArgs) error {
+	raw, err := loadOpenShiftYAML(a.path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --openshift could not load %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	specs, err := scan.SpecsFromOpenShift(raw)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --openshift could not parse %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+
+	report, worstSpec, err := scan.AggregateOpenShift(specs, filepath.Base(strings.TrimRight(a.path, "/")))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  warning: scan --openshift found nothing to grade in %q (scan skipped, exit 0): %v\n", a.path, err)
+		return nil
+	}
+	report.Version = version.String()
+	report.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+
+	if a.asJSON {
+		if err := scan.RenderJSON(os.Stdout, report); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderTable(os.Stdout, report)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.badge != "" {
+		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote badge: %s\n", a.badge)
+		}
+	}
+	if a.badgeJSON != "" {
+		if err := os.WriteFile(a.badgeJSON, []byte(scan.RenderBadgeEndpointJSON(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-json: %w", err)
+		}
+		if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", a.badgeJSON)
+		}
+	}
+	if a.sarif != "" {
+		// SARIF is a best-effort side artifact: fail-open, never blocks the scan.
+		if err := writeSARIF(a.sarif, report, worstSpec, scan.SARIFOptions{}); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (scan result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	// CI gate: fail-closed below the requested threshold (workloads graded).
+	if a.minScore > 0 && report.Score < a.minScore {
+		return fmt.Errorf("containment score %d/100 is below the required %d", report.Score, a.minScore)
+	}
+	return nil
+}
+
+// loadOpenShiftYAML resolves a --openshift argument to an OpenShift manifest
+// stream. A file is read verbatim (it may itself be a multi-document
+// `---`-separated stream, e.g. `oc get all -o yaml`). A directory is walked for
+// *.yaml/*.yml/*.json files, concatenated into one document stream (weakest-
+// workload rollup across the set). It is offline and daemon-free: OpenShift
+// manifests are plain YAML/JSON, so there is nothing to shell out to.
+func loadOpenShiftYAML(path string) ([]byte, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		return os.ReadFile(path)
+	}
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	var docs [][]byte
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(e.Name()))
+		if ext != ".yaml" && ext != ".yml" && ext != ".json" {
+			continue
+		}
+		raw, rerr := os.ReadFile(filepath.Join(path, e.Name()))
+		if rerr != nil {
+			return nil, rerr
+		}
+		docs = append(docs, raw)
+	}
+	if len(docs) == 0 {
+		return nil, fmt.Errorf("no .yaml/.yml/.json files found in directory %q", path)
+	}
+	return bytes.Join(docs, []byte("\n---\n")), nil
+}
+
 // cloudFormationScanArgs carries the resolved inputs for a `scan --cloudformation` run.
 type cloudFormationScanArgs struct {
 	path      string
@@ -2103,6 +2249,7 @@ USAGE:
   ironctl scan --azure PATH                     grade Azure Container Instances (ARM template / az container show JSON or dir)
   ironctl scan --app-runner PATH                grade an AWS App Runner service (apprunner describe-service JSON / dir)
   ironctl scan --kustomize DIR                  render a kustomization (kustomize build) and grade its workloads
+  ironctl scan --openshift PATH                 grade OpenShift workloads (DeploymentConfig/Deployment/Pod) in a manifest file or dir
   ironctl scan --dockerfile FILE...           grade Dockerfile(s) statically (no daemon, no pull)
   ironctl scan --compare A B                   diff two containers' isolation posture
 
@@ -2225,6 +2372,18 @@ as its most-exposed pod); every workload's score is listed in the notes. As with
 is graded conservatively (the honest static ceiling). Render failures (neither
 kustomize nor kubectl on PATH / build error) fail OPEN (diagnostic + exit 0); a
 successful render still trips --min-score.
+
+--openshift grades the workloads in an OpenShift manifest set — an `+"`oc get -o yaml`"+`
+export, a raw manifest file, or a directory of them. An OpenShift DeploymentConfig
+(apps.openshift.io/v1) embeds a standard Kubernetes PodSpec at spec.template.spec,
+so it reuses the SAME pod-spec scorer as --k8s/--kustomize with no new dimensions;
+plain Deployment/Pod docs in the same stream grade too and OpenShift-only kinds
+(Route, ImageStream, BuildConfig, …) are skipped. The set grade is the WEAKEST
+workload (a manifest set is only as isolated as its most-exposed pod); every
+workload's score is listed in the notes. As with --k8s, network egress depends on a
+NetworkPolicy a pod spec does not carry, so it is graded conservatively. Manifests
+are plain YAML/JSON (no external binary); a load/parse failure fails OPEN
+(diagnostic + exit 0) and a successful parse still trips --min-score.
 
 --pulumi grades the container workloads declared in Pulumi program output — a
 `+"`pulumi stack export`"+` checkpoint or `+"`pulumi preview --json`"+` (or a directory of

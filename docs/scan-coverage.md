@@ -160,6 +160,20 @@ roll up to the **weakest** workload they produce.
 
     [:octicons-arrow-right-24: Scan reference](scan.md)
 
+-   #### :simple-redhatopenshift:{ .lg .middle } OpenShift manifest { #scan-openshift }
+
+    ---
+
+    Grades an OpenShift manifest set (**DeploymentConfig**, Deployment, Pod). A
+    DeploymentConfig embeds a standard pod spec, so it reuses the k8s scorer and rolls up
+    to the **weakest** workload.
+
+    ```bash
+    ironctl scan --openshift ./manifests
+    ```
+
+    [:octicons-arrow-right-24: Scan reference](scan.md)
+
 </div>
 
 ### Cloud runtimes { #modes-cloud }
@@ -304,6 +318,7 @@ the container they eventually produce are all measured on one comparable scale.
 | Compose &amp; orchestrators | [Helm chart](#scan-helm) | `--helm` | weakest workload from `helm template` | [Scan reference](scan.md) |
 | Compose &amp; orchestrators | [Kustomize overlay](#scan-kustomize) | `--kustomize` | weakest workload from `kustomize build` | [Grade a kustomization](scan.md#grade-a-kustomization) |
 | Compose &amp; orchestrators | [Nomad job](#scan-nomad) | `--nomad` | docker-driver tasks in a job spec | [Scan reference](scan.md) |
+| Compose &amp; orchestrators | [OpenShift manifest](#scan-openshift) | `--openshift` | weakest workload (DeploymentConfig/Deployment/Pod) | [Scan reference](scan.md) |
 | Cloud runtimes | [Cloud Run](#scan-cloudrun) | `--cloudrun` | a Knative Service's container config | [Grade a Cloud Run service](scan.md#grade-a-google-cloud-run-service) |
 | Cloud runtimes | [Amazon ECS](#scan-ecs) | `--ecs` | a task definition's container contract | [Grade an ECS task definition](scan.md#grade-an-aws-ecs-task-definition) |
 | Cloud runtimes | [Azure Container Instances](#scan-azure) | `--azure` | weakest container in an ARM `containerGroups` | [Grade an Azure container group](scan.md#grade-an-azure-container-group) |
