@@ -1,0 +1,3 @@
+[codespell]
+skip = *.svg,*.cast,*.sum,*.lock,*.png,*.jpg,*.gif,*.ico,vendor/,node_modules/,dist/
+ignore-words-list = ACI,aci,nd,ot,nin
