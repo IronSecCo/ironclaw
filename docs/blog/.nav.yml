@@ -52,5 +52,9 @@ nav:
   - "How to harden a Tempo container": harden-tempo-container-isolation.md
   - "How to harden a Meilisearch container": harden-meilisearch-container-isolation.md
   - "How to harden a Dragonfly container": harden-dragonfly-container-isolation.md
+  - "How to harden a Typesense container": harden-typesense-container-isolation.md
+  - "How to harden a YugabyteDB container": harden-yugabyte-container-isolation.md
+  - "How to harden an Immich container": harden-immich-server-container-isolation.md
+  - "How to harden a pgAdmin container": harden-pgadmin4-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"
