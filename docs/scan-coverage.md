@@ -174,6 +174,20 @@ roll up to the **weakest** workload they produce.
 
     [:octicons-arrow-right-24: Scan reference](scan.md)
 
+-   #### :simple-kubernetes:{ .lg .middle } Admission gate { #scan-k8s-admission }
+
+    ---
+
+    Turns scan into an in-cluster **enforcement gate**. Grades the workload in a Kubernetes
+    **AdmissionReview** through the same pod-spec scorer and gates admission on `--min-score`;
+    `--admission-response` emits the allow/deny JSON a **ValidatingWebhook** returns. Fail-closed.
+
+    ```bash
+    ironctl scan --k8s-admission - --admission-response --min-score 80
+    ```
+
+    [:octicons-arrow-right-24: Scan reference](scan.md#grade-a-kubernetes-admission-review)
+
 </div>
 
 ### Cloud runtimes { #modes-cloud }
@@ -348,6 +362,7 @@ the container they eventually produce are all measured on one comparable scale.
 | Compose &amp; orchestrators | [Kustomize overlay](#scan-kustomize) | `--kustomize` | weakest workload from `kustomize build` | [Grade a kustomization](scan.md#grade-a-kustomization) |
 | Compose &amp; orchestrators | [Nomad job](#scan-nomad) | `--nomad` | docker-driver tasks in a job spec | [Scan reference](scan.md) |
 | Compose &amp; orchestrators | [OpenShift manifest](#scan-openshift) | `--openshift` | weakest workload (DeploymentConfig/Deployment/Pod) | [Scan reference](scan.md) |
+| Compose &amp; orchestrators | [Admission gate](#scan-k8s-admission) | `--k8s-admission` `--admission-response` | the workload in an AdmissionReview (webhook backend) | [Grade a Kubernetes AdmissionReview](scan.md#grade-a-kubernetes-admission-review) |
 | Cloud runtimes | [Cloud Run](#scan-cloudrun) | `--cloudrun` | a Knative Service's container config | [Grade a Cloud Run service](scan.md#grade-a-google-cloud-run-service) |
 | Cloud runtimes | [Amazon ECS](#scan-ecs) | `--ecs` | a task definition's container contract | [Grade an ECS task definition](scan.md#grade-an-aws-ecs-task-definition) |
 | Cloud runtimes | [Azure Container Instances](#scan-azure) | `--azure` | weakest container in an ARM `containerGroups` | [Grade an Azure container group](scan.md#grade-an-azure-container-group) |
