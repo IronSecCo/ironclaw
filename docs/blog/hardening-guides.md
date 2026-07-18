@@ -43,6 +43,7 @@ Two patterns show up across the set:
 | [Loki](harden-loki-container-isolation.md) | 63/100 C | **100/100 A** | full caps, writable rootfs (89/B if a fleet pushes logs) |
 | [Tempo](harden-tempo-container-isolation.md) | 63/100 C | **100/100 A** | full caps, writable rootfs (89/B if a fleet pushes traces) |
 | [Meilisearch](harden-meilisearch-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if remote clients) |
+| [YugabyteDB](harden-yugabyte-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B multi-node cluster) |
 | [Dragonfly](harden-dragonfly-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B as a shared network cache) |
 | [Untrusted Node.js](run-untrusted-nodejs-code-safely.md) | 48/100 D | **100/100 A** | run untrusted code in a real sandbox |
 
@@ -68,6 +69,9 @@ These services must accept client connections, so the network dimension holds at
 | [NATS](harden-nats-container-isolation.md) | 48/100 D | **89/100 B** | broker: publishers and subscribers must connect |
 | [Gitea](harden-gitea-container-isolation.md) | 48/100 D | **89/100 B** | git server: developers and CI must reach it |
 | [HAProxy](harden-haproxy-container-isolation.md) | 63/100 C | **89/100 B** | load balancer: it exists to accept and forward traffic |
+| [Typesense](harden-typesense-container-isolation.md) | 48/100 D | **89/100 B** | search server: your app must reach its query API |
+| [Immich](harden-immich-server-container-isolation.md) | 48/100 D | **89/100 B** | photo server: browsers and mobile apps must reach it |
+| [pgAdmin](harden-pgadmin4-container-isolation.md) | 63/100 C | **89/100 B** | admin console: your browser must reach the UI |
 
 ## The pattern, one command
 
