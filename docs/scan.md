@@ -461,6 +461,43 @@ fail-closed and noted. A synth or parse failure (the `cdk` binary is absent with
 an opt-in CI step never crashes the build; once containers are graded, `--min-score`
 still trips on a low posture.
 
+## Grade an AWS SAM template
+
+`--sam PATH` grades the container workloads declared in an [AWS SAM](https://aws.amazon.com/serverless/sam/)
+(Serverless Application Model) template. A SAM template carries a
+`Transform: AWS::Serverless-*` header and, when deployed, is expanded to
+CloudFormation — but SAM is a strict **superset** of CloudFormation: any resource that
+is not an `AWS::Serverless::*` type (an `AWS::ECS::TaskDefinition`, for instance) passes
+through the transform **unchanged**, in ordinary CloudFormation form. So an ECS/Fargate
+task definition in a SAM app is graded through the **exact same** shared ECS scorer as
+`--cloudformation`, with no `sam build`/transform step required. Point it at a SAM
+template file or a directory of them:
+
+```bash
+ironctl scan --sam ./template.yaml                 # grade the SAM template's ECS task defs
+ironctl scan --sam ./template.yaml --min-score 75  # CI gate
+ironctl scan --sam ./sam                            # a directory of SAM templates (weakest wins)
+ironctl scan --sam ./template.yaml --sarif scan.sarif  # upload to code-scanning
+```
+
+It is offline and daemon-free: the template is parsed on disk, with no AWS login and no
+deploy. Because a SAM template's ECS task definitions are already native
+CloudFormation, the scoring is identical to `--cloudformation`: each container
+definition runs through the shared ECS scorer, and a fully hardened task definition
+tops out at **89/100 (grade B)** — see [Grade a CloudFormation
+template](#grade-a-cloudformation-template) for the per-dimension breakdown. The
+template grade is the **weakest** container across every task definition. Unresolved
+CloudFormation intrinsics (`!Ref`/`!Sub`/`Fn::...`) are graded fail-closed and noted.
+
+`AWS::Serverless::Function` resources — including `PackageType: Image`
+Lambda-container functions — run on the managed Lambda runtime, which exposes none of
+the ECS task-definition isolation fields (privileged, user, read-only rootfs, host
+namespaces) this scorer grades, so they are not scored; the real, user-controllable
+container-isolation surface in a SAM app is its ECS/Fargate task definitions. A load or
+parse failure (an unreadable path or a malformed template) fails **open** — a clear
+diagnostic and exit 0 — so an opt-in CI step never crashes the build; once containers
+are graded, `--min-score` still trips on a low posture.
+
 ## Grade a kustomization
 
 `--kustomize DIR` renders a [Kustomize](https://kustomize.io/) directory with
