@@ -56,5 +56,9 @@ nav:
   - "How to harden a YugabyteDB container": harden-yugabyte-container-isolation.md
   - "How to harden an Immich container": harden-immich-server-container-isolation.md
   - "How to harden a pgAdmin container": harden-pgadmin4-container-isolation.md
+  - "How to harden an OpenSearch container": harden-opensearch-container-isolation.md
+  - "How to harden a Redpanda container": harden-redpanda-container-isolation.md
+  - "How to harden a Qdrant container": harden-qdrant-container-isolation.md
+  - "How to harden a ScyllaDB container": harden-scylla-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"
