@@ -566,6 +566,43 @@ could not inspect. As with `--k8s`, network egress depends on a `NetworkPolicy`
 not visible in the pod spec, so the honest static ceiling applies &mdash; size
 `--min-score` accordingly (a fully hardened pod tops out around a strong **B**).
 
+## Generate an admission policy from the findings
+
+`--emit-policy=kyverno|gatekeeper` moves scan from *grading* a workload to
+*generating the guardrail*. Point it at a Kubernetes manifest and instead of a
+scorecard it emits ready-to-apply admission-policy YAML that **blocks the exact
+controls the manifest failed** &mdash; the delta between its grade and a hardened
+**100/A**. It reuses the **same pod-spec scorer** as `--k8s` / `--k8s-admission`,
+so nothing is re-derived: one failed dimension becomes one policy rule.
+
+```bash
+# Kyverno: one ClusterPolicy, one Enforce rule per failed control
+ironctl scan --k8s pod.yaml --emit-policy=kyverno | kubectl apply -f -
+
+# Gatekeeper: one ConstraintTemplate (Rego) + Constraint per failed control
+ironctl scan --k8s pod.yaml --emit-policy=gatekeeper | kubectl apply -f -
+```
+
+| Scorer dimension | Enforced control | Kyverno rule | Gatekeeper template |
+| --- | --- | --- | --- |
+| Non-root user | `runAsNonRoot: true` | `require-run-as-non-root` | `K8sRequireRunAsNonRoot` |
+| Dropped capabilities | `capabilities.drop: [ALL]`, not privileged | `require-drop-all-capabilities` | `K8sRequireDropAllCaps` |
+| Seccomp profile | `seccompProfile.type: RuntimeDefault\|Localhost` | `require-seccomp` | `K8sRequireSeccomp` |
+| Read-only rootfs | `readOnlyRootFilesystem: true` | `require-readonly-rootfs` | `K8sRequireReadOnlyRootFs` |
+| Network isolation | `hostNetwork: false` | `disallow-host-network` | `K8sDisallowHostNetwork` |
+| Host namespaces | `hostPID: false`, `hostIPC: false` | `disallow-host-namespaces` | `K8sDisallowHostNamespaces` |
+| No docker.sock | no runtime-socket hostPath mount | `disallow-runtime-socket-mounts` | `K8sDisallowRuntimeSocket` |
+
+The Kyverno policy matches `Pod` (Kyverno auto-generates the matching rules for
+Deployments, StatefulSets, and the other pod controllers) with
+`validate.failureAction: Enforce`, so a violating workload is rejected at admission
+time. For a multi-document manifest a control is enforced when **any** workload
+fails it &mdash; the emitted set is the union of every workload's gaps. As with
+`--k8s`, full egress lockdown (`network=none`) needs a `NetworkPolicy`, which
+admission control cannot express, so the `hostNetwork` guardrail carries a note to
+that effect. This turns the scan into a policy-generation tool: grade once, then
+enforce the delta cluster-wide so the gap can never reopen.
+
 ## Grade a Dockerfile statically
 
 `--dockerfile FILE` grades a Dockerfile with no daemon and no image pull, so it

@@ -44,6 +44,7 @@ func cmdScan(args []string) error {
 	k8s := fs.String("k8s", "", "grade the first container in this Kubernetes pod/workload manifest")
 	k8sAdmission := fs.String("k8s-admission", "", "grade the workload carried in a Kubernetes admission.k8s.io/v1 AdmissionReview JSON (webhook backend); '-' reads stdin")
 	admissionResponse := fs.Bool("admission-response", false, "with --k8s-admission, emit an admission.k8s.io/v1 AdmissionReview response JSON (allow/deny) to stdout instead of the scorecard")
+	emitPolicy := fs.String("emit-policy", "", "instead of a scorecard, emit admission-policy YAML (engine: kyverno|gatekeeper) that BLOCKS the controls the scanned --k8s manifest failed (the delta to 100/A)")
 	helm := fs.String("helm", "", "render a Helm chart (dir or .tgz) with `helm template` and grade the isolation posture of its workloads")
 	helmBin := fs.String("helm-bin", envOrDefault("HELM", "helm"), "helm binary used to render the chart")
 	terraform := fs.String("terraform", "", "grade container workloads in a `terraform show -json` file (plan.json/state.json) or a Terraform dir")
@@ -428,6 +429,15 @@ func cmdScan(args []string) error {
 			sarif:        *sarif,
 			minScore:     *minScore,
 		})
+	}
+
+	// --emit-policy: turn scan findings into a guardrail. Instead of a scorecard,
+	// emit ready-to-apply Kyverno/Gatekeeper admission-policy YAML that BLOCKS the
+	// exact containment controls the scanned Kubernetes manifest failed — the delta
+	// between its grade and 100/A, one failed dimension -> one policy rule. It reuses
+	// the SAME pod-spec scorer as --k8s / --k8s-admission (no controls re-derived).
+	if *emitPolicy != "" {
+		return runEmitPolicy(emitPolicyArgs{engine: *emitPolicy, k8s: *k8s, positional: positional})
 	}
 
 	// Resolve the source and build a normalized Spec. configFile/configRaw carry
@@ -2542,6 +2552,54 @@ func fileExists(path string) bool {
 	return err == nil && !info.IsDir()
 }
 
+// emitPolicyArgs carries the resolved inputs for a `scan --emit-policy` run.
+type emitPolicyArgs struct {
+	engine     string   // kyverno | gatekeeper
+	k8s        string   // manifest path from --k8s (takes precedence)
+	positional []string // fallback manifest path(s)
+}
+
+// runEmitPolicy grades a Kubernetes manifest and emits admission-policy YAML that
+// blocks the controls it failed — the delta between its grade and 100/A. It reuses
+// the SAME pod-spec scorer as --k8s (SpecsFromK8sStream + Score); a control is
+// enforced when ANY workload in the manifest fails it, so a multi-doc file yields
+// the union of every workload's gaps. Pure emission (EmitPolicy) does the rest.
+func runEmitPolicy(a emitPolicyArgs) error {
+	engine, err := scan.ParsePolicyEngine(a.engine)
+	if err != nil {
+		return err
+	}
+	path := a.k8s
+	if path == "" {
+		switch len(a.positional) {
+		case 0:
+			return fmt.Errorf("scan --emit-policy needs a Kubernetes manifest: pass --k8s FILE or a positional path")
+		case 1:
+			path = a.positional[0]
+		default:
+			return fmt.Errorf("scan --emit-policy grades one manifest at a time; got %d", len(a.positional))
+		}
+	}
+	raw, rerr := os.ReadFile(path)
+	if rerr != nil {
+		return fmt.Errorf("read manifest: %w", rerr)
+	}
+	specs, serr := scan.SpecsFromK8sStream(raw)
+	if serr != nil {
+		return serr
+	}
+	reports := make([]scan.Report, len(specs))
+	for i, s := range specs {
+		reports[i] = scan.Score(s)
+	}
+	out, eerr := scan.EmitPolicy(reports, engine)
+	if eerr != nil {
+		return eerr
+	}
+	fmt.Fprint(os.Stdout, out)
+	return nil
+}
+
 // k8sAdmissionArgs carries the resolved inputs for a `scan --k8s-admission` run.
 type k8sAdmissionArgs struct {
 	path         string
@@ -2808,6 +2866,7 @@ USAGE:
   ironctl scan --compose FILE [--service N]   grade a docker-compose service
   ironctl scan --k8s FILE                     grade a Kubernetes pod/workload manifest
   ironctl scan --k8s-admission FILE            grade the workload in a Kubernetes AdmissionReview JSON (webhook backend; '-' = stdin)
+  ironctl scan --k8s FILE --emit-policy=ENGINE emit Kyverno/Gatekeeper policy YAML that blocks the controls the manifest failed
   ironctl scan --helm CHART                    render a Helm chart (dir or .tgz) and grade its workloads
   ironctl scan --terraform PATH                grade container workloads in a terraform show -json file/dir
   ironctl scan --nomad PATH                     grade docker-driver tasks in a Nomad job spec (JSON or HCL)

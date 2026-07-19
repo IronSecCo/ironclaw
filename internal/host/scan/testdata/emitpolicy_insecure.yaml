@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad
+spec:
+  hostNetwork: true
+  hostPID: true
+  hostIPC: true
+  volumes:
+    - name: dsock
+      hostPath:
+        path: /var/run/docker.sock
+  containers:
+    - name: app
+      image: nginx
+      securityContext:
+        privileged: true
+      volumeMounts:
+        - name: dsock
+          mountPath: /var/run/docker.sock
