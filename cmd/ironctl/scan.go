@@ -36,6 +36,7 @@ func cmdScan(args []string) error {
 	badgeJSON := fs.String("badge-json", "", "write a shields.io endpoint JSON badge to this path (embed a live README badge)")
 	sarif := fs.String("sarif", "", "write a SARIF 2.1.0 log to this path (GitHub code-scanning upload)")
 	md := fs.Bool("md", false, "print a shareable markdown block (README/blog section)")
+	share := fs.Bool("share", false, "print a shareable scan receipt: grade badge + per-dim breakdown + a link to a hosted receipt page and install CTA (offline; no network)")
 	fix := fs.Bool("fix", false, "emit concrete remediation config for each failed dimension")
 	remediate := fs.Bool("remediate", false, "alias for --fix")
 	compareFlag := fs.Bool("compare", false, "compare two containers side-by-side (takes two positional targets)")
@@ -118,6 +119,7 @@ func cmdScan(args []string) error {
 			paths:     positional,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -137,6 +139,7 @@ func cmdScan(args []string) error {
 			helmBin:   *helmBin,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -156,6 +159,7 @@ func cmdScan(args []string) error {
 			terraformBin: *terraformBin,
 			asJSON:       *asJSON,
 			md:           *md,
+			share:        *share,
 			badge:        *badge,
 			badgeJSON:    *badgeJSON,
 			sarif:        *sarif,
@@ -175,6 +179,7 @@ func cmdScan(args []string) error {
 			nomadBin:  *nomadBin,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -193,6 +198,7 @@ func cmdScan(args []string) error {
 			path:      *ecs,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -212,6 +218,7 @@ func cmdScan(args []string) error {
 			path:      *cloudrun,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -231,6 +238,7 @@ func cmdScan(args []string) error {
 			path:      *cloudformation,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -252,6 +260,7 @@ func cmdScan(args []string) error {
 			path:      *pulumi,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -272,6 +281,7 @@ func cmdScan(args []string) error {
 			path:      *azure,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -293,6 +303,7 @@ func cmdScan(args []string) error {
 			path:      *appRunner,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -316,6 +327,7 @@ func cmdScan(args []string) error {
 			azBin:     *azBin,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -338,6 +350,7 @@ func cmdScan(args []string) error {
 			cdkBin:    *cdkBin,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -359,6 +372,7 @@ func cmdScan(args []string) error {
 			path:      *sam,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -381,6 +395,7 @@ func cmdScan(args []string) error {
 			kubectlBin:   *kubectlBin,
 			asJSON:       *asJSON,
 			md:           *md,
+			share:        *share,
 			badge:        *badge,
 			badgeJSON:    *badgeJSON,
 			sarif:        *sarif,
@@ -403,6 +418,7 @@ func cmdScan(args []string) error {
 			path:      *openshift,
 			asJSON:    *asJSON,
 			md:        *md,
+			share:     *share,
 			badge:     *badge,
 			badgeJSON: *badgeJSON,
 			sarif:     *sarif,
@@ -423,6 +439,7 @@ func cmdScan(args []string) error {
 			emitResponse: *admissionResponse,
 			asJSON:       *asJSON,
 			md:           *md,
+			share:        *share,
 			badge:        *badge,
 			badgeJSON:    *badgeJSON,
 			sarif:        *sarif,
@@ -495,6 +512,10 @@ func cmdScan(args []string) error {
 	if *md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if *share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if *badge != "" {
 		if err := os.WriteFile(*badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -592,6 +613,7 @@ type dockerfileArgs struct {
 	paths     []string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -634,6 +656,10 @@ func runDockerfileScan(a dockerfileArgs) error {
 			fmt.Fprintln(os.Stdout)
 			fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
 		}
+		if a.share {
+			fmt.Fprintln(os.Stdout)
+			fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
+		}
 		if a.badge != "" {
 			if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
 				return fmt.Errorf("write badge: %w", err)
@@ -675,6 +701,7 @@ type helmArgs struct {
 	helmBin   string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -722,6 +749,10 @@ func runHelmScan(a helmArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -785,6 +816,7 @@ type kustomizeArgs struct {
 	kubectlBin   string
 	asJSON       bool
 	md           bool
+	share        bool
 	badge        string
 	badgeJSON    string
 	sarif        string
@@ -834,6 +866,10 @@ func runKustomizeScan(a kustomizeArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -905,6 +941,7 @@ type terraformArgs struct {
 	terraformBin string
 	asJSON       bool
 	md           bool
+	share        bool
 	badge        string
 	badgeJSON    string
 	sarif        string
@@ -950,6 +987,10 @@ func runTerraformScan(a terraformArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -1044,6 +1085,7 @@ type nomadArgs struct {
 	nomadBin  string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -1089,6 +1131,10 @@ func runNomadScan(a nomadArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -1157,6 +1203,7 @@ type ecsArgs struct {
 	path      string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -1196,6 +1243,10 @@ func runECSScan(a ecsArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -1277,6 +1328,7 @@ type cloudRunScanArgs struct {
 	path      string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -1323,6 +1375,10 @@ func runCloudRunScan(a cloudRunScanArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -1400,6 +1456,7 @@ type openShiftScanArgs struct {
 	path      string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -1446,6 +1503,10 @@ func runOpenShiftScan(a openShiftScanArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -1523,6 +1584,7 @@ type cloudFormationScanArgs struct {
 	path      string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -1566,6 +1628,10 @@ func runCloudFormationScan(a cloudFormationScanArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -1650,6 +1716,7 @@ type samScanArgs struct {
 	path      string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -1693,6 +1760,10 @@ func runSAMScan(a samScanArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -1789,6 +1860,7 @@ type pulumiScanArgs struct {
 	path      string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -1829,6 +1901,10 @@ func runPulumiScan(a pulumiScanArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -1910,6 +1986,7 @@ type azureScanArgs struct {
 	path      string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -1953,6 +2030,10 @@ func runAzureScan(a azureScanArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -2037,6 +2118,7 @@ type appRunnerScanArgs struct {
 	path      string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -2050,6 +2132,7 @@ type bicepScanArgs struct {
 	azBin     string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -2089,6 +2172,10 @@ func runAppRunnerScan(a appRunnerScanArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -2202,6 +2289,10 @@ func runBicepScan(a bicepScanArgs) error {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
 	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
+	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
 			return fmt.Errorf("write badge: %w", err)
@@ -2314,6 +2405,7 @@ type cdkScanArgs struct {
 	cdkBin    string
 	asJSON    bool
 	md        bool
+	share     bool
 	badge     string
 	badgeJSON string
 	sarif     string
@@ -2357,6 +2449,10 @@ func runCDKScan(a cdkScanArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -2548,6 +2644,7 @@ type k8sAdmissionArgs struct {
 	emitResponse bool
 	asJSON       bool
 	md           bool
+	share        bool
 	badge        string
 	badgeJSON    string
 	sarif        string
@@ -2623,6 +2720,10 @@ func runK8sAdmissionScan(a k8sAdmissionArgs) error {
 	if a.md {
 		fmt.Fprintln(os.Stdout)
 		fmt.Fprint(os.Stdout, scan.RenderMarkdown(report))
+	}
+	if a.share {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderShareReceipt(report))
 	}
 	if a.badge != "" {
 		if err := os.WriteFile(a.badge, []byte(scan.RenderBadgeSVG(report)), 0o644); err != nil {
@@ -2834,6 +2935,7 @@ FLAGS:
   --badge-json PATH   write a shields.io endpoint JSON badge to PATH (live README badge)
   --sarif PATH        write a SARIF 2.1.0 log to PATH (GitHub code-scanning upload)
   --md                print a shareable markdown block
+  --share             print a shareable scan receipt (grade badge + breakdown + hosted receipt link + install CTA; offline)
   --min-score N       exit non-zero if the score is below N (CI gate; the admission threshold for --k8s-admission)
   --admission-response  with --k8s-admission, emit an AdmissionReview response JSON (allow/deny) to stdout
   --service NAME      compose service to grade (if the file has >1)

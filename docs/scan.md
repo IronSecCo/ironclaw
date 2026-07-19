@@ -658,8 +658,32 @@ which gates the three container images it ships at `--min-score=80`.
 | `--badge-json badge.json` | a [shields.io endpoint](https://shields.io/badges/endpoint-badge) JSON file for a live, self-updating README badge |
 | `--sarif scan.sarif` | a SARIF 2.1.0 log you can upload to GitHub code scanning (findings land in the repo Security tab) |
 | `--md` | a shareable markdown block for a README or blog post |
+| `--share` | a shareable scan receipt: a grade badge, the per-dimension breakdown, a link to a hosted receipt page, and an install CTA (offline; no network) |
 | `--compare A B` | grade two containers and print a side-by-side isolation-posture diff |
 | `--min-score N` | exit non-zero when the score is below N (a CI gate) |
+
+## Share a scan receipt
+
+`--share` turns any scan into a self-contained, self-promoting receipt you can
+paste anywhere. It prints:
+
+- a **live [shields.io](https://shields.io) grade badge** (the score is baked
+  into the URL, so it previews wherever the link is pasted, no hosting needed);
+- the **per-dimension breakdown** as a Markdown table;
+- a link to a **hosted receipt page** at
+  [`/receipt/`](https://ironsecco.github.io/ironclaw/receipt/) that renders the
+  exact scorecard client-side (the score travels in the URL fragment, so nothing
+  is sent to a server and the page works on plain static hosting); and
+- a **"Scanned with IronClaw" call to action** with the install one-liner.
+
+```bash
+ironctl scan my-agent-sandbox --share
+```
+
+It is fail-safe and offline: `--share` makes no network call at render time, so
+the full local receipt (badge Markdown, breakdown, and receipt link) is emitted
+even with no connectivity. Works with every scan input mode (`--compose`,
+`--k8s`, `--helm`, `--terraform`, and the rest).
 
 ## Compare two containers
 
