@@ -51,6 +51,51 @@ func TestShareReceiptURL(t *testing.T) {
 	}
 }
 
+func TestShareCardURL(t *testing.T) {
+	r := sampleReport()
+	r.Version = "v0.1.361"
+	u := ShareCardURL(r)
+
+	// Landing dynamic-OG route with the score in the QUERY string (server reads
+	// searchParams to vary og:image), not the fragment.
+	if !strings.HasPrefix(u, shareCardBaseURL+"?") {
+		t.Fatalf("card URL must carry the score in the query string: %q", u)
+	}
+	parsed, err := url.Parse(u)
+	if err != nil {
+		t.Fatalf("card URL invalid: %v", err)
+	}
+	if parsed.Host != "nivardsec.com" || parsed.Path != "/receipt" {
+		t.Errorf("card URL target = %q%q, want nivardsec.com/receipt", parsed.Host, parsed.Path)
+	}
+	// Same s/g/t/v/d contract as the static page, decoded from the query.
+	q := parsed.Query()
+	if q.Get("s") != "100" || q.Get("g") != "A" || q.Get("t") != "ic-sbx-demo" || q.Get("v") != "v0.1.361" {
+		t.Errorf("card URL params drifted from the s/g/t/v/d contract: %q", parsed.RawQuery)
+	}
+	if len(strings.Split(q.Get("d"), ";")) != len(r.Dimensions) {
+		t.Errorf("card URL dim breakdown does not round-trip: %q", q.Get("d"))
+	}
+	// Card and static-page share URLs encode the exact same params (no drift).
+	if q.Encode() != mustFragParams(t, ShareReceiptURL(r)).Encode() {
+		t.Error("ShareCardURL and ShareReceiptURL params drifted")
+	}
+	// Determinism: same report renders the same URL.
+	if ShareCardURL(r) != u {
+		t.Error("ShareCardURL is not deterministic")
+	}
+}
+
+// mustFragParams decodes the fragment of a static-page receipt URL as a query.
+func mustFragParams(t *testing.T, u string) url.Values {
+	t.Helper()
+	vals, err := url.ParseQuery(strings.SplitN(u, "#", 2)[1])
+	if err != nil {
+		t.Fatalf("fragment not decodable: %v", err)
+	}
+	return vals
+}
+
 func TestShareBadgeURL(t *testing.T) {
 	u := ShareBadgeURL(sampleReport())
 	// Well-formed absolute shields.io badge URL.
@@ -80,7 +125,8 @@ func TestRenderShareReceipt(t *testing.T) {
 	md := RenderShareReceipt(sampleReport())
 	for _, want := range []string{
 		"img.shields.io",                        // live badge preview
-		"ironsecco.github.io/ironclaw/receipt/", // hosted receipt page
+		"nivardsec.com/receipt?",                // primary dynamic-OG card (query string)
+		"ironsecco.github.io/ironclaw/receipt/", // static offline fallback page (fragment)
 		"scan-coverage",                         // funnel back to the hub
 		"| Dimension |",                         // per-dim breakdown
 		"Scanned with **IronClaw**",             // CTA
