@@ -45,7 +45,7 @@ func cmdScan(args []string) error {
 	k8s := fs.String("k8s", "", "grade the first container in this Kubernetes pod/workload manifest")
 	k8sAdmission := fs.String("k8s-admission", "", "grade the workload carried in a Kubernetes admission.k8s.io/v1 AdmissionReview JSON (webhook backend); '-' reads stdin")
 	admissionResponse := fs.Bool("admission-response", false, "with --k8s-admission, emit an admission.k8s.io/v1 AdmissionReview response JSON (allow/deny) to stdout instead of the scorecard")
-	emitPolicy := fs.String("emit-policy", "", "instead of a scorecard, emit admission-policy YAML (engine: kyverno|gatekeeper) that BLOCKS the controls the scanned --k8s manifest failed (the delta to 100/A)")
+	emitPolicy := fs.String("emit-policy", "", "instead of a scorecard, emit admission-policy YAML (engine: kyverno|gatekeeper|vap) that BLOCKS the controls the scanned --k8s manifest failed (the delta to 100/A); vap is a controller-free native ValidatingAdmissionPolicy")
 	helm := fs.String("helm", "", "render a Helm chart (dir or .tgz) with `helm template` and grade the isolation posture of its workloads")
 	helmBin := fs.String("helm-bin", envOrDefault("HELM", "helm"), "helm binary used to render the chart")
 	terraform := fs.String("terraform", "", "grade container workloads in a `terraform show -json` file (plan.json/state.json) or a Terraform dir")
@@ -2650,7 +2650,7 @@ func fileExists(path string) bool {
 
 // emitPolicyArgs carries the resolved inputs for a `scan --emit-policy` run.
 type emitPolicyArgs struct {
-	engine     string   // kyverno | gatekeeper
+	engine     string   // kyverno | gatekeeper | vap
 	k8s        string   // manifest path from --k8s (takes precedence)
 	positional []string // fallback manifest path(s)
 }
@@ -2967,7 +2967,7 @@ USAGE:
   ironctl scan --compose FILE [--service N]   grade a docker-compose service
   ironctl scan --k8s FILE                     grade a Kubernetes pod/workload manifest
   ironctl scan --k8s-admission FILE            grade the workload in a Kubernetes AdmissionReview JSON (webhook backend; '-' = stdin)
-  ironctl scan --k8s FILE --emit-policy=ENGINE emit Kyverno/Gatekeeper policy YAML that blocks the controls the manifest failed
+  ironctl scan --k8s FILE --emit-policy=ENGINE emit Kyverno/Gatekeeper/VAP policy YAML that blocks the controls the manifest failed
   ironctl scan --helm CHART                    render a Helm chart (dir or .tgz) and grade its workloads
   ironctl scan --terraform PATH                grade container workloads in a terraform show -json file/dir
   ironctl scan --nomad PATH                     grade docker-driver tasks in a Nomad job spec (JSON or HCL)

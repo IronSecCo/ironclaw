@@ -568,7 +568,7 @@ not visible in the pod spec, so the honest static ceiling applies &mdash; size
 
 ## Generate an admission policy from the findings
 
-`--emit-policy=kyverno|gatekeeper` moves scan from *grading* a workload to
+`--emit-policy=kyverno|gatekeeper|vap` moves scan from *grading* a workload to
 *generating the guardrail*. Point it at a Kubernetes manifest and instead of a
 scorecard it emits ready-to-apply admission-policy YAML that **blocks the exact
 controls the manifest failed** &mdash; the delta between its grade and a hardened
@@ -581,17 +581,28 @@ ironctl scan --k8s pod.yaml --emit-policy=kyverno | kubectl apply -f -
 
 # Gatekeeper: one ConstraintTemplate (Rego) + Constraint per failed control
 ironctl scan --k8s pod.yaml --emit-policy=gatekeeper | kubectl apply -f -
+
+# VAP: native ValidatingAdmissionPolicy + Binding, NO controller to install
+ironctl scan --k8s pod.yaml --emit-policy=vap | kubectl apply -f -
 ```
 
-| Scorer dimension | Enforced control | Kyverno rule | Gatekeeper template |
-| --- | --- | --- | --- |
-| Non-root user | `runAsNonRoot: true` | `require-run-as-non-root` | `K8sRequireRunAsNonRoot` |
-| Dropped capabilities | `capabilities.drop: [ALL]`, not privileged | `require-drop-all-capabilities` | `K8sRequireDropAllCaps` |
-| Seccomp profile | `seccompProfile.type: RuntimeDefault\|Localhost` | `require-seccomp` | `K8sRequireSeccomp` |
-| Read-only rootfs | `readOnlyRootFilesystem: true` | `require-readonly-rootfs` | `K8sRequireReadOnlyRootFs` |
-| Network isolation | `hostNetwork: false` | `disallow-host-network` | `K8sDisallowHostNetwork` |
-| Host namespaces | `hostPID: false`, `hostIPC: false` | `disallow-host-namespaces` | `K8sDisallowHostNamespaces` |
-| No docker.sock | no runtime-socket hostPath mount | `disallow-runtime-socket-mounts` | `K8sDisallowRuntimeSocket` |
+`vap` targets the built-in **ValidatingAdmissionPolicy** (Kubernetes 1.30+ GA). It
+emits a single `ValidatingAdmissionPolicy` whose `spec.validations` carries one CEL
+expression per failed control, plus a `ValidatingAdmissionPolicyBinding` that
+`Deny`s on failure. Unlike Kyverno and Gatekeeper it needs **no admission
+controller installed** &mdash; the API server itself evaluates the CEL, so it is
+the zero-dependency enforcement path. Each expression reads `object.spec.*` and
+returns `true` when the control is satisfied.
+
+| Scorer dimension | Enforced control | Kyverno rule | Gatekeeper template | VAP CEL (returns true when satisfied) |
+| --- | --- | --- | --- | --- |
+| Non-root user | `runAsNonRoot: true` | `require-run-as-non-root` | `K8sRequireRunAsNonRoot` | `containers.all(c, ...runAsNonRoot == true)` |
+| Dropped capabilities | `capabilities.drop: [ALL]`, not privileged | `require-drop-all-capabilities` | `K8sRequireDropAllCaps` | `containers.all(c, ...drop.exists(d, d == 'ALL'))` |
+| Seccomp profile | `seccompProfile.type: RuntimeDefault\|Localhost` | `require-seccomp` | `K8sRequireSeccomp` | `seccompProfile.type in {RuntimeDefault, Localhost}` |
+| Read-only rootfs | `readOnlyRootFilesystem: true` | `require-readonly-rootfs` | `K8sRequireReadOnlyRootFs` | `containers.all(c, ...readOnlyRootFilesystem == true)` |
+| Network isolation | `hostNetwork: false` | `disallow-host-network` | `K8sDisallowHostNetwork` | `!has(spec.hostNetwork) \|\| hostNetwork != true` |
+| Host namespaces | `hostPID: false`, `hostIPC: false` | `disallow-host-namespaces` | `K8sDisallowHostNamespaces` | `hostPID != true && hostIPC != true` |
+| No docker.sock | no runtime-socket hostPath mount | `disallow-runtime-socket-mounts` | `K8sDisallowRuntimeSocket` | `volumes.all(v, !(v.hostPath.path in [...sockets]))` |
 
 The Kyverno policy matches `Pod` (Kyverno auto-generates the matching rules for
 Deployments, StatefulSets, and the other pod controllers) with
@@ -602,6 +613,11 @@ fails it &mdash; the emitted set is the union of every workload's gaps. As with
 admission control cannot express, so the `hostNetwork` guardrail carries a note to
 that effect. This turns the scan into a policy-generation tool: grade once, then
 enforce the delta cluster-wide so the gap can never reopen.
+
+One scope difference: Kyverno auto-generates matching rules for pod controllers
+(Deployments, StatefulSets, and so on), whereas the `vap` output matches `pods`
+directly. Bind it to the workload resources you care about, or pair it with a Pod
+Security admission label, so controller-created pods are also caught at creation.
 
 ## Grade a Dockerfile statically
 
