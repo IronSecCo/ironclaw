@@ -174,20 +174,6 @@ roll up to the **weakest** workload they produce.
 
     [:octicons-arrow-right-24: Scan reference](scan.md)
 
--   #### :simple-kubernetes:{ .lg .middle } Admission gate { #scan-k8s-admission }
-
-    ---
-
-    Turns scan into an in-cluster **enforcement gate**. Grades the workload in a Kubernetes
-    **AdmissionReview** through the same pod-spec scorer and gates admission on `--min-score`;
-    `--admission-response` emits the allow/deny JSON a **ValidatingWebhook** returns. Fail-closed.
-
-    ```bash
-    ironctl scan --k8s-admission - --admission-response --min-score 80
-    ```
-
-    [:octicons-arrow-right-24: Scan reference](scan.md#grade-a-kubernetes-admission-review)
-
 </div>
 
 ### Cloud runtimes { #modes-cloud }
@@ -345,6 +331,45 @@ roll up to the **weakest** one the code defines.
 
 </div>
 
+### Enforce &amp; generate { #modes-enforce }
+
+The cards above answer *what can I point scan at*. These two answer *what scan does past the
+grade*: it becomes the gate, or it writes the guardrail. Same seven-dimension scorer, now wired
+into admission control instead of a scorecard.
+
+<div class="grid cards" markdown>
+
+-   #### :simple-kubernetes:{ .lg .middle } Admission gate { #scan-k8s-admission }
+
+    ---
+
+    Turns scan into an in-cluster **enforcement gate**. Grades the workload in a Kubernetes
+    **AdmissionReview** through the same pod-spec scorer and gates admission on `--min-score`;
+    `--admission-response` emits the allow/deny JSON a **ValidatingWebhook** returns. Fail-closed.
+
+    ```bash
+    ironctl scan --k8s-admission - --admission-response --min-score 80
+    ```
+
+    [:octicons-arrow-right-24: Grade a Kubernetes AdmissionReview](scan.md#grade-a-kubernetes-admission-review)
+
+-   #### :material-shield-plus-outline:{ .lg .middle } Policy generator { #scan-emit-policy }
+
+    ---
+
+    Flips scan from grading a manifest to **writing the guardrail**. `--emit-policy` turns every
+    control the manifest failed into ready-to-apply **Kyverno** ClusterPolicy or **Gatekeeper**
+    ConstraintTemplate YAML, one Enforce rule per gap, so the cluster blocks the exact delta to
+    100/A.
+
+    ```bash
+    ironctl scan --k8s pod.yaml --emit-policy=kyverno | kubectl apply -f -
+    ```
+
+    [:octicons-arrow-right-24: Generate an admission policy](scan.md#generate-an-admission-policy-from-the-findings)
+
+</div>
+
 ## Every mode, one engine
 
 Every card above feeds the **same seven-dimension scorer**. The input changes; the grade,
@@ -362,7 +387,6 @@ the container they eventually produce are all measured on one comparable scale.
 | Compose &amp; orchestrators | [Kustomize overlay](#scan-kustomize) | `--kustomize` | weakest workload from `kustomize build` | [Grade a kustomization](scan.md#grade-a-kustomization) |
 | Compose &amp; orchestrators | [Nomad job](#scan-nomad) | `--nomad` | docker-driver tasks in a job spec | [Scan reference](scan.md) |
 | Compose &amp; orchestrators | [OpenShift manifest](#scan-openshift) | `--openshift` | weakest workload (DeploymentConfig/Deployment/Pod) | [Scan reference](scan.md) |
-| Compose &amp; orchestrators | [Admission gate](#scan-k8s-admission) | `--k8s-admission` `--admission-response` | the workload in an AdmissionReview (webhook backend) | [Grade a Kubernetes AdmissionReview](scan.md#grade-a-kubernetes-admission-review) |
 | Cloud runtimes | [Cloud Run](#scan-cloudrun) | `--cloudrun` | a Knative Service's container config | [Grade a Cloud Run service](scan.md#grade-a-google-cloud-run-service) |
 | Cloud runtimes | [Amazon ECS](#scan-ecs) | `--ecs` | a task definition's container contract | [Grade an ECS task definition](scan.md#grade-an-aws-ecs-task-definition) |
 | Cloud runtimes | [Azure Container Instances](#scan-azure) | `--azure` | weakest container in an ARM `containerGroups` | [Grade an Azure container group](scan.md#grade-an-azure-container-group) |
@@ -373,6 +397,8 @@ the container they eventually produce are all measured on one comparable scale.
 | Infrastructure-as-Code | [Azure Bicep template](#scan-bicep) | `--bicep` | weakest `containerGroups` container, compiled to ARM | [Grade an Azure Bicep template](scan.md#grade-an-azure-bicep-template) |
 | Infrastructure-as-Code | [AWS CDK app](#scan-cdk) | `--cdk` | weakest ECS container, synthesized to CloudFormation | [Grade an AWS CDK app](scan.md#grade-an-aws-cdk-app) |
 | Infrastructure-as-Code | [AWS SAM template](#scan-sam) | `--sam` | ECS task defs in a SAM (Serverless) template | [Grade an AWS SAM template](scan.md#grade-an-aws-sam-template) |
+| Enforce &amp; generate | [Admission gate](#scan-k8s-admission) | `--k8s-admission` `--admission-response` | the workload in an AdmissionReview (webhook backend) | [Grade a Kubernetes AdmissionReview](scan.md#grade-a-kubernetes-admission-review) |
+| Enforce &amp; generate | [Policy generator](#scan-emit-policy) | `--k8s` `--emit-policy` | failed controls &rarr; Kyverno/Gatekeeper admission YAML | [Generate an admission policy](scan.md#generate-an-admission-policy-from-the-findings) |
 
 Every mode also emits the machine-readable outputs: a [SARIF log](scan.md#github-code-scanning-security-tab)
 for GitHub code scanning, a [shields.io badge](scan.md#sandbox-isolation-score-badge), and
