@@ -39,6 +39,7 @@ func TestEmitPolicyGolden(t *testing.T) {
 	}{
 		{EngineKyverno, "emitpolicy_kyverno.golden.yaml"},
 		{EngineGatekeeper, "emitpolicy_gatekeeper.golden.yaml"},
+		{EngineVAP, "emitpolicy_vap.golden.yaml"},
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.engine), func(t *testing.T) {
@@ -138,6 +139,66 @@ func TestEmitPolicyGatekeeperShape(t *testing.T) {
 	}
 }
 
+// TestEmitPolicyVAPShape asserts the ValidatingAdmissionPolicy output is valid
+// YAML: exactly one ValidatingAdmissionPolicy carrying one CEL validation per
+// failed control, plus a single ValidatingAdmissionPolicyBinding with a Deny
+// action. No controller is referenced — enforcement is native to the API server.
+func TestEmitPolicyVAPShape(t *testing.T) {
+	got, err := EmitPolicy(insecureReports(t), EngineVAP)
+	if err != nil {
+		t.Fatalf("EmitPolicy: %v", err)
+	}
+	dec := yaml.NewDecoder(strings.NewReader(got))
+	policies, bindings, validations := 0, 0, 0
+	for {
+		var doc struct {
+			APIVersion string `yaml:"apiVersion"`
+			Kind       string `yaml:"kind"`
+			Spec       struct {
+				Validations []struct {
+					Expression string `yaml:"expression"`
+					Message    string `yaml:"message"`
+				} `yaml:"validations"`
+				ValidationActions []string `yaml:"validationActions"`
+			} `yaml:"spec"`
+		}
+		if err := dec.Decode(&doc); err != nil {
+			break
+		}
+		switch doc.Kind {
+		case "ValidatingAdmissionPolicy":
+			policies++
+			validations = len(doc.Spec.Validations)
+			for _, v := range doc.Spec.Validations {
+				if strings.TrimSpace(v.Expression) == "" {
+					t.Errorf("validation has empty CEL expression")
+				}
+				if strings.TrimSpace(v.Message) == "" {
+					t.Errorf("validation has empty message")
+				}
+			}
+		case "ValidatingAdmissionPolicyBinding":
+			bindings++
+			if len(doc.Spec.ValidationActions) == 0 || doc.Spec.ValidationActions[0] != "Deny" {
+				t.Errorf("binding must Deny, got %v", doc.Spec.ValidationActions)
+			}
+		}
+		if doc.APIVersion != "" && doc.APIVersion != "admissionregistration.k8s.io/v1" {
+			t.Errorf("VAP docs must be admissionregistration.k8s.io/v1, got %q", doc.APIVersion)
+		}
+	}
+	if policies != 1 {
+		t.Fatalf("want exactly 1 ValidatingAdmissionPolicy, got %d", policies)
+	}
+	if bindings != 1 {
+		t.Fatalf("want exactly 1 ValidatingAdmissionPolicyBinding, got %d", bindings)
+	}
+	// All seven scored dimensions fail on the fixture, so all seven validations appear.
+	if validations != len(scorers) {
+		t.Fatalf("want %d CEL validations, got %d", len(scorers), validations)
+	}
+}
+
 // TestEmitPolicyHardened: a report with no failing dimensions yields an
 // informational comment document rather than an empty, unapplyable policy.
 func TestEmitPolicyHardened(t *testing.T) {
@@ -146,7 +207,7 @@ func TestEmitPolicyHardened(t *testing.T) {
 	for _, sc := range scorers {
 		r.Dimensions = append(r.Dimensions, Dimension{Key: sc.key, Verdict: VerdictPass, Score: sc.max, Max: sc.max})
 	}
-	for _, engine := range []PolicyEngine{EngineKyverno, EngineGatekeeper} {
+	for _, engine := range []PolicyEngine{EngineKyverno, EngineGatekeeper, EngineVAP} {
 		out, err := EmitPolicy([]Report{r}, engine)
 		if err != nil {
 			t.Fatalf("EmitPolicy(%s): %v", engine, err)
@@ -154,7 +215,7 @@ func TestEmitPolicyHardened(t *testing.T) {
 		if !strings.Contains(out, "already earns 100/A") {
 			t.Errorf("%s: want already-hardened comment, got:\n%s", engine, out)
 		}
-		if strings.Contains(out, "kind: ClusterPolicy") || strings.Contains(out, "ConstraintTemplate") {
+		if strings.Contains(out, "kind: ClusterPolicy") || strings.Contains(out, "ConstraintTemplate") || strings.Contains(out, "kind: ValidatingAdmissionPolicy") {
 			t.Errorf("%s: hardened output must carry no rules", engine)
 		}
 	}
@@ -188,7 +249,7 @@ func TestEmitPolicyUnionAcrossWorkloads(t *testing.T) {
 }
 
 func TestParsePolicyEngine(t *testing.T) {
-	for _, s := range []string{"kyverno", "KYVERNO", " gatekeeper "} {
+	for _, s := range []string{"kyverno", "KYVERNO", " gatekeeper ", "vap", "VAP"} {
 		if _, err := ParsePolicyEngine(s); err != nil {
 			t.Errorf("ParsePolicyEngine(%q) unexpected error: %v", s, err)
 		}
