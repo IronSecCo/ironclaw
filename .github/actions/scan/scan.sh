@@ -81,6 +81,7 @@ grade_file() {
 # 2. Build the scan arguments for the requested mode.
 # ---------------------------------------------------------------------------
 scorecard="${WORK}/scorecard.md"
+receipt="${WORK}/receipt.md"
 badge_path=""
 sarif_path=""
 scan_args=()
@@ -97,6 +98,12 @@ case "$MODE" in
     ;;
 esac
 scan_args+=(--md)
+# --share appends a self-promoting receipt (IRO-571): a live shields grade badge
+# linking the hosted /receipt card, the per-dimension table, and a "scan your own
+# repo" install CTA. Every PR scanned by any repo using this Action then carries a
+# branded, verifiable receipt — a compounding, account-free viral loop. Rendered
+# offline by ironctl (no network at scan time), so it is credential- and egress-safe.
+scan_args+=(--share)
 if [ "$BADGE" = "true" ]; then
   badge_path="${WORK}/scan-badge.svg"
   scan_args+=(--badge "$badge_path")
@@ -121,8 +128,15 @@ if [ "$rc" -ne 0 ]; then
   die "ironctl scan failed (exit $rc). See output above."
 fi
 
-# The markdown block starts at the RenderMarkdown header line; slice from there.
-sed -n '/^### IronClaw containment scan:/,$p' "$raw" >"$scorecard"
+# The scan emits two markdown blocks back to back: the RenderMarkdown scorecard
+# (header + per-dimension table) and then the RenderShareReceipt receipt, which
+# opens with the shields badge line. Slice them apart on that stable badge line —
+# the scorecard drives the score/grade parse, gate, and job summary; the receipt
+# is the viral artifact appended to the PR comment. `awk ... {exit}` stops at the
+# badge so the scorecard never bleeds into the receipt block (both carry the same
+# "### IronClaw containment scan:" header).
+awk '/^\[!\[IronClaw containment score\]/{exit} /^### IronClaw containment scan:/{f=1} f' "$raw" >"$scorecard"
+sed -n '/^\[!\[IronClaw containment score\]/,$p' "$raw" >"$receipt"
 [ -s "$scorecard" ] || die "could not extract the markdown scorecard from scan output"
 
 # Parse the score/grade from the header: "... scored **NN/100 (grade X)**".
@@ -181,7 +195,14 @@ if [ "$COMMENT" = "true" ] && [ -n "$pr" ] && [ -n "${GH_TOKEN:-}" ]; then
     fi
   fi
 
-  { echo "$marker"; cat "$scorecard"; [ -n "$delta_line" ] && { echo; echo "$delta_line"; }; } >"$body"
+  # Comment body = the viral share receipt (badge + hosted /receipt link + table +
+  # install CTA) with the base-branch delta appended. The receipt is a superset of
+  # the plain scorecard, so it replaces it here without losing any grade detail while
+  # turning every PR comment into a branded, shareable artifact. Fall back to the
+  # plain scorecard if the receipt block failed to render, so a comment always posts.
+  comment_body="$receipt"
+  [ -s "$comment_body" ] || comment_body="$scorecard"
+  { echo "$marker"; cat "$comment_body"; [ -n "$delta_line" ] && { echo; echo "$delta_line"; }; } >"$body"
 
   # Find an existing comment carrying our marker and update it; else create one.
   existing="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${pr}/comments" --paginate \
