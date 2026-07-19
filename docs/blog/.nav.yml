@@ -60,5 +60,9 @@ nav:
   - "How to harden a Redpanda container": harden-redpanda-container-isolation.md
   - "How to harden a Qdrant container": harden-qdrant-container-isolation.md
   - "How to harden a ScyllaDB container": harden-scylla-container-isolation.md
+  - "How to harden an ArangoDB container": harden-arangodb-container-isolation.md
+  - "How to harden a Solr container": harden-solr-container-isolation.md
+  - "How to harden a VictoriaMetrics container": harden-victoria-metrics-container-isolation.md
+  - "How to harden an EMQX container": harden-emqx-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"

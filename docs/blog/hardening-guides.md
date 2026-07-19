@@ -47,6 +47,9 @@ Two patterns show up across the set:
 | [Dragonfly](harden-dragonfly-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B as a shared network cache) |
 | [OpenSearch](harden-opensearch-container-isolation.md) | 63/100 C | **100/100 A** | full caps, writable rootfs (89/B multi-node cluster) |
 | [Qdrant](harden-qdrant-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs |
+| [ArangoDB](harden-arangodb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if clustered or remote clients) |
+| [Solr](harden-solr-container-isolation.md) | 63/100 C | **100/100 A** | full caps, writable rootfs (89/B multi-node cluster or remote clients) |
+| [VictoriaMetrics](harden-victoria-metrics-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if a fleet pushes metrics) |
 | [ScyllaDB](harden-scylla-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B multi-node cluster) |
 | [Untrusted Node.js](run-untrusted-nodejs-code-safely.md) | 48/100 D | **100/100 A** | run untrusted code in a real sandbox |
 
@@ -76,6 +79,7 @@ These services must accept client connections, so the network dimension holds at
 | [Immich](harden-immich-server-container-isolation.md) | 48/100 D | **89/100 B** | photo server: browsers and mobile apps must reach it |
 | [pgAdmin](harden-pgadmin4-container-isolation.md) | 63/100 C | **89/100 B** | admin console: your browser must reach the UI |
 | [Redpanda](harden-redpanda-container-isolation.md) | 63/100 C | **89/100 B** | broker: producers and consumers must connect |
+| [EMQX](harden-emqx-container-isolation.md) | 63/100 C | **89/100 B** | MQTT broker: publishers and subscribers must connect |
 
 ## The pattern, one command
 
