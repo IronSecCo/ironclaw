@@ -64,5 +64,9 @@ nav:
   - "How to harden a Solr container": harden-solr-container-isolation.md
   - "How to harden a VictoriaMetrics container": harden-victoria-metrics-container-isolation.md
   - "How to harden an EMQX container": harden-emqx-container-isolation.md
+  - "How to harden a Dgraph container": harden-dgraph-container-isolation.md
+  - "How to harden a Weaviate container": harden-weaviate-container-isolation.md
+  - "How to harden a Kong container": harden-kong-container-isolation.md
+  - "How to harden an Envoy container": harden-envoy-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"
