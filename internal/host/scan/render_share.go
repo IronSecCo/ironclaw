@@ -6,20 +6,27 @@ import (
 	"strings"
 )
 
-// Shareable-receipt surfaces (IRO-571). `ironctl scan --share` turns any scan
-// into a self-promoting, copy-paste artifact: a Markdown receipt with a live
-// shields.io grade badge, a link to a hosted receipt page that renders the score
-// client-side, and a "Scanned with IronClaw" CTA that deep-links the scan
-// coverage hub + install. Everything here is pure, deterministic, and offline:
-// no network call is made at render time (the shields badge and receipt page are
-// fetched by the *viewer*, never by the CLI), so --share still emits a full local
-// receipt with no connectivity.
+// Shareable-receipt surfaces (IRO-571, IRO-576). `ironctl scan --share` turns any
+// scan into a self-promoting, copy-paste artifact: a Markdown receipt with a live
+// shields.io grade badge, a link to the hosted receipt card that renders the
+// grade-colored per-score view, and a "Scanned with IronClaw" CTA that deep-links
+// the scan coverage hub + install. Everything here is pure, deterministic, and
+// offline: no network call is made at render time (the shields badge and receipt
+// pages are fetched by the *viewer*, never by the CLI), so --share still emits a
+// full local receipt with no connectivity.
 
 const (
+	// shareCardBaseURL is the landing site's dynamic-OG receipt route (IRO-575
+	// landing PR omerzamir/nivardsec-landing#8). It reads the score from the query
+	// string server-side and emits a per-score `og:image` (the grade-colored card
+	// via /receipt/og), so a pasted link renders a real social preview. This is
+	// the primary shared link, since only a server route can vary og:image.
+	shareCardBaseURL = "https://nivardsec.com/receipt"
 	// shareReceiptBaseURL is the hosted, static receipt page on our own docs
 	// GitHub Pages (no board domain, no account). The score is passed in the URL
 	// fragment so the page renders it client-side; the fragment is never sent to
-	// a server, so the page works on plain static hosting.
+	// a server, so the page works on plain static hosting. Kept as an offline,
+	// no-dependency fallback link that renders even if the landing site is down.
 	shareReceiptBaseURL = "https://ironsecco.github.io/ironclaw/receipt/"
 	// scanHubURL is the scan-coverage hub the receipt CTA funnels back to.
 	scanHubURL = "https://ironsecco.github.io/ironclaw/scan-coverage/"
@@ -28,17 +35,18 @@ const (
 	installOneLiner = "curl -fsSL https://raw.githubusercontent.com/IronSecCo/ironclaw/main/scripts/install.sh | sh"
 )
 
-// ShareReceiptURL builds the shareable receipt link for r. The score, grade,
-// target, version, and per-dimension breakdown are encoded in the URL fragment
-// (after '#') so the static receipt page can render the exact scorecard with no
-// server round-trip. Deterministic for a given report.
-func ShareReceiptURL(r Report) string {
-	frag := url.Values{}
-	frag.Set("s", fmt.Sprintf("%d", r.Score))
-	frag.Set("g", r.Grade)
-	frag.Set("t", nz(r.Target, "target"))
+// shareParams encodes the s/g/t/v/d receipt contract from r: score, grade,
+// target, version, and the per-dimension breakdown. Both the landing OG card
+// route and the static docs page decode these exact keys, so keeping one builder
+// guarantees the two share URLs never drift. Built purely from the local report
+// (no fetch); deterministic for a given report.
+func shareParams(r Report) url.Values {
+	v := url.Values{}
+	v.Set("s", fmt.Sprintf("%d", r.Score))
+	v.Set("g", r.Grade)
+	v.Set("t", nz(r.Target, "target"))
 	if r.Version != "" {
-		frag.Set("v", r.Version)
+		v.Set("v", r.Version)
 	}
 	// Dimensions: title|verdict|score|max, records joined by ';'. Encoded as one
 	// value so the page can rebuild the full per-dimension table without knowing
@@ -49,10 +57,27 @@ func ShareReceiptURL(r Report) string {
 			d.Title, string(d.Verdict), fmt.Sprintf("%d", d.Score), fmt.Sprintf("%d", d.Max),
 		}, "|"))
 	}
-	frag.Set("d", strings.Join(recs, ";"))
-	// url.Values.Encode() gives a stable, sorted, percent-encoded query string;
-	// hang it off the fragment so it never hits the wire.
-	return shareReceiptBaseURL + "#" + frag.Encode()
+	v.Set("d", strings.Join(recs, ";"))
+	return v
+}
+
+// ShareCardURL builds the primary shareable receipt link for r: the landing
+// dynamic-OG route (IRO-575) with the score in the *query string* so the server
+// can read it and emit a per-score, grade-colored `og:image` social card.
+// Deterministic; built purely from the local report with no network call.
+func ShareCardURL(r Report) string {
+	// url.Values.Encode() gives a stable, sorted, percent-encoded query string.
+	return shareCardBaseURL + "?" + shareParams(r).Encode()
+}
+
+// ShareReceiptURL builds the offline-fallback receipt link for r: the static docs
+// GitHub Pages page with the score in the URL *fragment* (after '#') so the page
+// renders the exact scorecard client-side with no server round-trip. Kept as a
+// no-dependency alternate to ShareCardURL. Deterministic for a given report.
+func ShareReceiptURL(r Report) string {
+	// Hang the query off the fragment so it never hits the wire; the static page
+	// works on plain hosting with no server to read query params.
+	return shareReceiptBaseURL + "#" + shareParams(r).Encode()
 }
 
 // shieldsBadgeURL builds a self-contained shields.io static badge URL. No badge
@@ -77,18 +102,20 @@ func ShareBadgeURL(r Report) string {
 }
 
 // RenderShareReceipt returns a self-contained, copy-paste Markdown receipt for r:
-// a grade badge (live shields.io preview), a headline, the per-dimension table,
-// a link to the hosted receipt page (score encoded in the fragment), and a
-// "Scanned with IronClaw" CTA that deep-links the scan hub + install one-liner.
-// Pure and deterministic; makes no network call.
+// a grade badge (live shields.io preview) linking to the dynamic-OG receipt card,
+// a headline, the per-dimension table, and a "Scanned with IronClaw" CTA that
+// deep-links the scan hub + install one-liner. Pure and deterministic; makes no
+// network call. The primary receipt link is the landing OG card (so social
+// previews render the grade-colored per-score image); the static docs page is
+// offered as an offline fallback.
 func RenderShareReceipt(r Report) string {
 	var b strings.Builder
 	target := nz(r.Target, "target")
-	receipt := ShareReceiptURL(r)
+	card := ShareCardURL(r)
 
 	// Badge + headline. The badge is a live shields preview; the link wraps it so
-	// clicking the badge opens the full receipt page.
-	fmt.Fprintf(&b, "[![IronClaw containment score](%s)](%s)\n\n", ShareBadgeURL(r), receipt)
+	// clicking the badge opens the dynamic-OG receipt card (per-score social image).
+	fmt.Fprintf(&b, "[![IronClaw containment score](%s)](%s)\n\n", ShareBadgeURL(r), card)
 	fmt.Fprintf(&b, "### IronClaw containment scan: `%s` scored **%d/100 (grade %s)**\n\n", target, r.Score, r.Grade)
 
 	fmt.Fprintf(&b, "| Dimension | Verdict | Score |\n|---|---|---|\n")
@@ -96,8 +123,8 @@ func RenderShareReceipt(r Report) string {
 		fmt.Fprintf(&b, "| %s | %s %s | %d/%d |\n", d.Title, mdGlyph(d.Verdict), d.Verdict, d.Score, d.Max)
 	}
 
-	fmt.Fprintf(&b, "\n[View this receipt](%s) &middot; [Scan your own sandbox](%s)\n\n",
-		receipt, scanHubURL)
+	fmt.Fprintf(&b, "\n[View this receipt](%s) &middot; [Static receipt](%s) &middot; [Scan your own sandbox](%s)\n\n",
+		card, ShareReceiptURL(r), scanHubURL)
 	fmt.Fprintf(&b, "Scanned with **IronClaw**. Grade your own container:\n\n")
 	fmt.Fprintf(&b, "```sh\n%s\nironctl scan <container> --share\n```\n", installOneLiner)
 	return b.String()
