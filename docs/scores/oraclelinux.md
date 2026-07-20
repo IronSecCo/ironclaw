@@ -7,7 +7,7 @@ description: "How isolated is oraclelinux:9 by default? IronClaw scores its sand
 
 Run with plain `docker run oraclelinux:9` defaults, no hardening flags, the **oraclelinux** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `oraclelinux:9` at digest `sha256:ba090b1c989c459fa6b0c547605591e563fb6fab2891eac6072c9ab5502bdfa0`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `oraclelinux:9` at digest `sha256:e749594d8f9e546a57670ea4943c8eeff86dfb237bbea4febd859dd06ccbedc0`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

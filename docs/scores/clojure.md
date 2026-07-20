@@ -7,7 +7,7 @@ description: "How isolated is clojure:temurin-21-tools-deps by default? IronClaw
 
 Run with plain `docker run clojure:temurin-21-tools-deps` defaults, no hardening flags, the **clojure** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `clojure:temurin-21-tools-deps` at digest `sha256:cb2aac3f97387620a09c56613fa1d270edc7218bb515e977a3d5d63752a11045`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `clojure:temurin-21-tools-deps` at digest `sha256:db77923e67984d00cbf55a4e44cfacdefed5a8fcf1499469086ba1b569f9d937`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

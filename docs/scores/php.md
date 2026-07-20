@@ -7,7 +7,7 @@ description: "How isolated is php:8.4-apache by default? IronClaw scores its san
 
 Run with plain `docker run php:8.4-apache` defaults, no hardening flags, the **php** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `php:8.4-apache` at digest `sha256:1d8a39a120898814820a5eb90f28751fb72ed6342754189014f17bc60a54c0d0`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `php:8.4-apache` at digest `sha256:ea61837b6dee7f5981cced9fdf6a7773c4ef695bc3237fb9da59d223df638ec2`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

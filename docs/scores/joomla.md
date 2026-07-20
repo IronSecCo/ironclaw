@@ -7,7 +7,7 @@ description: "How isolated is joomla:5-apache by default? IronClaw scores its sa
 
 Run with plain `docker run joomla:5-apache` defaults, no hardening flags, the **joomla** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `joomla:5-apache` at digest `sha256:0d463083a3d60b3dde9d767d860687cad73386a4e1b9f41bfcb28e22e3979230`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `joomla:5-apache` at digest `sha256:4a6daad09b5897d1319bd066756413d097ecfcda37df571c35d9c2d1ac08e421`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

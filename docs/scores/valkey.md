@@ -7,7 +7,7 @@ description: "How isolated is valkey:8 by default? IronClaw scores its sandbox p
 
 Run with plain `docker run valkey/valkey:8` defaults, no hardening flags, the **valkey** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `valkey/valkey:8` at digest `sha256:2e5a314659c893edee4530d6844aae75e533648187bbbe13c09b7bbb20711240`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `valkey/valkey:8` at digest `sha256:3e31dd49b6b742e614975e8ab7b1b19809d00ecac7657c6b34bff23582a433cd`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

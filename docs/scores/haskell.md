@@ -7,7 +7,7 @@ description: "How isolated is haskell:9.8 by default? IronClaw scores its sandbo
 
 Run with plain `docker run haskell:9.8` defaults, no hardening flags, the **haskell** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `haskell:9.8` at digest `sha256:2fa0c6b9ad5aafb44e0f28e24c5a7d91b8446820bab885ba020a6773dcdb7f12`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `haskell:9.8` at digest `sha256:e2f16cad64d6271ecc44e6465ff461ef0bf95742edbe94fdfe489f17f8bf2f83`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

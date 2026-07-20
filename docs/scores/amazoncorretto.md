@@ -7,7 +7,7 @@ description: "How isolated is amazoncorretto:21 by default? IronClaw scores its 
 
 Run with plain `docker run amazoncorretto:21` defaults, no hardening flags, the **amazoncorretto** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `amazoncorretto:21` at digest `sha256:9c3e09f59a5c2319a161cef94c7295ce28d6a5a98ed1773088a73778807676e6`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `amazoncorretto:21` at digest `sha256:edb6b3e12b360c67d9bd8ec8b4106ce9285603e0f436e58b74da1fa32da5a378`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

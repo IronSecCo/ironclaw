@@ -1,6 +1,6 @@
 # State of Container Isolation — survey results
 
-Scanned **256 scenarios** with `ironctl scan` dev+fbfaded9ccdd on 2026-07-13T09:18:14Z.
+Scanned **256 scenarios** with `ironctl scan` dev+111fd1ad3e4e on 2026-07-20T08:51:19Z.
 
 Each row is one popular public image run with a specific configuration, graded 0-100 across seven containment dimensions (non-root user, dropped capabilities, seccomp, network isolation, read-only rootfs, no docker.sock, no host namespaces). Higher is safer. See [README.md](./README.md) for the exact method and [images.txt](./images.txt) for the pinned manifest.
 

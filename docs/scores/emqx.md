@@ -7,7 +7,7 @@ description: "How isolated is emqx:5 by default? IronClaw scores its sandbox pos
 
 Run with plain `docker run emqx:5` defaults, no hardening flags, the **emqx** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `emqx:5` at digest `sha256:2eb7ca866279e39883a77e15af3fc6a8cef8399d590be76bd5439aca3897366d`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `emqx:5` at digest `sha256:45b79cdae22e896f07285cdff744bbca06413ac1c334bd6e6f594a0b63823432`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
