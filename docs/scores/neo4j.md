@@ -7,7 +7,7 @@ description: "How isolated is neo4j:5 by default? IronClaw scores its sandbox po
 
 Run with plain `docker run neo4j:5` defaults, no hardening flags, the **neo4j** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `neo4j:5` at digest `sha256:4bae36aff76271e27fd6a6ed0835413f86a284cd179cfb1cb7d188f5f7533aca`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `neo4j:5` at digest `sha256:362542416de6c09a971484d1893878016cc3b5cdec166e54b1c824a220ecd6b9`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

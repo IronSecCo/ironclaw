@@ -7,7 +7,7 @@ description: "How isolated is verdaccio:6 by default? IronClaw scores its sandbo
 
 Run with plain `docker run verdaccio/verdaccio:6` defaults, no hardening flags, the **verdaccio** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `verdaccio/verdaccio:6` at digest `sha256:e3ac7e335e69504cd0b09616aa52066399868282313c34762d2a77b8169a3575`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `verdaccio/verdaccio:6` at digest `sha256:bcd0dc5f10d0b9cca5a21b1f4fb3b08c6d90978bc87b8b46402abb271e0d573a`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

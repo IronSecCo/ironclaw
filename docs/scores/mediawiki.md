@@ -7,7 +7,7 @@ description: "How isolated is mediawiki:1.43 by default? IronClaw scores its san
 
 Run with plain `docker run mediawiki:1.43` defaults, no hardening flags, the **mediawiki** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `mediawiki:1.43` at digest `sha256:eff46919001ed16bb3071db58abf9361b215aa2b6b7242d4b5acd37828e80b19`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `mediawiki:1.43` at digest `sha256:439eda8a1c2a3db2e21ae9817c5ca07fbf8b859465215431405d6412006db803`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

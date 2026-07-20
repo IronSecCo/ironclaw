@@ -7,7 +7,7 @@ description: "How isolated is opensearch:2 by default? IronClaw scores its sandb
 
 Run with plain `docker run opensearchproject/opensearch:2` defaults, no hardening flags, the **opensearch** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `opensearchproject/opensearch:2` at digest `sha256:b485da5f7f7bcb174523954bae1303c8c2ddaae9f1c2c89f10d625c98544e7cd`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `opensearchproject/opensearch:2` at digest `sha256:8690b204fe914c60ca76d451ac73bc0481e034d32d3779944c8caca56a2b003f`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

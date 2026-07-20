@@ -7,7 +7,7 @@ description: "How isolated is drupal:11-apache by default? IronClaw scores its s
 
 Run with plain `docker run drupal:11-apache` defaults, no hardening flags, the **drupal** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `drupal:11-apache` at digest `sha256:c1967d378713a384864cf48f826548276aabcb4dc464b02ad1a280396a57c3be`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `drupal:11-apache` at digest `sha256:7a93ee9c8bec6a780cc25ec4e1610ae6dde483368db3d5aa0ac477567a645d6b`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
