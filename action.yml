@@ -50,6 +50,10 @@ inputs:
     description: 'Fail the check when the containment score is below this (0-100). 0 = report-only (default).'
     required: false
     default: '0'
+  policy-check:
+    description: 'Policy-as-code gate (mode=k8s only): evaluate the manifest against the rules --emit-policy would generate and fail the check on any violation. Independent of min-score; needs no cluster or admission controller. Default false.'
+    required: false
+    default: 'false'
   comment:
     description: 'Post the scorecard as a sticky comment on the pull request (true/false).'
     required: false
@@ -90,6 +94,9 @@ outputs:
   passed:
     description: 'true when the score met min-score (or min-score was 0).'
     value: ${{ steps.scan.outputs.passed }}
+  policy-passed:
+    description: 'true when the policy-as-code check passed (or policy-check was off). Only meaningful when policy-check=true.'
+    value: ${{ steps.scan.outputs.policy-passed }}
 
 runs:
   using: 'composite'
@@ -104,6 +111,7 @@ runs:
         IC_MODE: ${{ inputs.mode }}
         IC_SERVICE: ${{ inputs.service }}
         IC_MIN_SCORE: ${{ inputs.min-score }}
+        IC_POLICY_CHECK: ${{ inputs.policy-check }}
         IC_COMMENT: ${{ inputs.comment }}
         IC_BADGE: ${{ inputs.badge }}
         IC_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
