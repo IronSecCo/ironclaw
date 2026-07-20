@@ -142,6 +142,13 @@ if the base cannot be fetched or graded, the scorecard is still posted without a
 delta line. `container` mode has no git base to compare against, so it shows no
 delta.
 
+Every comment also ends with a copy-paste **README badge** snippet and an "Add
+this to your README" nudge, rendered offline by `ironctl scan --badge-md`. Paste
+it once and your repo carries a live containment-grade badge that links back to
+the scan receipt, turning a one-off PR check into a persistent, self-promoting
+signal. The snippet lives inside the same sticky comment, so it is idempotent and
+never double-posted.
+
 Everything the [scan](scan.md) command guarantees still holds: it is local and
 read-only, it never talks to a control-plane, it needs no credentials, and it is
 fail-closed. See [`.github/actions/scan`](https://github.com/IronSecCo/ironclaw/tree/main/.github/actions/scan)

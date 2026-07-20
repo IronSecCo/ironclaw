@@ -129,3 +129,25 @@ func RenderShareReceipt(r Report) string {
 	fmt.Fprintf(&b, "```sh\n%s\nironctl scan <container> --share\n```\n", installOneLiner)
 	return b.String()
 }
+
+// BadgeSnippetMarkdown returns the raw one-line Markdown a user copy-pastes into
+// their README to embed the live shields grade badge, wrapped in a link to the
+// dynamic-OG receipt card. It reuses ShareBadgeURL and ShareCardURL, so the
+// persistent README badge is byte-identical to the badge in the scan receipt and
+// can never drift. Pure/offline/deterministic.
+func BadgeSnippetMarkdown(r Report) string {
+	return fmt.Sprintf("[![IronClaw containment score](%s)](%s)", ShareBadgeURL(r), ShareCardURL(r))
+}
+
+// RenderBadgeSnippet returns a copy-paste README-badge nudge block for r: a
+// one-line "Add this to your README" CTA followed by a fenced Markdown snippet
+// embedding the live grade badge (BadgeSnippetMarkdown). It turns a one-off scan
+// receipt into a low-friction path to a persistent README badge -> inbound reach
+// (compounds IRO-441 badge adoption). Pure/offline/deterministic; makes no
+// network call, so it renders with no connectivity.
+func RenderBadgeSnippet(r Report) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "**Add this to your README** so every visitor sees your containment grade:\n\n")
+	fmt.Fprintf(&b, "```md\n%s\n```\n", BadgeSnippetMarkdown(r))
+	return b.String()
+}

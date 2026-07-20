@@ -709,6 +709,7 @@ which gates the three container images it ships at `--min-score=80`.
 | `--fix` | print the concrete remediation for every failed dimension, plus a copy-pasteable hardened config (`--remediate` is an alias) |
 | `--badge scan.svg` | a self-contained SVG badge you can drop into a README |
 | `--badge-json badge.json` | a [shields.io endpoint](https://shields.io/badges/endpoint-badge) JSON file for a live, self-updating README badge |
+| `--badge-md snippet.md` | a copy-paste Markdown README badge snippet (the live grade badge linked to the scan receipt) plus an "Add this to your README" nudge (offline; no network) |
 | `--sarif scan.sarif` | a SARIF 2.1.0 log you can upload to GitHub code scanning (findings land in the repo Security tab) |
 | `--md` | a shareable markdown block for a README or blog post |
 | `--share` | a shareable scan receipt: a grade badge, the per-dimension breakdown, a link to a hosted receipt page, and an install CTA (offline; no network) |
