@@ -333,9 +333,9 @@ roll up to the **weakest** one the code defines.
 
 ### Enforce &amp; generate { #modes-enforce }
 
-The cards above answer *what can I point scan at*. These two answer *what scan does past the
-grade*: it becomes the gate, or it writes the guardrail. Same seven-dimension scorer, now wired
-into admission control instead of a scorecard.
+The cards above answer *what can I point scan at*. These three answer *what scan does past the
+grade*: it becomes the gate, writes the guardrail, or fails the build. Same seven-dimension
+scorer, now wired into admission control instead of a scorecard.
 
 <div class="grid cards" markdown>
 
