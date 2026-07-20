@@ -11,6 +11,7 @@ MODE="${IC_MODE:-container}"
 TARGET="${IC_TARGET:-}"
 SERVICE="${IC_SERVICE:-}"
 MIN_SCORE="${IC_MIN_SCORE:-0}"
+POLICY_CHECK="${IC_POLICY_CHECK:-false}"
 COMMENT="${IC_COMMENT:-true}"
 BADGE="${IC_BADGE:-false}"
 UPLOAD_SARIF="${IC_UPLOAD_SARIF:-false}"
@@ -224,6 +225,37 @@ fi
 
 # Job summary is always useful, PR or not.
 { echo "## IronClaw sandbox scan"; echo; cat "$scorecard"; } >>"${GITHUB_STEP_SUMMARY:-/dev/null}" 2>/dev/null || true
+
+# ---------------------------------------------------------------------------
+# 4.5 Policy-as-code gate (mode=k8s only). Evaluate the manifest AGAINST the rules
+#     --emit-policy would generate and fail the check on any violation — a
+#     self-contained gate needing no cluster or admission controller. Runs AFTER
+#     the sticky comment so a violating manifest still posts its scorecard, and is
+#     independent of min-score (a manifest can score high yet still break a rule).
+#     Skipped for container/compose mode (the rules target Kubernetes pod specs).
+# ---------------------------------------------------------------------------
+if [ "$POLICY_CHECK" = "true" ]; then
+  if [ "$MODE" != "k8s" ]; then
+    echo "::warning::policy-check applies to mode=k8s only; skipping for mode=${MODE}"
+    out policy-passed "true"
+  else
+    check_out="${WORK}/policy-check.md"
+    set +e
+    "$IRONCTL" scan --k8s "$TARGET" --check --md >"$check_out" 2>&1
+    check_rc=$?
+    set -e
+    cat "$check_out"
+    { echo; echo "## IronClaw policy check"; echo; cat "$check_out"; } >>"${GITHUB_STEP_SUMMARY:-/dev/null}" 2>/dev/null || true
+    if [ "$check_rc" -ne 0 ]; then
+      out policy-passed "false"
+      die "policy-as-code check failed: the manifest violates rules --emit-policy would enforce (see above)."
+    fi
+    out policy-passed "true"
+    echo "==> policy check passed (no guardrail rule violated)"
+  fi
+else
+  out policy-passed "true"
+fi
 
 # ---------------------------------------------------------------------------
 # 5. Gate: fail the check when below min-score (0 = report-only).

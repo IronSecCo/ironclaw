@@ -76,13 +76,14 @@ The file modes need no Docker daemon — the action reads the file directly:
 | `mode` | `container` | `container`, `compose`, or `k8s`. |
 | `service` | `""` | Compose service name (when the file has more than one). |
 | `min-score` | `0` | Fail the check below this score. `0` = report-only. |
+| `policy-check` | `false` | Policy-as-code gate (`mode=k8s` only): fail the check if the manifest violates the rules `--emit-policy` would generate. Needs no cluster or controller. Independent of `min-score`. |
 | `comment` | `true` | Post the scorecard as a sticky PR comment. |
 | `badge` | `false` | Write and upload the SVG badge as a build artifact. |
 | `upload-sarif` | `false` | Emit SARIF and upload it to GitHub code scanning (Security tab). Requires `security-events: write`. |
 | `version` | `latest` | ironctl release (`latest` or a tag like `v0.1.252`). |
 | `github-token` | `${{ github.token }}` | Token for the comment + release lookup. |
 
-Outputs: `score`, `grade`, `scorecard` (path), `badge-path`, `sarif-path`, and `passed`.
+Outputs: `score`, `grade`, `scorecard` (path), `badge-path`, `sarif-path`, `passed`, and `policy-passed`.
 
 ## Surface findings in the Security tab (SARIF)
 

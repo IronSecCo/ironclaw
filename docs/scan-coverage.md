@@ -368,6 +368,21 @@ into admission control instead of a scorecard.
 
     [:octicons-arrow-right-24: Generate an admission policy](scan.md#generate-an-admission-policy-from-the-findings)
 
+-   #### :material-check-decagram-outline:{ .lg .middle } Policy-as-code gate { #scan-check }
+
+    ---
+
+    Closes the loop: `--check` evaluates the manifest **against the rules `--emit-policy` would
+    generate** and exits non-zero on any violation &mdash; a self-contained CI gate with **no
+    cluster and no controller**. Same dim&rarr;rule map as the generator, enforced in place.
+    Pair with `--md`/`--sarif` for PR diagnostics.
+
+    ```bash
+    ironctl scan --k8s pod.yaml --check --sarif check.sarif
+    ```
+
+    [:octicons-arrow-right-24: Gate a manifest in CI](scan.md#gate-a-manifest-as-policy-as-code)
+
 </div>
 
 ## Every mode, one engine
