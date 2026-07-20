@@ -121,6 +121,55 @@ func TestShareBadgeURL(t *testing.T) {
 	}
 }
 
+func TestBadgeSnippetMarkdown(t *testing.T) {
+	r := sampleReport()
+	snip := BadgeSnippetMarkdown(r)
+
+	// The snippet is a Markdown image (the live badge) wrapped in a link to the
+	// receipt card, so a README render shows the badge and clicking it opens the
+	// dynamic-OG receipt.
+	if !strings.HasPrefix(snip, "[![IronClaw containment score](") {
+		t.Errorf("snippet must be a linked badge image, got %q", snip)
+	}
+	// Reuses the exact receipt badge + card URLs (no drift): both must appear.
+	if !strings.Contains(snip, ShareBadgeURL(r)) {
+		t.Errorf("snippet badge URL drifted from ShareBadgeURL: %q", snip)
+	}
+	if !strings.Contains(snip, ShareCardURL(r)) {
+		t.Errorf("snippet link target drifted from ShareCardURL: %q", snip)
+	}
+	// One self-contained line (copy-paste into a README): no newline.
+	if strings.Contains(snip, "\n") {
+		t.Errorf("badge snippet must be a single line, got %q", snip)
+	}
+	if BadgeSnippetMarkdown(r) != snip {
+		t.Error("BadgeSnippetMarkdown is not deterministic")
+	}
+}
+
+func TestRenderBadgeSnippet(t *testing.T) {
+	r := sampleReport()
+	md := RenderBadgeSnippet(r)
+	for _, want := range []string{
+		"Add this to your README", // one-line CTA
+		"```md",                   // fenced copy-paste snippet
+		BadgeSnippetMarkdown(r),   // the exact snippet line
+		"img.shields.io",          // live badge preview
+	} {
+		if !strings.Contains(md, want) {
+			t.Errorf("badge nudge missing %q\n%s", want, md)
+		}
+	}
+	// Public-copy house style: no em/en-dashes (IRO-254).
+	if strings.ContainsAny(md, "—–") {
+		t.Error("badge nudge contains an em/en-dash")
+	}
+	// Offline + deterministic (pure string building, no network).
+	if RenderBadgeSnippet(r) != md {
+		t.Error("RenderBadgeSnippet is not deterministic")
+	}
+}
+
 func TestRenderShareReceipt(t *testing.T) {
 	md := RenderShareReceipt(sampleReport())
 	for _, want := range []string{

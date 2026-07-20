@@ -34,6 +34,7 @@ func cmdScan(args []string) error {
 	asJSON := fs.Bool("json", false, "emit the scorecard as JSON")
 	badge := fs.String("badge", "", "write a shareable SVG badge to this path")
 	badgeJSON := fs.String("badge-json", "", "write a shields.io endpoint JSON badge to this path (embed a live README badge)")
+	badgeMd := fs.String("badge-md", "", "write a copy-paste README badge Markdown snippet to this path (grade badge linked to the receipt card)")
 	sarif := fs.String("sarif", "", "write a SARIF 2.1.0 log to this path (GitHub code-scanning upload)")
 	md := fs.Bool("md", false, "print a shareable markdown block (README/blog section)")
 	share := fs.Bool("share", false, "print a shareable scan receipt: grade badge + per-dim breakdown + a link to a hosted receipt page and install CTA (offline; no network)")
@@ -541,6 +542,14 @@ func cmdScan(args []string) error {
 		}
 		if !*asJSON {
 			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", *badgeJSON)
+		}
+	}
+	if *badgeMd != "" {
+		if err := os.WriteFile(*badgeMd, []byte(scan.RenderBadgeSnippet(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-md: %w", err)
+		}
+		if !*asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote README badge snippet: %s\n", *badgeMd)
 		}
 	}
 

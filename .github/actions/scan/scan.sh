@@ -82,6 +82,7 @@ grade_file() {
 # ---------------------------------------------------------------------------
 scorecard="${WORK}/scorecard.md"
 receipt="${WORK}/receipt.md"
+badge_md="${WORK}/badge-snippet.md"
 badge_path=""
 sarif_path=""
 scan_args=()
@@ -104,6 +105,12 @@ scan_args+=(--md)
 # branded, verifiable receipt — a compounding, account-free viral loop. Rendered
 # offline by ironctl (no network at scan time), so it is credential- and egress-safe.
 scan_args+=(--share)
+# --badge-md writes a copy-paste README badge snippet (IRO-590): the same live
+# shields grade badge as the receipt, wrapped in a link to the hosted /receipt
+# card, plus an "Add this to your README" CTA. Appended to the sticky PR comment
+# so every scanned repo gets a low-friction path from receipt -> a persistent
+# README badge -> inbound reach (compounds IRO-441). Rendered offline by ironctl.
+scan_args+=(--badge-md "$badge_md")
 if [ "$BADGE" = "true" ]; then
   badge_path="${WORK}/scan-badge.svg"
   scan_args+=(--badge "$badge_path")
@@ -136,7 +143,11 @@ fi
 # badge so the scorecard never bleeds into the receipt block (both carry the same
 # "### IronClaw containment scan:" header).
 awk '/^\[!\[IronClaw containment score\]/{exit} /^### IronClaw containment scan:/{f=1} f' "$raw" >"$scorecard"
-sed -n '/^\[!\[IronClaw containment score\]/,$p' "$raw" >"$receipt"
+# The receipt runs from the badge line to EOF, but the side-artifact writers
+# (--badge-md/--badge/--sarif) print "  wrote ...: PATH" status lines to stdout
+# AFTER the receipt block. Drop those so the runner-local paths never bleed into
+# the PR comment. grep -v may filter to empty on an odd run, so guard set -e.
+sed -n '/^\[!\[IronClaw containment score\]/,$p' "$raw" | grep -v '^  wrote ' >"$receipt" || true
 [ -s "$scorecard" ] || die "could not extract the markdown scorecard from scan output"
 
 # Parse the score/grade from the header: "... scored **NN/100 (grade X)**".
@@ -202,7 +213,15 @@ if [ "$COMMENT" = "true" ] && [ -n "$pr" ] && [ -n "${GH_TOKEN:-}" ]; then
   # plain scorecard if the receipt block failed to render, so a comment always posts.
   comment_body="$receipt"
   [ -s "$comment_body" ] || comment_body="$scorecard"
-  { echo "$marker"; cat "$comment_body"; [ -n "$delta_line" ] && { echo; echo "$delta_line"; }; } >"$body"
+  {
+    echo "$marker"
+    cat "$comment_body"
+    [ -n "$delta_line" ] && { echo; echo "$delta_line"; }
+    # Badge-adoption nudge (IRO-590): append the copy-paste README badge snippet
+    # so the receipt funnels into a persistent README badge -> inbound reach. Part
+    # of the same sticky comment, so the marker keeps it idempotent (no double-post).
+    [ -s "$badge_md" ] && { echo; echo "---"; echo; cat "$badge_md"; }
+  } >"$body"
 
   # Find an existing comment carrying our marker and update it; else create one.
   existing="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${pr}/comments" --paginate \
