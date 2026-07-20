@@ -16,28 +16,28 @@
 class Ironclaw < Formula
   desc "Security-hardened, self-hosted AI assistant platform (secured Go port)"
   homepage "https://github.com/IronSecCo/ironclaw"
-  version "0.1.383"
+  version "0.1.385"
   license "AGPL-3.0-or-later"
 
   on_macos do
     on_arm do
-      url "https://github.com/IronSecCo/ironclaw/releases/download/v0.1.383/ironclaw_0.1.383_darwin_arm64.tar.gz"
-      sha256 "9992d5e34c45e7dd363737b9b2cd42c51914f4bfbf681d1dbb8f597aa1e1574e"
+      url "https://github.com/IronSecCo/ironclaw/releases/download/v0.1.385/ironclaw_0.1.385_darwin_arm64.tar.gz"
+      sha256 "df2f4a7351d8cfbcf4a2f08428cd0fa79c46143dbe6de29b320f85ee56b4dbe0"
     end
     on_intel do
-      url "https://github.com/IronSecCo/ironclaw/releases/download/v0.1.383/ironclaw_0.1.383_darwin_amd64.tar.gz"
-      sha256 "38524c3faa576f4337acd566b9dac6500a3f3894870e59bd098ae490ea9e9686"
+      url "https://github.com/IronSecCo/ironclaw/releases/download/v0.1.385/ironclaw_0.1.385_darwin_amd64.tar.gz"
+      sha256 "d3cb472bffb72ff0d09fc10c50fd0fabfe6adc80a5628ee524eef23e150c2ef6"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/IronSecCo/ironclaw/releases/download/v0.1.383/ironclaw_0.1.383_linux_arm64.tar.gz"
-      sha256 "09d6f2ca3f5d6f4336b26b60e6615550060e53267d08e71aacb0413524673f6a"
+      url "https://github.com/IronSecCo/ironclaw/releases/download/v0.1.385/ironclaw_0.1.385_linux_arm64.tar.gz"
+      sha256 "f3d9c35606e9b2c2cd8f325d1e1915141a9a7d9995a04ddbbdd19d510f218996"
     end
     on_intel do
-      url "https://github.com/IronSecCo/ironclaw/releases/download/v0.1.383/ironclaw_0.1.383_linux_amd64.tar.gz"
-      sha256 "f88757686f391a71def6926a24f189866daee9412efe57dde91dfd5247763f9e"
+      url "https://github.com/IronSecCo/ironclaw/releases/download/v0.1.385/ironclaw_0.1.385_linux_amd64.tar.gz"
+      sha256 "c962110d09f5d115b942724e3de8aa1b268a3b9d555ecd0aa745834e9a24c9c4"
     end
   end
 
@@ -56,7 +56,7 @@ class Ironclaw < Formula
         ironctl doctor      # preflight: model creds, toolchain, sockets
 
       For production the control plane usually runs as a container:
-        ghcr.io/ironsecco/ironclaw-controlplane:v0.1.383
+        ghcr.io/ironsecco/ironclaw-controlplane:v0.1.385
       See https://ironsecco.github.io/ironclaw/quickstart/ for the full first-run flow.
     EOS
   end
