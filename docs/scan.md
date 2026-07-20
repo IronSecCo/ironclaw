@@ -619,6 +619,36 @@ One scope difference: Kyverno auto-generates matching rules for pod controllers
 directly. Bind it to the workload resources you care about, or pair it with a Pod
 Security admission label, so controller-created pods are also caught at creation.
 
+## Gate a manifest as policy-as-code
+
+`--check` closes the generate&rarr;enforce loop. Where `--emit-policy` *writes* the
+guardrail YAML, `--check` **evaluates the manifest against the same rules in place**
+and exits non-zero on any violation. That turns scan into a self-contained
+**policy-as-code CI gate**: no cluster, no Kyverno/Gatekeeper/VAP controller, just
+the binary. It reuses the **same dim&rarr;rule map** as `--emit-policy`, so the gate
+enforces exactly what the generator would emit &mdash; generate and enforce never
+diverge.
+
+```bash
+# Fail the build if the manifest breaks any guardrail rule
+ironctl scan --k8s pod.yaml --check
+
+# PR diagnostics: a markdown table and a code-scanning SARIF log
+ironctl scan --k8s pod.yaml --check --md
+ironctl scan --k8s pod.yaml --check --sarif check.sarif
+```
+
+It applies each rule with the **same deny-the-bad semantics as the emitted
+policy**, not the stricter scorer verdict. Require-present controls (non-root,
+drop-caps, seccomp, read-only rootfs) fail closed when the field is absent, exactly
+as the generated `validate` pattern rejects them. Deny-present controls
+(`hostNetwork`, host namespaces, runtime-socket mounts) only fail on an
+explicitly-bad value, so a manifest that never sets them **passes** &mdash; the same
+verdict the API server would reach with the emitted rule applied. A multi-document
+manifest is checked workload by workload; the gate fails if any workload breaks any
+rule. It fails closed: an unreadable or unparseable manifest errors rather than
+passing silently.
+
 ## Grade a Dockerfile statically
 
 `--dockerfile FILE` grades a Dockerfile with no daemon and no image pull, so it
@@ -709,6 +739,7 @@ which gates the three container images it ships at `--min-score=80`.
 | `--fix` | print the concrete remediation for every failed dimension, plus a copy-pasteable hardened config (`--remediate` is an alias) |
 | `--badge scan.svg` | a self-contained SVG badge you can drop into a README |
 | `--badge-json badge.json` | a [shields.io endpoint](https://shields.io/badges/endpoint-badge) JSON file for a live, self-updating README badge |
+| `--badge-md snippet.md` | a copy-paste Markdown README badge snippet (the live grade badge linked to the scan receipt) plus an "Add this to your README" nudge (offline; no network) |
 | `--sarif scan.sarif` | a SARIF 2.1.0 log you can upload to GitHub code scanning (findings land in the repo Security tab) |
 | `--md` | a shareable markdown block for a README or blog post |
 | `--share` | a shareable scan receipt: a grade badge, the per-dimension breakdown, a link to a hosted receipt page, and an install CTA (offline; no network) |

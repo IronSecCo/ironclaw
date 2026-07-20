@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: good
+spec:
+  hostNetwork: false
+  hostPID: false
+  hostIPC: false
+  securityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: nginx
+      securityContext:
+        runAsNonRoot: true
+        readOnlyRootFilesystem: true
+        privileged: false
+        capabilities:
+          drop:
+            - ALL

@@ -11,6 +11,7 @@ MODE="${IC_MODE:-container}"
 TARGET="${IC_TARGET:-}"
 SERVICE="${IC_SERVICE:-}"
 MIN_SCORE="${IC_MIN_SCORE:-0}"
+POLICY_CHECK="${IC_POLICY_CHECK:-false}"
 COMMENT="${IC_COMMENT:-true}"
 BADGE="${IC_BADGE:-false}"
 UPLOAD_SARIF="${IC_UPLOAD_SARIF:-false}"
@@ -82,6 +83,7 @@ grade_file() {
 # ---------------------------------------------------------------------------
 scorecard="${WORK}/scorecard.md"
 receipt="${WORK}/receipt.md"
+badge_md="${WORK}/badge-snippet.md"
 badge_path=""
 sarif_path=""
 scan_args=()
@@ -104,6 +106,12 @@ scan_args+=(--md)
 # branded, verifiable receipt — a compounding, account-free viral loop. Rendered
 # offline by ironctl (no network at scan time), so it is credential- and egress-safe.
 scan_args+=(--share)
+# --badge-md writes a copy-paste README badge snippet (IRO-590): the same live
+# shields grade badge as the receipt, wrapped in a link to the hosted /receipt
+# card, plus an "Add this to your README" CTA. Appended to the sticky PR comment
+# so every scanned repo gets a low-friction path from receipt -> a persistent
+# README badge -> inbound reach (compounds IRO-441). Rendered offline by ironctl.
+scan_args+=(--badge-md "$badge_md")
 if [ "$BADGE" = "true" ]; then
   badge_path="${WORK}/scan-badge.svg"
   scan_args+=(--badge "$badge_path")
@@ -136,7 +144,11 @@ fi
 # badge so the scorecard never bleeds into the receipt block (both carry the same
 # "### IronClaw containment scan:" header).
 awk '/^\[!\[IronClaw containment score\]/{exit} /^### IronClaw containment scan:/{f=1} f' "$raw" >"$scorecard"
-sed -n '/^\[!\[IronClaw containment score\]/,$p' "$raw" >"$receipt"
+# The receipt runs from the badge line to EOF, but the side-artifact writers
+# (--badge-md/--badge/--sarif) print "  wrote ...: PATH" status lines to stdout
+# AFTER the receipt block. Drop those so the runner-local paths never bleed into
+# the PR comment. grep -v may filter to empty on an odd run, so guard set -e.
+sed -n '/^\[!\[IronClaw containment score\]/,$p' "$raw" | grep -v '^  wrote ' >"$receipt" || true
 [ -s "$scorecard" ] || die "could not extract the markdown scorecard from scan output"
 
 # Parse the score/grade from the header: "... scored **NN/100 (grade X)**".
@@ -202,7 +214,15 @@ if [ "$COMMENT" = "true" ] && [ -n "$pr" ] && [ -n "${GH_TOKEN:-}" ]; then
   # plain scorecard if the receipt block failed to render, so a comment always posts.
   comment_body="$receipt"
   [ -s "$comment_body" ] || comment_body="$scorecard"
-  { echo "$marker"; cat "$comment_body"; [ -n "$delta_line" ] && { echo; echo "$delta_line"; }; } >"$body"
+  {
+    echo "$marker"
+    cat "$comment_body"
+    [ -n "$delta_line" ] && { echo; echo "$delta_line"; }
+    # Badge-adoption nudge (IRO-590): append the copy-paste README badge snippet
+    # so the receipt funnels into a persistent README badge -> inbound reach. Part
+    # of the same sticky comment, so the marker keeps it idempotent (no double-post).
+    [ -s "$badge_md" ] && { echo; echo "---"; echo; cat "$badge_md"; }
+  } >"$body"
 
   # Find an existing comment carrying our marker and update it; else create one.
   existing="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${pr}/comments" --paginate \
@@ -224,6 +244,37 @@ fi
 
 # Job summary is always useful, PR or not.
 { echo "## IronClaw sandbox scan"; echo; cat "$scorecard"; } >>"${GITHUB_STEP_SUMMARY:-/dev/null}" 2>/dev/null || true
+
+# ---------------------------------------------------------------------------
+# 4.5 Policy-as-code gate (mode=k8s only). Evaluate the manifest AGAINST the rules
+#     --emit-policy would generate and fail the check on any violation — a
+#     self-contained gate needing no cluster or admission controller. Runs AFTER
+#     the sticky comment so a violating manifest still posts its scorecard, and is
+#     independent of min-score (a manifest can score high yet still break a rule).
+#     Skipped for container/compose mode (the rules target Kubernetes pod specs).
+# ---------------------------------------------------------------------------
+if [ "$POLICY_CHECK" = "true" ]; then
+  if [ "$MODE" != "k8s" ]; then
+    echo "::warning::policy-check applies to mode=k8s only; skipping for mode=${MODE}"
+    out policy-passed "true"
+  else
+    check_out="${WORK}/policy-check.md"
+    set +e
+    "$IRONCTL" scan --k8s "$TARGET" --check --md >"$check_out" 2>&1
+    check_rc=$?
+    set -e
+    cat "$check_out"
+    { echo; echo "## IronClaw policy check"; echo; cat "$check_out"; } >>"${GITHUB_STEP_SUMMARY:-/dev/null}" 2>/dev/null || true
+    if [ "$check_rc" -ne 0 ]; then
+      out policy-passed "false"
+      die "policy-as-code check failed: the manifest violates rules --emit-policy would enforce (see above)."
+    fi
+    out policy-passed "true"
+    echo "==> policy check passed (no guardrail rule violated)"
+  fi
+else
+  out policy-passed "true"
+fi
 
 # ---------------------------------------------------------------------------
 # 5. Gate: fail the check when below min-score (0 = report-only).

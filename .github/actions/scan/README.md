@@ -100,6 +100,10 @@ grade bands.
 
 - The sticky comment updates in place (keyed by mode+target), so re-runs never
   spam the PR. Multiple targets in one PR each get their own comment.
+- The comment ends with a copy-paste **README badge** snippet and an "Add this to
+  your README" nudge. Paste it once and your repo carries a live containment-grade
+  badge that links back to the scan receipt. The snippet is part of the same sticky
+  comment, so the marker keeps it idempotent (it is never double-posted).
 - On non-PR events (push, dispatch) the scorecard is written to the job summary
   instead of a comment.
 - Grant `pull-requests: write` if you want the comment; without it the action

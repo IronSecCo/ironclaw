@@ -2,7 +2,15 @@
 # example adds is Pydantic AI itself. `pydantic-ai-slim` carries the core `Tool`
 # and `Agent` types with no model-provider extras, which is all the default,
 # credential-free path needs. Pinned for reproducible fresh-machine runs.
-pydantic-ai-slim>=0.0.15,<1.0
+#
+# Floor at the 1.0 GA line: the entire pre-1.0 line does
+# `from opentelemetry._events import Event`, a module opentelemetry-api removed in
+# 1.37, so any fresh install of a 0.x pin now fails to import with
+# `ModuleNotFoundError: No module named 'opentelemetry._events'` (IRO-595). The 1.x+
+# line dropped that import and works with current opentelemetry-api. Capped below the
+# next major so a future breaking release can't silently retrigger the same class of
+# transitive-dependency break.
+pydantic-ai-slim>=1.0,<3
 
 # Optional -- only needed for the real-LLM path (set OPENAI_API_KEY):
-# pydantic-ai-slim[openai]>=0.0.15,<1.0
+# pydantic-ai-slim[openai]>=1.0,<3

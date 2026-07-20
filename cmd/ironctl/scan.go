@@ -34,6 +34,7 @@ func cmdScan(args []string) error {
 	asJSON := fs.Bool("json", false, "emit the scorecard as JSON")
 	badge := fs.String("badge", "", "write a shareable SVG badge to this path")
 	badgeJSON := fs.String("badge-json", "", "write a shields.io endpoint JSON badge to this path (embed a live README badge)")
+	badgeMd := fs.String("badge-md", "", "write a copy-paste README badge Markdown snippet to this path (grade badge linked to the receipt card)")
 	sarif := fs.String("sarif", "", "write a SARIF 2.1.0 log to this path (GitHub code-scanning upload)")
 	md := fs.Bool("md", false, "print a shareable markdown block (README/blog section)")
 	share := fs.Bool("share", false, "print a shareable scan receipt: grade badge + per-dim breakdown + a link to a hosted receipt page and install CTA (offline; no network)")
@@ -46,6 +47,7 @@ func cmdScan(args []string) error {
 	k8sAdmission := fs.String("k8s-admission", "", "grade the workload carried in a Kubernetes admission.k8s.io/v1 AdmissionReview JSON (webhook backend); '-' reads stdin")
 	admissionResponse := fs.Bool("admission-response", false, "with --k8s-admission, emit an admission.k8s.io/v1 AdmissionReview response JSON (allow/deny) to stdout instead of the scorecard")
 	emitPolicy := fs.String("emit-policy", "", "instead of a scorecard, emit admission-policy YAML (engine: kyverno|gatekeeper|vap) that BLOCKS the controls the scanned --k8s manifest failed (the delta to 100/A); vap is a controller-free native ValidatingAdmissionPolicy")
+	check := fs.Bool("check", false, "policy-as-code CI gate: evaluate the --k8s manifest AGAINST the rules --emit-policy would generate and exit non-zero on any violation (no cluster, no controller). Pairs with --md/--json/--sarif for diagnostics")
 	helm := fs.String("helm", "", "render a Helm chart (dir or .tgz) with `helm template` and grade the isolation posture of its workloads")
 	helmBin := fs.String("helm-bin", envOrDefault("HELM", "helm"), "helm binary used to render the chart")
 	terraform := fs.String("terraform", "", "grade container workloads in a `terraform show -json` file (plan.json/state.json) or a Terraform dir")
@@ -448,6 +450,16 @@ func cmdScan(args []string) error {
 		})
 	}
 
+	// --check: the enforce-in-place dual of --emit-policy. Instead of EMITTING
+	// guardrail YAML, evaluate the scanned Kubernetes manifest AGAINST the rules
+	// --emit-policy would generate and exit non-zero on any violation — a
+	// self-contained policy-as-code CI gate that needs no cluster and no admission
+	// controller. It reuses the SAME dim->rule map as --emit-policy (checkRules /
+	// policyRules share keys), so generate and enforce never diverge.
+	if *check {
+		return runCheck(checkArgs{k8s: *k8s, positional: positional, asJSON: *asJSON, md: *md, sarif: *sarif})
+	}
+
 	// --emit-policy: turn scan findings into a guardrail. Instead of a scorecard,
 	// emit ready-to-apply Kyverno/Gatekeeper admission-policy YAML that BLOCKS the
 	// exact containment controls the scanned Kubernetes manifest failed — the delta
@@ -541,6 +553,14 @@ func cmdScan(args []string) error {
 		}
 		if !*asJSON {
 			fmt.Fprintf(os.Stdout, "  wrote shields endpoint badge: %s\n", *badgeJSON)
+		}
+	}
+	if *badgeMd != "" {
+		if err := os.WriteFile(*badgeMd, []byte(scan.RenderBadgeSnippet(report)), 0o644); err != nil {
+			return fmt.Errorf("write badge-md: %w", err)
+		}
+		if !*asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote README badge snippet: %s\n", *badgeMd)
 		}
 	}
 
@@ -2646,6 +2666,102 @@ func isCDKAssemblyTemplate(name string) bool {
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir()
+}
+
+// checkArgs carries the resolved inputs for a `scan --check` run.
+type checkArgs struct {
+	k8s        string   // manifest path from --k8s (takes precedence)
+	positional []string // fallback manifest path(s)
+	asJSON     bool
+	md         bool
+	sarif      string
+}
+
+// runCheck is the enforce-in-place half of the generate/enforce loop: it grades a
+// Kubernetes manifest and evaluates each workload against the SAME guardrail rules
+// --emit-policy would generate (scan.CheckPolicy), then exits non-zero if any
+// workload breaks one. This turns the scanner into a self-contained policy-as-code
+// CI gate — no cluster, no Kyverno/Gatekeeper/VAP controller needed.
+//
+// It reuses the SAME pod-spec parser as --k8s / --emit-policy
+// (SpecsFromK8sStream); a rule is enforced per-workload, so a multi-doc manifest
+// reports every workload's violations. It fails CLOSED: an unreadable/unparseable
+// manifest errors (non-zero), exactly like an admission gate would DENY it.
+// --md/--json select the diagnostic format; --sarif writes a code-scanning log of
+// the worst-scoring workload as a side artifact (best-effort, never masks the gate
+// result).
+func runCheck(a checkArgs) error {
+	path := a.k8s
+	if path == "" {
+		switch len(a.positional) {
+		case 0:
+			return fmt.Errorf("scan --check needs a Kubernetes manifest: pass --k8s FILE or a positional path")
+		case 1:
+			path = a.positional[0]
+		default:
+			return fmt.Errorf("scan --check grades one manifest at a time; got %d", len(a.positional))
+		}
+	}
+	raw, rerr := os.ReadFile(path)
+	if rerr != nil {
+		return fmt.Errorf("read manifest: %w", rerr)
+	}
+	specs, serr := scan.SpecsFromK8sStream(raw)
+	if serr != nil {
+		return serr
+	}
+	res := scan.CheckPolicy(specs)
+
+	// Diagnostics. Default is the human table; --json swaps it. --md appends a
+	// PR-comment/job-summary block.
+	if a.asJSON {
+		if err := scan.RenderCheckJSON(os.Stdout, res); err != nil {
+			return err
+		}
+	} else {
+		scan.RenderCheckText(os.Stdout, res)
+	}
+	if a.md {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, scan.RenderCheckMarkdown(res))
+	}
+
+	// SARIF is a best-effort side artifact anchored on the worst-scoring workload,
+	// so GitHub code-scanning surfaces the violation at the manifest. An emit error
+	// never masks the gate result below (fail-open on the artifact only).
+	if a.sarif != "" {
+		worstReport, worstSpec := worstK8sWorkload(specs)
+		opts := scan.SARIFOptions{ConfigFile: path, AnchorLine: scan.AnchorLine(raw, worstSpec.Target)}
+		if err := writeSARIF(a.sarif, worstReport, worstSpec, opts); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: SARIF emit failed (check result unaffected): %v\n", err)
+		} else if !a.asJSON {
+			fmt.Fprintf(os.Stdout, "  wrote SARIF: %s\n", a.sarif)
+		}
+	}
+
+	if !res.OK() {
+		return fmt.Errorf("policy check failed: %d violation(s) across %d workload(s)", len(res.Violations), res.Workloads)
+	}
+	return nil
+}
+
+// worstK8sWorkload scores every pod spec and returns the lowest-scoring report and
+// its spec (the most porous workload), for anchoring the SARIF side artifact. Empty
+// input yields zero values; the SARIF renderer tolerates an empty report.
+func worstK8sWorkload(specs []scan.Spec) (scan.Report, scan.Spec) {
+	var (
+		worstReport scan.Report
+		worstSpec   scan.Spec
+		found       bool
+	)
+	for _, s := range specs {
+		r := scan.Score(s)
+		r.Version = version.String()
+		if !found || r.Score < worstReport.Score {
+			worstReport, worstSpec, found = r, s, true
+		}
+	}
+	return worstReport, worstSpec
 }
 
 // emitPolicyArgs carries the resolved inputs for a `scan --emit-policy` run.

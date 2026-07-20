@@ -68,5 +68,9 @@ nav:
   - "How to harden a Weaviate container": harden-weaviate-container-isolation.md
   - "How to harden a Kong container": harden-kong-container-isolation.md
   - "How to harden an Envoy container": harden-envoy-container-isolation.md
+  - "How to harden a RethinkDB container": harden-rethinkdb-container-isolation.md
+  - "How to harden a TiDB container": harden-tidb-container-isolation.md
+  - "How to harden a Pulsar container": harden-pulsar-container-isolation.md
+  - "How to harden an NSQ container": harden-nsq-container-isolation.md
   - "How to scan a Dockerfile for security issues": scan-a-dockerfile-for-security-issues.md
   - "*.md"
