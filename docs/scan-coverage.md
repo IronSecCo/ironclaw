@@ -414,6 +414,7 @@ the container they eventually produce are all measured on one comparable scale.
 | Infrastructure-as-Code | [AWS SAM template](#scan-sam) | `--sam` | ECS task defs in a SAM (Serverless) template | [Grade an AWS SAM template](scan.md#grade-an-aws-sam-template) |
 | Enforce &amp; generate | [Admission gate](#scan-k8s-admission) | `--k8s-admission` `--admission-response` | the workload in an AdmissionReview (webhook backend) | [Grade a Kubernetes AdmissionReview](scan.md#grade-a-kubernetes-admission-review) |
 | Enforce &amp; generate | [Policy generator](#scan-emit-policy) | `--k8s` `--emit-policy` | failed controls &rarr; Kyverno/Gatekeeper admission YAML | [Generate an admission policy](scan.md#generate-an-admission-policy-from-the-findings) |
+| Enforce &amp; generate | [Policy-as-code gate](#scan-check) | `--k8s` `--check` | the manifest against the rules `--emit-policy` would generate; non-zero on violation | [Gate a manifest in CI](scan.md#gate-a-manifest-as-policy-as-code) |
 
 Every mode also emits the machine-readable outputs: a [SARIF log](scan.md#github-code-scanning-security-tab)
 for GitHub code scanning, a [shields.io badge](scan.md#sandbox-isolation-score-badge), and
