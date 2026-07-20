@@ -53,6 +53,8 @@ Two patterns show up across the set:
 | [ScyllaDB](harden-scylla-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B multi-node cluster) |
 | [Dgraph](harden-dgraph-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if clustered or remote clients) |
 | [Weaviate](harden-weaviate-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if remote clients) |
+| [RethinkDB](harden-rethinkdb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B if clustered or remote clients) |
+| [TiDB](harden-tidb-container-isolation.md) | 48/100 D | **100/100 A** | root, full caps, writable rootfs (89/B production cluster or remote clients) |
 | [Untrusted Node.js](run-untrusted-nodejs-code-safely.md) | 48/100 D | **100/100 A** | run untrusted code in a real sandbox |
 
 ## Honest ceiling: grade B (89/100)
@@ -84,6 +86,8 @@ These services must accept client connections, so the network dimension holds at
 | [EMQX](harden-emqx-container-isolation.md) | 63/100 C | **89/100 B** | MQTT broker: publishers and subscribers must connect |
 | [Kong](harden-kong-container-isolation.md) | 63/100 C | **89/100 B** | API gateway: clients and upstreams connect through it |
 | [Envoy](harden-envoy-container-isolation.md) | 48/100 D | **89/100 B** | proxy: it exists to accept and forward traffic |
+| [Pulsar](harden-pulsar-container-isolation.md) | 63/100 C | **89/100 B** | broker: producers and consumers must connect |
+| [NSQ](harden-nsq-container-isolation.md) | 48/100 D | **89/100 B** | broker: publishers and subscribers must connect |
 
 ## The pattern, one command
 
