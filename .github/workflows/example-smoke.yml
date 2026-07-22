@@ -50,7 +50,7 @@ jobs:
     steps:
       # Pinned to a commit SHA (tag in trailing comment) so a moved tag cannot change
       # what runs in CI — matches ci.yml. Dependabot bumps these.
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run the zero-credential end-to-end check
         # The script builds ironclaw-sandbox:latest, brings the demo control-plane up,
         # asserts the round-trip reply, and tears the demo down. A missing/mismatched
@@ -66,7 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Try to break the sandbox and prove it holds
         run: examples/red-team-escape/run.sh
 
@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build the sandbox image once (ironclaw-sandbox:latest)
         run: bash container/build.sh
       - name: Bring the offline demo control-plane up once
@@ -152,9 +152,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Go (needed to build ironctl for the config recipes)
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: false

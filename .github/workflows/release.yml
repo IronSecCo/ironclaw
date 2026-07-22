@@ -52,7 +52,7 @@ jobs:
       version: ${{ steps.v.outputs.version }}
       exists: ${{ steps.v.outputs.exists }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -119,8 +119,8 @@ jobs:
       id-token: write # OIDC token for keyless provenance signing (Sigstore)
       attestations: write # actions/attest-build-provenance over the raw binaries
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.23.12"
           # No build-cache restore: a cached archive can carry a symbol order frozen from
@@ -280,7 +280,7 @@ jobs:
       id-token: write # keyless cosign + provenance signing (Sigstore OIDC)
       attestations: write # actions/attest-build-provenance
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
@@ -419,7 +419,7 @@ jobs:
       id-token: write # keyless cosign + provenance signing (Sigstore OIDC)
       attestations: write # actions/attest-build-provenance over the report files
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Prove containment for the exact commit that was released, not a moving ref.
           ref: ${{ github.sha }}
@@ -514,7 +514,7 @@ jobs:
           - { runner: macos-15-intel, name: darwin_amd64 }
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Pin to the same 2.x cosign the release job signed with, so verify-blob
       # consumes the detached `.sig`/`.pem` it produced. See IRO-195.
@@ -617,7 +617,7 @@ jobs:
       contents: read # read the just-published release assets through install.ps1
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install via scripts/install.ps1 and verify ironctl version
         shell: pwsh
@@ -696,7 +696,7 @@ jobs:
       contents: write # create the formula-update branch + its signed commit
       pull-requests: write # open the tracking PR
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Regenerate the formula from the published release
         env:
