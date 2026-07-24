@@ -574,7 +574,7 @@ func printReference(w io.Writer) {
   ironctl help | usage | commands                                          (this reference; help is the short first-run banner)
   ironctl [--addr URL] [--token T] agent create [--name N] [--template T] [--tool X ...]   (guided in a terminal)
   ironctl [--addr URL] [--token T] agent list | show <id> | templates
-  ironctl [--addr URL] [--token T] tools [list]
+  ironctl [--addr URL] [--token T] tools [list] [--json]
   ironctl [--addr URL] [--token T] change submit --kind <k> --group <g> --by <user>
   ironctl [--addr URL] [--token T] change pending [--json]
   ironctl [--addr URL] [--token T] change history [--json]
