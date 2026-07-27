@@ -7,7 +7,7 @@ description: "How isolated is redmine:6 by default? IronClaw scores its sandbox 
 
 Run with plain `docker run redmine:6` defaults, no hardening flags, the **redmine** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `redmine:6` at digest `sha256:c06026b1478d5a2affa5c85425fd0e9771d7e5087a7181431a1a4ed2a1872370`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `redmine:6` at digest `sha256:157c712839fe9787eb5cfe8376c38de45042613c511228f01386e8aeab5cfa21`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

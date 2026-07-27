@@ -7,7 +7,7 @@ description: "How isolated is nim:2.2.0 by default? IronClaw scores its sandbox 
 
 Run with plain `docker run nimlang/nim:2.2.0` defaults, no hardening flags, the **nim** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `nimlang/nim:2.2.0` at digest `sha256:614cfede24453ceaa28100f7daf4be65d80bfba19df2861486266b2273a564e3`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only `docker inspect` of `nimlang/nim:2.2.0` at digest `sha256:c918a25a7ef8d96a1d3340cd6ccac9617a7c44e3b3761f0c7ef42126789f7bda`. No workload is executed. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
