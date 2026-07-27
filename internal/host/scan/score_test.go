@@ -218,11 +218,28 @@ func TestScoreFailClosedEmpty(t *testing.T) {
 }
 
 func TestGrades(t *testing.T) {
-	cases := map[int]string{100: "A", 90: "A", 89: "B", 75: "B", 74: "C", 50: "C", 49: "D", 25: "D", 24: "F", 0: "F"}
-	for score, want := range cases {
-		if g := grade(score); g != want {
-			t.Errorf("grade(%d)=%s want %s", score, g, want)
-		}
+	cases := []struct {
+		name  string
+		score int
+		want  string
+	}{
+		{"max score", 100, "A"},
+		{"A lower boundary", 90, "A"},
+		{"just below A", 89, "B"},
+		{"B lower boundary", 75, "B"},
+		{"just below B", 74, "C"},
+		{"C lower boundary", 50, "C"},
+		{"just below C", 49, "D"},
+		{"D lower boundary", 25, "D"},
+		{"just below D", 24, "F"},
+		{"min score", 0, "F"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := grade(c.score); got != c.want {
+				t.Fatalf("grade(%d)=%s want %s", c.score, got, c.want)
+			}
+		})
 	}
 }
 

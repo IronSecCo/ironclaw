@@ -50,27 +50,34 @@ func TestSpecFromNerdctlInspect_Hardened(t *testing.T) {
 
 func TestStrongIsolationRuntime(t *testing.T) {
 	cases := []struct {
+		name     string
 		in       string
 		wantName string
 		wantOK   bool
 	}{
-		{"runsc", "gVisor (runsc)", true},
-		{"io.containerd.runsc.v1", "gVisor (runsc)", true},
-		{"gvisor", "gVisor (runsc)", true},
-		{"kata-runtime", "Kata Containers", true},
-		{"io.containerd.kata.v2", "Kata Containers", true},
-		{"kata-qemu", "Kata Containers", true},
-		{"firecracker", "Firecracker", true},
-		{"runc-fc", "Firecracker", true},
-		{"runc", "", false},
-		{"crun", "", false},
-		{"", "", false},
+		{"runsc", "runsc", "gVisor (runsc)", true},
+		{"containerd runsc shim", "io.containerd.runsc.v1", "gVisor (runsc)", true},
+		{"gvisor lowercase", "gvisor", "gVisor (runsc)", true},
+		{"gvisor mixed case", "gVisor", "gVisor (runsc)", true},
+		{"kata-runtime", "kata-runtime", "Kata Containers", true},
+		{"containerd kata shim", "io.containerd.kata.v2", "Kata Containers", true},
+		{"kata-qemu", "kata-qemu", "Kata Containers", true},
+		{"kata mixed case", "KATA-QEMU", "Kata Containers", true},
+		{"firecracker", "firecracker", "Firecracker", true},
+		{"fc-runtime alias", "fc-runtime", "Firecracker", true},
+		{"runc-fc alias", "runc-fc", "Firecracker", true},
+		{"unknown runc", "runc", "", false},
+		{"unknown crun", "crun", "", false},
+		{"empty string", "", "", false},
+		{"whitespace only", "   ", "", false},
 	}
 	for _, c := range cases {
-		name, ok := StrongIsolationRuntime(c.in)
-		if name != c.wantName || ok != c.wantOK {
-			t.Errorf("StrongIsolationRuntime(%q)=(%q,%v) want (%q,%v)", c.in, name, ok, c.wantName, c.wantOK)
-		}
+		t.Run(c.name, func(t *testing.T) {
+			name, ok := StrongIsolationRuntime(c.in)
+			if name != c.wantName || ok != c.wantOK {
+				t.Fatalf("StrongIsolationRuntime(%q)=(%q,%v) want (%q,%v)", c.in, name, ok, c.wantName, c.wantOK)
+			}
+		})
 	}
 }
 
