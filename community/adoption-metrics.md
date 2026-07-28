@@ -44,6 +44,45 @@ revise after the first real launch-week data lands.
 > Newest first. Append a new block each Monday by running the refresh command and pasting
 > its output above the previous block.
 
+### Snapshot — 2026-07-28 (steady-state baseline, IRO-604)
+
+| Metric | Value | Notes |
+| --- | --- | --- |
+| Stars | 15 | **+1 vs 2026-07-20 (14)** — first star tick after 3 flat snapshots at 14 |
+| Forks | 14 | **+3 vs 2026-07-20 (11)** — forks (14) now level with stars (15) |
+| Watchers / subscribers | 0 | |
+| Open issues | 28 | flat vs 2026-07-20 (28); incl. tracked work + open PRs + GFIs |
+| Views (14d) | 105 | 26 unique visitors (-19 vs 2026-07-20's 45) |
+| Clones (14d) | 18929 | 552 unique, **CI-inflated** (release-per-push) |
+| Release downloads (all-time) | 5394 | +288 vs 2026-07-20, across 259 releases (all CI) |
+| Latest release | v0.1.398 | 23 downloads |
+| Top referrers | — | github.com (4u) · **cla-assistant.io (3u)** · Google (2u) · goodfirstissues.com (1u) |
+
+**Delta readout vs 2026-07-20:**
+
+- **Stars ticked 14 → 15 (+1) — the first movement after three consecutive flat snapshots at 14.**
+  A single star is noise, not a step-change, but it breaks the plateau. The reach thesis (IRO-355)
+  holds: the star step-change still needs the human-account launch surfaces (Show HN, Reddit),
+  which remain board/human-gated and have not fired.
+- **Forks grew 11 → 14 (+3); forks (14) are now level with stars (15).** Four straight snapshots of
+  fork growth (2 → 9 → 11 → 14) against near-flat stars. A fork-to-star ratio at ~1.0 is unusual and
+  reinforces the standing read: the durable signal is people cloning to *build on* IronClaw, not just
+  bookmarking it. Consistent with the first external community PR merging this cycle (IRO-603,
+  ironclaw#567) and the GFI/scan on-ramps (IRO-422, IRO-464).
+- **`cla-assistant.io` persists in the trailing-14-day referrer window (3u, was 4u).** A direct
+  CLA-signing footprint — external contributors routed through the CLA gate — now present for a
+  second consecutive snapshot. Paired with the fork jump and the merged external PR, this is the
+  clearest sustained contributor-funnel activity in the record.
+- **Unique visitors eased 45 → 26 (-19); views fell 225 → 105.** Continued pre-launch top-of-funnel
+  decay — no new social push since the LinkedIn one-off, and the high-intent surfaces stay gated.
+  `github.com` referrer softened 12u → 4u and `goodfirstissues.com` 3u → 1u, consistent with the
+  quieter reach week. Not a regression to act on; offset by the contributor-side gains.
+- **Release downloads +288 (5106 → 5394) across 259 releases** — still all CI-driven (release cut per
+  push to main); not an external-adoption signal, tracked only for completeness.
+- **Bottleneck unchanged and board-gated:** the star step-change stays gated on human-account posts
+  (Show HN, Reddit, remaining directory submissions — IRO-290, IRO-306, IRO-355). Owned growth work
+  keeps feeding the contributor funnel (forks + CLA signings), which is the metric actually moving.
+
 ### Snapshot — 2026-07-20 (steady-state baseline, IRO-587)
 
 | Metric | Value | Notes |
