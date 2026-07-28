@@ -69,9 +69,15 @@ pages rather than unposted drafts. They need no rescue:
 
 ### MCP Registry listing
 
-The listing copy is the tracked [`server.json`](../server.json) at the repo root,
-plus the runbook at [`runbooks/mcp-registry.md`](../runbooks/mcp-registry.md).
-It is a build input, not a draft, so it stays where the workflow reads it.
+The machine-readable listing is the tracked [`server.json`](../server.json) at
+the repo root plus the runbook at
+[`runbooks/mcp-registry.md`](../runbooks/mcp-registry.md). It is a build input,
+not a draft, so it stays where the workflow reads it.
+
+The human-facing directory listing copy (the prose blurbs written for Smithery,
+mcp.so, and mcpservers.org) is parked at `content/drafts/mcp-directory-listing.md`
+via PR #579, filed when IRO-378 was cancelled. See also the correction below:
+the official registry listing itself is currently dark.
 
 ## Correction: the MCP Registry listing is not healthy
 
@@ -93,19 +99,29 @@ that is not the current state:
 - **Auto-publish is off.** The `publish-mcp-registry` job in
   `.github/workflows/image.yml` is hard-gated to a manual `workflow_dispatch`
   with `publish_mcp_registry=true` and never runs on the release path.
+- **The replacement image does not exist yet.** `container/mcp.Dockerfile`
+  defines the slim, socket-free `ironclaw-mcp` (option B, IRO-414), but it is
+  referenced by **no workflow**: `image.yml` builds only
+  `container/controlplane.Dockerfile`. `ghcr.io/ironsecco/ironclaw-mcp` is not
+  anonymously pullable, while `ironclaw-controlplane` is. So the Dockerfile is
+  in-tree but has never been built or published.
 
 This does not change the cancellation. The board's decision was about not
 creating accounts, and none of Smithery, mcp.so, or mcpservers.org becomes
 reachable because of this. But the premise that the listing "that matters" is
-already handled does not hold, and the fix is a **non-gated, no-account** lever:
-the registry authenticates the `io.github.IronSecCo` namespace with this repo's
-own GitHub Actions OIDC token, so no human account is involved. The dependency
-that parked it, the slim socket-free image from IRO-414, has since shipped
-(`container/mcp.Dockerfile`, `ghcr.io/ironsecco/ironclaw-mcp`). What remains is
-repointing `server.json` at that image and re-enabling the publish job.
+already handled does not hold, and repairing it is a **non-gated, no-account**
+lever: the registry authenticates the `io.github.IronSecCo` namespace with this
+repo's own GitHub Actions OIDC token, so no human account is involved.
 
-That is engineering work on the release pipeline, so it is filed to Forge rather
-than done here. Tracked as **IRO-612**.
+Note the sequencing, because it is easy to underestimate. This is not a
+one-line repoint. The socket-free image has to be **built and published first**,
+then `server.json` repointed at it, then the publish job re-enabled, then the
+listing flipped back to `active`.
+
+That is release-pipeline and image work, not Growth's. It is already owned:
+**IRO-611** (Relay), "Relight the official MCP Registry listing." The parked
+MCP directory listing copy is preserved separately at `content/drafts/`
+(PR #579).
 
 ## What is not parked
 
