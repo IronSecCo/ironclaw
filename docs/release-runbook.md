@@ -178,6 +178,13 @@ job fails, the Image run now fails **loud** with the offending job names rather 
 silently. To make another job advisory, add it to `ADVISORY` in that step — and justify it,
 because the default is "blocking".
 
+A blocking job passes the gate only when the jobs API reports it `status=completed` **and**
+`conclusion` in `success` / `skipped` / `neutral`. A job that is still `queued`/`in_progress`
+reports `conclusion: null`, and a null is read as a **block**, not a pass (IRO-626): this gate
+only runs for a Release run GitHub already called `completed`, so a not-completed job means the
+jobs API is lagging the event, and publishing on it would be publishing off a release whose
+`smoke` we never actually watched pass.
+
 ### 3.6 Bump the Homebrew formula (after a release you want `brew install` to track)
 
 `brew install ironsecco/ironclaw/ironclaw` is served by `Formula/ironclaw.rb` in this repo, tapped

@@ -98,9 +98,17 @@ jobs:
       # image from a release that failed them would be publishing a green lie.
       #
       # Matrix jobs report as "smoke (ubuntu-latest, ...)", so match on the base name
-      # before the " (" suffix. A job that is queued/in-progress reports conclusion null;
-      # the run is `completed` by the time this fires, so null only shows up for jobs that
-      # never ran, which is not a failure.
+      # before the " (" suffix.
+      #
+      # Read `status` alongside `conclusion` and treat anything that is not
+      # `status=completed` as blocking (IRO-626). A queued/in-progress job reports
+      # `conclusion: null`, and a null must never be read as a pass: this step only runs
+      # for a `completed` Release run, so a job that is still not completed means the
+      # jobs API is lagging the workflow_run event rather than that the job was fine.
+      # Passing on null would be fail-OPEN in exactly the eventual-consistency window
+      # this gate exists to survive — an image published off a release whose `smoke` we
+      # never actually observed pass. Jobs that legitimately never ran come back
+      # `status=completed, conclusion=skipped`, which still passes.
       - name: Gate on the Release jobs the image actually depends on
         if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success' }}
         env:
@@ -113,7 +121,7 @@ jobs:
           ADVISORY="formula"
 
           jobs_tsv="$(gh api --paginate "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100" \
-            --jq '.jobs[] | [(.name | split(" (")[0]), (.conclusion | tostring)] | @tsv')"
+            --jq '.jobs[] | [(.name | split(" (")[0]), (.status | tostring), (.conclusion | tostring)] | @tsv')"
 
           if [ -z "${jobs_tsv}" ]; then
             echo "::error::Could not read the job list for Release run ${RUN_ID} (${RUN_URL}) — refusing to publish an image off an unverified run." >&2
@@ -121,16 +129,29 @@ jobs:
           fi
 
           blocking=""
-          while IFS="$(printf '\t')" read -r jname jconc; do
+          while IFS="$(printf '\t')" read -r jname jstatus jconc; do
             [ -n "${jname}" ] || continue
-            case "${jconc}" in
-              success | skipped | neutral | null) continue ;;
-            esac
+
+            # Advisory jobs are exempt outright — the image consumes nothing they produce,
+            # so neither their conclusion nor their status can veto the publish.
             case " ${ADVISORY} " in
               *" ${jname} "*)
-                echo "::warning title=Advisory Release job failed::'${jname}' concluded '${jconc}' in the upstream Release run, but it is post-release bookkeeping the image does not depend on — continuing with the image publish (IRO-621). Fix it on its own ticket: ${RUN_URL}"
+                case "${jstatus}:${jconc}" in
+                  completed:success | completed:skipped | completed:neutral) ;;
+                  *)
+                    echo "::warning title=Advisory Release job did not pass::'${jname}' ended ${jstatus}/${jconc} in the upstream Release run, but it is post-release bookkeeping the image does not depend on — continuing with the image publish (IRO-621). Fix it on its own ticket: ${RUN_URL}"
+                    ;;
+                esac
                 continue
                 ;;
+            esac
+
+            if [ "${jstatus}" != "completed" ]; then
+              blocking="${blocking}${blocking:+, }${jname}=${jstatus}/not-completed"
+              continue
+            fi
+            case "${jconc}" in
+              success | skipped | neutral) continue ;;
             esac
             blocking="${blocking}${blocking:+, }${jname}=${jconc}"
           done <<EOF
@@ -138,7 +159,7 @@ jobs:
           EOF
 
           if [ -n "${blocking}" ]; then
-            echo "::error title=Release failed a job the image depends on::Refusing to publish: ${blocking}. See ${RUN_URL}." >&2
+            echo "::error title=A Release job the image depends on did not pass::Refusing to publish: ${blocking}. See ${RUN_URL}." >&2
             exit 1
           fi
           echo "Release run ${RUN_ID} failed only advisory jobs — the image chain is unaffected, proceeding."
