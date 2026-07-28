@@ -13,6 +13,7 @@ version-controlled here but intentionally **not** published to the docs site
 | [amplification-submissions-queue.md](amplification-submissions-queue.md) | Staged newsletter / directory submissions, held for the IRO-40 launch gate. | Per launch wave |
 | [security-proof-writeup.md](security-proof-writeup.md) | "We tried to break our own sandbox" proof piece (blog + Show HN + social), built on the real red-team harness output. Gated draft, needs CEO/board sign-off. | Per launch |
 | [social-proof.md](social-proof.md) | Collection process, sourcing guardrails, and raw-capture ledger behind the public [social-proof wall](../docs/social-proof.md). | 24h / 72h / 1wk, then weekly |
+| [parked-content-backlog.md](parked-content-backlog.md) | **Start here.** Index of the written-but-unposted copy parked by the IRO-606 board decision (repo-only, no posting identity), and what unparks it. | On board-decision change |
 
 Refresh the metrics snapshot with:
 
