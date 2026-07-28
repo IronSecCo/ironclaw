@@ -516,11 +516,28 @@ jobs:
           fi
 
           # GHCR anonymous pull flow: request a bearer token with NO credentials. For a
-          # PUBLIC package this token carries pull scope; for a PRIVATE one it does not and
-          # the manifest fetch below returns 401/403 — exactly the regression we guard.
-          token="$(curl -fsSL "https://ghcr.io/token?scope=repository:${repo}:pull" | jq -r '.token')"
-          if [ -z "${token}" ] || [ "${token}" = "null" ]; then
-            echo "::error::Could not obtain an anonymous GHCR pull token for ${repo}." >&2
+          # PUBLIC package that token carries pull scope. For a PRIVATE package — or one
+          # that does not exist yet — GHCR refuses to distinguish the two and denies the
+          # TOKEN REQUEST ITSELF with 403 DENIED; execution never reaches the manifest
+          # fetch. So this request must not use `curl -f`: under `set -e` that aborts the
+          # step with a bare `curl: (56)` and the remediation below never prints, which is
+          # the one failure this guard exists to explain. Retry first — GHCR is eventually
+          # consistent right after a push, so a brief denial is not proof of private.
+          tok_body="$(mktemp)"
+          tok_code=""
+          token=""
+          for attempt in 1 2 3 4 5; do
+            tok_code="$(curl -sSL -o "${tok_body}" -w '%{http_code}' \
+              "https://ghcr.io/token?service=ghcr.io&scope=repository:${repo}:pull" || true)"
+            token="$(jq -r '.token // empty' <"${tok_body}" 2>/dev/null || true)"
+            [ "${tok_code}" = "200" ] && [ -n "${token}" ] && break
+            token=""
+            echo "  token attempt ${attempt}: HTTP ${tok_code}, retrying in 10s..."
+            sleep 10
+          done
+          if [ -z "${token}" ]; then
+            pkg="${repo##*/}"
+            echo "::error::Anonymous GHCR pull token for ${repo} was denied (HTTP ${tok_code}): the package is private, or has never been pushed. GHCR creates every new package PRIVATE, and GITHUB_TOKEN cannot change container-package visibility (there is no REST endpoint for it, it is a UI action). One-time org-admin fix: IronSecCo -> Packages -> ${pkg} -> Package settings -> Change visibility -> Public, then re-run this workflow. Runbook: runbooks/mcp-registry.md, section 'First publish of a new image (one-time org-admin gate)'. Failing the release." >&2
             exit 1
           fi
 
