@@ -1076,10 +1076,14 @@ def render_collections_index(groups) -> str:
     all_imgs = sum(len(m) for _c, m in groups)
     L = []
     L.append("---")
-    L.append("title: Container isolation scores by category")
-    L.append("description: Ranked container isolation scores by category: databases, "
+    # Both values are quoted because the description contains a ": ", which YAML
+    # reads as a nested mapping in an unquoted scalar. MkDocs swallows that parse
+    # error and drops the whole front-matter block, so the page silently served
+    # the site_description fallback as its SERP snippet (IRO-617).
+    L.append('title: "Container isolation scores by category"')
+    L.append('description: "Ranked container isolation scores by category: databases, '
              "language runtimes, web servers, CI/CD, observability, and more. Graded "
-             "0-100 by ironctl scan.")
+             '0-100 by ironctl scan."')
     L.append("---")
     L.append("")
     L.append("# Container isolation scores by category")

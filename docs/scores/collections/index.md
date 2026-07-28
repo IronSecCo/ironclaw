@@ -1,6 +1,6 @@
 ---
-title: Container isolation scores by category
-description: Ranked container isolation scores by category: databases, language runtimes, web servers, CI/CD, observability, and more. Graded 0-100 by ironctl scan.
+title: "Container isolation scores by category"
+description: "Ranked container isolation scores by category: databases, language runtimes, web servers, CI/CD, observability, and more. Graded 0-100 by ironctl scan."
 ---
 
 # Container isolation scores by category

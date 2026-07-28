@@ -15,6 +15,7 @@ on:
       - "mkdocs.yml"
       - "overrides/**"
       - "api/openapi.yaml"
+      - "scripts/check-docs-meta.py"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
@@ -22,6 +23,7 @@ on:
       - "mkdocs.yml"
       - "overrides/**"
       - "api/openapi.yaml"
+      - "scripts/check-docs-meta.py"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -57,6 +59,15 @@ jobs:
 
       - name: Build site (strict)
         run: mkdocs build --strict --site-dir _site
+
+      - name: Check published pages carry their own title and description
+        # `mkdocs build --strict` gates broken links and nav, but never looks at
+        # front-matter, so a page with no title/description builds green and
+        # ships the site-wide fallback as its SERP snippet. This asserts on the
+        # built HTML (the bytes Google reads), not on docs/**/*.md, so it needs
+        # no second copy of the `exclude_docs` patterns and also catches
+        # front-matter that is present but silently unparseable. See IRO-617.
+        run: python3 scripts/check-docs-meta.py _site
 
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

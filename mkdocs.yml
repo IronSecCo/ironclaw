@@ -10,11 +10,20 @@ docs_dir: docs
 
 # The Mintlify scaffold (docs/site/**, docs/docs.json) is a separate hosted-docs
 # experiment; it is not part of this MkDocs build.
+#
+# assets/live-containment-social/ holds the ffmpeg render script, storyboard and
+# cut media for the IRO-370 social clip. Those are internal production notes, not
+# documentation: thin, carrying an internal issue key in the heading, and not a
+# page anyone should land on from search. Excluding the directory also keeps
+# ~5.5 MB of .mp4/.gif out of the published site; nothing under docs/ links to
+# them, and the repo-relative link from examples/live-containment/README.md
+# still resolves on GitHub.
 exclude_docs: |
   site/
   docs.json
   reference/openapi.yaml
   launch/
+  assets/live-containment-social/
 
 # docs/hooks.py copies api/openapi.yaml into the build and stamps the version.
 hooks:
