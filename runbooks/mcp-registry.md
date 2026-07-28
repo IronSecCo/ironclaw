@@ -137,22 +137,54 @@ permanently — they describe a trust model we tell people not to run (IRO-391 /
 IRO-613). The only thing that ever goes `active` is a version built from
 `container/mcp.Dockerfile`.
 
-## First publish of a new image (one-time org-admin gate)
+## Package visibility (no gate — verified on first publish)
 
-GHCR creates a brand-new package as **private**, and `GITHUB_TOKEN` cannot change
-that. So the first release that pushes `ghcr.io/ironsecco/ironclaw-mcp` fails in
-`verify-consumer` on the anonymous pull. That failure is **correct, expected, and
-one-time**: a private image is unusable by the clients the listing serves, and
-the registry's own OCI validator could not fetch it either. Read a red first
-release here as this gate, not as a broken pipeline.
+`ghcr.io/ironsecco/ironclaw-mcp` was **born anonymously pullable**. We expected
+the opposite (GHCR historically created every new package private, as
+`ironclaw-controlplane` did in June 2026, which needed a manual flip), so IRO-618
+pre-staged an org-admin gate for it. The gate never fired. Evidence from the
+first release that pushed the package — `Image` run
+[30408078319](https://github.com/IronSecCo/ironclaw/actions/runs/30408078319),
+`v0.1.403`, the first `build-mcp` on `main`:
 
-Unblock it once, as an org admin:
+```
+Anonymous manifest pull: ghcr.io/ironsecco/ironclaw-mcp:latest
+  -> HTTP 200 (anonymously pullable)
+Anonymous manifest pull: ghcr.io/ironsecco/ironclaw-mcp:v0.1.403
+  -> HTTP 200 (anonymously pullable)
+```
+
+Zero retries, and no human touched the package between the push (23:28 UTC) and
+`verify-consumer` (23:30 UTC), so this was not a flip we made and forgot. The
+likely reason is that GHCR now links a `GITHUB_TOKEN`-pushed package to the
+repository that pushed it and inherits that repository's visibility, and
+`IronSecCo/ironclaw` is public. Treat that as the probable mechanism, not a
+guarantee: it is GitHub-side behaviour we do not control and did not always get.
+
+**So do not pre-emptively flip anything.** The claim that matters is checked on
+every release by `verify-consumer`, which pulls anonymously with no registry
+credentials. If it ever goes red on the token request or the manifest fetch, the
+package is private (or was never pushed), and the fix is still the one-time
+org-admin action:
 
 > IronSecCo → Packages → `ironclaw-mcp` → Package settings → Change visibility →
 > Public
 
 then re-run the `Image` workflow (or let the next release run it). This is a
 package-visibility change, not a pipeline change; no workflow edit is involved.
+`GITHUB_TOKEN` cannot do it: there is no REST endpoint for container-package
+visibility, it is a UI action.
+
+Anyone can re-check the current state without credentials:
+
+```bash
+curl -fsS "https://ghcr.io/token?service=ghcr.io&scope=repository:ironsecco/ironclaw-mcp:pull" \
+  | jq -r .token \
+  | xargs -I{} curl -sS -o /dev/null -w '%{http_code}\n' -H 'Authorization: Bearer {}' \
+      -H 'Accept: application/vnd.oci.image.index.v1+json' \
+      https://ghcr.io/v2/ironsecco/ironclaw-mcp/manifests/latest
+# 200 = public. 401/403 (or a denied token request) = private.
+```
 
 ## Yanking / superseding a listing
 
