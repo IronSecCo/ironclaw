@@ -39,6 +39,8 @@ MKDOCS_YML = REPO_ROOT / "mkdocs.yml"
 # has no SERP snippet to get wrong and no page-level front-matter to read.
 EXEMPT = frozenset({"404.html"})
 
+FRONT_MATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n", re.DOTALL)
+
 TITLE_RE = re.compile(r"<title>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 DESCRIPTION_RE = re.compile(
     r"""<meta\s+name=["']description["']\s+content=["'](.*?)["']\s*/?>""",
@@ -99,6 +101,45 @@ def extract(pattern: re.Pattern[str], markup: str) -> str | None:
     return html.unescape(match.group(1)).strip() if match else None
 
 
+def diagnose_source(source: str) -> str | None:
+    """Explain *why* a page's front-matter did not reach the built HTML.
+
+    Purely advisory: this never adds or removes a failure, it only turns
+    "this page has no description" into the specific thing to fix. The case
+    worth naming is front-matter that is *present but unparseable* --- MkDocs
+    swallows the YAML error and drops the whole block, so the page looks
+    correct in the source and still ships the fallback meta.
+    """
+    path = REPO_ROOT / source
+    if not path.is_file():
+        return None
+
+    text = path.read_text(encoding="utf-8", errors="replace")
+    match = FRONT_MATTER_RE.match(text)
+    if not match:
+        return "the source file has no `---` front-matter block at all"
+
+    block = match.group(1)
+    try:
+        parsed = yaml.safe_load(block)
+    except yaml.YAMLError as error:
+        detail = str(error).splitlines()[0].strip()
+        return (
+            "the front-matter block is present but is not valid YAML, so MkDocs "
+            f"dropped ALL of it silently ({detail}). Usual cause: a value "
+            "containing a colon-space, e.g. `description: IronClaw: secure "
+            "agents` --- wrap the value in double quotes"
+        )
+
+    if not isinstance(parsed, dict):
+        return "the front-matter block does not parse to a `key: value` mapping"
+
+    missing = [key for key in ("title", "description") if not parsed.get(key)]
+    if missing:
+        return f"the front-matter block parses but has no {' or '.join(f'`{k}:`' for k in missing)} key"
+    return None
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
         print(f"usage: {Path(argv[0]).name} <site-dir>", file=sys.stderr)
@@ -137,12 +178,17 @@ def main(argv: list[str]) -> int:
             reasons.append("title is just the site_name")
 
         if reasons:
-            failures.append(
+            source = source_markdown(relative)
+            entry = (
                 f"  {relative.as_posix()}\n"
                 f"    publishes at: {published_url(site_url, relative)}\n"
-                f"    source:       {source_markdown(relative)}\n"
+                f"    source:       {source}\n"
                 f"    problem:      {'; '.join(reasons)}"
             )
+            diagnosis = diagnose_source(source)
+            if diagnosis:
+                entry += f"\n    why:          {diagnosis}"
+            failures.append(entry)
 
     if failures:
         print(
@@ -152,12 +198,24 @@ def main(argv: list[str]) -> int:
         )
         print("\n".join(failures), file=sys.stderr)
         print(
-            "\nEvery published page needs its own front-matter, so search engines get a\n"
-            "page-specific snippet instead of the site-wide fallback:\n\n"
+            "\nHow to fix this\n"
+            "---------------\n"
+            "Every published page needs its own front-matter, so search engines get a\n"
+            "page-specific snippet instead of the site-wide fallback. Copy this to the\n"
+            "very top of the Markdown file, before any other line:\n\n"
             "  ---\n"
-            '  title: A specific page title\n'
-            '  description: One sentence, under 160 characters, describing this page.\n'
+            '  title: "A specific page title"\n'
+            '  description: "One sentence, under 160 characters, describing this page."\n'
             "  ---\n\n"
+            "Quote both values. YAML reads an unquoted colon-space as the start of a\n"
+            "nested mapping, so a line like\n\n"
+            "  description: IronClaw: secure agent sandboxing   # <- breaks, do not do this\n\n"
+            "is a YAML error. MkDocs does not report it: it drops the ENTIRE front-matter\n"
+            "block and silently publishes the page with the site-wide fallback meta, which\n"
+            "is what this check then fails on. Double quotes make the colon safe.\n\n"
+            "Then rebuild and re-run the check locally:\n\n"
+            "  mkdocs build --strict --site-dir _site\n"
+            "  python3 scripts/check-docs-meta.py _site\n\n"
             "If the page is an internal note rather than documentation, add it to\n"
             "`exclude_docs:` in mkdocs.yml instead so it stops being published at all.",
             file=sys.stderr,
