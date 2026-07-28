@@ -79,6 +79,10 @@ reply flowed back through the encrypted queues. Tear it down with
 (gVisor sandboxes + the host model-proxy) is the supported path — see [deployment](https://github.com/IronSecCo/ironclaw/blob/main/README.md#deployment).
 See the [environment variable reference](env-reference.md) for every supported
 host-side setting and its default.
+No key at all is also a supported path: [Bring your own model](bring-your-own-model.md)
+runs the same agent on a local Ollama, LM Studio, or vLLM endpoint, and
+[Why we run AI agents in gVisor](gvisor-deep-dive.md) explains the boundary the
+key stays outside of.
 Run `ironctl doctor` any time to diagnose a stuck setup, and `ironctl onboard` for a guided first-run check.
 
 ---

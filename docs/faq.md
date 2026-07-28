@@ -47,15 +47,17 @@ enters a sandbox) and point an agent group at that provider. See the
 
 ## Which model providers are supported?
 
-**Anthropic, OpenAI, OpenRouter, Codex, Google Gemini, Google Vertex AI**, a
-**local / self-hosted** OpenAI-compatible server (Ollama, LM Studio, vLLM,
-llama.cpp), plus a generic gateway URL (`IRONCLAW_MODEL_GATEWAY_URL`) — all reached
-through the host model-proxy, so keys stay host-side and never enter a sandbox. AWS
-**Bedrock** is landing and Azure OpenAI is incoming. The zero-credential `mock`
-provider is built in for offline demos and tests.
+**Anthropic, OpenAI, OpenRouter, Codex, Google Gemini, Google Vertex AI, AWS
+Bedrock, Azure OpenAI**, a dedicated **Ollama** backend, and a generic
+**local / self-hosted** OpenAI-compatible server (LM Studio, vLLM, llama.cpp),
+plus a generic gateway URL (`IRONCLAW_MODEL_GATEWAY_URL`). All of them are
+reached through the host model-proxy, so keys stay host-side and never enter a
+sandbox. The zero-credential `mock` provider is built in for offline demos and
+tests.
 
-To pick one, see [Choose your model provider](providers/index.md) — a capability
-matrix and a short decision guide.
+To pick one, see [Choose your model provider](providers/index.md), a capability
+matrix and a short decision guide, or
+[Bring your own model](bring-your-own-model.md) for the 5-minute version.
 
 ## Which channels are supported?
 

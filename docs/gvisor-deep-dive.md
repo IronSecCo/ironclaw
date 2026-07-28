@@ -1,6 +1,6 @@
 ---
-title: "Why we run AI agents in gVisor"
-description: "The security model behind IronClaw: why a sandboxed agent gets no network, no host secrets, and no way to change its own configuration, and what gVisor actually buys you."
+title: "Why we run AI agents in a gVisor sandbox: the agent isolation model"
+description: "The security model behind IronClaw: why a sandboxed AI agent gets no network, no host secrets, and no way to change its own configuration, and what gVisor actually buys you over a plain container."
 ---
 # Why we run AI agents in gVisor
 
@@ -18,7 +18,7 @@ it:
 > walls that hold anyway.[^assume]
 
 That single asymmetry, *the host is trusted, the agent is not*, is the whole
-design. This post is about the most load-bearing wall it produces: running each
+design. This page documents the most load-bearing wall it produces: running each
 agent inside a **gVisor** sandbox with **no network**, and what that actually buys
 you.
 
