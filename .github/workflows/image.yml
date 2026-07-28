@@ -537,7 +537,8 @@ jobs:
           done
           if [ -z "${token}" ]; then
             pkg="${repo##*/}"
-            echo "::error::Anonymous GHCR pull token for ${repo} was denied (HTTP ${tok_code}): the package is private, or has never been pushed. GITHUB_TOKEN cannot change container-package visibility (there is no REST endpoint for it, it is a UI action). Org-admin fix: IronSecCo -> Packages -> ${pkg} -> Package settings -> Change visibility -> Public, then re-run this workflow. Runbook: runbooks/mcp-registry.md, section 'Package visibility'. Failing the release." >&2
+            owner="${repo%%/*}"
+            echo "::error::Anonymous GHCR pull token for ${repo} was denied (HTTP ${tok_code}) after 5 attempts. This is NOT an expected gate — both packages are public today and this job passes for both, so treat it as a real failure. GHCR returns the same denial for a PRIVATE package and for one that was NEVER PUSHED, so settle which it is first: 'gh api /orgs/${owner}/packages/container/${pkg}' answers 404 when the package does not exist, and 200/403 when it does. If it exists, it is private, and an org admin must flip it: ${owner} -> Packages -> ${pkg} -> Package settings -> Change visibility -> Public, then re-run this workflow (GITHUB_TOKEN cannot do it; there is no REST endpoint for container-package visibility, it is a UI action). Runbook: runbooks/mcp-registry.md, section 'Package visibility'. Failing the release." >&2
             exit 1
           fi
 

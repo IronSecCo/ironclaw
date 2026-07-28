@@ -175,16 +175,47 @@ package-visibility change, not a pipeline change; no workflow edit is involved.
 `GITHUB_TOKEN` cannot do it: there is no REST endpoint for container-package
 visibility, it is a UI action.
 
-Anyone can re-check the current state without credentials:
+Anyone can re-check the current state without credentials. Note the **absence of
+`curl -f`** on the token request: GHCR denies the token request *itself* with 403
+for a private package, and `-f` turns that into a bare `curl: (56)` with no status
+line — losing the one reading you came for. Check the token request's own status
+instead:
 
 ```bash
-curl -fsS "https://ghcr.io/token?service=ghcr.io&scope=repository:ironsecco/ironclaw-mcp:pull" \
-  | jq -r .token \
-  | xargs -I{} curl -sS -o /dev/null -w '%{http_code}\n' -H 'Authorization: Bearer {}' \
-      -H 'Accept: application/vnd.oci.image.index.v1+json' \
-      https://ghcr.io/v2/ironsecco/ironclaw-mcp/manifests/latest
-# 200 = public. 401/403 (or a denied token request) = private.
+repo=ironsecco/ironclaw-mcp
+code="$(curl -sS -o /tmp/tok.json -w '%{http_code}' \
+  "https://ghcr.io/token?service=ghcr.io&scope=repository:${repo}:pull")"
+if [ "${code}" != "200" ]; then
+  echo "token request -> HTTP ${code}: package is PRIVATE, or was never pushed"
+else
+  curl -sS -o /dev/null -w 'manifest -> HTTP %{http_code}\n' \
+    -H "Authorization: Bearer $(jq -r .token </tmp/tok.json)" \
+    -H 'Accept: application/vnd.oci.image.index.v1+json' \
+    "https://ghcr.io/v2/${repo}/manifests/latest"   # 200 = public
+fi
 ```
+
+### Reading a red `verify-consumer`
+
+There is **no expected-red step anywhere in this pipeline** — both packages are
+public and this job passes for both. So a red is a real failure: diagnose it,
+never wave it through as a known gate. Visibility is only one of four causes, and
+not the most serious. In rough order of likelihood:
+
+1. **Propagation lag.** GHCR is eventually consistent right after a push. The job
+   already retries 5x/10s on both the token request and the manifest fetch, so a
+   red means it stayed broken for about a minute.
+2. **Digest mismatch** — the tag resolves, but not to the index this run attested.
+   This is the security-relevant one: consumers would pull something we never
+   attested. Treat it as a clobbered or racing tag and stop the release.
+3. **Attestation not verifiable from outside** — the provenance/SBOM upload
+   failed, or something other than this workflow pushed the image.
+4. **The package really is private**, per the section above. Because GHCR returns
+   the identical 403 for private *and* never-pushed, settle which one before
+   asking an admin for anything: `gh api /orgs/IronSecCo/packages/container/<pkg>`
+   answers **404 "Package not found"** when it does not exist, and **200** — or
+   **403 "needs `read:packages` scope"** if your token lacks the scope — when it
+   does. Any non-404 answer proves existence, which is the only bit you need.
 
 ## Yanking / superseding a listing
 
