@@ -43,10 +43,12 @@ RUN go build -trimpath -ldflags "-s -w" -o /out/ironctl ./cmd/ironctl
 # control-plane, not here.
 FROM gcr.io/distroless/static-debian12:nonroot AS runtime
 
-# NOTE (handoff to IRO-391 / Relay): add the MCP Registry ownership label here, e.g.
-#   LABEL io.modelcontextprotocol.server.name="<name from server.json>"
-# It is intentionally omitted so the exact name stays owned by server.json, which
-# Relay maintains alongside the publish-mcp-registry job.
+# OCI ownership proof for the official MCP Registry (registry.modelcontextprotocol.io).
+# At publish time the registry PULLS this image and refuses to bind the listing unless
+# this label equals the `name` field in server.json. It must stay in lock-step with
+# server.json; changing one without the other fails the publish closed, which is the
+# behaviour we want. See runbooks/mcp-registry.md.
+LABEL io.modelcontextprotocol.server.name="io.github.IronSecCo/ironclaw"
 
 COPY --from=build /out/ironctl /ironctl
 

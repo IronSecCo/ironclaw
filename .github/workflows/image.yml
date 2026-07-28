@@ -1,6 +1,6 @@
 name: Image
 
-# Build and publish the control-plane container image to GHCR on release.
+# Build and publish IronClaw's container images to GHCR on release.
 #
 # It chains off the "Release" workflow via workflow_run: the Release workflow cuts a
 # GitHub Release (and tag) on every push to main, and this runs right after it
@@ -8,15 +8,31 @@ name: Image
 # workflow's GITHUB_TOKEN does NOT fire a `release:` event — GitHub's recursion guard
 # — so workflow_run is the reliable chain.) workflow_dispatch allows a manual rebuild.
 #
-# The image bundles ironclaw-controlplane + ironctl (container/controlplane.Dockerfile);
-# docker-compose.yml and the README pull it from ghcr.io/<owner>/ironclaw-controlplane.
+# TWO images are published, from one shared build/merge/attest/verify chain:
 #
-# Multi-arch (linux/amd64 + linux/arm64): the image embeds a CGO (SQLCipher) binary, so
-# each arch is built NATIVELY on its own GitHub-hosted runner (ubuntu-latest for amd64,
-# ubuntu-24.04-arm for arm64) rather than under QEMU emulation, which is slow and flaky
-# for CGO. Each arch is pushed to GHCR by digest (no tag), then a final `merge` job
-# stitches the per-arch digests into one manifest list under the real tags and attaches
-# build provenance to the index digest.
+#   ghcr.io/<owner>/ironclaw-controlplane  (container/controlplane.Dockerfile)
+#     The daemon: ironclaw-controlplane + ironctl. docker-compose.yml and the README
+#     pull this one. It owns the hardened gVisor box lifecycle, so it needs host
+#     Docker access — it is deliberately NOT the artifact we list on the MCP Registry.
+#
+#   ghcr.io/<owner>/ironclaw-mcp           (container/mcp.Dockerfile)
+#     The slim, socket-free MCP server (IRO-414): distroless/static, nonroot, no shell,
+#     no host privilege. `sandbox_exec` delegates every box to a running control-plane
+#     over its authenticated API. This is the image server.json lists on the official
+#     MCP Registry, and it carries the io.modelcontextprotocol.server.name label the
+#     registry validates ownership with.
+#
+# Multi-arch (linux/amd64 + linux/arm64): the control-plane image embeds a CGO
+# (SQLCipher) binary, so each arch is built NATIVELY on its own GitHub-hosted runner
+# (ubuntu-latest for amd64, ubuntu-24.04-arm for arm64) rather than under QEMU
+# emulation, which is slow and flaky for CGO. Each (image, arch) is pushed to GHCR by
+# digest (no tag), then a per-image `merge` job stitches the per-arch digests into one
+# manifest list under the real tags and attaches build provenance to the index digest.
+#
+# The image set to build is resolved dynamically by `prepare` (a commit that lacks one
+# of the Dockerfiles simply drops it from the matrix), so every downstream job fans out
+# over `needs.prepare.outputs.images` and there is exactly one copy of the
+# build/merge/attest/verify logic.
 
 on:
   workflow_run:
@@ -25,14 +41,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Version tag to stamp + publish (e.g. v0.1.99). Blank = latest only."
+        description: "Version tag to stamp + publish (e.g. v0.1.99). Blank = latest only, and no MCP Registry publish."
         required: false
         default: ""
-      publish_mcp_registry:
-        description: "PARKED kill-switch for the MCP Registry publish (IRO-391/IRO-414). Leave false: the job publishes the CEO-rejected option-A listing. Only true after IRO-391 is reworked onto the socket-free image."
-        type: boolean
-        required: false
-        default: false
 
 # Least privilege by default: the workflow token is read-only at the top level.
 # The write scopes (packages / id-token / attestations) are granted only to the
@@ -46,14 +57,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Resolve the lowercased GHCR ref + the version to tag with, once, so the per-arch
-  # build matrix and the merge job all agree. The version is the git tag the Release
-  # workflow put on THIS commit (so the image tag always matches the built commit's
-  # release — no formula duplication, no latest-release race); a manual dispatch may
-  # override it. Blank version → publish :latest only. A commit with no
-  # container/controlplane.Dockerfile (older release chaining in, or a revert) yields
-  # present=false and the build/merge jobs skip cleanly — "nothing to publish", not a
-  # failure.
+  # Resolve the image set (lowercased GHCR refs) + the version to tag with, once, so the
+  # per-arch build matrix, the merge jobs and the consumer check all agree. The version is
+  # the git tag the Release workflow put on THIS commit (so the image tag always matches
+  # the built commit's release — no formula duplication, no latest-release race); a manual
+  # dispatch may override it. Blank version → publish :latest only. An image whose
+  # Dockerfile is absent at this commit (older release chaining in, or a revert) drops out
+  # of the matrix; a commit with NO image Dockerfiles at all yields present=false and every
+  # downstream job skips cleanly — "nothing to publish", not a failure.
   prepare:
     runs-on: ubuntu-latest
     # On the workflow_run path, only build when the Release actually succeeded.
@@ -62,9 +73,10 @@ jobs:
       contents: read # read-only API lookups + trust-gate; no push/sign here
     outputs:
       present: ${{ steps.meta.outputs.present }}
-      image: ${{ steps.meta.outputs.image }}
+      images: ${{ steps.meta.outputs.images }}
+      mcp_present: ${{ steps.meta.outputs.mcp_present }}
+      mcp_image: ${{ steps.meta.outputs.mcp_image }}
       version: ${{ steps.meta.outputs.version }}
-      tag_args: ${{ steps.meta.outputs.tag_args }}
       sha: ${{ steps.meta.outputs.sha }}
     steps:
       # SECURITY (Dangerous-Workflow / "pwn request"): this workflow runs in a
@@ -118,15 +130,44 @@ jobs:
           echo "Trusted build commit: ${sha} (on ${default_branch})"
 
           owner="$(printf '%s' "${OWNER}" | tr '[:upper:]' '[:lower:]')"
-          image="ghcr.io/${owner}/ironclaw-controlplane"
 
-          # 2) Dockerfile presence at that commit — via the contents API, no checkout. A
-          #    commit without it (older release chaining in, or a revert) → present=false
-          #    and the build/merge jobs skip cleanly: "nothing to publish", not a failure.
-          if ! gh api "repos/${REPO}/contents/container/controlplane.Dockerfile?ref=${sha}" --silent >/dev/null 2>&1; then
-            echo "present=false" >> "${GITHUB_OUTPUT}"
-            echo "No container/controlplane.Dockerfile at ${sha} — skipping image build."
+          # 2) Which images does this commit actually carry a Dockerfile for? Resolved via
+          #    the contents API, no checkout. An image whose Dockerfile is missing (older
+          #    release chaining in, or a revert) drops out of the matrix; if NONE are
+          #    present we emit present=false and every downstream job skips cleanly —
+          #    "nothing to publish", not a failure.
+          images='[]'
+          add_image() { # $1=matrix key  $2=GHCR repo  $3=Dockerfile path
+            if gh api "repos/${REPO}/contents/$3?ref=${sha}" --silent >/dev/null 2>&1; then
+              images="$(printf '%s' "${images}" | jq -c \
+                --arg key "$1" --arg image "ghcr.io/${owner}/$2" --arg file "$3" \
+                '. + [{key: $key, image: $image, file: $file}]')"
+              echo "  + $1 -> ghcr.io/${owner}/$2 (from $3)"
+            else
+              echo "  - $1 skipped: no $3 at ${sha}"
+            fi
+          }
+          echo "Resolving image matrix at ${sha}:"
+          add_image controlplane ironclaw-controlplane container/controlplane.Dockerfile
+          add_image mcp ironclaw-mcp container/mcp.Dockerfile
+
+          if [ "$(printf '%s' "${images}" | jq 'length')" = "0" ]; then
+            # Emit a valid (empty) JSON array even on this path so the downstream
+            # `fromJSON(needs.prepare.outputs.images)` matrix expression never sees an
+            # empty string; the `present` gate is what actually skips those jobs.
+            {
+              echo "present=false"
+              echo "images=[]"
+            } >> "${GITHUB_OUTPUT}"
+            echo "No image Dockerfiles at ${sha} — skipping image build."
             exit 0
+          fi
+
+          # The MCP Registry listing is bound to the slim image specifically, so the
+          # publish job gates on that image being in this build, not just any image.
+          mcp_present=false
+          if printf '%s' "${images}" | jq -e '.[] | select(.key == "mcp")' >/dev/null; then
+            mcp_present=true
           fi
 
           # 3) Version: an explicit dispatch input wins; otherwise the release tag this
@@ -139,45 +180,39 @@ jobs:
               | grep -E '^v[0-9]' | head -1 || true)"
           fi
 
-          # `docker buildx imagetools create` takes the tags as -t flags. Always tag
-          # :latest; add the immutable :<version> tag when this commit carries one.
-          tag_args="-t ${image}:latest"
-          if [ -n "${version}" ]; then
-            tag_args="${tag_args} -t ${image}:${version}"
-          fi
           {
             echo "present=true"
-            echo "image=${image}"
+            echo "images=${images}"
+            echo "mcp_present=${mcp_present}"
+            echo "mcp_image=ghcr.io/${owner}/ironclaw-mcp"
             echo "version=${version:-dev}"
-            echo "tag_args=${tag_args}"
             echo "sha=${sha}"
           } >> "${GITHUB_OUTPUT}"
-          echo "Publishing ${tag_args} (VERSION=${version:-dev}) from ${sha}"
+          echo "Publishing ${images} at VERSION=${version:-dev} from ${sha}"
 
-  # Build each arch natively on its own runner and push to GHCR BY DIGEST (no tag).
-  # The merge job below assembles these digests into the tagged manifest list.
+  # Build each (image, arch) natively on its own runner and push to GHCR BY DIGEST (no
+  # tag). The merge job below assembles each image's digests into its tagged manifest
+  # list. The image axis is resolved by `prepare`, so adding an image is a one-line
+  # change there, not a copy of this job.
   build:
     needs: prepare
     if: ${{ needs.prepare.outputs.present == 'true' }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: linux/amd64
+        image: ${{ fromJSON(needs.prepare.outputs.images) }}
+        platform:
+          - name: linux/amd64
+            pair: linux-amd64
             runner: ubuntu-latest
-          - platform: linux/arm64
+          - name: linux/arm64
+            pair: linux-arm64
             runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.platform.runner }}
     permissions:
       contents: read # checkout the trust-gated commit
       packages: write # push the per-arch image to GHCR by digest
     steps:
-      - name: Sanitize platform pair
-        id: plat
-        env:
-          PLATFORM: ${{ matrix.platform }}
-        run: echo "pair=${PLATFORM//\//-}" >> "${GITHUB_OUTPUT}"
-
       # Check out the commit the prepare job already trust-gated to the protected
       # branch — never the raw event-supplied head_sha. (Dangerous-Workflow: no
       # untrusted checkout in a privileged workflow_run context.)
@@ -200,13 +235,13 @@ jobs:
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: .
-          file: container/controlplane.Dockerfile
-          platforms: ${{ matrix.platform }}
+          file: ${{ matrix.image.file }}
+          platforms: ${{ matrix.platform.name }}
           build-args: |
             VERSION=${{ needs.prepare.outputs.version }}
           # Push by digest only; the merge job applies the real tags. name-canonical
           # keeps the pushed ref pinned to the digest under the target repo.
-          outputs: type=image,name=${{ needs.prepare.outputs.image }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ matrix.image.image }},push-by-digest=true,name-canonical=true,push=true
           # Per-arch inline attestations off — provenance is attached once to the merged
           # index below (GitHub artifact attestation), matching the release binaries.
           provenance: false
@@ -223,31 +258,37 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: digest-${{ steps.plat.outputs.pair }}
+          name: digest-${{ matrix.image.key }}-${{ matrix.platform.pair }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
 
-  # Stitch the per-arch digests into one manifest list under the real tags, then attach
-  # build provenance to the resulting index digest (verify with `gh attestation verify
-  # oci://ghcr.io/<owner>/ironclaw-controlplane:<tag>`).
+  # Per image: stitch its per-arch digests into one manifest list under the real tags,
+  # then attach build provenance + an SBOM to the resulting index digest (verify with
+  # `gh attestation verify oci://ghcr.io/<owner>/<image>:<tag>`).
+  #
+  # This is a matrix job, so it cannot expose a per-image `outputs.digest` (matrix legs
+  # share one outputs map and would clobber each other). The index digest is handed to
+  # verify-consumer as a per-image artifact instead.
   merge:
     needs: [prepare, build]
     if: ${{ needs.prepare.outputs.present == 'true' }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.prepare.outputs.images) }}
     permissions:
       contents: read # read-only; this job does not check out source
       packages: write # push the merged manifest list to GHCR
       id-token: write # keyless provenance + SBOM signing (Sigstore OIDC)
       attestations: write # actions/attest-build-provenance + attest-sbom on the index
-    outputs:
-      digest: ${{ steps.manifest.outputs.digest }}
     steps:
       - name: Download digests
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: ${{ runner.temp }}/digests
-          pattern: digest-*
+          pattern: digest-${{ matrix.image.key }}-*
           merge-multiple: true
 
       - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
@@ -262,12 +303,19 @@ jobs:
         id: manifest
         working-directory: ${{ runner.temp }}/digests
         env:
-          IMAGE: ${{ needs.prepare.outputs.image }}
-          TAG_ARGS: ${{ needs.prepare.outputs.tag_args }}
+          IMAGE: ${{ matrix.image.image }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
+          # `docker buildx imagetools create` takes the tags as -t flags. Always tag
+          # :latest; add the immutable :<version> tag when this commit carried a release
+          # tag (prepare emits the literal "dev" when it did not).
+          tag_args="-t ${IMAGE}:latest"
+          if [ -n "${VERSION}" ] && [ "${VERSION}" != "dev" ]; then
+            tag_args="${tag_args} -t ${IMAGE}:${VERSION}"
+          fi
           # shellcheck disable=SC2046,SC2086
-          docker buildx imagetools create ${TAG_ARGS} \
+          docker buildx imagetools create ${tag_args} \
             $(printf "${IMAGE}@sha256:%s " *)
           # The index digest is the verifiable subject for the published tag.
           digest="$(docker buildx imagetools inspect "${IMAGE}:latest" --format '{{json .Manifest.Digest}}' | tr -d '"')"
@@ -275,10 +323,10 @@ jobs:
           echo "Published ${IMAGE} index ${digest}"
           docker buildx imagetools inspect "${IMAGE}:latest"
 
-      - name: Attest the control-plane image
+      - name: Attest the image
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4
         with:
-          subject-name: ${{ needs.prepare.outputs.image }}
+          subject-name: ${{ matrix.image.image }}
           subject-digest: ${{ steps.manifest.outputs.digest }}
           push-to-registry: true
 
@@ -294,7 +342,7 @@ jobs:
         uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
       - name: Generate image SBOM (syft → CycloneDX)
         env:
-          IMAGE: ${{ needs.prepare.outputs.image }}
+          IMAGE: ${{ matrix.image.image }}
           DIGEST: ${{ steps.manifest.outputs.digest }}
         run: |
           set -euo pipefail
@@ -306,10 +354,29 @@ jobs:
       - name: Attest the image SBOM
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
-          subject-name: ${{ needs.prepare.outputs.image }}
+          subject-name: ${{ matrix.image.image }}
           subject-digest: ${{ steps.manifest.outputs.digest }}
           sbom-path: ${{ runner.temp }}/image.cdx.json
           push-to-registry: true
+
+      # Hand the just-published index digest to verify-consumer. A matrix job has no
+      # per-leg outputs, so the digest travels as a per-image artifact instead — keeping
+      # the "the tag users pull must be exactly the index we attested" cross-check.
+      - name: Export index digest
+        env:
+          DIGEST: ${{ steps.manifest.outputs.digest }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/index"
+          printf '%s' "${DIGEST}" > "${RUNNER_TEMP}/index/digest"
+
+      - name: Upload index digest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: index-digest-${{ matrix.image.key }}
+          path: ${{ runner.temp }}/index/digest
+          if-no-files-found: error
+          retention-days: 1
 
   # Consumer-side guard. The jobs above PRODUCE the image + attestation; this proves they
   # are CONSUMABLE the way a real user consumes them — anonymously, with no registry
@@ -324,15 +391,37 @@ jobs:
     needs: [prepare, merge]
     if: ${{ needs.prepare.outputs.present == 'true' }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.prepare.outputs.images) }}
     permissions:
       contents: read # gh attestation verify reads the public attestation; no push/sign here
     env:
-      IMAGE: ${{ needs.prepare.outputs.image }}
+      IMAGE: ${{ matrix.image.image }}
       VERSION: ${{ needs.prepare.outputs.version }}
-      EXPECTED_DIGEST: ${{ needs.merge.outputs.digest }}
       REPO: ${{ github.repository }}
       GH_TOKEN: ${{ github.token }}
     steps:
+      # The index digest merge just published for THIS image (matrix jobs have no
+      # per-leg outputs, so it arrives as an artifact). Exported to the job env so the
+      # steps below can cross-check "the tag users pull == the index we attested".
+      - name: Load the attested index digest
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: index-digest-${{ matrix.image.key }}
+          path: ${{ runner.temp }}/index
+
+      - name: Export the attested index digest
+        run: |
+          set -euo pipefail
+          digest="$(cat "${RUNNER_TEMP}/index/digest")"
+          if [ -z "${digest}" ]; then
+            echo "::error::Empty index digest artifact for ${IMAGE} — cannot verify what was published." >&2
+            exit 1
+          fi
+          echo "EXPECTED_DIGEST=${digest}" >> "${GITHUB_ENV}"
+
       - name: Anonymous manifest pull (no registry auth)
         run: |
           set -euo pipefail
@@ -373,7 +462,7 @@ jobs:
               sleep 10
             done
             if [ "${code}" != "200" ]; then
-              echo "::error::Anonymous pull of ghcr.io/${repo}:${tag} returned HTTP ${code} (expected 200) — the package is not anonymously pullable (likely private). Failing the release." >&2
+              echo "::error::Anonymous pull of ghcr.io/${repo}:${tag} returned HTTP ${code} (expected 200) — the package is not anonymously pullable (likely private). Failing the release. NOTE: GHCR creates a brand-new package as PRIVATE, and GITHUB_TOKEN cannot change that; an org admin must flip the package to Public once (Org -> Packages -> ${repo##*/} -> Package settings -> Change visibility). See runbooks/mcp-registry.md." >&2
               exit 1
             fi
             echo "  -> HTTP 200 (anonymously pullable)"
@@ -430,33 +519,35 @@ jobs:
   # -published, already-attested image — the listing points at an artifact that stands on
   # its own.
   #
-  # PARKED (IRO-391 / IRO-414). CEO chose option B: do NOT list the control-plane image
-  # with a host Docker-socket mount (host-root, against our hardening promise). This job
-  # as written publishes exactly that rejected option-A listing, so it is hard-disabled
-  # (`if: false`) until IRO-414 ships the slim, socket-free `ironclaw-mcp` image and
-  # IRO-391 is reworked to point server.json at it. Leaving it enabled would (a) re-publish
-  # the rejected listing on every release and (b) red the whole Image workflow on the
-  # post-check. The already-published option-A versions (0.1.216–0.1.230) are being
-  # deprecated out-of-band via mcp-registry-deprecate.yml.
+  # UNPARKED (IRO-611). This job was hard-disabled behind a default-false dispatch input
+  # while the listing still named the control-plane image with a host Docker-socket mount
+  # (the option-A trust model the CEO rejected on IRO-391). It now publishes the slim,
+  # socket-free ghcr.io/<owner>/ironclaw-mcp image (IRO-414), so it is back on the normal
+  # tagged-release path. The gate is `mcp_present` — the listing is bound to that ONE
+  # image, so a commit that does not carry container/mcp.Dockerfile must not publish.
+  #
+  # The 0.1.216-0.1.230 option-A versions stay `deprecated` on purpose (they really do
+  # mount the host socket); they are historical, not the listing users resolve. Only the
+  # version this job publishes is flipped to `active`, per version, never server-wide.
   publish-mcp-registry:
     needs: [prepare, merge, verify-consumer]
-    # PARKED: never runs on the release (workflow_run) path — it requires an explicit
-    # manual dispatch with publish_mcp_registry=true, which must not be set until IRO-391
-    # is reworked onto the socket-free image (IRO-414). See comment block above.
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_mcp_registry && needs.prepare.outputs.present == 'true' && needs.prepare.outputs.version != 'dev' && needs.prepare.outputs.version != '' }}
+    if: ${{ needs.prepare.outputs.mcp_present == 'true' && needs.prepare.outputs.version != 'dev' && needs.prepare.outputs.version != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read # checkout the trust-gated commit to read server.json
       id-token: write # OIDC token that proves io.github.IronSecCo namespace ownership
     env:
-      # Pinned mcp-publisher release. Bump all three in lock-step (see runbooks/mcp-registry.md).
+      # Pinned mcp-publisher release. Bump all four in lock-step (see runbooks/mcp-registry.md).
       MCP_PUBLISHER_VERSION: v1.7.9
       MCP_PUBLISHER_SHA256: ab128162b0616090b47cf245afe0a23f3ef08936fdce19074f5ba0a4469281ac
       # Sigstore identity that signed the pinned mcp-publisher release archive.
       MCP_PUBLISHER_CERT_IDENTITY: https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/v1.7.9
       MCP_PUBLISHER_CERT_ISSUER: https://token.actions.githubusercontent.com
-      IMAGE: ${{ needs.prepare.outputs.image }}
+      # The listing names the slim, socket-free MCP image — never the control-plane one.
+      IMAGE: ${{ needs.prepare.outputs.mcp_image }}
       VERSION: ${{ needs.prepare.outputs.version }}
+      SERVER_NAME: io.github.IronSecCo/ironclaw
+      REGISTRY: https://registry.modelcontextprotocol.io
     steps:
       # Check out the commit prepare already trust-gated to the protected branch — never
       # the raw event head_sha (Dangerous-Workflow: no untrusted checkout while holding
@@ -517,26 +608,68 @@ jobs:
       - name: Publish the IronClaw listing
         run: ./mcp-publisher publish
 
-      - name: Verify the listing resolves on the registry
+      # The listing was deprecated server-wide on 2026-07-07 (every option-A version
+      # launched IronClaw with a host Docker-socket mount). A freshly published version
+      # should land `active`, but do not TRUST that after a server-wide deprecation —
+      # assert it and self-heal with a PER-VERSION status PATCH.
+      #
+      # Deliberately NOT the server-wide PATCH /v0/servers/{name}/status the deprecate
+      # workflow uses: that would resurrect 0.1.216-0.1.230, which are genuinely unsafe
+      # and must stay deprecated.
+      - name: Ensure this version is active on the registry
         run: |
           set -euo pipefail
           semver="${VERSION#v}"
-          # Fail-closed post-check: the registry must now serve our namespace at this
-          # version. Brief retry to absorb indexing lag, then fail loud.
-          url="https://registry.modelcontextprotocol.io/v0/servers?search=io.github.IronSecCo/ironclaw"
+          # The registry bearer token mcp-publisher stored after the github-oidc login.
+          token="$(jq -r '.token' "${HOME}/.config/mcp-publisher/token.json")"
+          if [ -z "${token}" ] || [ "${token}" = "null" ]; then
+            echo "::error::No registry token after github-oidc login." >&2
+            exit 1
+          fi
+          enc="$(jq -rn --arg s "${SERVER_NAME}" '$s|@uri')"
+          encv="$(jq -rn --arg s "${semver}" '$s|@uri')"
+
+          # statusMessage is rejected when status=active, so send status only.
+          body="$(jq -nc '{status: "active"}')"
+          echo "PATCH ${REGISTRY}/v0/servers/${enc}/versions/${encv}/status -> active"
+          code="$(curl -sS -o /tmp/status.json -w '%{http_code}' \
+            -X PATCH "${REGISTRY}/v0/servers/${enc}/versions/${encv}/status" \
+            -H "Authorization: Bearer ${token}" \
+            -H "Content-Type: application/json" \
+            -d "${body}")"
+          echo "HTTP ${code}"; cat /tmp/status.json || true; echo
+          if [ "${code}" != "200" ] && [ "${code}" != "204" ]; then
+            echo "::error::Could not set ${SERVER_NAME} ${semver} to active (HTTP ${code}). The listing would stay dark." >&2
+            exit 1
+          fi
+
+      - name: Verify the listing resolves and is active
+        run: |
+          set -euo pipefail
+          semver="${VERSION#v}"
+          enc="$(jq -rn --arg s "${SERVER_NAME}" '$s|@uri')"
+          # Fail-closed post-check against the EXACT-NAME versions endpoint. Do not use
+          # `?search=` here: it is a fuzzy match, not a name filter, and its hits are
+          # shaped {server, _meta} — a naive `.servers[].name` query silently matches
+          # nothing and false-fails a publish that actually succeeded (IRO-611).
+          url="${REGISTRY}/v0/servers/${enc}/versions"
           ok=""
           for attempt in 1 2 3 4 5; do
             body="$(curl -fsSL "${url}" || true)"
             if printf '%s' "${body}" | jq -e \
-              --arg v "${semver}" \
-              '.servers[]? | select(.name == "io.github.IronSecCo/ironclaw" and .version == $v)' >/dev/null 2>&1; then
+              --arg n "${SERVER_NAME}" --arg v "${semver}" \
+              '.servers[]? | select(.server.name == $n and .server.version == $v)
+                           | select(._meta["io.modelcontextprotocol.registry/official"].status == "active")
+                           | select(._meta["io.modelcontextprotocol.registry/official"].isLatest == true)' \
+              >/dev/null 2>&1; then
               ok="yes"; break
             fi
-            echo "  attempt ${attempt}: listing not yet resolvable, retrying in 10s..."
+            echo "  attempt ${attempt}: not yet active+latest at ${semver}, retrying in 10s..."
             sleep 10
           done
           if [ -z "${ok}" ]; then
-            echo "::error::io.github.IronSecCo/ironclaw ${semver} did not resolve on registry.modelcontextprotocol.io after publish. Failing the release." >&2
+            echo "::error::${SERVER_NAME} ${semver} is not active+isLatest on registry.modelcontextprotocol.io after publish. Failing the release." >&2
+            printf '%s' "${body:-}" | jq '[.servers[]? | {version: .server.version, status: ._meta["io.modelcontextprotocol.registry/official"].status, isLatest: ._meta["io.modelcontextprotocol.registry/official"].isLatest}]' || true
             exit 1
           fi
-          echo "Listing live: io.github.IronSecCo/ironclaw ${semver}"
+          echo "Listing live: ${SERVER_NAME} ${semver} (active, isLatest) -> ${IMAGE}:${VERSION}"

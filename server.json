@@ -11,7 +11,7 @@
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/ironsecco/ironclaw-controlplane:0.0.0",
+      "identifier": "ghcr.io/ironsecco/ironclaw-mcp:0.0.0",
       "transport": {
         "type": "stdio"
       },
@@ -26,29 +26,19 @@
           "type": "named",
           "name": "-i",
           "description": "Keep stdin open for the MCP stdio transport."
-        },
+        }
+      ],
+      "environmentVariables": [
         {
-          "type": "named",
-          "name": "-v",
-          "value": "/var/run/docker.sock:/var/run/docker.sock",
-          "description": "IronClaw launches each sandbox_exec run as a sibling gVisor container; it needs the host Docker socket to do so. This grants the MCP server control of the host Docker daemon -- review before enabling.",
+          "name": "IRONCLAW_CONTROLPLANE_URL",
+          "description": "Base URL of your running IronClaw control-plane, e.g. http://127.0.0.1:8787. Every sandbox_exec run is delegated to it; this image holds no host privilege and cannot start a box on its own.",
+          "placeholder": "http://127.0.0.1:8787",
           "isRequired": true
         },
         {
-          "type": "named",
-          "name": "--entrypoint",
-          "value": "ironctl",
-          "description": "Override the control-plane daemon entrypoint to run the bundled ironctl MCP server instead."
-        }
-      ],
-      "packageArguments": [
-        {
-          "type": "positional",
-          "value": "mcp"
-        },
-        {
-          "type": "positional",
-          "value": "serve"
+          "name": "IRONCLAW_API_TOKEN",
+          "description": "Bearer token the control-plane was started with. Required whenever the control-plane enforces API auth.",
+          "isSecret": true
         }
       ]
     }

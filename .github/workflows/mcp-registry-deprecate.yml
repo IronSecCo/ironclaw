@@ -7,9 +7,17 @@ name: MCP Registry Status
 # Why it exists: the option-A listing (control-plane image + host Docker-socket mount)
 # was auto-published by image.yml on releases 0.1.216–0.1.230 before the CEO chose
 # option B (IRO-391 / IRO-414). That listing must not stand as our public entry. This
-# workflow flips the status of ALL published versions in one transaction — deprecate now,
-# reactivate/delete later — using the repo's own GitHub Actions OIDC token (the same
-# account-free namespace auth that published), so no long-lived secret is involved.
+# workflow flips the status of ALL published versions in one transaction, using the
+# repo's own GitHub Actions OIDC token (the same account-free namespace auth that
+# published), so no long-lived secret is involved.
+#
+# BREAK-GLASS ONLY (IRO-611). It is server-WIDE: every version, in one transaction.
+# Since IRO-611 the release path publishes against the socket-free ironclaw-mcp image
+# and sets ONLY the version it just cut to `active`, per version. Running this workflow
+# with status=active would resurrect 0.1.216-0.1.230, which really do mount the host
+# Docker socket and must stay deprecated. Reach for the per-version endpoint
+# (PATCH /v0/servers/{name}/versions/{version}/status) instead unless you genuinely
+# mean "every version". See runbooks/mcp-registry.md.
 #
 # Manual only: never chained to a release. A repo-writer runs it from the Actions tab.
 
@@ -25,7 +33,7 @@ on:
       message:
         description: "Status message (<=500 chars; ignored when status=active)"
         required: false
-        default: "Superseded: this listing launched IronClaw via a host Docker-socket mount, which we do not endorse. A socket-free ironclaw-mcp image is in progress (IRO-414); the listing will be re-published against it."
+        default: "Superseded: this listing launched IronClaw via a host Docker-socket mount, which we do not endorse. The listing is now published against the socket-free ghcr.io/ironsecco/ironclaw-mcp image; upgrade to the latest version."
 
 permissions:
   contents: read
