@@ -198,6 +198,50 @@ You don't have to bump on every push — refresh the formula on releases you wan
 land on. Pinning to an old/yanked tag is fail-safe: the URLs 404 and `brew install` errors rather
 than installing something unverifiable.
 
+### 3.7 Container image tags: what the Image workflow will and won't publish
+
+An image tag is an assertion about the source inside the image, so `image.yml` refuses to
+publish a tag it cannot back with the commit it just built. Two rules, both fail-closed:
+
+**The `:<version>` tag must name the commit being built.** On the normal `workflow_run`
+path the version is read from the tag the Release workflow put on that exact commit, so it
+agrees by construction. On a `workflow_dispatch` that supplies the `tag` input, `prepare`
+resolves the tag through the commits API and requires it to equal the build commit:
+
+```bash
+# Correct: the workflow ref and the tag input name the same commit.
+gh workflow run image.yml --ref v0.1.404 -f tag=v0.1.404
+
+# Equivalent and harder to get wrong — blank input auto-detects that commit's tag.
+gh workflow run image.yml --ref v0.1.404
+```
+
+Dispatching from `main` with `-f tag=v0.1.403` now fails the run with both SHAs printed,
+rather than minting an image whose tag names a commit it does not contain. This matters
+beyond cosmetics: `publish-mcp-registry` stamps the image ref into an MCP Registry version,
+and registry versions are **immutable** — a wrong ref there can only be deprecated, never
+corrected.
+
+**`:latest` moves forwards only.** It is applied only when the built commit is the current
+default-branch tip (`compare` status `identical`). A dispatch that rebuilds an older release,
+or builds from a side branch, publishes its immutable `:<version>` tag alone. Without this,
+re-running the Image workflow on an old tag would silently demote every
+`docker pull …:latest` consumer to older code. A commit that is neither the branch tip nor
+tagged has no meaningful tag to publish, and the run fails rather than guessing.
+
+**Repairing a mis-tagged image.** Note the consequence of the two rules together: an already
+mis-stamped `:<version>` cannot be repaired by dispatch, because `workflow_dispatch` runs the
+workflow file *from the ref it builds* — the only workflow file at an old tag is the one that
+predates these guards. Rebuilding from that tag would restore the version tag but demote
+`:latest` on the way. Prefer to **withdraw** a mis-tagged image (record it below, let the next
+release supersede `:latest`) over publishing a second known-wrong tag to fix the first.
+
+Withdrawn image tags:
+
+| Tag | Built from | Should have been | Disposition |
+| --- | --- | --- | --- |
+| `ironclaw-controlplane:v0.1.403`, `ironclaw-mcp:v0.1.403` | `9ac92b64` (the v0.1.404 commit) | `9ae3b9be` | **Withdrawn, do not consume** (IRO-625). Published by dispatch run `30408078319` before the tag gate existed. The build-provenance attestation is honest and records `9ac92b64`, so `gh attestation verify` on these tags will truthfully report the v0.1.404 commit — the tag, not the provenance, is the lie. Superseded by v0.1.404 and later. |
+
 ---
 
 ## 4. How to verify a release (user-facing)
@@ -441,6 +485,10 @@ gh workflow run release.yml -f version=v0.1.99
 # Re-run a failed (post-publish) release job — idempotent
 gh run rerun <run-id> --failed
 
+# Republish a container image (dispatch FROM the tag; see 3.7 — a tag input that
+# does not name the built commit fails the run, and :latest only moves forwards)
+gh workflow run image.yml --ref v0.1.99
+
 # Inspect a release
 gh release view <tag>
 gh release view <tag> --json assets -q '.assets[].name'
@@ -465,4 +513,5 @@ gh attestation verify ./ironctl --repo IronSecCo/ironclaw   # extracted binary
 
 *Related tickets:* pipeline handoff IRO-12; this runbook
 IRO-16; arm64 image IRO-13; ruleset enforcement
-IRO-14; release smoke test IRO-15; Homebrew formula IRO-175.
+IRO-14; release smoke test IRO-15; Homebrew formula IRO-175;
+image tag/`:latest` gating IRO-625.
