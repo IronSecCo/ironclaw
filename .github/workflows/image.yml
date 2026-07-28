@@ -725,13 +725,41 @@ jobs:
       # scoped to the one version we just published. It reuses the login above and the same
       # cosign-verified pinned binary, so this adds no trust surface and no token handling
       # of our own. It omits statusMessage, which the API rejects when status=active.
+      #
+      # SELF-HEAL, NOT UNCONDITIONAL WRITE. The registry rejects a status PATCH that would
+      # change nothing with `400 No changes to apply: status and message are already set to
+      # the provided values`. A freshly published version normally DOES land `active` by
+      # itself, so an unconditional PATCH 400s on exactly the happy path — that is what
+      # failed the v0.1.404 relight run after its publish had already succeeded. Read the
+      # per-version status first and only write when it actually needs correcting.
       - name: Ensure this version is active on the registry
         run: |
           set -euo pipefail
           semver="${VERSION#v}"
+          enc="$(jq -rn --arg s "${SERVER_NAME}" '$s|@uri')"
+          status="$(curl -fsSL "${REGISTRY}/v0/servers/${enc}/versions" \
+            | jq -r --arg n "${SERVER_NAME}" --arg v "${semver}" \
+              'first(.servers[]? | select(.server.name == $n and .server.version == $v)
+                 | ._meta["io.modelcontextprotocol.registry/official"].status) // "unknown"')"
+
+          if [ "${status}" = "active" ]; then
+            echo "${SERVER_NAME} ${semver} already published active — no status PATCH needed."
+            exit 0
+          fi
+
+          echo "${SERVER_NAME} ${semver} is '${status}' — self-healing to active."
           # NEVER pass --all-versions here: that is the server-wide PATCH and it would
           # resurrect 0.1.216-0.1.230 (see the note above).
-          ./mcp-publisher status --status active "${SERVER_NAME}" "${semver}"
+          if out="$(./mcp-publisher status --status active "${SERVER_NAME}" "${semver}" 2>&1)"; then
+            printf '%s\n' "${out}"
+          else
+            printf '%s\n' "${out}"
+            # Tolerate ONLY the idempotent no-op: the version flipped to active between the
+            # read above and this write. Any other failure is a real one — fail closed.
+            printf '%s' "${out}" | grep -q 'No changes to apply' \
+              || { echo "::error::status PATCH failed for ${SERVER_NAME} ${semver}." >&2; exit 1; }
+            echo "Version was already active by the time the PATCH landed — treating as a no-op."
+          fi
 
       - name: Verify the listing resolves on the registry and is active
         run: |
