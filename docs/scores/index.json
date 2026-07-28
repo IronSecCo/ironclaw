@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-07-20T08:51:19Z",
-  "ironctlVersion": "dev+111fd1ad3e4e",
+  "generatedAt": "2026-07-27T09:42:34Z",
+  "ironctlVersion": "dev+11b86e785ff3",
   "meta": {
     "imageCount": 252,
     "avgScore": 52,
@@ -396,7 +396,7 @@
       "image": "grafana/alloy:latest",
       "displayName": "alloy",
       "family": "infra",
-      "digest": "sha256:4f6ddc56ffdcf8a6316748fc5162972e20cb301523cac1bb4a31957df733ae9b",
+      "digest": "sha256:491b0578c04983fd54fe99b587b6fab4404dc46d0dc16677bd6b00cc1140b308",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -651,7 +651,7 @@
       "image": "amazoncorretto:21",
       "displayName": "amazoncorretto",
       "family": "infra",
-      "digest": "sha256:edb6b3e12b360c67d9bd8ec8b4106ce9285603e0f436e58b74da1fa32da5a378",
+      "digest": "sha256:540708337af29fda537479f2205d2d219a3780c3f07be5f42be96501789f610b",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -1076,7 +1076,7 @@
       "image": "archlinux:latest",
       "displayName": "archlinux",
       "family": "infra",
-      "digest": "sha256:fe6972d4dc1f660c0c10f4c41b2de8986bab89e7e2955378f8beadb8ebcd7433",
+      "digest": "sha256:592e11bd99ab579f933a0cb77a8f66e2f3ae57f5eafacf13aea44a6e98ef21ae",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -1161,7 +1161,7 @@
       "image": "mcr.microsoft.com/dotnet/aspnet:9.0",
       "displayName": "aspnet",
       "family": "infra",
-      "digest": "sha256:8b9f90e53d41154d42e537517aef22e8fe497baabd43e423d5f2edafd06f04f6",
+      "digest": "sha256:86085bc68dde4a8cdfd8c2342acc3bf843eade855092879a85e3f3adb56e55c7",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -6771,7 +6771,7 @@
       "image": "kapacitor:1.7",
       "displayName": "kapacitor",
       "family": "infra",
-      "digest": "sha256:78b54b3281c73e8466ece51712e4d1047fe3ff11b9a3a580439d8440bb25eaa1",
+      "digest": "sha256:3bf563d0e64ca7180b8dbc49c8036e9a27da10507ad0bfe275475249136874de",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -7111,7 +7111,7 @@
       "image": "nickblah/lua:5.4",
       "displayName": "lua",
       "family": "infra",
-      "digest": "sha256:3943bf4c40eaf51f08f11712b6f2a1945420e1f1972873974d05df842b86d469",
+      "digest": "sha256:1f2de2882e50f97bf8fa3cffef666a2e5402d9c447da59bfcb159e38d1587dab",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -9151,7 +9151,7 @@
       "image": "nimlang/nim:2.2.0",
       "displayName": "nim",
       "family": "infra",
-      "digest": "sha256:614cfede24453ceaa28100f7daf4be65d80bfba19df2861486266b2273a564e3",
+      "digest": "sha256:c918a25a7ef8d96a1d3340cd6ccac9617a7c44e3b3761f0c7ef42126789f7bda",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -9831,7 +9831,7 @@
       "image": "oraclelinux:9",
       "displayName": "oraclelinux",
       "family": "infra",
-      "digest": "sha256:e749594d8f9e546a57670ea4943c8eeff86dfb237bbea4febd859dd06ccbedc0",
+      "digest": "sha256:fe2c9e975c93c1b8c00712e5ad40e0127c0f1982c2d76031f1e09e5307e32aeb",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10171,7 +10171,7 @@
       "image": "perl:5.40-slim",
       "displayName": "perl",
       "family": "runtime",
-      "digest": "sha256:b4fc89b5e8c84deb7fb257cffc06faf1d7d1e0244b90b52df365b969a28c063f",
+      "digest": "sha256:8d1836c24ebf3ad6523064b20e42878f065fdfbc6ed4fe5861d09aa862889360",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10681,7 +10681,7 @@
       "image": "postgis/postgis:17-3.5",
       "displayName": "postgis",
       "family": "infra",
-      "digest": "sha256:404171ea9058c801f405af25d63b3b8e5c9e50f2759e49390dbcc3c7ee533f4d",
+      "digest": "sha256:77e89c11c4779c394ebeeaac1099dafb77b728abc8cd45dcaf6c4695503a0c37",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -11786,7 +11786,7 @@
       "image": "redmine:6",
       "displayName": "redmine",
       "family": "infra",
-      "digest": "sha256:c06026b1478d5a2affa5c85425fd0e9771d7e5087a7181431a1a4ed2a1872370",
+      "digest": "sha256:157c712839fe9787eb5cfe8376c38de45042613c511228f01386e8aeab5cfa21",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -13146,7 +13146,7 @@
       "image": "swaggerapi/swagger-ui:latest",
       "displayName": "swagger ui",
       "family": "infra",
-      "digest": "sha256:25218c244d90993635f4578a146ff12fbccd7265755cdd860a0a9dfee21df7ad",
+      "digest": "sha256:e43eb34b978af58d8cb78e5da9c12d605cf43d113ad3a96b18f9b028d6479d68",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -14676,7 +14676,7 @@
       "image": "valkey/valkey:8",
       "displayName": "valkey",
       "family": "infra",
-      "digest": "sha256:3e31dd49b6b742e614975e8ab7b1b19809d00ecac7657c6b34bff23582a433cd",
+      "digest": "sha256:495e4fecdc98ee48a20b207726caa5ab6451e0fac3642a9be10d9e70b3068df6",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -15526,7 +15526,7 @@
       "image": "azul/zulu-openjdk:21",
       "displayName": "zulu openjdk",
       "family": "infra",
-      "digest": "sha256:b4f6a8c5ff3bdcfb07a55f4b151e9fd06a05310f3a245d4d5988e8e59c6d9af5",
+      "digest": "sha256:df4952073643ebaecf1415ee04d9f0c07a72ec99f9a12a98cff1928ef6a7c49d",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -16121,7 +16121,7 @@
       "image": "quay.io/jupyter/base-notebook:latest",
       "displayName": "base notebook",
       "family": "infra",
-      "digest": "sha256:292074513da0d888411ebf2eec0fec4d0475e75f5cdd03a7bc9e5a348528cc63",
+      "digest": "sha256:50d8c29bb555af7ba18e956c97734c31ada26ee12d7e6dc77927608cb730d108",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -19181,7 +19181,7 @@
       "image": "percona:8.0",
       "displayName": "percona",
       "family": "infra",
-      "digest": "sha256:0b9af1b526935497b900328e6c8732457e72e0249caaa8533adf961aa5afda99",
+      "digest": "sha256:2a29b81c1e28d752b854c71565f577414fbc7eb8ce329921d6acc85da890818f",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -19691,7 +19691,7 @@
       "image": "redis/redisinsight:latest",
       "displayName": "redisinsight",
       "family": "infra",
-      "digest": "sha256:aa21bbd198455b4ad964f76782db951155aa0d712321f599972d1525f031f0e6",
+      "digest": "sha256:b5e19ee240abef6edb435871b90ff8a210995422e8e018ab61c0339d318a1f84",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -20881,7 +20881,7 @@
       "image": "verdaccio/verdaccio:6",
       "displayName": "verdaccio",
       "family": "infra",
-      "digest": "sha256:bcd0dc5f10d0b9cca5a21b1f4fb3b08c6d90978bc87b8b46402abb271e0d573a",
+      "digest": "sha256:11e75353c8363650cbf43adf8594b2cd633be6f191056c6e08ba6ff4b1398f62",
       "score": 63,
       "grade": "C",
       "topGaps": [
