@@ -883,14 +883,22 @@ jobs:
           pr_num="$(gh pr list --repo "${REPO}" --head "${branch}" --state open \
             --json number -q '.[0].number' 2>/dev/null || true)"
           if [ -n "${pr_num:-}" ]; then
-            mergeable="UNKNOWN"
+            # Break only on a DEFINITIVE boolean. `gh api --jq .mergeable` renders the
+            # JSON null GitHub returns while it is still computing mergeability as an
+            # EMPTY STRING — NOT the literal "null" that plain `jq -r` prints. Matching
+            # on "null" therefore never recognised the still-computing case: the loop
+            # broke on the first poll and the job hard-failed with `mergeable=` on a PR
+            # that was merely not-yet-computed (v0.1.403, 2026-07-28, which skipped the
+            # chained Image publish). Enumerating the definitive answers instead of the
+            # in-flight sentinels keeps this correct whatever null renders as.
+            mergeable=""
             for _i in 1 2 3 4 5 6; do
               mergeable="$(gh api "repos/${REPO}/pulls/${pr_num}" --jq .mergeable 2>/dev/null || echo "UNKNOWN")"
-              [ "${mergeable}" != "null" ] && [ "${mergeable}" != "UNKNOWN" ] && break
+              case "${mergeable}" in true | false) break ;; esac
               sleep 5
             done
             if [ "${mergeable}" != "true" ]; then
-              emit_manual_fallback "brew/track PR #${pr_num} is not MERGEABLE after reset (mergeable=${mergeable}). Force-reset brew/track to live main and re-run, or merge manually."
+              emit_manual_fallback "brew/track PR #${pr_num} is not MERGEABLE after reset (mergeable=${mergeable:-<still computing after ~30s>}). Force-reset brew/track to live main and re-run, or merge manually."
             fi
             echo "brew/track PR #${pr_num} is MERGEABLE — conflict-free."
           fi
