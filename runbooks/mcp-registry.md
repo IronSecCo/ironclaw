@@ -107,26 +107,52 @@ Nothing manual. Push to `main` cuts a release (`v0.1.<commit-count>`); the
 is anonymously pullable, then `publish-mcp-registry` publishes the listing and
 post-checks the registry.
 
-The post-check queries the **exact** per-server endpoint,
-`/v0/servers/{urlencoded name}/versions`, and asserts the new version is present
-**and `active`**. Two traps it exists to avoid:
+After publishing, the job runs two steps that matter:
 
-- `?search=` is a fuzzy search, not a name filter.
-- The response nests the record under `.server`, so `.servers[].name` is always
-  `null`. Matching on it is what false-failed this job through 0.1.216–0.1.230
-  while the publishes themselves were succeeding.
+1. **Activate this version.** `mcp-publisher status --status active <name>
+   <semver>`, which is the per-version endpoint
+   `PATCH /v0/servers/{name}/versions/{version}/status`. A fresh publish normally
+   lands `active` on its own, but the server was deprecated **server-wide** on
+   2026-07-07, so the job asserts rather than trusts. It never passes
+   `--all-versions` (see below).
+2. **Post-check.** Queries the **exact** per-server endpoint,
+   `/v0/servers/{urlencoded name}/versions`, and asserts the new version is
+   `active` **and** `isLatest`. Two traps it exists to avoid:
+   - `?search=` is a fuzzy search, not a name filter.
+   - The response nests the record under `.server`, so `.servers[].name` is
+     always `null`. Matching on it is what false-failed this job through
+     0.1.216–0.1.230 while the publishes themselves were succeeding.
 
 ## Relighting a deprecated listing
 
-Publish a new version. Freshly published versions land `active` on their own, and
-the post-check above fails the release if one does not — so a green `Image`
-workflow **is** the proof that the listing is live.
+Publish a new version. The release path activates and verifies it per-version, so
+a green `Image` workflow **is** the proof that the listing is live. There is no
+manual step.
 
-Do **not** reach for `mcp-registry-deprecate.yml` with `status=active`. The
-registry's status API is per-server, so it would reactivate every version,
-including 0.1.216–0.1.230, which name the control-plane image launched over a
-host Docker socket. Those stay `deprecated` on purpose: they describe a trust
-model we tell people not to run.
+Do **not** reach for `mcp-registry-deprecate.yml` with `status=active`, and do not
+pass `--all-versions` to `mcp-publisher status`. Both are **server-wide**: they
+flip every version in one transaction, including 0.1.216–0.1.230, which name the
+control-plane image launched over a host Docker socket. Those stay `deprecated`
+permanently — they describe a trust model we tell people not to run (IRO-391 /
+IRO-613). The only thing that ever goes `active` is a version built from
+`container/mcp.Dockerfile`.
+
+## First publish of a new image (one-time org-admin gate)
+
+GHCR creates a brand-new package as **private**, and `GITHUB_TOKEN` cannot change
+that. So the first release that pushes `ghcr.io/ironsecco/ironclaw-mcp` fails in
+`verify-consumer` on the anonymous pull. That failure is **correct, expected, and
+one-time**: a private image is unusable by the clients the listing serves, and
+the registry's own OCI validator could not fetch it either. Read a red first
+release here as this gate, not as a broken pipeline.
+
+Unblock it once, as an org admin:
+
+> IronSecCo → Packages → `ironclaw-mcp` → Package settings → Change visibility →
+> Public
+
+then re-run the `Image` workflow (or let the next release run it). This is a
+package-visibility change, not a pipeline change; no workflow edit is involved.
 
 ## Yanking / superseding a listing
 
@@ -136,10 +162,14 @@ deprecate:
 - **Supersede** — publish a newer `version`. The registry marks the newest as
   `isLatest: true`; older versions remain queryable but drop out of the default
   view.
-- **Deprecate** — run `mcp-registry-deprecate.yml` with `status=deprecated`. It
-  PATCHes the server's lifecycle status over the same GitHub OIDC auth. Clients
-  surface deprecated servers with a warning instead of hiding them. Note
-  `statusMessage` is rejected when `status=active`.
+- **Deprecate one version** (preferred) — `mcp-publisher status --status
+  deprecated <name> <semver>`. Per-version, so it cannot touch anything else.
+- **Deprecate every version** — `mcp-registry-deprecate.yml`, or `mcp-publisher
+  status --all-versions`. **Server-wide, break-glass only.** Safe in the
+  `deprecated` direction; never run it with `status=active`.
+
+Clients surface deprecated servers with a warning instead of hiding them. Note
+`statusMessage` is rejected when `status=active`, so send the status alone.
 
 If a bad image was published, cut a fixed release: the new listing repoints at
 the new immutable image tag; the bad tag can be separately yanked from GHCR.

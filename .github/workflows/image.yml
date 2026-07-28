@@ -631,6 +631,8 @@ jobs:
       # The listing points at the socket-free MCP image, NOT the control-plane image.
       IMAGE: ${{ needs.prepare.outputs.mcp_image }}
       VERSION: ${{ needs.prepare.outputs.version }}
+      SERVER_NAME: io.github.IronSecCo/ironclaw
+      REGISTRY: https://registry.modelcontextprotocol.io
     steps:
       # Check out the commit prepare already trust-gated to the protected branch — never
       # the raw event head_sha (Dangerous-Workflow: no untrusted checkout while holding
@@ -691,9 +693,30 @@ jobs:
       - name: Publish the IronClaw listing
         run: ./mcp-publisher publish
 
+      # The server was deprecated SERVER-WIDE on 2026-07-07 (every option-A version
+      # launched IronClaw over a host Docker socket). A freshly published version should
+      # land `active` on its own, but after a server-wide deprecation do not TRUST that —
+      # assert it, and self-heal with a PER-VERSION status PATCH.
+      #
+      # Deliberately NOT the server-wide `PATCH /v0/servers/{name}/status` that
+      # mcp-registry-deprecate.yml drives: that flips EVERY version in one transaction and
+      # would resurrect 0.1.216–0.1.230, which name the socket-mount image and must stay
+      # deprecated permanently (IRO-391 / IRO-613). No operator is ever asked to run it.
+      #
+      # `status <name> <version>` (no --all-versions) is exactly
+      # `PATCH /v0/servers/{name}/versions/{version}/status` with body {"status":"active"} —
+      # scoped to the one version we just published. It reuses the login above and the same
+      # cosign-verified pinned binary, so this adds no trust surface and no token handling
+      # of our own. It omits statusMessage, which the API rejects when status=active.
+      - name: Ensure this version is active on the registry
+        run: |
+          set -euo pipefail
+          semver="${VERSION#v}"
+          # NEVER pass --all-versions here: that is the server-wide PATCH and it would
+          # resurrect 0.1.216-0.1.230 (see the note above).
+          ./mcp-publisher status --status active "${SERVER_NAME}" "${semver}"
+
       - name: Verify the listing resolves on the registry and is active
-        env:
-          SERVER_NAME: io.github.IronSecCo/ironclaw
         run: |
           set -euo pipefail
           semver="${VERSION#v}"
@@ -702,25 +725,28 @@ jobs:
           # so the old `.servers[].name` match could never hit. That mismatch is what
           # false-failed this job in 2026-07 while the publish itself had succeeded.
           enc="$(jq -rn --arg s "${SERVER_NAME}" '$s|@uri')"
-          url="https://registry.modelcontextprotocol.io/v0/servers/${enc}/versions"
-          status=""
+          url="${REGISTRY}/v0/servers/${enc}/versions"
+          ok=""
+          body=""
           for attempt in 1 2 3 4 5; do
             body="$(curl -fsSL "${url}" || true)"
-            status="$(printf '%s' "${body}" | jq -r --arg n "${SERVER_NAME}" --arg v "${semver}" \
-              '[.servers[]? | select(.server.name == $n and .server.version == $v)
-                | ._meta["io.modelcontextprotocol.registry/official"].status // "unknown"] | first // ""')"
-            [ -n "${status}" ] && break
-            echo "  attempt ${attempt}: ${SERVER_NAME} ${semver} not yet resolvable, retrying in 10s..."
+            # active AND isLatest: an active version that is not the latest is still a dark
+            # listing, because clients resolve the latest one.
+            if printf '%s' "${body}" | jq -e --arg n "${SERVER_NAME}" --arg v "${semver}" \
+              '.servers[]? | select(.server.name == $n and .server.version == $v)
+                           | select(._meta["io.modelcontextprotocol.registry/official"].status == "active")
+                           | select(._meta["io.modelcontextprotocol.registry/official"].isLatest == true)' \
+              >/dev/null 2>&1; then
+              ok="yes"; break
+            fi
+            echo "  attempt ${attempt}: ${SERVER_NAME} ${semver} not yet active+isLatest, retrying in 10s..."
             sleep 10
           done
-          if [ -z "${status}" ]; then
-            echo "::error::${SERVER_NAME} ${semver} did not resolve on registry.modelcontextprotocol.io after publish. Failing the release." >&2
-            exit 1
-          fi
           # A published-but-deprecated listing is worse than none: clients surface it with a
           # warning and users read it as "abandoned". Fail loud with the exact remediation.
-          if [ "${status}" != "active" ]; then
-            echo "::error::${SERVER_NAME} ${semver} published with status '${status}', expected 'active'. Run the 'MCP Registry Status' workflow (mcp-registry-deprecate.yml) with status=active, then see runbooks/mcp-registry.md." >&2
+          if [ -z "${ok}" ]; then
+            echo "::error::${SERVER_NAME} ${semver} is not active+isLatest on registry.modelcontextprotocol.io after publish. Failing the release. See runbooks/mcp-registry.md." >&2
+            printf '%s' "${body}" | jq '[.servers[]? | {version: .server.version, status: ._meta["io.modelcontextprotocol.registry/official"].status, isLatest: ._meta["io.modelcontextprotocol.registry/official"].isLatest}]' || true
             exit 1
           fi
           echo "Listing live and active: ${SERVER_NAME} ${semver} -> ${IMAGE}:${VERSION}"
