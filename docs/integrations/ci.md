@@ -13,6 +13,15 @@ offline control-plane, sends the prompt through the **real** secured route
 reply plus a JSON run report. Ask for the containment report and it also freezes the
 signed-able isolation proof for the exact build under test.
 
+!!! tip "Looking for the scan scorecard action?"
+
+    This page covers the **agent** action, which runs a sandboxed agent task in CI.
+    If you want a containment scorecard on every pull request, that is a separate,
+    Marketplace-published action:
+    [**IronClaw sandbox scan**](https://github.com/marketplace/actions/ironclaw-sandbox-scan),
+    installed with `uses: IronSecCo/ironclaw@v1`. See
+    [scan in CI](../scan-action.md).
+
 It is a thin wrapper over the same zero-credential path
 [`hello-ironclaw`](https://github.com/IronSecCo/ironclaw/tree/main/examples/hello-ironclaw)
 and [`red-team-escape`](https://github.com/IronSecCo/ironclaw/tree/main/examples/red-team-escape)
@@ -117,7 +126,10 @@ round-trip, one job emits and uploads the containment report — so a regression
 action turns a build red before it reaches an adopter. The runnable example lives in
 [`examples/ci-action/`](https://github.com/IronSecCo/ironclaw/tree/main/examples/ci-action).
 
-!!! note "Not on the Marketplace yet"
-    The action carries Marketplace metadata but is not published there yet
-    (owner-manual, launch-gated). Reference it by repository path
-    (`IronSecCo/ironclaw/.github/actions/ironclaw@<ref>`) in the meantime.
+!!! note "This agent action is not a separate Marketplace listing"
+    A repository publishes one Marketplace listing, and ours is
+    [**IronClaw sandbox scan**](https://github.com/marketplace/actions/ironclaw-sandbox-scan)
+    (`uses: IronSecCo/ironclaw@v1`), the containment scorecard action documented in
+    [scan in CI](../scan-action.md). The agent action on this page is referenced by
+    repository path instead: `IronSecCo/ironclaw/.github/actions/ironclaw@<ref>`.
+    Pin `<ref>` to a release tag or commit SHA in production.

@@ -28,7 +28,7 @@
 # The subdir ref `IronSecCo/ironclaw/.github/actions/scan@v1` keeps working as a
 # fallback. See docs/scan-action.md for the full guide.
 name: 'IronClaw sandbox scan'
-description: 'Grade a container / compose / k8s sandbox isolation posture 0-100 and post a sticky PR scorecard.'
+description: 'Grade container, compose, or Kubernetes isolation posture 0-100, post a sticky PR scorecard, gate merges. No credentials.'
 author: 'IronSec Co.'
 branding:
   icon: 'shield'

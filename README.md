@@ -13,6 +13,7 @@ Each one runs sealed in a sandbox that provably cannot phone home, read your hos
 [![Signed releases (cosign)](https://img.shields.io/badge/releases-cosign%20signed-0a7bbb.svg)](#verifying-a-release)
 [![SBOM: SPDX + CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-44883e.svg)](#verifying-a-release)
 [![SLSA provenance](https://img.shields.io/badge/SLSA-build%20provenance-44883e.svg)](#verifying-a-release)
+[![GitHub Marketplace: IronClaw sandbox scan](https://img.shields.io/badge/GitHub%20Marketplace-IronClaw%20sandbox%20scan-0a7bbb.svg?logo=github&logoColor=white)](https://github.com/marketplace/actions/ironclaw-sandbox-scan)
 [![Sandbox scan: PR scorecard](https://img.shields.io/badge/sandbox%20scan-PR%20scorecard-0a7bbb.svg)](https://ironsecco.github.io/ironclaw/scan-action/)
 [![Sandbox Isolation Score](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/IronSecCo/ironclaw/main/.ironclaw/sandbox-isolation.json)](https://ironsecco.github.io/ironclaw/scan/#sandbox-isolation-score-badge)
 
@@ -302,6 +303,27 @@ Per-image hardening walkthroughs, the default grade, the dimensions that fail, a
 [Valkey](https://ironsecco.github.io/ironclaw/blog/harden-valkey-container-isolation/),
 [HAProxy](https://ironsecco.github.io/ironclaw/blog/harden-haproxy-container-isolation/), and
 [untrusted Node.js](https://ironsecco.github.io/ironclaw/blog/run-untrusted-nodejs-code-safely/).
+
+### Grade every pull request
+
+The same grader is published on the GitHub Marketplace as
+[**IronClaw sandbox scan**](https://github.com/marketplace/actions/ironclaw-sandbox-scan). One
+line in a workflow and every pull request gets a containment scorecard as a sticky comment that
+updates in place:
+
+```yaml
+# .github/workflows/scan.yml
+- uses: IronSecCo/ironclaw@v1
+  with:
+    target: docker-compose.yml
+    mode: compose
+    min-score: 90        # omit / 0 = report-only, never blocks the check
+```
+
+It runs on a stock `ubuntu-latest` runner with no credentials and no control-plane. `mode: k8s`
+adds `policy-check: true` to fail the check on any rule `--emit-policy` would generate, and
+`upload-sarif: true` sends failed dimensions to the Security tab. Full inputs and outputs:
+[scan in CI](https://ironsecco.github.io/ironclaw/scan-action/).
 
 ### Show your score
 
