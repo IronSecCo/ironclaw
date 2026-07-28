@@ -26,6 +26,18 @@ docs. No hero numbers from machines you cannot inspect.
 | [`reddit-selfhosted.md`](reddit-selfhosted.md) | r/selfhosted | self-post |
 | [`show-hn.md`](show-hn.md) | Hacker News | Show HN title + first comment |
 
+## Status: parked, not lost (2026-07-29)
+
+None of these drafts can be posted today. The board answered IRO-606 with
+`g4_cancel`: we stay repo-only, no project-branded posting identity will be
+created, and IRO-265 still forbids the owner's personal accounts. With no company
+identity and no personal identity there is no legal channel for this copy.
+
+The drafts are kept because the writing is the expensive part and it is finished.
+See [`community/parked-content-backlog.md`](../../community/parked-content-backlog.md)
+for the full parked inventory, the decision of record, and what unparks it. Do
+not write more copy for these channels until an identity is approved.
+
 ## TL;DR (reusable hook)
 
 IronClaw runs every AI agent inside its own gVisor (`runsc`) sandbox: one
