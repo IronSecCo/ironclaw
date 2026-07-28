@@ -29,7 +29,7 @@ on:
         required: false
         default: ""
       publish_mcp_registry:
-        description: "PARKED kill-switch for the MCP Registry publish (IRO-391/IRO-414). Leave false: the job publishes the CEO-rejected option-A listing. Only true after IRO-391 is reworked onto the socket-free image."
+        description: "Also (re-)publish the MCP Registry listing on this manual run. The release path publishes automatically; this only matters for a dispatch."
         type: boolean
         required: false
         default: false
@@ -66,6 +66,9 @@ jobs:
       version: ${{ steps.meta.outputs.version }}
       tag_args: ${{ steps.meta.outputs.tag_args }}
       sha: ${{ steps.meta.outputs.sha }}
+      mcp_present: ${{ steps.meta.outputs.mcp_present }}
+      mcp_image: ${{ steps.meta.outputs.mcp_image }}
+      mcp_tags: ${{ steps.meta.outputs.mcp_tags }}
     steps:
       # SECURITY (Dangerous-Workflow / "pwn request"): this workflow runs in a
       # privileged context (the build/merge jobs hold packages + attestations write),
@@ -145,6 +148,31 @@ jobs:
           if [ -n "${version}" ]; then
             tag_args="${tag_args} -t ${image}:${version}"
           fi
+
+          # 4) The slim, socket-free MCP-server image (container/mcp.Dockerfile). It is the
+          #    artifact the official MCP Registry listing points at (server.json), so it has
+          #    to be built and pushed on the same release, from the same commit, under the
+          #    same immutable tag. Same present-gate as above: a commit without the
+          #    Dockerfile just skips that job rather than failing the release.
+          mcp_image="ghcr.io/${owner}/ironclaw-mcp"
+          if gh api "repos/${REPO}/contents/container/mcp.Dockerfile?ref=${sha}" --silent >/dev/null 2>&1; then
+            # docker/build-push-action takes newline-separated tags.
+            mcp_tags="${mcp_image}:latest"
+            if [ -n "${version}" ]; then
+              mcp_tags="${mcp_tags}"$'\n'"${mcp_image}:${version}"
+            fi
+            {
+              echo "mcp_present=true"
+              echo "mcp_image=${mcp_image}"
+              echo "mcp_tags<<__EOF__"
+              echo "${mcp_tags}"
+              echo "__EOF__"
+            } >> "${GITHUB_OUTPUT}"
+          else
+            echo "mcp_present=false" >> "${GITHUB_OUTPUT}"
+            echo "No container/mcp.Dockerfile at ${sha} — skipping the MCP image build."
+          fi
+
           {
             echo "present=true"
             echo "image=${image}"
@@ -311,6 +339,118 @@ jobs:
           sbom-path: ${{ runner.temp }}/image.cdx.json
           push-to-registry: true
 
+  # Build and publish the slim, socket-free MCP-server image (container/mcp.Dockerfile) ->
+  # ghcr.io/<owner>/ironclaw-mcp. This is the artifact the official MCP Registry listing
+  # points at (server.json), so it MUST ship on the same release, from the same trust-gated
+  # commit, under the same immutable tag as the control-plane image — otherwise the listing
+  # names an image that does not exist and `publish-mcp-registry` fails closed.
+  #
+  # Unlike the control-plane image this needs no per-arch native runner: ironctl does not
+  # link cgo, so the Go toolchain cross-compiles both arches from one amd64 runner (the
+  # Dockerfile pins its build stage to $BUILDPLATFORM and honours $TARGETARCH). One buildx
+  # invocation therefore pushes the tagged multi-arch manifest list directly — no
+  # push-by-digest + merge dance.
+  build-mcp:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.mcp_present == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout the trust-gated commit
+      packages: write # push the image to GHCR
+      id-token: write # keyless provenance + SBOM signing (Sigstore OIDC)
+      attestations: write # actions/attest-build-provenance + attest-sbom
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      # Check out the commit prepare already trust-gated to the protected branch — never
+      # the raw event head_sha (Dangerous-Workflow: no untrusted checkout in a job holding
+      # packages/attestations write).
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the multi-arch MCP image
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: container/mcp.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            VERSION=${{ needs.prepare.outputs.version }}
+          tags: ${{ needs.prepare.outputs.mcp_tags }}
+          push: true
+          # Provenance is attached once to the index below as a GitHub artifact
+          # attestation, matching the control-plane image and the release binaries.
+          provenance: false
+          sbom: false
+
+      - name: Attest the MCP image
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4
+        with:
+          subject-name: ${{ needs.prepare.outputs.mcp_image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Install syft (pinned)
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+
+      - name: Generate MCP image SBOM (syft → CycloneDX)
+        env:
+          IMAGE: ${{ needs.prepare.outputs.mcp_image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          syft version
+          syft scan "registry:${IMAGE}@${DIGEST}" \
+            -o "cyclonedx-json=${RUNNER_TEMP}/mcp-image.cdx.json"
+
+      - name: Attest the MCP image SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-name: ${{ needs.prepare.outputs.mcp_image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          sbom-path: ${{ runner.temp }}/mcp-image.cdx.json
+          push-to-registry: true
+
+      # Ownership proof for the MCP Registry: the registry's OCI validator refuses to bind
+      # io.github.IronSecCo/ironclaw to an image whose io.modelcontextprotocol.server.name
+      # label does not equal the server.json name. Catch a drifted label HERE, next to the
+      # build that caused it, instead of three jobs later inside mcp-publisher.
+      - name: Assert the MCP Registry ownership label matches server.json
+        env:
+          IMAGE: ${{ needs.prepare.outputs.mcp_image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          want="$(jq -r '.name' server.json)"
+          echo "server.json name: ${want}"
+          # On a multi-platform index `.Image` is a map keyed by platform, so read the
+          # label from EVERY manifest: one arch built without it is still a broken publish.
+          # Emit space-separated "<platform>=<label>" pairs (neither field contains a
+          # space) and split on whitespace.
+          labels="$(docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --format \
+            '{{ range $p, $img := .Image }}{{ $p }}={{ index $img.Config.Labels "io.modelcontextprotocol.server.name" }} {{ end }}' \
+            | tr -s '[:space:]' '\n')"
+          printf '%s\n' "${labels}"
+          bad=0
+          while IFS= read -r line; do
+            [ -z "${line}" ] && continue
+            if [ "${line#*=}" != "${want}" ]; then
+              echo "::error::${line%%=*}: label io.modelcontextprotocol.server.name='${line#*=}' does not match server.json name '${want}' — the MCP Registry publish would fail closed." >&2
+              bad=1
+            fi
+          done <<< "${labels}"
+          [ "${bad}" = "0" ] || exit 1
+
   # Consumer-side guard. The jobs above PRODUCE the image + attestation; this proves they
   # are CONSUMABLE the way a real user consumes them — anonymously, with no registry
   # credentials. If the GHCR package is (or silently reverts to) private, or its tag no
@@ -320,20 +460,48 @@ jobs:
   #
   # Deliberately runs NO docker/login-action and holds only `contents: read` — it must
   # succeed on exactly the unauthenticated path users hit, never on cached runner creds.
+  #
+  # Runs once per published image. `ironclaw-mcp` gets the same treatment as the
+  # control-plane image because the MCP Registry's OCI validator pulls it ANONYMOUSLY: a
+  # private or unattested MCP image is a listing that fails closed for every consumer.
   verify-consumer:
-    needs: [prepare, merge]
+    needs: [prepare, merge, build-mcp]
     if: ${{ needs.prepare.outputs.present == 'true' }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: ${{ needs.prepare.outputs.image }}
+            digest: ${{ needs.merge.outputs.digest }}
+          - image: ${{ needs.prepare.outputs.mcp_image }}
+            digest: ${{ needs.build-mcp.outputs.digest }}
     permissions:
       contents: read # gh attestation verify reads the public attestation; no push/sign here
     env:
-      IMAGE: ${{ needs.prepare.outputs.image }}
+      IMAGE: ${{ matrix.image }}
       VERSION: ${{ needs.prepare.outputs.version }}
-      EXPECTED_DIGEST: ${{ needs.merge.outputs.digest }}
+      EXPECTED_DIGEST: ${{ matrix.digest }}
       REPO: ${{ github.repository }}
       GH_TOKEN: ${{ github.token }}
     steps:
+      # A matrix entry is empty when its Dockerfile was absent at this commit (the
+      # present-gate in `prepare`), e.g. a revert. Skip that entry explicitly rather than
+      # verifying an empty image ref — and log it, so a skip is never silent.
+      - name: Resolve this matrix entry
+        id: gate
+        run: |
+          set -euo pipefail
+          if [ -z "${IMAGE}" ]; then
+            echo "::notice::No image for this matrix entry at this commit — nothing to verify."
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "Verifying ${IMAGE} (expected index ${EXPECTED_DIGEST:-<none>})"
+            echo "skip=false" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Anonymous manifest pull (no registry auth)
+        if: ${{ steps.gate.outputs.skip != 'true' }}
         run: |
           set -euo pipefail
           # IMAGE is already lowercased by prepare; strip the registry host to get the
@@ -348,11 +516,28 @@ jobs:
           fi
 
           # GHCR anonymous pull flow: request a bearer token with NO credentials. For a
-          # PUBLIC package this token carries pull scope; for a PRIVATE one it does not and
-          # the manifest fetch below returns 401/403 — exactly the regression we guard.
-          token="$(curl -fsSL "https://ghcr.io/token?scope=repository:${repo}:pull" | jq -r '.token')"
-          if [ -z "${token}" ] || [ "${token}" = "null" ]; then
-            echo "::error::Could not obtain an anonymous GHCR pull token for ${repo}." >&2
+          # PUBLIC package that token carries pull scope. For a PRIVATE package — or one
+          # that does not exist yet — GHCR refuses to distinguish the two and denies the
+          # TOKEN REQUEST ITSELF with 403 DENIED; execution never reaches the manifest
+          # fetch. So this request must not use `curl -f`: under `set -e` that aborts the
+          # step with a bare `curl: (56)` and the remediation below never prints, which is
+          # the one failure this guard exists to explain. Retry first — GHCR is eventually
+          # consistent right after a push, so a brief denial is not proof of private.
+          tok_body="$(mktemp)"
+          tok_code=""
+          token=""
+          for attempt in 1 2 3 4 5; do
+            tok_code="$(curl -sSL -o "${tok_body}" -w '%{http_code}' \
+              "https://ghcr.io/token?service=ghcr.io&scope=repository:${repo}:pull" || true)"
+            token="$(jq -r '.token // empty' <"${tok_body}" 2>/dev/null || true)"
+            [ "${tok_code}" = "200" ] && [ -n "${token}" ] && break
+            token=""
+            echo "  token attempt ${attempt}: HTTP ${tok_code}, retrying in 10s..."
+            sleep 10
+          done
+          if [ -z "${token}" ]; then
+            pkg="${repo##*/}"
+            echo "::error::Anonymous GHCR pull token for ${repo} was denied (HTTP ${tok_code}): the package is private, or has never been pushed. GHCR creates every new package PRIVATE, and GITHUB_TOKEN cannot change container-package visibility (there is no REST endpoint for it, it is a UI action). One-time org-admin fix: IronSecCo -> Packages -> ${pkg} -> Package settings -> Change visibility -> Public, then re-run this workflow. Runbook: runbooks/mcp-registry.md, section 'First publish of a new image (one-time org-admin gate)'. Failing the release." >&2
             exit 1
           fi
 
@@ -386,6 +571,7 @@ jobs:
           done
 
       - name: Verify build provenance from the consumer side
+        if: ${{ steps.gate.outputs.skip != 'true' }}
         run: |
           set -euo pipefail
           # Verify by digest (the attested subject) and by the tags users actually pull.
@@ -430,20 +616,24 @@ jobs:
   # -published, already-attested image — the listing points at an artifact that stands on
   # its own.
   #
-  # PARKED (IRO-391 / IRO-414). CEO chose option B: do NOT list the control-plane image
-  # with a host Docker-socket mount (host-root, against our hardening promise). This job
-  # as written publishes exactly that rejected option-A listing, so it is hard-disabled
-  # (`if: false`) until IRO-414 ships the slim, socket-free `ironclaw-mcp` image and
-  # IRO-391 is reworked to point server.json at it. Leaving it enabled would (a) re-publish
-  # the rejected listing on every release and (b) red the whole Image workflow on the
-  # post-check. The already-published option-A versions (0.1.216–0.1.230) are being
-  # deprecated out-of-band via mcp-registry-deprecate.yml.
+  # UNPARKED 2026-07-29 (IRO-612). This job was hard-gated to a manual dispatch while the
+  # listing still described option A — the control-plane image launched over a host Docker
+  # socket, which the CEO rejected as host-root (IRO-391). The blocker is gone: IRO-414
+  # shipped container/mcp.Dockerfile and `build-mcp` above now publishes the socket-free
+  # `ironclaw-mcp` thin client, which is what server.json points at. So the listing this
+  # job publishes is now the trust model we actually endorse, and it runs on the release
+  # path again. The manual `publish_mcp_registry` input survives only as a way to force a
+  # re-publish from a dispatch; it is NOT required on the release path.
+  #
+  # The already-published option-A versions (0.1.216–0.1.230) stay `deprecated` on the
+  # registry — they name an image we still tell people not to run. Do not blanket-activate
+  # them (see runbooks/mcp-registry.md).
   publish-mcp-registry:
-    needs: [prepare, merge, verify-consumer]
-    # PARKED: never runs on the release (workflow_run) path — it requires an explicit
-    # manual dispatch with publish_mcp_registry=true, which must not be set until IRO-391
-    # is reworked onto the socket-free image (IRO-414). See comment block above.
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_mcp_registry && needs.prepare.outputs.present == 'true' && needs.prepare.outputs.version != 'dev' && needs.prepare.outputs.version != '' }}
+    needs: [prepare, merge, build-mcp, verify-consumer]
+    # Tagged releases only (VERSION != dev): we list immutable versions. A manual dispatch
+    # must additionally opt in via publish_mcp_registry so a routine rebuild does not
+    # re-publish a listing by accident.
+    if: ${{ needs.prepare.outputs.present == 'true' && needs.prepare.outputs.mcp_present == 'true' && needs.prepare.outputs.version != 'dev' && needs.prepare.outputs.version != '' && (github.event_name != 'workflow_dispatch' || inputs.publish_mcp_registry) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read # checkout the trust-gated commit to read server.json
@@ -455,8 +645,11 @@ jobs:
       # Sigstore identity that signed the pinned mcp-publisher release archive.
       MCP_PUBLISHER_CERT_IDENTITY: https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/v1.7.9
       MCP_PUBLISHER_CERT_ISSUER: https://token.actions.githubusercontent.com
-      IMAGE: ${{ needs.prepare.outputs.image }}
+      # The listing points at the socket-free MCP image, NOT the control-plane image.
+      IMAGE: ${{ needs.prepare.outputs.mcp_image }}
       VERSION: ${{ needs.prepare.outputs.version }}
+      SERVER_NAME: io.github.IronSecCo/ironclaw
+      REGISTRY: https://registry.modelcontextprotocol.io
     steps:
       # Check out the commit prepare already trust-gated to the protected branch — never
       # the raw event head_sha (Dangerous-Workflow: no untrusted checkout while holding
@@ -517,26 +710,60 @@ jobs:
       - name: Publish the IronClaw listing
         run: ./mcp-publisher publish
 
-      - name: Verify the listing resolves on the registry
+      # The server was deprecated SERVER-WIDE on 2026-07-07 (every option-A version
+      # launched IronClaw over a host Docker socket). A freshly published version should
+      # land `active` on its own, but after a server-wide deprecation do not TRUST that —
+      # assert it, and self-heal with a PER-VERSION status PATCH.
+      #
+      # Deliberately NOT the server-wide `PATCH /v0/servers/{name}/status` that
+      # mcp-registry-deprecate.yml drives: that flips EVERY version in one transaction and
+      # would resurrect 0.1.216–0.1.230, which name the socket-mount image and must stay
+      # deprecated permanently (IRO-391 / IRO-613). No operator is ever asked to run it.
+      #
+      # `status <name> <version>` (no --all-versions) is exactly
+      # `PATCH /v0/servers/{name}/versions/{version}/status` with body {"status":"active"} —
+      # scoped to the one version we just published. It reuses the login above and the same
+      # cosign-verified pinned binary, so this adds no trust surface and no token handling
+      # of our own. It omits statusMessage, which the API rejects when status=active.
+      - name: Ensure this version is active on the registry
         run: |
           set -euo pipefail
           semver="${VERSION#v}"
-          # Fail-closed post-check: the registry must now serve our namespace at this
-          # version. Brief retry to absorb indexing lag, then fail loud.
-          url="https://registry.modelcontextprotocol.io/v0/servers?search=io.github.IronSecCo/ironclaw"
+          # NEVER pass --all-versions here: that is the server-wide PATCH and it would
+          # resurrect 0.1.216-0.1.230 (see the note above).
+          ./mcp-publisher status --status active "${SERVER_NAME}" "${semver}"
+
+      - name: Verify the listing resolves on the registry and is active
+        run: |
+          set -euo pipefail
+          semver="${VERSION#v}"
+          # Fail-closed post-check. Query the EXACT per-server versions endpoint, not
+          # `?search=` — search is fuzzy and the response nests the record under `.server`,
+          # so the old `.servers[].name` match could never hit. That mismatch is what
+          # false-failed this job in 2026-07 while the publish itself had succeeded.
+          enc="$(jq -rn --arg s "${SERVER_NAME}" '$s|@uri')"
+          url="${REGISTRY}/v0/servers/${enc}/versions"
           ok=""
+          body=""
           for attempt in 1 2 3 4 5; do
             body="$(curl -fsSL "${url}" || true)"
-            if printf '%s' "${body}" | jq -e \
-              --arg v "${semver}" \
-              '.servers[]? | select(.name == "io.github.IronSecCo/ironclaw" and .version == $v)' >/dev/null 2>&1; then
+            # active AND isLatest: an active version that is not the latest is still a dark
+            # listing, because clients resolve the latest one.
+            if printf '%s' "${body}" | jq -e --arg n "${SERVER_NAME}" --arg v "${semver}" \
+              '.servers[]? | select(.server.name == $n and .server.version == $v)
+                           | select(._meta["io.modelcontextprotocol.registry/official"].status == "active")
+                           | select(._meta["io.modelcontextprotocol.registry/official"].isLatest == true)' \
+              >/dev/null 2>&1; then
               ok="yes"; break
             fi
-            echo "  attempt ${attempt}: listing not yet resolvable, retrying in 10s..."
+            echo "  attempt ${attempt}: ${SERVER_NAME} ${semver} not yet active+isLatest, retrying in 10s..."
             sleep 10
           done
+          # A published-but-deprecated listing is worse than none: clients surface it with a
+          # warning and users read it as "abandoned". Fail loud with the exact remediation.
           if [ -z "${ok}" ]; then
-            echo "::error::io.github.IronSecCo/ironclaw ${semver} did not resolve on registry.modelcontextprotocol.io after publish. Failing the release." >&2
+            echo "::error::${SERVER_NAME} ${semver} is not active+isLatest on registry.modelcontextprotocol.io after publish. Failing the release. See runbooks/mcp-registry.md." >&2
+            printf '%s' "${body}" | jq '[.servers[]? | {version: .server.version, status: ._meta["io.modelcontextprotocol.registry/official"].status, isLatest: ._meta["io.modelcontextprotocol.registry/official"].isLatest}]' || true
             exit 1
           fi
-          echo "Listing live: io.github.IronSecCo/ironclaw ${semver}"
+          echo "Listing live and active: ${SERVER_NAME} ${semver} -> ${IMAGE}:${VERSION}"

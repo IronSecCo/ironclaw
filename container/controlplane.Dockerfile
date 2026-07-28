@@ -75,12 +75,11 @@ RUN mkdir -p /var/lib/ironclaw/state /run/ironclaw \
  && chmod 0700 /var/lib/ironclaw/state \
  && chmod +x /usr/local/bin/controlplane-entrypoint.sh
 
-# OCI ownership proof for the official MCP Registry (registry.modelcontextprotocol.io).
-# The registry's OCI validator fetches this image and requires this exact label to match
-# the server.json `name`, proving the publisher controls the image before it will bind the
-# `io.github.IronSecCo/ironclaw` listing to it. Without it, `mcp-publisher publish` fails
-# closed. Keep this string in lock-step with server.json's `name` (see runbooks/mcp-registry.md).
-LABEL io.modelcontextprotocol.server.name="io.github.IronSecCo/ironclaw"
+# The MCP Registry ownership label (io.modelcontextprotocol.server.name) deliberately does
+# NOT live here. It sits on container/mcp.Dockerfile, the socket-free image the listing now
+# points at (IRO-612). Labelling this image as well would let a publish re-bind the listing
+# to the control-plane image launched over a host Docker socket — the option-A trust model
+# the CEO rejected (IRO-391). Exactly one image in this repo carries that label.
 
 USER 65532:65532
 WORKDIR /var/lib/ironclaw
