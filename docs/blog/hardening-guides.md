@@ -21,6 +21,11 @@ Two patterns show up across the set:
   The honest ceiling is **89/100, grade B**, with the network dimension held at a WARN and contained
   with a scoped private network instead. We say so on every page rather than inflate the number.
 
+Hardening once is the easy half. To keep the grade you just earned, put the same
+grader on every pull request with the
+[GitHub Action](../scan-action.md): one `uses: IronSecCo/ironclaw@v1` line, about
+30 seconds, no account and no credentials.
+
 ## Reach grade A (100/100)
 
 | Service | Default | Hardened | The gap that closes |

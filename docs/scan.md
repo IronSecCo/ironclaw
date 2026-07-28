@@ -1,3 +1,8 @@
+---
+title: "Scan any container for isolation gaps: Docker, Compose, and Kubernetes, in 10 seconds"
+description: "ironctl scan grades any running container, Compose service, or Kubernetes manifest from 0 to 100 across seven isolation dimensions. Local, read-only, credential-free, fail-closed."
+---
+
 # Scan: audit any container's containment in 10 seconds
 
 `ironctl scan` grades the isolation posture of any running container, any
@@ -8,6 +13,16 @@ containment you actually have before you trust a sandbox with untrusted code.
 It grades the same dimensions IronClaw's own containment benchmark checks, and
 it is fail-closed: any posture it cannot determine is scored as insecure, never
 silently passed.
+
+Two things the score deliberately does not cover, each with its own page:
+
+- **The runtime underneath.** The scan reads configuration, so a hardened
+  container grades identically under runc and under gVisor. Which kernel serves
+  your syscalls is a separate question, answered in
+  [Why we run AI agents in gVisor](gvisor-deep-dive.md).
+- **Keeping the grade.** A one-off score drifts on the next pull request. Put
+  the same grader on every pull request with the
+  [GitHub Action](scan-action.md), which takes about 30 seconds to wire up.
 
 Curious how the images you already pull score? Browse the public
 [Container Isolation Scores directory](scores/index.md): the default-config

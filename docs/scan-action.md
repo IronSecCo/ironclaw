@@ -1,3 +1,8 @@
+---
+title: "Add container isolation scanning to your CI in 30 seconds (GitHub Action)"
+description: "One line, uses: IronSecCo/ironclaw@v1, puts a 0 to 100 container isolation scorecard on every pull request and can fail the check below your threshold. No account, no credentials."
+---
+
 # Scan in CI: a sandbox scorecard on every pull request
 
 The [`ironctl scan`](scan.md) audit also ships as a **GitHub Action**, published on
@@ -7,6 +12,10 @@ so every repository can render an IronClaw containment scorecard right in its pu
 requests and gate merges on isolation posture. It is the same local, read-only,
 credential-free grader; the action just installs `ironctl`, runs it against your
 target, and posts the result as a sticky PR comment.
+
+Wiring it up takes about 30 seconds. There is nothing to sign up for and no token
+to mint: the action needs `contents: read`, plus `pull-requests: write` only if
+you want the scorecard comment.
 
 ## Add it to your workflow
 

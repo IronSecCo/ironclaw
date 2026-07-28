@@ -80,6 +80,10 @@ The cost of gVisor is a syscall-performance overhead and some compatibility edge
 The benefit is that the last escape attempt has nowhere to go. For an autonomous
 agent running arbitrary code, that trade is the whole reason
 [IronClaw](https://github.com/IronSecCo/ironclaw) defaults its runtime to gVisor.
+The full design, what the sandbox gets and what it is denied, is written up in
+[Why we run AI agents in a gVisor sandbox](../gvisor-deep-dive.md); the measured
+cost of that choice, +13 ms warm and +39 ms cold per sandbox launch, is in
+[Performance and footprint](../benchmarks.md).
 
 ## Verify it yourself
 

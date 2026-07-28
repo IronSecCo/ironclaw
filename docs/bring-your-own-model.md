@@ -3,13 +3,15 @@ title: "Bring your own model: Ollama, Gemini, or Vertex in 5 minutes"
 description: "Run an IronClaw agent on the model you already have, local, private, or your own cloud account. The model key never enters the sandbox, and provider selection is configuration, not a fork."
 ---
 
+# Bring your own model: run an AI agent on Ollama, Gemini, or Vertex
+
 ## The job: run an agent on *your* model, not someone else's
 
 Plenty of agent runtimes assume one vendor and one cloud. The job a self-hoster is hiring for is the opposite:
 **"use the model I already have, whether local, private, or my own cloud account, without rebuilding anything."**
 IronClaw speaks the OpenAI-compatible API shape, so the model is a config choice, not a fork.
 
-> IronClaw ships more backends than the three below (Anthropic, OpenAI, OpenRouter, Codex, and a credential-free `mock` provider too). For the full list with an auth-and-streaming comparison and a short decision guide, see [Choose your model provider](providers/index.md).
+> IronClaw ships more backends than the three below. Eleven are registered today: Anthropic, OpenAI, OpenRouter, Codex, Gemini, Vertex AI, AWS Bedrock, Azure OpenAI, Ollama, a generic OpenAI-compatible `local` endpoint, and a credential-free `mock` provider. For the full list with an auth-and-streaming comparison and a short decision guide, see [Choose your model provider](providers/index.md).
 
 
 And because of how the runtime is built, **your model key never enters the agent sandbox**. Model calls are
