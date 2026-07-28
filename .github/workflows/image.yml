@@ -56,10 +56,18 @@ jobs:
   # failure.
   prepare:
     runs-on: ubuntu-latest
-    # On the workflow_run path, only build when the Release actually succeeded.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # On the workflow_run path, admit a Release run that either SUCCEEDED or FAILED, and
+    # decide per-JOB below whether the failure actually concerns the image. Keying off the
+    # aggregate `conclusion == 'success'` made every job in Release a hard gate on the
+    # whole publish chain — so a flaky `formula` step (a cosmetic Homebrew bump that runs
+    # long after the release is cut and verified) silently skipped the control-plane
+    # image, `ironclaw-mcp`, their provenance/SBOM attestations, and the MCP Registry
+    # publish, with no red anywhere obvious (IRO-621). Cancelled/skipped Release runs are
+    # still refused here — only a real success or a real failure gets to the job gate.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure' }}
     permissions:
       contents: read # read-only API lookups + trust-gate; no push/sign here
+      actions: read # read the upstream Release run's per-job conclusions (gate below)
     outputs:
       present: ${{ steps.meta.outputs.present }}
       image: ${{ steps.meta.outputs.image }}
@@ -70,6 +78,71 @@ jobs:
       mcp_image: ${{ steps.meta.outputs.mcp_image }}
       mcp_tags: ${{ steps.meta.outputs.mcp_tags }}
     steps:
+      # Blast-radius gate (IRO-621). The Release run FAILED — work out whether anything
+      # the image chain actually depends on is what failed.
+      #
+      # Fail-closed by default: every Release job is treated as blocking unless it is
+      # named in ADVISORY below. Advisory jobs are post-release bookkeeping that runs
+      # AFTER the release is published, smoke-tested and signed, and whose output the
+      # image does not consume:
+      #
+      #   formula — regenerates Formula/ironclaw.rb from the already-published, already-
+      #             signed SHA256SUMS and opens the rolling `brew/track` PR. Cosmetic
+      #             packaging metadata. It still fails LOUD in Release (it is not
+      #             continue-on-error, and its manual runbook still lands in the job
+      #             summary); it simply no longer suppresses a security-critical publish.
+      #
+      # Everything else — version, build, release, containment-report, smoke,
+      # smoke_windows — stays blocking: those either produce the artifacts the image is
+      # built alongside or are the yank signals for a bad release, and publishing an
+      # image from a release that failed them would be publishing a green lie.
+      #
+      # Matrix jobs report as "smoke (ubuntu-latest, ...)", so match on the base name
+      # before the " (" suffix. A job that is queued/in-progress reports conclusion null;
+      # the run is `completed` by the time this fires, so null only shows up for jobs that
+      # never ran, which is not a failure.
+      - name: Gate on the Release jobs the image actually depends on
+        if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success' }}
+        env:
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ADVISORY="formula"
+
+          jobs_tsv="$(gh api --paginate "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100" \
+            --jq '.jobs[] | [(.name | split(" (")[0]), (.conclusion | tostring)] | @tsv')"
+
+          if [ -z "${jobs_tsv}" ]; then
+            echo "::error::Could not read the job list for Release run ${RUN_ID} (${RUN_URL}) — refusing to publish an image off an unverified run." >&2
+            exit 1
+          fi
+
+          blocking=""
+          while IFS="$(printf '\t')" read -r jname jconc; do
+            [ -n "${jname}" ] || continue
+            case "${jconc}" in
+              success | skipped | neutral | null) continue ;;
+            esac
+            case " ${ADVISORY} " in
+              *" ${jname} "*)
+                echo "::warning title=Advisory Release job failed::'${jname}' concluded '${jconc}' in the upstream Release run, but it is post-release bookkeeping the image does not depend on — continuing with the image publish (IRO-621). Fix it on its own ticket: ${RUN_URL}"
+                continue
+                ;;
+            esac
+            blocking="${blocking}${blocking:+, }${jname}=${jconc}"
+          done <<EOF
+          ${jobs_tsv}
+          EOF
+
+          if [ -n "${blocking}" ]; then
+            echo "::error title=Release failed a job the image depends on::Refusing to publish: ${blocking}. See ${RUN_URL}." >&2
+            exit 1
+          fi
+          echo "Release run ${RUN_ID} failed only advisory jobs — the image chain is unaffected, proceeding."
+
       # SECURITY (Dangerous-Workflow / "pwn request"): this workflow runs in a
       # privileged context (the build/merge jobs hold packages + attestations write),
       # so it must NEVER `actions/checkout` the event-supplied head_sha — that is the

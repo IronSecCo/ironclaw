@@ -32,7 +32,7 @@ GitHub Actions workflows are involved:
 |----------|------|---------|----------|
 | **CI** | `ci.yml` | every push + PR | `build` / `vet` / `test` with `CGO_ENABLED=1` (gating check) |
 | **Release** | `release.yml` | push to `main`, or `workflow_dispatch` | tag, GitHub Release, archives, `SHA256SUMS`, SBOMs, cosign signature, attestations |
-| **Image** | `image.yml` | `workflow_run` after Release succeeds, or `workflow_dispatch` | GHCR control-plane image (`ghcr.io/<owner>/ironclaw-controlplane`) + image attestation |
+| **Image** | `image.yml` | `workflow_run` after Release completes (every blocking Release job green — see [3.5](#what-a-failing-release-job-does-to-the-image-chain)), or `workflow_dispatch` | GHCR control-plane image (`ghcr.io/<owner>/ironclaw-controlplane`) + image attestation |
 
 The **Release** workflow runs as a chain of jobs, each gated on the previous:
 
@@ -151,9 +151,32 @@ A `smoke` job installs the freshly-cut release through the real, checksum-verify
 `scripts/install.sh` (the normal user path, **not** `--dev`) on `linux/amd64`, `linux/arm64`,
 `darwin/arm64`, and `darwin/amd64`, asserts the installer printed `Checksum OK`, and asserts
 `ironctl version` reports the exact tag. It is **fail-closed**: a failure turns the whole
-Release run red, which also blocks the Image workflow (it chains on Release `success`). A red
-smoke run on an already-published release is the signal to **yank** (the assets are out by
-that point). This gate lands with IRO-15.
+Release run red, which also blocks the Image workflow (`smoke` is a *blocking* job for the
+image chain — see below). A red smoke run on an already-published release is the signal to
+**yank** (the assets are out by that point). This gate lands with IRO-15.
+
+#### What a failing Release job does to the Image chain
+
+The Image workflow used to chain on the Release run's **aggregate** `conclusion == 'success'`,
+which made every Release job a hard gate on the whole publish chain. A flaky `formula` job — a
+cosmetic Homebrew bump that runs long after the release is cut, smoke-tested and signed — was
+therefore able to silently suppress the control-plane image, `ironclaw-mcp`, their SBOM and
+provenance attestations, and the MCP Registry publish, with no red anywhere obvious (IRO-621).
+
+`image.yml`'s `prepare` job now inspects the upstream Release run **per job** and is
+fail-closed by default — every job blocks the image unless it is explicitly advisory:
+
+| Release job | Blocks the image? |
+| --- | --- |
+| `version`, `build`, `release` | **Yes** — these produce the released artifacts |
+| `containment-report`, `smoke`, `smoke_windows` | **Yes** — these are the yank signals for a bad release |
+| `formula` | No — post-release packaging metadata the image does not consume |
+
+A failing `formula` job still turns the Release run red and still writes its manual runbook to
+the job summary; it simply no longer suppresses a security-critical publish. If a *blocking*
+job fails, the Image run now fails **loud** with the offending job names rather than skipping
+silently. To make another job advisory, add it to `ADVISORY` in that step — and justify it,
+because the default is "blocking".
 
 ### 3.6 Bump the Homebrew formula (after a release you want `brew install` to track)
 
