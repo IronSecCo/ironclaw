@@ -1,12 +1,17 @@
 # Scan in CI: a sandbox scorecard on every pull request
 
-The [`ironctl scan`](scan.md) audit also ships as a **GitHub Action**, so every
-repository can render an IronClaw containment scorecard right in its pull
+The [`ironctl scan`](scan.md) audit also ships as a **GitHub Action**, published on
+the GitHub Marketplace as
+[**IronClaw sandbox scan**](https://github.com/marketplace/actions/ironclaw-sandbox-scan),
+so every repository can render an IronClaw containment scorecard right in its pull
 requests and gate merges on isolation posture. It is the same local, read-only,
 credential-free grader; the action just installs `ironctl`, runs it against your
 target, and posts the result as a sticky PR comment.
 
 ## Add it to your workflow
+
+The install path is the Marketplace ref `IronSecCo/ironclaw@v1`. Nothing to
+configure beyond `target`:
 
 ```yaml
 name: Sandbox scorecard
@@ -29,10 +34,19 @@ jobs:
           min-score: 90        # omit / 0 = report-only, never blocks the check
 ```
 
-`IronSecCo/ironclaw@v1` is the [Marketplace](https://github.com/marketplace/actions/ironclaw-sandbox-scan)
-listing (root `action.yml`). The subdir ref
-`IronSecCo/ironclaw/.github/actions/scan@v1` runs the exact same grader and stays
-supported as a fallback — both point at one `scan.sh`, so they never diverge.
+!!! tip "Which ref should I use?"
+
+    **`IronSecCo/ironclaw@v1`** is the
+    [Marketplace listing](https://github.com/marketplace/actions/ironclaw-sandbox-scan)
+    (root `action.yml`) and is the recommended path for everyone. `v1` is a moving
+    major tag, so you get fixes without editing your workflow.
+
+    **`IronSecCo/ironclaw/.github/actions/scan@v1`** is the advanced option: the
+    same action addressed by subdirectory. It predates the Marketplace listing and
+    stays supported, so existing workflows keep working unchanged. Either ref
+    accepts an immutable commit SHA instead of `v1`
+    (`IronSecCo/ironclaw@<sha>`) if your supply-chain policy requires pinning.
+    Both paths execute one `scan.sh`, so they never diverge in behavior.
 
 On the pull request you get a scorecard comment that updates in place on every
 push:
