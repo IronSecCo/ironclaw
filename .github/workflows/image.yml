@@ -536,8 +536,11 @@ jobs:
             sleep 10
           done
           if [ -z "${token}" ]; then
+            # Both must be set before the message interpolates them: under `set -u` an
+            # undefined var aborts the step and the remediation never prints.
+            owner="${repo%%/*}"
             pkg="${repo##*/}"
-            echo "::error::Anonymous GHCR pull token for ${repo} was denied (HTTP ${tok_code}): the package is private, or has never been pushed. GITHUB_TOKEN cannot change container-package visibility (there is no REST endpoint for it, it is a UI action). Org-admin fix: IronSecCo -> Packages -> ${pkg} -> Package settings -> Change visibility -> Public, then re-run this workflow. Runbook: runbooks/mcp-registry.md, section 'Package visibility'. Failing the release." >&2
+            echo "::error::Anonymous GHCR pull token for ${repo} was denied (HTTP ${tok_code}) after 5 attempts. This is a REAL failure, not an expected first-publish gate: packages in this org have come up public on first push. GHCR returns the same 403 whether the package is private or absent, so diagnose before acting -- 'gh api /orgs/${owner}/packages/container/${pkg}' returns 404 if it was never pushed (a build/push problem) and 403/200 if it exists but is not anonymously pullable. Only in the latter case, an org admin flips it: IronSecCo -> Packages -> ${pkg} -> Package settings -> Change visibility -> Public, then re-run this workflow. Runbook: runbooks/mcp-registry.md, section 'If a package is not anonymously pullable'. Failing the release." >&2
             exit 1
           fi
 

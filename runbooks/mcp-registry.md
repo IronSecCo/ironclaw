@@ -137,53 +137,52 @@ permanently — they describe a trust model we tell people not to run (IRO-391 /
 IRO-613). The only thing that ever goes `active` is a version built from
 `container/mcp.Dockerfile`.
 
-## Package visibility (no gate — verified on first publish)
+## If a package is not anonymously pullable (fallback, not an expected step)
 
-`ghcr.io/ironsecco/ironclaw-mcp` was **born anonymously pullable**. We expected
-the opposite (GHCR historically created every new package private, as
-`ironclaw-controlplane` did in June 2026, which needed a manual flip), so IRO-618
-pre-staged an org-admin gate for it. The gate never fired. Evidence from the
-first release that pushed the package — `Image` run
-[30408078319](https://github.com/IronSecCo/ironclaw/actions/runs/30408078319),
-`v0.1.403`, the first `build-mcp` on `main`:
+A red `verify-consumer` is a **real failure**. Diagnose it; never wave it through
+as a known gate.
 
-```
-Anonymous manifest pull: ghcr.io/ironsecco/ironclaw-mcp:latest
-  -> HTTP 200 (anonymously pullable)
-Anonymous manifest pull: ghcr.io/ironsecco/ironclaw-mcp:v0.1.403
-  -> HTTP 200 (anonymously pullable)
-```
+An earlier revision of this runbook claimed the first push of a new GHCR package
+always lands **private**, and told you to expect one red `verify-consumer` and go
+collect an org-admin click. That did not happen for us. `ghcr.io/ironsecco/ironclaw-mcp`
+came up **public** on its very first push (`9ac92b64`, `Image` run 30408078319),
+and `verify-consumer` passed on it in that same run — the anonymous token was
+issued, both `latest` and `v0.1.403` resolved, and the multi-arch index matched
+the attested digest. New packages appear to inherit visibility from the source
+repo, which is public. Do not plan around a gate that does not exist.
 
-Zero retries, and no human touched the package between the push (23:28 UTC) and
-`verify-consumer` (23:30 UTC), so this was not a flip we made and forgot. The
-likely reason is that GHCR now links a `GITHUB_TOKEN`-pushed package to the
-repository that pushed it and inherits that repository's visibility, and
-`IronSecCo/ironclaw` is public. Treat that as the probable mechanism, not a
-guarantee: it is GitHub-side behaviour we do not control and did not always get.
+The visibility fix below is a **fallback** for the day a package genuinely does
+come up (or silently reverts to) private, which `verify-consumer` will catch:
 
-**So do not pre-emptively flip anything.** The claim that matters is checked on
-every release by `verify-consumer`, which pulls anonymously with no registry
-credentials. If it ever goes red on the token request or the manifest fetch, the
-package is private (or was never pushed), and the fix is still the one-time
-org-admin action:
-
-> IronSecCo → Packages → `ironclaw-mcp` → Package settings → Change visibility →
+> IronSecCo → Packages → `<package>` → Package settings → Change visibility →
 > Public
 
-then re-run the `Image` workflow (or let the next release run it). This is a
-package-visibility change, not a pipeline change; no workflow edit is involved.
-`GITHUB_TOKEN` cannot do it: there is no REST endpoint for container-package
-visibility, it is a UI action.
+then re-run the `Image` workflow. That is a package-visibility change, not a
+pipeline change; no workflow edit is involved. `GITHUB_TOKEN` cannot do it —
+container-package visibility has no REST endpoint, it is a UI action.
 
-Anyone can re-check the current state without credentials:
+Before reaching for it, rule out the cheaper causes, in this order:
+
+1. **Propagation lag.** GHCR is eventually consistent right after a push.
+   `verify-consumer` already retries the token request and each manifest fetch
+   five times; a failure that survives that is not a lag.
+2. **The package was never pushed.** GHCR returns the same `403 DENIED` on the
+   *token request* for a private package and for one that does not exist, so the
+   token denial alone cannot tell them apart. Distinguish them with
+   `GET /orgs/IronSecCo/packages/container/<package>` — **404** means absent
+   (a `build-mcp` / push problem), **403**/200 means it exists.
+3. **A digest mismatch**, not a visibility problem — the tag resolved but points
+   at something other than the index we just attested. That is a tag race or a
+   concurrent publish, and flipping visibility will not fix it.
+
+Probe the live registry rather than trusting this document:
 
 ```bash
-curl -fsS "https://ghcr.io/token?service=ghcr.io&scope=repository:ironsecco/ironclaw-mcp:pull" \
-  | jq -r .token \
-  | xargs -I{} curl -sS -o /dev/null -w '%{http_code}\n' -H 'Authorization: Bearer {}' \
-      -H 'Accept: application/vnd.oci.image.index.v1+json' \
-      https://ghcr.io/v2/ironsecco/ironclaw-mcp/manifests/latest
-# 200 = public. 401/403 (or a denied token request) = private.
+repo=ironsecco/ironclaw-mcp
+tok=$(curl -s "https://ghcr.io/token?service=ghcr.io&scope=repository:${repo}:pull" | jq -r .token)
+curl -sI -H "Authorization: Bearer ${tok}" \
+  -H 'Accept: application/vnd.oci.image.index.v1+json' \
+  "https://ghcr.io/v2/${repo}/manifests/latest" | head -1   # want: HTTP/2 200
 ```
 
 ## Yanking / superseding a listing
