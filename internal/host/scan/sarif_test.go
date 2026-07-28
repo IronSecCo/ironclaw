@@ -10,9 +10,9 @@ import (
 	"testing"
 )
 
-// updateGolden regenerates the committed golden SARIF fixture: `go test
+// updateGolden regenerates the committed golden SARIF fixtures: `go test
 // ./internal/host/scan/ -run Golden -update`.
-var updateGolden = flag.Bool("update", false, "update the golden SARIF fixture")
+var updateGolden = flag.Bool("update", false, "update the golden SARIF fixtures")
 
 // goldenSpec is a fixed weak compose service used for the golden fixture: root,
 // default caps, seccomp=unconfined, bridge egress, writable rootfs, docker.sock
@@ -29,30 +29,81 @@ func goldenSpec() Spec {
 	}
 }
 
-// TestRenderSARIF_Golden pins the exact SARIF byte output for a fixed spec so
-// any accidental shape/field change is caught in review. Regenerate with
-// -update after an intentional change.
+// hardenedGoldenSpec is a fixed 100/A compose service. It pins the successful
+// no-findings SARIF shape as well as the failing shape covered by goldenSpec.
+func hardenedGoldenSpec() Spec {
+	return Spec{
+		Source: "compose", Target: "agent", Image: "ironclaw",
+		RunAsNonRoot: Yes, User: "65532",
+		CapDropAll: Yes, Seccomp: "confined",
+		NetworkMode: "none", ReadonlyRoot: Yes,
+		DockerSock: No,
+		HostPID:    No, HostIPC: No, HostNetwork: No,
+	}
+}
+
+// TestRenderSARIF_Golden pins the exact SARIF byte output for fixed weak and
+// hardened specs so any accidental shape/field change is caught in review.
+// Regenerate with -update after an intentional change.
 func TestRenderSARIF_Golden(t *testing.T) {
-	s := goldenSpec()
-	r := Score(s)
-	r.Version = "v0.0.0-golden"
-	var b bytes.Buffer
-	if err := RenderSARIF(&b, r, s, SARIFOptions{ConfigFile: "docker-compose.yml", AnchorLine: 3}); err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		name        string
+		spec        Spec
+		goldenFile  string
+		wantScore   int
+		wantResults int
+	}{
+		{
+			name:        "weak compose",
+			spec:        goldenSpec(),
+			goldenFile:  "weak_compose.sarif.json",
+			wantScore:   8,
+			wantResults: len(scorers),
+		},
+		{
+			name:        "hardened compose",
+			spec:        hardenedGoldenSpec(),
+			goldenFile:  "hardened_compose.sarif.json",
+			wantScore:   100,
+			wantResults: 0,
+		},
 	}
-	golden := filepath.Join("testdata", "weak_compose.sarif.json")
-	if *updateGolden {
-		if err := os.WriteFile(golden, b.Bytes(), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		return
-	}
-	want, err := os.ReadFile(golden)
-	if err != nil {
-		t.Fatalf("read golden (run with -update to create): %v", err)
-	}
-	if !bytes.Equal(b.Bytes(), want) {
-		t.Errorf("SARIF output drifted from golden. Run: go test ./internal/host/scan/ -run Golden -update\n--- got ---\n%s", b.String())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := Score(tt.spec)
+			if r.Score != tt.wantScore {
+				t.Fatalf("score = %d, want %d", r.Score, tt.wantScore)
+			}
+			r.Version = "v0.0.0-golden"
+			var b bytes.Buffer
+			if err := RenderSARIF(&b, r, tt.spec, SARIFOptions{ConfigFile: "docker-compose.yml", AnchorLine: 3}); err != nil {
+				t.Fatal(err)
+			}
+
+			var log sarifLog
+			if err := json.Unmarshal(b.Bytes(), &log); err != nil {
+				t.Fatalf("decode generated SARIF: %v", err)
+			}
+			if got := len(log.Runs[0].Results); got != tt.wantResults {
+				t.Fatalf("results = %d, want %d", got, tt.wantResults)
+			}
+
+			golden := filepath.Join("testdata", tt.goldenFile)
+			if *updateGolden {
+				if err := os.WriteFile(golden, b.Bytes(), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+			want, err := os.ReadFile(golden)
+			if err != nil {
+				t.Fatalf("read golden (run with -update to create): %v", err)
+			}
+			if !bytes.Equal(b.Bytes(), want) {
+				t.Errorf("SARIF output drifted from %s. Run: go test ./internal/host/scan/ -run Golden -update\n--- got ---\n%s", tt.goldenFile, b.String())
+			}
+		})
 	}
 }
 
