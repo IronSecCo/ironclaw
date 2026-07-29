@@ -21,6 +21,8 @@ Closes #
 - [ ] **Threat model:** no change to the sandbox seal / `network=none` / approval-gateway posture — or it is called out and reviewed.
 - [ ] **Docs updated:** README / `docs/**` reflect any user-facing or behavioral change.
 - [ ] **No secrets:** no tokens, keys, or credentials in code, tests, fixtures, or logs.
+- [ ] **CLA signed:** first PR here? One click at <https://cla-assistant.io/IronSecCo/ironclaw>.
+      Signing by comment does **not** work on this repo, the link is the only path.
 
 ## Validation
 

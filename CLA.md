@@ -83,8 +83,21 @@ that would make these representations inaccurate in any respect.
 
 ---
 
-**To sign:** the CLA Assistant bot prompts You on Your first pull request; signing is
-electronic, through Your GitHub account, and is remembered for future PRs.
+## How to sign
+
+Sign here: **<https://cla-assistant.io/IronSecCo/ironclaw>**
+
+It is one click through Your GitHub account, it takes a few seconds, and it is recorded
+per contributor, so it covers every pull request You open from then on. The CLA Assistant
+bot also posts that same link on Your first pull request.
+
+> **Commenting on the pull request does not sign the CLA.** Some projects accept a
+> "I have read the CLA Document and I hereby sign the CLA" comment. We do not. The bot we
+> run only reads pull request events, so a sign comment here is silently ignored and the
+> `license/cla` check stays red. Use the link above.
+
+If the check still shows red after You have signed, use the `recheck` link in the bot's
+comment on Your pull request.
 
 **Contributing for a company?** Contact a maintainer on LinkedIn for a Corporate CLA —
 [Omer Zamir](https://www.linkedin.com/in/omerzamir) or
