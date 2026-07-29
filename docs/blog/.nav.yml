@@ -8,6 +8,7 @@
 nav:
   - IronClaw blog: index.md
   - "Two green provenance statements, one of them false": two-green-provenance-statements.md
+  - "Appendix: assert your own build provenance in CI": assert-your-own-build-provenance.md
   - State of Container Isolation 2026: state-of-container-isolation-2026.md
   - We graded 151 popular Docker images for isolation: container-isolation-leaderboard-what-151-images-scored.md
   - Escape suite vs Docker, gVisor, E2B, Daytona: containment-benchmark-docker-gvisor-e2b-daytona.md
