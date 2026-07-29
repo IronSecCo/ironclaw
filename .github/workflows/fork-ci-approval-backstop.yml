@@ -1,0 +1,328 @@
+name: Fork CI approval backstop
+
+# BACKSTOP, NOT THE FIX (IRO-654).
+#
+# The fix is the repo Actions setting `fork-pr-contributor-approval`, moved from
+# `first_time_contributors` to `first_time_contributors_new_to_github`. That removes the
+# pending-approval prompt for every contributor with any prior GitHub history, which was
+# the whole observed failure mode: GitHub counts "first-time contributor" as NO PREVIOUSLY
+# MERGED PR here, so a repeat contributor stayed first-time on their 3rd and 5th PR and
+# re-armed the prompt on every push.
+#
+# The setting cannot close the gap completely. The enum has no "never require approval"
+# value -- it is exactly {first_time_contributors_new_to_github, first_time_contributors,
+# all_external_contributors} -- so a contributor whose GitHub account is genuinely new
+# still lands in `action_required` and still waits on a maintainer click. This workflow
+# covers that residue and nothing else.
+#
+# Why auto-approving is safe here, and the invariant that makes it safe:
+#   - The repo has ZERO `pull_request_target` workflows.
+#   - Every `pull_request`-triggered workflow references ZERO secrets other than the
+#     built-in GITHUB_TOKEN, which is read-only for a fork PR and is not attacker-supplied.
+# So a fork run executes untrusted code with a read-only token and no secret access. The
+# residual risk is CI compute abuse, which is why we still gate accounts new to GitHub at
+# the setting level and why this job re-asserts the invariant below before it approves
+# anything. If the invariant ever breaks, this job fails and approves nothing.
+#
+# Scope guard: this only approves runs that are the CURRENT head of an OPEN pull request.
+# The repo carries ~180 historical `action_required` runs on superseded and bot SHAs; they
+# are dead and resurrecting them would burn runner time for nothing.
+#
+# CLA gate (IRO-657): a PR is only eligible once `license/cla` is green on its head commit.
+# This is not a security boundary and is not claimed as one. It does three things:
+#   - It stops us spending runner minutes on PRs we could not merge either way.
+#   - It keeps one deliberate human act by the contributor in front of us executing their
+#     code, which is what "first-touch is a human decision" was actually protecting. The
+#     act moves from a maintainer click to the contributor's own click, so the property
+#     survives and the latency does not.
+#   - It is free at decision time: `license/cla` is a cla-assistant webhook, not an Actions
+#     workflow, so it reports on a fork PR WITHOUT approval. It was the one check that ran
+#     on #577 for the entire stall.
+# `license/cla` is a commit STATUS, not a check run, so its verdict lives in `state` and
+# its `conclusion` is always null. Reading `.conclusion` here would approve nothing forever
+# and look healthy doing it, so this reads the status `state` and nothing else.
+#
+# There is deliberately NO prior-human-trust condition (IRO-661). It was considered and
+# ruled out on the arithmetic: with `first_time_contributors_new_to_github` live, the only
+# PRs that can still reach this workflow are from accounts new to GitHub, and such an
+# account by construction has no earlier maintainer approval and no previously merged PR
+# here. A prior-trust condition would therefore never be satisfiable by anyone who can
+# actually get here -- a gate that can never fire, reading as coverage. That is the exact
+# failure mode this file is otherwise built to avoid, so it is not in it.
+#
+# What we traded, stated plainly because it is the whole point of this workflow:
+#   BEFORE  a maintainer's BLOCKING click, which in practice took days and cost us #577.
+#   AFTER   the contributor's own CLA click (blocking, theirs), plus a maintainer's
+#           NON-BLOCKING glance, which this job pages for.
+# The glance is not decoration. When this job approves a run for an account with no merged
+# PR in this repo, it emits a `::notice` annotation on the run AND a dedicated
+# "a human is expected to look" section in the job summary naming the PR and the author.
+# A HUMAN IS EXPECTED TO LOOK at those diffs. A green CI run on a first-touch PR means the
+# code compiled, not that anyone reviewed it. If you are removing that notice, you are
+# removing the half of this trade that we gave a maintainer's click away for.
+
+on:
+  schedule:
+    # Every 30 minutes. A contributor should never wait longer than one cycle.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List what would be approved without approving it"
+        type: boolean
+        default: false
+
+# Least-privilege (Scorecard Token-Permissions). `actions: write` is required by the
+# "Approve a workflow run for a fork pull request" endpoint and is the only elevated
+# scope here.
+permissions:
+  contents: read
+  actions: write
+  pull-requests: read
+  # Read-only, and only so the CLA gate can read the `license/cla` commit status.
+  statuses: read
+
+concurrency:
+  group: fork-ci-approval-backstop
+  cancel-in-progress: false
+
+jobs:
+  approve-stalled-fork-runs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Assert the no-secret-exposure invariant (fail closed)
+        # This is the safety precondition for approving untrusted fork code at all. It is
+        # checked against the workflows on the DEFAULT BRANCH (this checkout), which is
+        # trusted -- never against the PR's own copy, which the contributor controls.
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import sys, pathlib, yaml, re
+
+          # Relative on purpose: the fixture suite exercises this exact body by running it
+          # from a repo-shaped fixture root, so CI and the tests share one scanner with no
+          # test-only override to drift or be abused.
+          root = pathlib.Path(".github/workflows")
+
+          violations = []
+          scanned = 0
+          pr_triggered = 0
+
+          # Both extensions. The repo is all `*.yml` today, which is exactly why the first
+          # `*.yaml` anyone adds would have slipped past a `*.yml`-only glob unnoticed.
+          files = sorted(set(root.glob("*.yml")) | set(root.glob("*.yaml")))
+
+          for f in files:
+              scanned += 1
+              src = f.read_text()
+              try:
+                  doc = yaml.safe_load(src)
+              except yaml.YAMLError as e:
+                  violations.append(f"{f}: unparseable, cannot prove it is safe ({e})")
+                  continue
+              if not isinstance(doc, dict):
+                  violations.append(f"{f}: not a mapping, cannot prove it is safe")
+                  continue
+              # PyYAML parses the bare key `on:` as the boolean True.
+              on = doc.get(True, doc.get("on"))
+              keys = on if isinstance(on, list) else (
+                  list(on.keys()) if isinstance(on, dict) else [on]
+              )
+              if "pull_request_target" in keys:
+                  violations.append(f"{f}: uses pull_request_target")
+              if "pull_request" not in keys:
+                  continue
+              pr_triggered += 1
+              # GITHUB_TOKEN is read-only on a fork PR and is not a repo secret, so it is
+              # the one permitted reference. Anything else is a real secret reaching
+              # untrusted code.
+              for n, line in enumerate(src.splitlines(), 1):
+                  for m in re.finditer(r"secrets\.([A-Za-z_][A-Za-z0-9_]*)", line):
+                      if m.group(1) != "GITHUB_TOKEN":
+                          violations.append(f"{f}:{n}: reads secrets.{m.group(1)}")
+              # `secrets.FOO` is invisible in a reusable-workflow call: `jobs.<id>.uses`
+              # with `secrets: inherit` hands the callee EVERY repo secret without the
+              # string ever appearing in the caller. The regex above cannot see it.
+              jobs = doc.get("jobs")
+              if isinstance(jobs, dict):
+                  for jid, job in jobs.items():
+                      if not isinstance(job, dict):
+                          continue
+                      sec = job.get("secrets")
+                      if isinstance(sec, str) and sec.strip().lower() == "inherit":
+                          violations.append(
+                              f"{f}: job `{jid}` calls {job.get('uses', 'a reusable workflow')} "
+                              "with `secrets: inherit`, which passes every repo secret"
+                          )
+
+          # Vacuity guards. An empty scan is not a passing scan. If the directory moves, the
+          # glob stops matching, or the checkout silently produces an empty tree, this check
+          # would otherwise report "safe" having proved nothing at all -- the precise failure
+          # mode it exists to prevent.
+          if scanned == 0:
+              violations.append(
+                  f"{root}: scanned 0 workflow files -- the scan proved nothing"
+              )
+          if pr_triggered == 0:
+              violations.append(
+                  f"{root}: found 0 pull_request-triggered workflows among {scanned} "
+                  "scanned -- the invariant is about fork PR runs, so a scan that sees no "
+                  "pull_request workflow has not tested it"
+              )
+
+          if violations:
+              print("INVARIANT BROKEN -- refusing to auto-approve any fork run:")
+              for v in violations:
+                  print("  -", v)
+              print()
+              print("A fork PR can now reach a secret or run with elevated context.")
+              print("Fix the workflow, or delete this backstop, before re-enabling it.")
+              sys.exit(1)
+          print(f"invariant holds across {scanned} workflows ({pr_triggered} "
+                "pull_request-triggered): no pull_request_target, no non-GITHUB_TOKEN "
+                "secrets, no `secrets: inherit`")
+          PY
+
+      - name: Approve stalled runs on open pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          # `inputs.dry_run` is unset on the schedule trigger, which is the real-run path.
+          DRY_RUN="${DRY_RUN:-false}"
+
+          # Drive the loop from the OPEN PULL REQUESTS, not from the run history.
+          #
+          # The obvious shape -- list every action_required run, then intersect with open
+          # PRs -- undercounts: /actions/runs pages at 100 and this repo carries ~180
+          # stalled runs, so the first page silently hides the rest. Querying per head SHA
+          # is bounded by the number of open PRs and cannot be truncated.
+          #
+          # The `status=` query parameter matches the run's status OR its conclusion, which
+          # is the whole point here. Filtering on STATUS alone is the trap: once GitHub
+          # closes out a stalled run it reports status="completed" with
+          # conclusion="action_required", so a status-only filter returns ZERO for exactly
+          # the runs that have been stalled longest. That is how PR #568 sat five days with
+          # no CI while `gh pr view --json statusCheckRollup` still read clean.
+          gh pr list --repo "${REPO}" --state open \
+            --json number,headRefOid,isCrossRepository,author \
+            --jq '.[] | [(.number|tostring), .headRefOid, (.isCrossRepository|tostring), (.author.login // "unknown")] | @tsv' \
+            > open-prs.tsv
+
+          echo "open pull requests: $(wc -l < open-prs.tsv | tr -d ' ')"
+
+          : > first-touch.md
+
+          approved=0
+          checked=0
+          cla_skipped=0
+          first_touch=0
+          while IFS=$'\t' read -r pr head_sha fork author; do
+            [ -n "${pr:-}" ] || continue
+            checked=$((checked + 1))
+
+            # CLA gate. `license/cla` is a commit STATUS, so its verdict is `.state`; its
+            # `.conclusion` does not exist and every check-run rollup reads that absence as
+            # "queued". Gating on a conclusion here would skip every PR forever while the
+            # job stayed green, so read the status state and only the status state.
+            #
+            # `--jq` prints an EMPTY string, not `null`, when nothing matches, so an absent
+            # `license/cla` context lands as "" and falls through to the skip -- absent is
+            # not success. The REST API reports state in lower case; normalise anyway so a
+            # casing change upstream cannot silently turn this into a match-nothing gate
+            # that fails OPEN.
+            cla=$(gh api "repos/${REPO}/commits/${head_sha}/status" \
+              --jq '[.statuses[] | select(.context == "license/cla")] | last | .state // empty')
+            cla=$(printf '%s' "${cla}" | tr '[:upper:]' '[:lower:]')
+            if [ "${cla}" != "success" ]; then
+              echo "skip  PR #${pr} (${head_sha:0:8}, fork=${fork}) - license/cla is '${cla:-absent}', not success"
+              cla_skipped=$((cla_skipped + 1))
+              continue
+            fi
+
+            runs=$(gh api \
+              "repos/${REPO}/actions/runs?head_sha=${head_sha}&status=action_required&per_page=100" \
+              --jq '.workflow_runs[] | [(.id|tostring), .name] | @tsv')
+            if [ -z "$runs" ]; then
+              echo "ok    PR #${pr} (${head_sha:0:8}, fork=${fork}) - nothing stalled"
+              continue
+            fi
+
+            # Loud first touch. We are about to run code from this account on our runners
+            # without any maintainer having looked at it, so say so where a maintainer will
+            # see it: a `::notice` annotation on the run and a dedicated section in the job
+            # summary. This is only reached for a PR that already passed the CLA gate and
+            # the invariant, so it is a request for a glance, not a blocker.
+            #
+            # Failing the lookup counts as first touch. An unknown author is the case we
+            # most want surfaced, and silently reading it as "known" would be the quiet
+            # queue again.
+            prior=$(gh api -X GET search/issues \
+              -f q="repo:${REPO} type:pr is:merged author:${author}" \
+              --jq '.total_count' 2>/dev/null || true)
+            case "${prior}" in
+              ''|*[!0-9]*) novel=true; prior_label="lookup failed" ;;
+              0)           novel=true; prior_label="0" ;;
+              *)           novel=false; prior_label="${prior}" ;;
+            esac
+            if [ "${novel}" = "true" ]; then
+              first_touch=$((first_touch + 1))
+              msg="PR #${pr} by @${author} has no merged PR in this repo (prior merged:"
+              msg="${msg} ${prior_label}). CI is running their code without a maintainer"
+              msg="${msg} click. Please take a look at the diff."
+              echo "::notice title=First-touch contributor auto-approved::${msg}"
+              # shellcheck disable=SC2016  # the backticks are markdown code spans for the
+              # job summary, and the single quotes are what keeps them literal.
+              printf -- '- PR [#%s](https://github.com/%s/pull/%s) by `@%s` - prior merged PRs here: `%s`\n' \
+                "${pr}" "${REPO}" "${pr}" "${author}" "${prior_label}" >> first-touch.md
+            fi
+
+            while IFS=$'\t' read -r run_id run_name; do
+              [ -n "${run_id:-}" ] || continue
+              if [ "${DRY_RUN}" = "true" ]; then
+                echo "DRY   PR #${pr} run ${run_id} (${run_name}) - would approve"
+              else
+                echo "approve PR #${pr} run ${run_id} (${run_name})"
+                # Fail loud: a silently-failing backstop is worse than none, because it
+                # looks like coverage. Let a failed approve turn the job red.
+                gh api -X POST "repos/${REPO}/actions/runs/${run_id}/approve"
+              fi
+              approved=$((approved + 1))
+            done <<< "$runs"
+          done < open-prs.tsv
+
+          echo "checked=${checked} cla_skipped=${cla_skipped} approved=${approved}" \
+            "first_touch=${first_touch} dry_run=${DRY_RUN}"
+          {
+            echo "### Fork CI approval backstop"
+            echo
+            echo "- open pull requests checked: \`${checked}\`"
+            echo "- skipped, \`license/cla\` not green: \`${cla_skipped}\`"
+            echo "- stalled runs approved: \`${approved}\`"
+            echo "- first-touch contributors approved: \`${first_touch}\`"
+            echo "- dry run: \`${DRY_RUN}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # The trade, stated where whoever reads this run can see it: we gave up a
+          # maintainer's BLOCKING click and we are asking for a maintainer's NON-BLOCKING
+          # glance. If this section is empty the backstop only re-ran code from accounts
+          # that have already had a PR merged here. If it is not empty, someone should look.
+          if [ "${first_touch}" -gt 0 ]; then
+            {
+              echo
+              echo "#### :eyes: First touch - a human is expected to look"
+              echo
+              echo "The runs below were approved for accounts with **no merged PR in this"
+              echo "repository**. They cleared the CLA gate and the no-secret-exposure"
+              echo "invariant, so this is not a security escalation and nothing is blocked."
+              echo "It is a request for a glance at the diff, which is what replaced the"
+              echo "maintainer's approval click. Do not treat a green run here as review."
+              echo
+              cat first-touch.md
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
