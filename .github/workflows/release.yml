@@ -875,24 +875,51 @@ jobs:
             fi
           fi
 
-          # Guardrail (IRO-482): assert the rolling PR is actually MERGEABLE after
-          # the branch reset + formula commit. If a race still causes a conflict the
-          # job fails LOUD here with the manual runbook instead of silently leaving a
-          # CONFLICTING PR for the next operator to discover.
-          # Poll up to ~30 s — GitHub computes mergeability asynchronously.
+          # Guardrail (IRO-482, fixed by IRO-621): assert the rolling PR is actually
+          # MERGEABLE after the branch reset + formula commit. A REAL conflict still fails
+          # LOUD here with the manual runbook instead of silently leaving a CONFLICTING PR
+          # for the next operator to discover.
+          #
+          # GitHub computes `mergeable` asynchronously and answers JSON `null` until its
+          # background merge job finishes. `gh api --jq` renders a null field as an EMPTY
+          # STRING, never the literal text "null" — so the original loop's break condition
+          # (`!= "null" && != "UNKNOWN"`) was satisfied by "" on the very first read. It
+          # never slept, never retried, and then failed the release on `"" != "true"`,
+          # turning the exact transient race it was written to absorb into a hard release
+          # failure (IRO-621; PR #562 read `MERGEABLE` minutes later). Piping through
+          # `tostring` forces the null across as the literal string "null" so the poll can
+          # see "not computed yet" and keep waiting.
+          #
+          # Verdict policy: only a genuine conflict is fatal. `mergeable=false` with
+          # `mergeable_state=dirty` is a real CONFLICTING branch → fail loud. Anything
+          # indeterminate after the full poll — still-null mergeability, or a false/blocked
+          # state that just means "checks have not passed yet" — warns and continues: the
+          # release is published, smoke-tested and signed by this point, and "GitHub has
+          # not finished thinking" must never red a release over a cosmetic brew bump.
           pr_num="$(gh pr list --repo "${REPO}" --head "${branch}" --state open \
             --json number -q '.[0].number' 2>/dev/null || true)"
           if [ -n "${pr_num:-}" ]; then
-            mergeable="UNKNOWN"
-            for _i in 1 2 3 4 5 6; do
-              mergeable="$(gh api "repos/${REPO}/pulls/${pr_num}" --jq .mergeable 2>/dev/null || echo "UNKNOWN")"
-              [ "${mergeable}" != "null" ] && [ "${mergeable}" != "UNKNOWN" ] && break
+            mergeable="null"
+            merge_state="unknown"
+            # Poll up to ~50 s (10 x 5 s), sleeping BEFORE the retry, not after the break.
+            for _i in 1 2 3 4 5 6 7 8 9 10; do
+              pr_json="$(gh api "repos/${REPO}/pulls/${pr_num}" 2>/dev/null || printf '{}')"
+              mergeable="$(printf '%s' "${pr_json}" | jq -r '.mergeable | tostring' 2>/dev/null || printf 'null')"
+              merge_state="$(printf '%s' "${pr_json}" | jq -r '.mergeable_state // "unknown"' 2>/dev/null || printf 'unknown')"
+              case "${mergeable}" in
+                true | false) break ;;
+              esac
+              echo "PR #${pr_num}: mergeability not computed yet (mergeable=${mergeable}, state=${merge_state}) — retrying in 5s"
               sleep 5
             done
-            if [ "${mergeable}" != "true" ]; then
-              emit_manual_fallback "brew/track PR #${pr_num} is not MERGEABLE after reset (mergeable=${mergeable}). Force-reset brew/track to live main and re-run, or merge manually."
+
+            if [ "${mergeable}" = "true" ]; then
+              echo "brew/track PR #${pr_num} is MERGEABLE — conflict-free."
+            elif [ "${mergeable}" = "false" ] && [ "${merge_state}" = "dirty" ]; then
+              emit_manual_fallback "brew/track PR #${pr_num} is CONFLICTING against main (mergeable=false, mergeable_state=dirty). Force-reset brew/track to live main and re-run, or merge manually."
+            else
+              echo "::warning title=brew/track mergeability indeterminate::PR #${pr_num} reported mergeable=${mergeable} (state=${merge_state}) after ~50s of polling — GitHub had not finished computing mergeability, or the PR is merely waiting on checks. That is not a conflict, so the release continues; confirm the PR is clean before merging it."
             fi
-            echo "brew/track PR #${pr_num} is MERGEABLE — conflict-free."
           fi
 
           # Housekeeping: close any legacy per-tag bump PRs the pre-IRO-270 flow left
