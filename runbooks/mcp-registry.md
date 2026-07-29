@@ -51,6 +51,7 @@ listing:
 | `build-mcp` job in `.github/workflows/image.yml` | Builds + pushes the multi-arch MCP image, attests provenance and an SBOM, and asserts the label matches `server.json` on **every** arch. |
 | `publish-mcp-registry` job in `.github/workflows/image.yml` | Chains off the build/attest/verify chain and publishes the listing via the pinned `mcp-publisher` CLI. |
 | `.github/workflows/mcp-registry-deprecate.yml` | Manual status flip for the whole server record. See the caution below before using it. |
+| `.github/workflows/mcp-registry-watch.yml` | Daily read-only liveness guard. Asserts the listing still resolves, is `active` + `isLatest`, and names an anonymously pullable image. See [Standing liveness guard](#standing-liveness-guard). |
 
 The publish job runs **only after** `verify-consumer` proves **both** images are
 anonymously pullable and attested, and **only for tagged releases**
@@ -126,8 +127,27 @@ After publishing, the job runs two steps that matter:
 ## Relighting a deprecated listing
 
 Publish a new version. The release path activates and verifies it per-version, so
-a green `Image` workflow **is** the proof that the listing is live. There is no
-manual step.
+a green `Image` workflow **is** the proof that the listing is live.
+
+The trap is the other direction: a workflow that **never ran** is also never red.
+`Image` chains off `Release`, so anything that fails `Release` — including a purely
+cosmetic packaging job — silently skips the publish, and every workflow in the repo
+stays green while the listing rots. That is exactly how 0.1.230 sat `deprecated` for
+three weeks and ~170 releases (IRO-611). So: green `Image` proves the listing is
+live; the **absence** of a red `Image` proves nothing. That gap is what
+[`mcp-registry-watch.yml`](#standing-liveness-guard) covers.
+
+When the release path is broken and the listing needs relighting now, dispatch the
+publish by hand:
+
+```bash
+# The tag MUST resolve to the commit being built: workflow_dispatch runs the workflow
+# file from the ref it builds, and a tag naming a different commit stamps the listing
+# with a version that does not describe the image (IRO-625).
+gh workflow run image.yml --ref main \
+  -f tag=<tag on the current main tip> \
+  -f publish_mcp_registry=true
+```
 
 Do **not** reach for `mcp-registry-deprecate.yml` with `status=active`, and do not
 pass `--all-versions` to `mcp-publisher status`. Both are **server-wide**: they
@@ -216,6 +236,30 @@ not the most serious. In rough order of likelihood:
    answers **404 "Package not found"** when it does not exist, and **200** — or
    **403 "needs `read:packages` scope"** if your token lacks the scope — when it
    does. Any non-404 answer proves existence, which is the only bit you need.
+
+## Standing liveness guard
+
+`.github/workflows/mcp-registry-watch.yml` runs daily (and on demand) and asserts,
+from the outside and with no credentials, the three things a real MCP client needs:
+
+1. `io.github.IronSecCo/ironclaw` resolves on the registry.
+2. Its **`isLatest`** version is `active`. Clients resolve the latest version, so an
+   `active` old version sitting behind a `deprecated` latest is still a dark listing.
+3. The OCI image that version names is **anonymously pullable** from GHCR. A healthy
+   registry record pointing at a private or deleted image is dark for every consumer
+   and for the registry's own OCI validator.
+
+Any of those failing is a real outage of our only MCP directory presence and fails
+the run. It is read-only — no registry auth, no GHCR auth, no publish — so it can
+report the outage but never repair it; relighting stays a deliberate operator action
+(above).
+
+**Version drift is a warning, not a failure.** When the listing trails the newest
+release tag, the run warns and stays green. Drift is expected whenever the
+`Release → Image` chain is broken (IRO-621), and a guard that goes red every day for
+a known reason is a guard people learn to ignore — the same misleading-signal
+pathology this workflow exists to kill. If the chain is green and the drift warning
+persists, the publish job is being skipped and needs investigating.
 
 ## Yanking / superseding a listing
 
