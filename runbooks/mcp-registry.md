@@ -227,7 +227,9 @@ not the most serious. In rough order of likelihood:
    red means it stayed broken for about a minute.
 2. **Digest mismatch** — the tag resolves, but not to the index this run attested.
    This is the security-relevant one: consumers would pull something we never
-   attested. Treat it as a clobbered or racing tag and stop the release.
+   attested. Treat it as a clobbered or racing tag and stop the release. Check the
+   pipeline before you go looking for a clobbering third party: the first time this
+   ever fired, we were the ones publishing the mismatch (IRO-629, below).
 3. **Attestation not verifiable from outside** — the provenance/SBOM upload
    failed, or something other than this workflow pushed the image.
 4. **The package really is private**, per the section above. Because GHCR returns
@@ -236,6 +238,51 @@ not the most serious. In rough order of likelihood:
    answers **404 "Package not found"** when it does not exist, and **200** — or
    **403 "needs `read:packages` scope"** if your token lacks the scope — when it
    does. Any non-404 answer proves existence, which is the only bit you need.
+
+### v0.1.411: when the mismatch was ours (IRO-629)
+
+`Image` run [30412119358](https://github.com/IronSecCo/ironclaw/actions/runs/30412119358)
+went red on cause 2, and the mismatch was real — but nothing external had touched a
+tag. The pipeline published it.
+
+IRO-625 made `:latest` **conditional**: it moves forwards only, so a build of a
+commit that is no longer the `main` tip publishes its immutable `:<version>` alone.
+That run was exactly that case (`3c87a8a` had fallen behind `45b3ae9` in the six
+minutes between `Release` finishing and `Image` starting). Two steps had not been
+told: `merge` read the published index digest back from a hardcoded
+`imagetools inspect "${IMAGE}:latest"`, and `verify-consumer` asserted `:latest`
+unconditionally.
+
+The red was the harmless half. `merge`'s digest is the **subject** of everything
+downstream, so reading it from a tag this run did not publish meant the run:
+
+- attached the SLSA provenance **and** the CycloneDX SBOM to `sha256:be66da22…` —
+  an older index it had not built, stamping it with a build it did not come from;
+- left the image it actually built, `ironclaw-controlplane:v0.1.411`
+  (`sha256:19a65817…`), with **no provenance and no SBOM at all**.
+
+`verify-consumer` then compared `:latest` (the wrong index, which of course matched
+the wrong digest it had been handed) and `:v0.1.411` (the real one, which did not).
+The job failing is the only reason `publish-mcp-registry` did not go on to stamp an
+unattested image ref into an immutable registry version.
+
+**Disposition.** `ironclaw-controlplane:v0.1.411` is **withdrawn, not rebuilt**, for
+the same reason as `:v0.1.403` (IRO-625): `workflow_dispatch` runs the workflow file
+from the ref it builds, so a rebuild at tag `v0.1.411` would re-run the very code
+that caused this. It is superseded by the next release cut from `main` after the
+fix, which republishes `:latest` correctly and clears the false provenance on
+`be66da22`. `ironclaw-mcp:v0.1.411` is intact — `build-mcp` pushes its tags in one
+`build-push-action` call and reports that build's own digest, so it never had a
+`:latest` lookup to get wrong. The MCP listing was never touched.
+
+**The rule this leaves behind:** nothing in `image.yml` may name `latest`. `prepare`
+emits a `tags` output holding exactly the tag names the run publishes, immutable
+`:<version>` first, and `merge` and `verify-consumer` both derive from it. `merge`
+additionally asserts that *every* tag it applied resolves to the one index it is
+about to attest, so a digest it did not build can no longer become an attestation
+subject silently — it fails the release instead. More generally: when a publish step
+becomes conditional, every step that reads the result back has to learn the
+condition, or it will keep reading a stale answer and call it success.
 
 ## Standing liveness guard
 
