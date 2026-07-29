@@ -110,29 +110,46 @@ uncomparable identifier as a match is worse than no check.
 
 The `attempts/<n>` normalisation is load bearing rather than cosmetic. `GITHUB_RUN_ID` is
 stable across attempts, so a re-run that re-attests an identical digest under a later attempt
-is legitimate. Without the normalisation the same rule reported six false positives on our
-measurement set, every one of them exactly that.
+is legitimate. Without the normalisation the same rule reported nine false positives on our
+measurement set, every one of them exactly that: one run identifier, two or three attempts,
+an identical digest re-attested under each.
 
 ## The base rate, measured before we trusted the rule
 
 A rule that fires on healthy pipelines is worse than no rule. What the assertion does on real
 data, across two independent measurements:
 
-- **GitHub Artifact Attestations path: 3,398 attested digests** (185 ours, 3,213 from third
-  party publishers). 2,121 of the third party digests carry more than one provenance
+- **GitHub Artifact Attestations path: 4,783 attested digests** (195 ours, 4,588 from third
+  party publishers). 3,031 of the third party digests carry more than one provenance
   statement, all benign duplicate storage. After run identifier normalisation, the assertion
   fires **once, with zero false positives**, and the one fire is the incident this appendix
   is about.
-- **cosign `.att` path: 746 digests swept, 49 decoded to statement level, zero fires.** One
-  publisher there attests SBOMs only and carries no provenance at all, so the assertion is
-  inapplicable rather than passing, which is exactly the case the NOT-EVALUABLE outcome
-  exists for.
+- **cosign `.att` path: 829 digests swept, all 829 decoded to statement level, 891 statements,
+  zero fires.** Two of those three publishers were swept in full; the third was sampled at a
+  fixed stride across its 4,636 `.att` tags rather than read end to end. One of them attests
+  SBOMs only and carries no provenance at all, so the assertion is inapplicable rather than
+  passing, which is exactly the case the NOT-EVALUABLE outcome exists for.
+
+Those are a snapshot taken on 2026-07-29, and for numbers like these the method matters more
+than the totals. Every tag list was paginated to exhaustion rather than read one page deep,
+tags were resolved to digests and deduplicated before anything was counted, and every response
+was classified rather than coerced: a 404 from the attestations endpoint is a real absence, any
+other non-200 is a query that did not answer, and those were retried until they did. Nothing
+was excluded. An earlier pass at this same measurement dropped 1,765 digests whose probes came
+back as the endpoint's own secondary rate limit, and it undercounted every figure above as a
+result. Repeat it later and you should expect larger numbers, because these publishers keep
+publishing.
 
 We have not found a single legitimate multi run provenance set in any dataset.
 
-Carrier adoption, from 36 public images of which 29 resolved a `latest` tag: BuildKit inline
-attestations on 16, a cosign `.att` tag on 4, GitHub Artifact Attestations on about 3, and
-none of the three on 10. The counts overlap because some digests carry two carriers.
+Carrier adoption, from a hand assembled probe of public images on GHCR and Docker Hub:
+BuildKit inline attestations are the common case by a wide margin, a cosign `.att` tag is
+uncommon, GitHub Artifact Attestations are rarer still, and a substantial minority carry none
+of the three. The counts overlap, because some digests carry two carriers. We are deliberately
+not publishing exact ratios for this one. The candidate list was assembled by hand rather than
+sampled from anything, `latest` moves under it, and a later re-probe of the same images found a
+BuildKit carrier on one that the first pass had left unresolved. The ordering is the finding;
+treat the ratio as indicative.
 
 One mechanical finding that changes how you enumerate: **GHCR does not implement the OCI
 referrers API.** `/v2/<repo>/referrers/<digest>` returned HTTP 404 on all 16 GHCR
@@ -214,9 +231,12 @@ Five notes on why it is written the way it is.
 - **`gh attestation verify` filters to SLSA provenance v1 by default.** If you mint v0.2
   through GitHub Artifact Attestations, pass `--predicate-type` explicitly, or the check will
   correctly report NOT-EVALUABLE on statements it was never shown.
-- **The `imagetools` call is what makes A4 usable on a multi platform image.** Provenance is
-  frequently attached per platform, so a per platform child digest is a legitimate subject
-  and the check has to say so rather than flagging it.
+- **The `imagetools` call is what makes A4 usable on a multi platform image.** Provenance can
+  be attached per platform, in which case a per platform child digest is a legitimate subject
+  and the check has to say so rather than flagging it. Worth being precise about how much work
+  this branch does: on all 4,783 attested digests we measured, every provenance statement named
+  the index digest itself and not a child, so we have never actually seen it fire. It is here
+  because the shape is legal and cheap to accept, not because it is common.
 - **Either query failing is NOT-EVALUABLE, not FAIL.** The attestations endpoint has its own
   secondary rate limit, and a 403 from it means you did not get an answer, not that the
   answer was bad. The same goes for the registry read: if the index cannot be fetched, the
@@ -232,6 +252,15 @@ attestations at all (NOT-EVALUABLE), a statement whose identifier is a non GitHu
 registry that refused the index read (NOT-EVALUABLE). Every case was run under `bash -e`,
 the runner's own default, because that flag decides the outcome of three of them. With
 `FAIL_ON` unset every case exits 0.
+
+Six of those branches were then run again with nothing stubbed at all, against live published
+images: the incident digest FAILs and exits 0, the same digest with `FAIL_ON: multi-run` exits
+1, a current single run release of ours PASSes, that same release with a mismatched run id
+FAILs, an image carrying only BuildKit inline provenance comes back NOT-EVALUABLE and green,
+and a registry that will not serve the index comes back NOT-EVALUABLE and green even with
+`FAIL_ON: multi-run` set. The one branch we cannot reach from live data is a statement that
+verifies but carries no comparable identifier, because publishers whose identifiers look like
+that are not in GitHub's attestation store to begin with.
 
 ### The cosign path
 
@@ -289,8 +318,8 @@ Stated plainly, because the numbers above are worth exactly what their method is
 - Adoption on registries other than GHCR and Docker Hub.
 - Whether any publisher legitimately attests one digest from two different workflows. This is
   the one false positive we expect to exist and have never seen.
-- The cosign path base rate beyond the two publishers we swept, one of them in full and the
-  other as a sample across its tag list rather than all of it.
+- The cosign path base rate beyond the three publishers we swept, two of them in full and the
+  third as a fixed stride sample across its tag list rather than all of it.
 - Whether this assertion catches a real regression in production. Our own gate has run green
   on shipped releases, which demonstrates the absence of false positives and nothing more.
   Passing is not catching. Its true positive behaviour rests on replay against the run
