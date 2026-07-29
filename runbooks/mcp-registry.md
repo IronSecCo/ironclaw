@@ -269,11 +269,16 @@ unattested image ref into an immutable registry version.
 **Disposition.** `ironclaw-controlplane:v0.1.411` is **withdrawn, not rebuilt**, for
 the same reason as `:v0.1.403` (IRO-625): `workflow_dispatch` runs the workflow file
 from the ref it builds, so a rebuild at tag `v0.1.411` would re-run the very code
-that caused this. It is superseded by the next release cut from `main` after the
-fix, which republishes `:latest` correctly and clears the false provenance on
-`be66da22`. `ironclaw-mcp:v0.1.411` is intact — `build-mcp` pushes its tags in one
+that caused this. It is superseded by `v0.1.413`, the first release cut from `main`
+after the fix. `ironclaw-mcp:v0.1.411` is intact — `build-mcp` pushes its tags in one
 `build-push-action` call and reports that build's own digest, so it never had a
 `:latest` lookup to get wrong. The MCP listing was never touched.
+
+> **What that supersession does and does not do.** It moves `:latest` off
+> `be66da22` onto the index `v0.1.413` actually built. It does **not** remove the
+> false provenance statement, and no later release ever will. See
+> [What could not be retracted](#what-could-not-be-retracted) — do not read
+> "superseded" as "cleaned up".
 
 **The rule this leaves behind:** nothing in `image.yml` may name `latest`. `prepare`
 emits a `tags` output holding exactly the tag names the run publishes, immutable
@@ -283,6 +288,149 @@ about to attest, so a digest it did not build can no longer become an attestatio
 subject silently — it fails the release instead. More generally: when a publish step
 becomes conditional, every step that reads the result back has to learn the
 condition, or it will keep reading a stale answer and call it success.
+
+### `sha256:be66da22` carries two green provenance statements, permanently
+
+This is the part that outlives the fix, so read it before you trust a green
+`gh attestation verify` on this package.
+
+`ghcr.io/ironsecco/ironclaw-controlplane@sha256:be66da22455e11b8625693a29535f599500c126165eeabb34775492a962ce5b7`
+is the index legitimately built and published as **`:v0.1.407`**. It now carries
+**two** SLSA v1 provenance statements, and **both verify green** — a green verify is
+therefore *not* sufficient to establish where this image came from:
+
+| Statement | `invocationId` run | `resolvedDependencies` gitCommit | Verdict |
+| --- | --- | --- | --- |
+| A | [30409777856](https://github.com/IronSecCo/ironclaw/actions/runs/30409777856) | `405dcfb3` | **legitimate** — this run built the index |
+| B | [30412119358](https://github.com/IronSecCo/ironclaw/actions/runs/30412119358) | `45b3ae98` | **false** — this is the `v0.1.411` run, which built `sha256:19a65817…` |
+
+Statement B is the misattribution described above. Note that its gitCommit
+`45b3ae98` is not the commit that run *built* either (`3c87a8a`, the commit `Release`
+handed it) — it is the `main` tip that `image.yml` itself checked out for a
+`workflow_run` event. So the commit field alone does not identify a build; do not
+use it as one.
+
+#### Telling them apart
+
+Two independent checks, both runnable by an outside auditor with no access to
+anything of ours. Neither needs our logs.
+
+**1. Immutable version-tag correspondence (primary).** Every Image run publishes an
+immutable `:<version>` tag naming the index it built. Resolve it and compare to the
+statement's subject. The run that built the subject must have a `:<version>` that
+resolves to that subject:
+
+```bash
+IMAGE=ghcr.io/ironsecco/ironclaw-controlplane
+SUBJECT=sha256:be66da22455e11b8625693a29535f599500c126165eeabb34775492a962ce5b7
+
+# List every statement bound to this digest and the run that claims it.
+# NOTE: `gh attestation verify` prints NOTHING on success (gh 2.95.0) and exits 0 if ANY
+# statement verifies, so the exit code cannot tell you there are two. Always read the JSON.
+gh attestation verify "oci://${IMAGE}@${SUBJECT}" --repo IronSecCo/ironclaw --format json \
+  | jq -r '.[].verificationResult.statement.predicate.runDetails.metadata.invocationId'
+# => .../runs/30412119358/attempts/1
+# => .../runs/30409777856/attempts/1
+# (The id is at runDetails.metadata.invocationId. `runDetails.invocation.id` does not
+#  exist and yields null, which reads as "unclaimed" rather than as a wrong jq path.)
+
+# Resolve the version tag each of those runs published.
+resolve() {
+  tok="$(curl -sS "https://ghcr.io/token?service=ghcr.io&scope=repository:ironsecco/ironclaw-controlplane:pull" | jq -r .token)"
+  curl -sSI -H "Authorization: Bearer ${tok}" \
+    -H 'Accept: application/vnd.oci.image.index.v1+json' \
+    "https://ghcr.io/v2/ironsecco/ironclaw-controlplane/manifests/$1" \
+    | tr -d '\r' | awk 'tolower($1)=="docker-content-digest:"{print $2}'
+}
+resolve v0.1.407   # => sha256:be66da22...  == SUBJECT  -> statement A is real
+resolve v0.1.411   # => sha256:19a65817...  != SUBJECT  -> statement B is false
+```
+
+**2. Build time versus run window (corroborating, artifact-side only).** The index's
+per-platform image config carries a `created` timestamp. A run that started *after*
+an artifact already existed cannot have built it:
+
+- `be66da22` (amd64 config) `created` = **2026-07-29T00:01:44Z**
+- run 30409777856 ran 00:00:21Z -> 00:03:06Z — the build falls inside it. Consistent.
+- run 30412119358 ran 00:46:08Z -> 00:48:43Z — **44 minutes after** the image already
+  existed. Statement B is impossible on its face.
+
+Read the timestamp with:
+
+```bash
+docker buildx imagetools inspect "${IMAGE}@${SUBJECT}" \
+  --format '{{ range $p, $img := .Image }}{{ $p }} {{ $img.Created }}
+{{ end }}'
+```
+
+**Known gap.** The control-plane image carries no
+`org.opencontainers.image.revision` label (only `ironclaw-mcp` has an asserted
+label, and it is the MCP Registry ownership one). If it did, a third and fully
+self-contained check would exist: compare the label to each statement's
+`resolvedDependencies` gitCommit. Tracked as a follow-up; until then use checks 1
+and 2.
+
+#### The same check on a healthy release, for contrast
+
+`v0.1.413` (`Image` run
+[30423817523](https://github.com/IronSecCo/ironclaw/actions/runs/30423817523), the
+first release cut from `main` after the fix) is what the check is supposed to look
+like. Verified anonymously from outside the pipeline:
+
+- `merge` published one index, `sha256:00afb76e…`, as exactly `v0.1.413 latest` —
+  immutable version first — and its per-tag loop confirmed both tags resolve to it
+  before anything was attested.
+- `:latest` and `:v0.1.413` both resolve to `sha256:00afb76e…`.
+- `gh attestation verify` on `:latest` returns **one** statement, from run
+  `30423817523`, subject `sha256:00afb76e…`, gitCommit `33ee5122` — the run that
+  built it, the index it built, the commit it built from. The CycloneDX SBOM is
+  bound to the same subject.
+
+`statements: 1` plus a subject that matches the run's own `:<version>` is the
+healthy shape. `statements: 2` on `be66da22` is the anomaly.
+
+### What could not be retracted
+
+Stated plainly so nobody later reads this entry as a cleanup report:
+
+- **The false provenance statement on `be66da22` is permanent.** Attestations are
+  keyed by digest and are append-only, and the backing Rekor transparency-log entry
+  is immutable. There is no delete, no revoke, and no supersede. Statement B will
+  verify green against that digest forever.
+- **Cutting `v0.1.413` did not change that.** It moved the `:latest` *tag*, which is
+  the whole of the consumer-facing remediation. The *attestation* is bound to the
+  digest, not the tag, so tag moves are invisible to it.
+- **Deleting the GHCR package version would not change it either.** Deleting the
+  version removes our copy of the image; it does not retract the statement. Anyone
+  holding or re-pushing that exact index elsewhere still gets a green verify on both
+  statements. Do not delete it and call the record corrected.
+
+**Disposition of the `be66da22` package version: retained, deliberately.** Now that
+`:latest` has moved to `sha256:00afb76e…`, the argument for deleting it is gone and
+the arguments against it are not:
+
+- It is **not a bad artifact**. It is the legitimate `v0.1.407` build, still
+  correctly attested by statement A. The defect is a spurious *second* claim about
+  it, not the image.
+- `v0.1.407` is a published GitHub Release and the version the Homebrew formula
+  tracked. Deleting the image would break anyone pinned to it, to fix nothing.
+- Deletion destroys the evidence. The two statements are the only artifact against
+  which the check above can be demonstrated; a future auditor who finds this entry
+  should be able to reproduce it.
+
+So: keep the version, keep `:v0.1.407` pointing at it, and rely on this entry plus
+the subject-correspondence check rather than on removal. Removal was never available
+as a remedy — it only ever looked like one.
+- **`ironclaw-controlplane:v0.1.411` (`sha256:19a65817…`) has no provenance and no
+  SBOM at all**, and will not get any: attesting it now would require a run at that
+  ref, which re-executes the buggy workflow. It is withdrawn. Treat an unattested
+  `v0.1.411` as unverifiable, which is the correct outcome — the verification path
+  fails closed on it (HTTP 404, no statement to verify).
+
+The remediation that *did* land is: `:latest` no longer resolves to `be66da22`, the
+pipeline can no longer attest a digest it did not build (`merge` asserts subject
+correspondence and nothing names `latest`), and this entry exists so that a green
+verify on `be66da22` is read with the check above rather than at face value.
 
 ## Standing liveness guard
 
