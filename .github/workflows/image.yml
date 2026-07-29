@@ -415,6 +415,8 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: |
             VERSION=${{ needs.prepare.outputs.version }}
+            REVISION=${{ needs.prepare.outputs.sha }}
+            SOURCE=${{ github.server_url }}/${{ github.repository }}
           # Push by digest only; the merge job applies the real tags. name-canonical
           # keeps the pushed ref pinned to the digest under the target repo.
           outputs: type=image,name=${{ needs.prepare.outputs.image }},push-by-digest=true,name-canonical=true,push=true
@@ -520,6 +522,60 @@ jobs:
           echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
           echo "Published ${IMAGE} index ${digest} as: ${TAGS}"
           docker buildx imagetools inspect "${IMAGE}@${digest}"
+
+      # Assert the image's own origin labels BEFORE attesting it (IRO-633). A label that
+      # nobody checks is decoration; this is what makes org.opencontainers.image.revision
+      # load-bearing.
+      #
+      # The value is baked into the image bytes and is therefore part of the digest, so
+      # unlike an attestation subject it cannot be re-pointed after the fact. Checking it
+      # against the commit `prepare` trust-gated means the index we are about to sign has
+      # to agree, from the inside, about which commit it came from — an independent
+      # cross-check on provenance rather than a restatement of it.
+      #
+      # Same shape as the MCP ownership-label assertion in build-mcp: on a multi-platform
+      # index `.Image` is a map keyed by platform, so read the label from EVERY manifest.
+      # One arch built without it is still a broken publish. An empty or unreadable label
+      # is a FAIL, never a pass.
+      - name: Assert the image's revision label matches the built commit
+        env:
+          IMAGE: ${{ needs.prepare.outputs.image }}
+          DIGEST: ${{ steps.manifest.outputs.digest }}
+          WANT_SHA: ${{ needs.prepare.outputs.sha }}
+          WANT_SOURCE: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          set -euo pipefail
+          labels="$(docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --format \
+            '{{ range $p, $img := .Image }}{{ $p }}={{ index $img.Config.Labels "org.opencontainers.image.revision" }}={{ index $img.Config.Labels "org.opencontainers.image.source" }}
+            {{ end }}' | tr -d '\r')"
+          seen=0
+          bad=0
+          while IFS= read -r line; do
+            line="$(printf '%s' "${line}" | tr -d '[:space:]')"
+            [ -z "${line}" ] && continue
+            seen=$((seen + 1))
+            plat="${line%%=*}"
+            rest="${line#*=}"
+            rev="${rest%%=*}"
+            src="${rest#*=}"
+            echo "  ${plat}: revision=${rev:-<empty>} source=${src:-<empty>}"
+            if [ "${rev}" != "${WANT_SHA}" ]; then
+              echo "::error::${plat}: org.opencontainers.image.revision='${rev}' does not match the trust-gated build commit '${WANT_SHA}' — refusing to attest an image that disagrees about its own origin." >&2
+              bad=1
+            fi
+            if [ "${src}" != "${WANT_SOURCE}" ]; then
+              echo "::error::${plat}: org.opencontainers.image.source='${src}' does not match '${WANT_SOURCE}'." >&2
+              bad=1
+            fi
+          done <<< "${labels}"
+          # No manifests read at all means the inspect returned nothing useful; that is an
+          # unchecked publish, not a clean one.
+          if [ "${seen}" = "0" ]; then
+            echo "::error::Read no platform manifests for ${IMAGE}@${DIGEST} — could not verify the origin labels. Failing the release." >&2
+            exit 1
+          fi
+          [ "${bad}" = "0" ] || exit 1
+          echo "Origin labels agree with the built commit on all ${seen} platform manifest(s)."
 
       - name: Attest the control-plane image
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4

@@ -75,6 +75,23 @@ RUN mkdir -p /var/lib/ironclaw/state /run/ironclaw \
  && chmod 0700 /var/lib/ironclaw/state \
  && chmod +x /usr/local/bin/controlplane-entrypoint.sh
 
+# Standard OCI source labels (IRO-633). `revision` is the git commit this image was built
+# from and `source` is the repository it came from, so the image itself carries an
+# independent claim about its own origin. That matters because provenance does not:
+# actions/attest-build-provenance takes the subject digest as a free input and signs
+# whatever it is handed, so an attestation can describe an image the run never built
+# (IRO-629). These labels are baked into the image bytes at build time and are part of the
+# digest, so they cannot be re-pointed after the fact the way an attestation subject can —
+# which makes them a cross-check on it rather than a duplicate of it. image.yml asserts
+# `revision` against the commit it trust-gated, on every published arch, before attesting.
+#
+# `source` additionally links the GHCR package to this repo, which is what lets consumers
+# run `gh attestation verify --repo` against it at all.
+ARG REVISION=unknown
+ARG SOURCE=https://github.com/IronSecCo/ironclaw
+LABEL org.opencontainers.image.revision="${REVISION}" \
+      org.opencontainers.image.source="${SOURCE}"
+
 # The MCP Registry ownership label (io.modelcontextprotocol.server.name) deliberately does
 # NOT live here. It sits on container/mcp.Dockerfile, the socket-free image the listing now
 # points at (IRO-612). Labelling this image as well would let a publish re-bind the listing
