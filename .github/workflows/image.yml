@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Version tag to stamp + publish (e.g. v0.1.99). Blank = latest only."
+        description: "Version tag to stamp + publish (e.g. v0.1.99). Must point at the commit this run builds, or the run fails. Blank = auto-detect this commit's tag."
         required: false
         default: ""
       publish_mcp_registry:
@@ -228,19 +228,86 @@ jobs:
 
           # 3) Version: an explicit dispatch input wins; otherwise the release tag this
           #    commit carries, read from the tags API (not a local checkout).
+          #
+          #    An image tag is an assertion about the source inside it, so a dispatch
+          #    input is NOT trusted verbatim: the named tag must exist and must resolve
+          #    to the very commit we are about to build. Otherwise the operator's typo
+          #    mints :v0.1.403 out of v0.1.404's tree — and because publish-mcp-registry
+          #    stamps that ref into an IMMUTABLE MCP Registry version, the lie is not
+          #    editable afterwards, only deprecatable. Fail closed instead.
           if [ "${EVENT}" = "workflow_dispatch" ] && [ -n "${INPUT_TAG}" ]; then
+            # Strict shape first. This is not just typo-catching: the input becomes an
+            # OCI tag, and the API below resolves any REF EXPRESSION, so a loose glob
+            # would let `v0.1.403^{commit}` verify against the right commit and then be
+            # stamped as the literal tag `v0.1.403^{commit}` — which is not even legal
+            # OCI. Only a plain vMAJOR.MINOR.PATCH[-prerelease] gets through.
+            if ! printf '%s' "${INPUT_TAG}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then
+              echo "::error::Dispatch input tag='${INPUT_TAG}' is not a release tag (expected vMAJOR.MINOR.PATCH, e.g. v0.1.403)." >&2
+              exit 1
+            fi
+            # The commits API takes any ref and always answers with the commit, so this
+            # dereferences annotated and lightweight tags alike. An unknown tag is a
+            # non-zero exit -> blanked -> refused, so a version that was never released
+            # can't be minted. gh prints the error BODY on stdout for a 4xx, hence both
+            # the exit-status check and the 40-hex shape check: neither a JSON blob nor
+            # an empty string may ever reach the comparison below as a plausible sha.
+            if ! tag_sha="$(gh api "repos/${REPO}/commits/${INPUT_TAG}" --jq '.sha' 2>/dev/null)"; then
+              tag_sha=""
+            fi
+            # `[[ =~ ]]` matches the WHOLE string, unlike line-based grep — an error
+            # body that merely contained a 40-hex line must not slip through.
+            if [[ ! "${tag_sha}" =~ ^[0-9a-f]{40}$ ]]; then
+              tag_sha=""
+            fi
+            if [ -z "${tag_sha}" ]; then
+              echo "::error::Dispatch input tag='${INPUT_TAG}' does not exist in ${REPO} — refusing to stamp an image with a version that was never released." >&2
+              exit 1
+            fi
+            if [ "${tag_sha}" != "${sha}" ]; then
+              echo "::error::Tag mismatch — refusing to publish an image whose tag names a commit it does not contain." >&2
+              echo "::error::  tag ${INPUT_TAG} points at ${tag_sha}" >&2
+              echo "::error::  this run is building ${sha}" >&2
+              echo "::error::Re-dispatch with 'Use workflow from' set to the tag ${INPUT_TAG} (or to its commit ${tag_sha}); leaving the tag input blank then stamps it automatically." >&2
+              exit 1
+            fi
             version="${INPUT_TAG}"
+            echo "Dispatch tag ${INPUT_TAG} verified against build commit ${sha}."
           else
             version="$(gh api "repos/${REPO}/tags" --paginate \
               --jq ".[] | select(.commit.sha == \"${sha}\") | .name" \
               | grep -E '^v[0-9]' | head -1 || true)"
           fi
 
-          # `docker buildx imagetools create` takes the tags as -t flags. Always tag
-          # :latest; add the immutable :<version> tag when this commit carries one.
-          tag_args="-t ${image}:latest"
+          # 3b) Does this build get :latest? Only when it IS the default-branch tip.
+          #     :latest must move forwards only. A dispatch rebuild of an older release
+          #     (the honest way to repair a mis-stamped :<version>, see IRO-625) builds
+          #     an older tree, and unconditionally tagging it :latest would silently
+          #     DEMOTE every `docker pull ...:latest` consumer to older code — a far
+          #     worse outcome than the mis-tag being repaired. `behind` (an older commit
+          #     on the branch) and `ahead`/`diverged` (a dispatch off a side branch) both
+          #     publish their immutable :<version> only.
+          latest_status="$(gh api "repos/${REPO}/compare/${default_branch}...${sha}" --jq '.status' 2>/dev/null || true)"
+          if [ "${latest_status}" = "identical" ]; then
+            is_latest=true
+          else
+            is_latest=false
+            echo "Not tagging :latest — ${sha} is '${latest_status:-unknown}' relative to ${default_branch} tip, not that tip."
+          fi
+
+          # `docker buildx imagetools create` takes the tags as -t flags. Tag :latest
+          # only for the branch tip; add the immutable :<version> tag when this commit
+          # carries one. At least one of the two is always present: a commit that is
+          # neither the tip nor tagged has nothing meaningful to publish.
+          tag_args=""
+          if [ "${is_latest}" = "true" ]; then
+            tag_args="-t ${image}:latest"
+          fi
           if [ -n "${version}" ]; then
-            tag_args="${tag_args} -t ${image}:${version}"
+            tag_args="${tag_args:+${tag_args} }-t ${image}:${version}"
+          fi
+          if [ -z "${tag_args}" ]; then
+            echo "::error::${sha} is neither the ${default_branch} tip nor a tagged release — refusing to publish an image with no meaningful tag." >&2
+            exit 1
           fi
 
           # 4) The slim, socket-free MCP-server image (container/mcp.Dockerfile). It is the
@@ -250,10 +317,14 @@ jobs:
           #    Dockerfile just skips that job rather than failing the release.
           mcp_image="ghcr.io/${owner}/ironclaw-mcp"
           if gh api "repos/${REPO}/contents/container/mcp.Dockerfile?ref=${sha}" --silent >/dev/null 2>&1; then
-            # docker/build-push-action takes newline-separated tags.
-            mcp_tags="${mcp_image}:latest"
+            # docker/build-push-action takes newline-separated tags. Same forwards-only
+            # :latest rule as the control-plane image above.
+            mcp_tags=""
+            if [ "${is_latest}" = "true" ]; then
+              mcp_tags="${mcp_image}:latest"
+            fi
             if [ -n "${version}" ]; then
-              mcp_tags="${mcp_tags}"$'\n'"${mcp_image}:${version}"
+              mcp_tags="${mcp_tags:+${mcp_tags}$'\n'}${mcp_image}:${version}"
             fi
             {
               echo "mcp_present=true"
