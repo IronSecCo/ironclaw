@@ -342,7 +342,11 @@ gh attestation verify oci://ghcr.io/ironsecco/ironclaw-controlplane:<tag> --repo
     A statement whose run published a *different* `:<version>` digest than the subject it
     claims is not evidence about this image, however green it verifies. See
     [`runbooks/mcp-registry.md`](https://github.com/IronSecCo/ironclaw/blob/main/runbooks/mcp-registry.md)
-    for a worked example and the disposition of a known instance.
+    for a worked example and the disposition of a known instance, and
+    [One of our container images carries two green provenance statements. Only one of them is true.](blog/two-green-provenance-statements.md)
+    for the full write-up: how the wrong digest got signed, why it cannot be retracted, the two
+    checks an outsider can run to tell the two statements apart, and what to go check on your
+    own pipeline.
 
 **Step 4 — confirm the sandbox was proven contained for this version (IRO-267).**
 Every release ships a signed **containment report** — `ironclaw_<ver>.containment.json`

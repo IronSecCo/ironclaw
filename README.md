@@ -1115,6 +1115,13 @@ cannot escalate. The full threat-and-mitigation table is in
   segregation, `PRAGMA query_only`, read-only OS bind mount).
 - `network=none` sandboxes; model calls only via the host proxy with a destination allowlist.
 
+**Supply chain, written up in the negative:** one of our published container images carries two
+green SLSA provenance statements and only one of them is true. We could not retract it, so we
+documented it instead:
+[One of our container images carries two green provenance statements. Only one of them is true.](https://ironsecco.github.io/ironclaw/blog/two-green-provenance-statements/)
+covers the digest, why a green `gh attestation verify` is necessary and not sufficient, and what
+to go check on your own release pipeline.
+
 To report a vulnerability, please open a private security advisory rather than a public issue.
 
 ## Roadmap
