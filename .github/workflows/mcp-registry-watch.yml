@@ -1,0 +1,202 @@
+name: MCP Registry Watch
+
+# Standing liveness guard for the IronClaw listing on the official MCP Registry
+# (registry.modelcontextprotocol.io), namespace io.github.IronSecCo/ironclaw.
+#
+# Why it exists (IRO-611): the listing sat DEPRECATED for three weeks and ~170 releases
+# and nobody noticed. Not because a check failed — because no check ran. image.yml's
+# post-publish check only executes on a publish, and the publish path was gated off, so
+# the listing could rot for as long as the release path stayed red and every workflow in
+# the repo would still be green. A guard that only runs when the thing it guards is being
+# changed cannot detect the thing decaying on its own.
+#
+# So this runs on a clock, from the OUTSIDE, and asserts what a real MCP client actually
+# needs in order to use us:
+#
+#   1. io.github.IronSecCo/ironclaw resolves on the registry at all.
+#   2. Its isLatest version is `active` — clients resolve the latest version, so an active
+#      old version behind a deprecated latest is still a dark listing.
+#   3. The OCI image that version names is ANONYMOUSLY pullable from GHCR. A listing
+#      pointing at a private or deleted image is dark for every consumer and for the
+#      registry's own OCI validator, however healthy the registry record looks.
+#
+# Any of those failing is a real outage of our only MCP directory presence, and fails the
+# run loudly (fail-loud / fail-closed).
+#
+# Version drift — the listing trailing the newest release tag — is reported as a WARNING,
+# not a failure. It is a known, ticketed condition whenever the release path is red
+# (IRO-621), and a guard that goes red every day for an expected reason is a guard people
+# learn to ignore. That is the same "misleading signal" pathology this workflow exists to
+# kill, so drift stays visible without being fatal.
+#
+# Read-only: no registry auth, no GHCR auth, no publish. It cannot repair the listing, by
+# design — relighting is a deliberate operator action (runbooks/mcp-registry.md).
+
+on:
+  schedule:
+    # Daily, offset off the hour. PulseMCP and other aggregators ingest the registry
+    # roughly daily, so a day is the resolution at which a dark listing starts costing us.
+    - cron: "37 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read # read the newest release tag for the drift report; nothing else
+
+concurrency:
+  group: mcp-registry-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    env:
+      SERVER_NAME: io.github.IronSecCo/ironclaw
+      REGISTRY: https://registry.modelcontextprotocol.io
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Resolve the listing and assert it is live
+        id: listing
+        run: |
+          set -euo pipefail
+          enc="$(jq -rn --arg s "${SERVER_NAME}" '$s|@uri')"
+          url="${REGISTRY}/v0/servers/${enc}/versions"
+
+          # Exact per-server endpoint, never `?search=`: search is fuzzy and nests the
+          # record under `.server`, so a `.servers[].name` match silently never hits. That
+          # selector is what false-failed the 2026-07 publish check (IRO-611).
+          body=""
+          for attempt in 1 2 3; do
+            body="$(curl -fsSL --max-time 30 "${url}" || true)"
+            [ -n "${body}" ] && break
+            echo "  attempt ${attempt}: no response from ${url}, retrying in 15s..."
+            sleep 15
+          done
+          if [ -z "${body}" ]; then
+            echo "::error::${SERVER_NAME} did not resolve on ${REGISTRY} after 3 attempts. Either the registry is down or our listing was removed. Check ${url} by hand before escalating; see runbooks/mcp-registry.md." >&2
+            exit 1
+          fi
+
+          # `official` isolates the registry's metadata block so the dotted key is spelled
+          # once; every jq program below stays single-quoted, with no shell interpolation
+          # into a jq expression.
+          official='def official: ._meta["io.modelcontextprotocol.registry/official"];'
+
+          # Inventory first, so a failure below is readable without re-running anything.
+          echo "Published versions:"
+          printf '%s' "${body}" | jq -r "${official}"'
+            .servers[]? | "  \(.server.version)  \(official.status)  isLatest=\(official.isLatest)"' || true
+
+          latest="$(printf '%s' "${body}" | jq -c --arg n "${SERVER_NAME}" "${official}"'
+            [.servers[]? | select(.server.name == $n and official.isLatest == true)] | first // empty')"
+
+          if [ -z "${latest}" ]; then
+            echo "::error::${SERVER_NAME} has no isLatest version on ${REGISTRY}. Clients resolve the latest version, so there is nothing for them to install. See runbooks/mcp-registry.md." >&2
+            exit 1
+          fi
+
+          version="$(printf '%s' "${latest}" | jq -r '.server.version')"
+          status="$(printf '%s' "${latest}" | jq -r "${official}"'official.status')"
+          # `.identifier | tostring` never `// "null"`: --jq/jq print an EMPTY string for a
+          # null field, and `// ` also swallows `false`, so an absent package would read as
+          # a plausible-looking empty ref instead of an error.
+          package="$(printf '%s' "${latest}" | jq -r '(.server.packages[0].identifier // "") | tostring')"
+
+          echo "isLatest: ${version} status=${status} package=${package}"
+          {
+            echo "version=${version}"
+            echo "package=${package}"
+          } >> "${GITHUB_OUTPUT}"
+
+          if [ "${status}" != "active" ]; then
+            echo "::error::${SERVER_NAME} ${version} is the isLatest version but its status is '${status}', not 'active'. The listing is DARK: MCP clients surface a deprecated server as abandoned. Relight per runbooks/mcp-registry.md (dispatch image.yml with a tag that resolves to the built commit and publish_mcp_registry=true). Do NOT run mcp-registry-deprecate.yml with status=active: it is server-wide and would resurrect 0.1.216-0.1.230, which mount the host Docker socket." >&2
+            exit 1
+          fi
+
+          if [ -z "${package}" ]; then
+            echo "::error::${SERVER_NAME} ${version} is active but declares no OCI package identifier. Nothing for a client to run." >&2
+            exit 1
+          fi
+
+      - name: Anonymous GHCR pull of the image the listing names
+        env:
+          PACKAGE: ${{ steps.listing.outputs.package }}
+        run: |
+          set -euo pipefail
+          # A green registry record pointing at an unpullable image is still an outage:
+          # the registry's own OCI validator fetches anonymously, and so does every user.
+          # Deliberately unauthenticated — this must pass on exactly the path users hit.
+          # Assert the HOST explicitly. Stripping a `ghcr.io/` prefix that is not there is a
+          # silent no-op, and the fetch below would then ask ghcr.io for someone else's
+          # repository path — a confusing failure attributed to the wrong registry (or, if
+          # that path happened to exist on GHCR, a pass that verified the wrong image).
+          case "${PACKAGE}" in
+            ghcr.io/*) ;;
+            *)
+              echo "::error::Listed package '${PACKAGE}' is not on ghcr.io. This guard only knows how to anonymously resolve GHCR. If the listing intentionally moved registries, teach this workflow the new host; until then it cannot vouch for the image." >&2
+              exit 1
+              ;;
+          esac
+          ref="${PACKAGE#ghcr.io/}"
+          repo="${ref%:*}"
+          tag="${ref##*:}"
+          # `repo == ref` means no ':' was present, i.e. no tag. A digest ref (@sha256:...)
+          # lands here too and is equally unsupported: the listing pins immutable :vX.Y.Z.
+          if [ "${repo}" = "${ref}" ] || [ -z "${tag}" ] || [ "${ref}" != "${ref#*@}" ]; then
+            echo "::error::Listed package '${PACKAGE}' is not a ghcr.io/<repo>:<tag> reference; cannot verify it anonymously." >&2
+            exit 1
+          fi
+          echo "Anonymously resolving ${repo}:${tag}"
+
+          # No `curl -f` on the token request: GHCR denies the TOKEN ITSELF with 403 for a
+          # private or nonexistent package, and under `set -e` -f aborts the step with a
+          # bare `curl: (56)` — swallowing the remediation this guard exists to print
+          # (IRO-624).
+          tok_body="$(mktemp)"
+          tok_code=""
+          token=""
+          for attempt in 1 2 3; do
+            tok_code="$(curl -sSL --max-time 30 -o "${tok_body}" -w '%{http_code}' \
+              "https://ghcr.io/token?service=ghcr.io&scope=repository:${repo}:pull" || true)"
+            token="$(jq -r '.token // empty' <"${tok_body}" 2>/dev/null || true)"
+            [ "${tok_code}" = "200" ] && [ -n "${token}" ] && break
+            token=""
+            echo "  token attempt ${attempt}: HTTP ${tok_code}, retrying in 15s..."
+            sleep 15
+          done
+          if [ -z "${token}" ]; then
+            pkg="${repo##*/}"
+            owner="${repo%%/*}"
+            echo "::error::Anonymous GHCR pull token for ${repo} was denied (HTTP ${tok_code}). The MCP listing names an image no unauthenticated client can pull. GHCR returns the same denial for a PRIVATE package and for one that was DELETED, so settle which: 'gh api /orgs/${owner}/packages/container/${pkg}' answers 404 when it does not exist, 200/403 when it does. If it exists it is private, and an org admin must flip it: ${owner} -> Packages -> ${pkg} -> Package settings -> Change visibility -> Public. Runbook: runbooks/mcp-registry.md, section 'Package visibility'." >&2
+            exit 1
+          fi
+
+          accept='application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.oci.image.manifest.v1+json,application/vnd.docker.distribution.manifest.v2+json'
+          code="$(curl -sSL --max-time 30 -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${token}" -H "Accept: ${accept}" \
+            "https://ghcr.io/v2/${repo}/manifests/${tag}" || true)"
+          if [ "${code}" != "200" ]; then
+            echo "::error::Anonymous manifest fetch for ${repo}:${tag} returned HTTP ${code}, not 200. The tag the MCP listing publishes does not resolve for consumers. If the tag was deleted or retagged, re-publish the listing against a tag that exists; see runbooks/mcp-registry.md." >&2
+            exit 1
+          fi
+          echo "OK: ${PACKAGE} resolves anonymously (HTTP 200)."
+
+      - name: Report drift between the listing and the newest release
+        if: ${{ always() && steps.listing.outputs.version != '' }}
+        env:
+          LISTED: ${{ steps.listing.outputs.version }}
+        run: |
+          set -euo pipefail
+          # Non-fatal on purpose (see the header). `gh api --jq` renders a null field as an
+          # EMPTY string, so test for empty rather than the string "null".
+          tag="$(gh api "repos/${REPO}/releases/latest" --jq '.tag_name' 2>/dev/null || true)"
+          if [ -z "${tag}" ]; then
+            echo "::notice::Could not read the newest release tag; skipping the drift report."
+            exit 0
+          fi
+          newest="${tag#v}"
+          if [ "${newest}" = "${LISTED}" ]; then
+            echo "In sync: listing ${LISTED} == newest release ${tag}."
+            exit 0
+          fi
+          echo "::warning::MCP listing is at ${LISTED} but the newest release is ${tag}. The listing is live, so this is not an outage — but the release path is not re-publishing it. Expected while the Release -> Image chain is broken (IRO-621). If that chain is green and this warning persists, the publish job is being skipped and needs investigating."
