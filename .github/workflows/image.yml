@@ -993,6 +993,127 @@ jobs:
 
           echo "  ${IMAGE}@${EXPECTED_DIGEST}: exactly 1 provenance statement, subject matches, minted by run ${claim_run}."
 
+      # Post-publish cosign-carrier gate (IRO-648). The step above reads GitHub Artifact
+      # Attestations and NOTHING ELSE, so it sees exactly one of the three carriers an
+      # attestation can travel in. That is the same defect class as the incident it exists
+      # to catch: asserting a property of a SUBSET and reporting it as a property of the
+      # artifact.
+      #
+      # The gap is not theoretical. Attestations reach consumers three ways (IRO-645):
+      #   1. BuildKit inline — part of the index digest, so a conflicting statement cannot
+      #      be appended. We publish none of these (`provenance: false` at :425 and :667,
+      #      deliberately: per-arch inline attestations do not describe the merged index).
+      #   2. cosign's fallback tag scheme, `sha256-<digest-hex>.{att,sig,sbom}` — an
+      #      ORDINARY MUTABLE TAG. GHCR does not implement the OCI referrers API (404 on
+      #      every GHCR repo we probed, including ones holding real cosign artifacts), so
+      #      on GHCR this scheme IS the registry-side carrier.
+      #   3. GitHub Artifact Attestations — what the step above reads.
+      #
+      # Anyone with push access to our packages can `cosign attest` a digest we already
+      # published. `slsa-verifier verify-image` reads ONLY carrier 2 and cannot see
+      # carrier 3 at all, so it would show a consumer ONLY the forged statement while the
+      # gate above stayed green. Carrier 3 is append-only; carrier 2 is not, which makes
+      # the registry side strictly weaker and strictly easier to plant on.
+      #
+      # We publish nothing through carrier 2 — no cosign step anywhere in this workflow —
+      # so the correct assertion is absence, and any presence is unexplained by our own
+      # pipeline. Confirmed clean when this landed: a full paginated tags/list sweep of
+      # both packages (362 and 21 tags, every HTTP status audited) returned zero
+      # `sha256-*.{att,sig,sbom}`, so a fire here is a finding, not a pre-existing state.
+      #
+      # SCOPE, stated honestly rather than overclaimed: this checks the INDEX digest this
+      # run published — the digest a consumer's `slsa-verifier verify-image` resolves a
+      # multi-arch ref to, which is the sharp case. A carrier tag planted on a per-arch
+      # CHILD manifest is out of scope and would not fire here.
+      #
+      # FAIL CLOSED, and note this is deliberately the OPPOSITE of what IRO-645 recommends
+      # to third parties. For them a registry hiccup failing their release from our code is
+      # unacceptable, so the advice is warn-by-default with a not-evaluable outcome. For
+      # US, an unreadable answer about our own supply chain is a FAIL: 404 is the only
+      # thing that clears this gate. 200 means a carrier exists; anything else means we
+      # could not tell, and a check that cannot read its subject has not passed, it has
+      # been skipped.
+      - name: Assert no cosign-carrier tag exists for this digest
+        if: ${{ steps.gate.outputs.skip != 'true' }}
+        run: |
+          set -euo pipefail
+
+          # A gate with no subject has not passed, it has been skipped.
+          if [ -z "${EXPECTED_DIGEST}" ]; then
+            echo "::error::No published index digest for ${IMAGE} — refusing to green a cosign-carrier gate that had nothing to check. Failing the release." >&2
+            exit 1
+          fi
+
+          repo="${IMAGE#ghcr.io/}"
+          hex="${EXPECTED_DIGEST#sha256:}"
+          if ! printf '%s' "${hex}" | grep -Eq '^[0-9a-f]{64}$'; then
+            echo "::error::Published digest for ${IMAGE} is '${EXPECTED_DIGEST}', which is not a sha256 hex digest — cannot construct the cosign fallback tag to check. Failing the release." >&2
+            exit 1
+          fi
+
+          # Anonymous pull token, exactly as the manifest-pull step above mints it: this
+          # must exercise the path an outside verifier walks, not cached runner creds.
+          # Not `curl -f` — under `set -e` that aborts with a bare `curl: (56)` and the
+          # remediation never prints, which is the one failure this guard exists to
+          # explain (IRO-624).
+          tok_body="$(mktemp)"
+          tok_code=""
+          token=""
+          for attempt in 1 2 3 4 5; do
+            tok_code="$(curl -sSL -o "${tok_body}" -w '%{http_code}' \
+              "https://ghcr.io/token?service=ghcr.io&scope=repository:${repo}:pull" || true)"
+            token="$(jq -r '.token // empty' <"${tok_body}" 2>/dev/null || true)"
+            [ "${tok_code}" = "200" ] && [ -n "${token}" ] && break
+            token=""
+            echo "  token attempt ${attempt}: HTTP ${tok_code}, retrying in 10s..."
+            sleep 10
+          done
+          if [ -z "${token}" ]; then
+            echo "::error::Anonymous GHCR pull token for ${repo} was denied (HTTP ${tok_code}) after 5 attempts, so the cosign-carrier tags could not be checked. An unreadable answer is a FAIL, not a pass. Failing the release." >&2
+            exit 1
+          fi
+
+          accept='application/vnd.oci.image.manifest.v1+json,application/vnd.docker.distribution.manifest.v2+json,application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json'
+          found=""
+          for suffix in att sig sbom; do
+            tag="sha256-${hex}.${suffix}"
+            # 404 is a definitive absence and needs no retry. Retry only the codes that
+            # mean "ask again" (throttling / transient registry errors); every other
+            # non-404, non-200 answer is unreadable and therefore a failure.
+            code=""
+            for attempt in 1 2 3 4 5; do
+              code="$(curl -s -o /dev/null -w '%{http_code}' \
+                -H "Authorization: Bearer ${token}" \
+                -H "Accept: ${accept}" \
+                "https://ghcr.io/v2/${repo}/manifests/${tag}" || true)"
+              case "${code}" in
+                200|404) break ;;
+              esac
+              echo "  ${tag} attempt ${attempt}: HTTP ${code}, retrying in 10s..."
+              sleep 10
+            done
+
+            case "${code}" in
+              404)
+                echo "  ${repo}:${tag} -> HTTP 404 (absent, as expected)"
+                ;;
+              200)
+                echo "::error title=Unexpected cosign carrier tag ${tag}::${IMAGE}@${EXPECTED_DIGEST} carries a cosign fallback tag '${tag}', but this pipeline publishes no cosign artifacts at all — nothing in this workflow creates one. Someone with push access to ${repo} attached it to a digest we published. This matters because 'slsa-verifier verify-image' and 'cosign verify-attestation' read ONLY this carrier and cannot see GitHub Artifact Attestations, so a consumer would be shown a statement we never made while our own attestation gate stayed green (IRO-645/IRO-648). Inspect it with 'crane manifest ghcr.io/${repo}:${tag}' and 'cosign download attestation ${IMAGE}@${EXPECTED_DIGEST}', treat the push credential as compromised, and do NOT simply delete the tag and re-run: settle who pushed it first. Failing the release." >&2
+                found="yes"
+                ;;
+              *)
+                echo "::error::Could not determine whether ${repo}:${tag} exists (HTTP ${code} after retries) — an unreadable answer is a FAIL, not a pass. Failing the release." >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          if [ -n "${found}" ]; then
+            exit 1
+          fi
+
+          echo "  ${IMAGE}@${EXPECTED_DIGEST}: no cosign carrier tag (.att/.sig/.sbom) present."
+
   # Publish (or refresh) the IronClaw listing on the official MCP Registry
   # (registry.modelcontextprotocol.io) under the account-free `io.github.IronSecCo`
   # namespace. This runs ONLY after the image is built, merged, attested, AND proven
