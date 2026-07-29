@@ -1,0 +1,169 @@
+name: Fork CI approval backstop
+
+# BACKSTOP, NOT THE FIX (IRO-654).
+#
+# The fix is the repo Actions setting `fork-pr-contributor-approval`, moved from
+# `first_time_contributors` to `first_time_contributors_new_to_github`. That removes the
+# pending-approval prompt for every contributor with any prior GitHub history, which was
+# the whole observed failure mode: GitHub counts "first-time contributor" as NO PREVIOUSLY
+# MERGED PR here, so a repeat contributor stayed first-time on their 3rd and 5th PR and
+# re-armed the prompt on every push.
+#
+# The setting cannot close the gap completely. The enum has no "never require approval"
+# value -- it is exactly {first_time_contributors_new_to_github, first_time_contributors,
+# all_external_contributors} -- so a contributor whose GitHub account is genuinely new
+# still lands in `action_required` and still waits on a maintainer click. This workflow
+# covers that residue and nothing else.
+#
+# Why auto-approving is safe here, and the invariant that makes it safe:
+#   - The repo has ZERO `pull_request_target` workflows.
+#   - Every `pull_request`-triggered workflow references ZERO secrets other than the
+#     built-in GITHUB_TOKEN, which is read-only for a fork PR and is not attacker-supplied.
+# So a fork run executes untrusted code with a read-only token and no secret access. The
+# residual risk is CI compute abuse, which is why we still gate accounts new to GitHub at
+# the setting level and why this job re-asserts the invariant below before it approves
+# anything. If the invariant ever breaks, this job fails and approves nothing.
+#
+# Scope guard: this only approves runs that are the CURRENT head of an OPEN pull request.
+# The repo carries ~180 historical `action_required` runs on superseded and bot SHAs; they
+# are dead and resurrecting them would burn runner time for nothing.
+
+on:
+  schedule:
+    # Every 30 minutes. A contributor should never wait longer than one cycle.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List what would be approved without approving it"
+        type: boolean
+        default: false
+
+# Least-privilege (Scorecard Token-Permissions). `actions: write` is required by the
+# "Approve a workflow run for a fork pull request" endpoint and is the only elevated
+# scope here.
+permissions:
+  contents: read
+  actions: write
+  pull-requests: read
+
+concurrency:
+  group: fork-ci-approval-backstop
+  cancel-in-progress: false
+
+jobs:
+  approve-stalled-fork-runs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Assert the no-secret-exposure invariant (fail closed)
+        # This is the safety precondition for approving untrusted fork code at all. It is
+        # checked against the workflows on the DEFAULT BRANCH (this checkout), which is
+        # trusted -- never against the PR's own copy, which the contributor controls.
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import sys, pathlib, yaml, re
+
+          violations = []
+          for f in sorted(pathlib.Path(".github/workflows").glob("*.yml")):
+              src = f.read_text()
+              try:
+                  doc = yaml.safe_load(src)
+              except yaml.YAMLError as e:
+                  violations.append(f"{f}: unparseable, cannot prove it is safe ({e})")
+                  continue
+              # PyYAML parses the bare key `on:` as the boolean True.
+              on = doc.get(True, doc.get("on"))
+              keys = on if isinstance(on, list) else (
+                  list(on.keys()) if isinstance(on, dict) else [on]
+              )
+              if "pull_request_target" in keys:
+                  violations.append(f"{f}: uses pull_request_target")
+              if "pull_request" not in keys:
+                  continue
+              # GITHUB_TOKEN is read-only on a fork PR and is not a repo secret, so it is
+              # the one permitted reference. Anything else is a real secret reaching
+              # untrusted code.
+              for n, line in enumerate(src.splitlines(), 1):
+                  for m in re.finditer(r"secrets\.([A-Za-z_][A-Za-z0-9_]*)", line):
+                      if m.group(1) != "GITHUB_TOKEN":
+                          violations.append(f"{f}:{n}: reads secrets.{m.group(1)}")
+
+          if violations:
+              print("INVARIANT BROKEN -- refusing to auto-approve any fork run:")
+              for v in violations:
+                  print("  -", v)
+              print()
+              print("A fork PR can now reach a secret or run with elevated context.")
+              print("Fix the workflow, or delete this backstop, before re-enabling it.")
+              sys.exit(1)
+          print("invariant holds: no pull_request_target, no non-GITHUB_TOKEN secrets "
+                "in any pull_request-triggered workflow")
+          PY
+
+      - name: Approve stalled runs on open pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          # `inputs.dry_run` is unset on the schedule trigger, which is the real-run path.
+          DRY_RUN="${DRY_RUN:-false}"
+
+          # Drive the loop from the OPEN PULL REQUESTS, not from the run history.
+          #
+          # The obvious shape -- list every action_required run, then intersect with open
+          # PRs -- undercounts: /actions/runs pages at 100 and this repo carries ~180
+          # stalled runs, so the first page silently hides the rest. Querying per head SHA
+          # is bounded by the number of open PRs and cannot be truncated.
+          #
+          # The `status=` query parameter matches the run's status OR its conclusion, which
+          # is the whole point here. Filtering on STATUS alone is the trap: once GitHub
+          # closes out a stalled run it reports status="completed" with
+          # conclusion="action_required", so a status-only filter returns ZERO for exactly
+          # the runs that have been stalled longest. That is how PR #568 sat five days with
+          # no CI while `gh pr view --json statusCheckRollup` still read clean.
+          gh pr list --repo "${REPO}" --state open --json number,headRefOid,isCrossRepository \
+            --jq '.[] | [(.number|tostring), .headRefOid, (.isCrossRepository|tostring)] | @tsv' \
+            > open-prs.tsv
+
+          echo "open pull requests: $(wc -l < open-prs.tsv | tr -d ' ')"
+
+          approved=0
+          checked=0
+          while IFS=$'\t' read -r pr head_sha fork; do
+            [ -n "${pr:-}" ] || continue
+            checked=$((checked + 1))
+            runs=$(gh api \
+              "repos/${REPO}/actions/runs?head_sha=${head_sha}&status=action_required&per_page=100" \
+              --jq '.workflow_runs[] | [(.id|tostring), .name] | @tsv')
+            if [ -z "$runs" ]; then
+              echo "ok    PR #${pr} (${head_sha:0:8}, fork=${fork}) - nothing stalled"
+              continue
+            fi
+            while IFS=$'\t' read -r run_id run_name; do
+              [ -n "${run_id:-}" ] || continue
+              if [ "${DRY_RUN}" = "true" ]; then
+                echo "DRY   PR #${pr} run ${run_id} (${run_name}) - would approve"
+              else
+                echo "approve PR #${pr} run ${run_id} (${run_name})"
+                # Fail loud: a silently-failing backstop is worse than none, because it
+                # looks like coverage. Let a failed approve turn the job red.
+                gh api -X POST "repos/${REPO}/actions/runs/${run_id}/approve"
+              fi
+              approved=$((approved + 1))
+            done <<< "$runs"
+          done < open-prs.tsv
+
+          echo "checked=${checked} approved=${approved} dry_run=${DRY_RUN}"
+          {
+            echo "### Fork CI approval backstop"
+            echo
+            echo "- open pull requests checked: \`${checked}\`"
+            echo "- stalled runs approved: \`${approved}\`"
+            echo "- dry run: \`${DRY_RUN}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
