@@ -152,10 +152,14 @@ BuildKit carrier on one that the first pass had left unresolved. The ordering is
 treat the ratio as indicative.
 
 One mechanical finding that changes how you enumerate: **GHCR does not implement the OCI
-referrers API.** `/v2/<repo>/referrers/<digest>` returned HTTP 404 on all 16 GHCR
-repositories we probed, including repositories that demonstrably do have cosign artifacts.
-Docker Hub answered 200 on all 13 we probed. On GHCR, the referrers path in practice is the
-cosign fallback tag scheme `sha256-<hex>.att`.
+referrers API.** `/v2/<repo>/referrers/<digest>` returned HTTP 404 on every GHCR repository
+we probed, including repositories that demonstrably do have cosign artifacts. Docker Hub
+answered 200 on every repository we probed. We give the outcome rather than a repository
+count because the candidate list was hand assembled like the one above, but one point of
+method is worth stating, because both answers carry the same status code: a repository that
+returned no pull token or no `latest` tag was excluded rather than scored as a 404. Only
+repositories that first answered 200 to a manifest fetch were scored at all. On GHCR, the
+referrers path in practice is the cosign fallback tag scheme `sha256-<hex>.att`.
 
 ## The snippet
 
