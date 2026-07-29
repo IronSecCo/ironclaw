@@ -4,6 +4,8 @@
 
 ### Self-hosted AI agents you do not have to trust.
 
+[![MCP Toplist](https://mcptoplist.com/badge/io.github.IronSecCo%2Fironclaw.svg)](https://mcptoplist.com/server/io.github.IronSecCo%2Fironclaw)
+
 Each one runs sealed in a sandbox that provably cannot phone home, read your host, or rewrite its own rules.
 
 <!-- Security & supply-chain trust cluster — lead with what makes this project different -->
