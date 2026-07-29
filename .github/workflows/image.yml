@@ -73,6 +73,10 @@ jobs:
       image: ${{ steps.meta.outputs.image }}
       version: ${{ steps.meta.outputs.version }}
       tag_args: ${{ steps.meta.outputs.tag_args }}
+      # The tag NAMES this run publishes, space-separated (e.g. "latest v0.1.411").
+      # Single source of truth for every downstream step that has to name a tag; nothing
+      # below may hardcode `latest`, which is conditional since IRO-625.
+      tags: ${{ steps.meta.outputs.tags }}
       sha: ${{ steps.meta.outputs.sha }}
       mcp_present: ${{ steps.meta.outputs.mcp_present }}
       mcp_image: ${{ steps.meta.outputs.mcp_image }}
@@ -294,21 +298,35 @@ jobs:
             echo "Not tagging :latest — ${sha} is '${latest_status:-unknown}' relative to ${default_branch} tip, not that tip."
           fi
 
-          # `docker buildx imagetools create` takes the tags as -t flags. Tag :latest
-          # only for the branch tip; add the immutable :<version> tag when this commit
-          # carries one. At least one of the two is always present: a commit that is
-          # neither the tip nor tagged has nothing meaningful to publish.
-          tag_args=""
-          if [ "${is_latest}" = "true" ]; then
-            tag_args="-t ${image}:latest"
-          fi
+          # 3c) The ONE list of tag names this run publishes. Every downstream consumer
+          #     (the imagetools -t flags, the MCP image's tag list, the digest lookup in
+          #     `merge`, and verify-consumer's pull + attestation checks) is derived from
+          #     this, so none of them may assume `latest` is among them — since 3b it is
+          #     conditional. IRO-629: `merge` and verify-consumer each hardcoded :latest
+          #     and, on the first run where 3b withheld it, silently read a DIFFERENT,
+          #     older image's digest.
+          #
+          #     Order matters: the immutable :<version> comes first so `merge` resolves
+          #     the index through the tag that cannot be moved by a concurrent run.
+          #     At least one tag is always present — a commit that is neither the tip nor
+          #     tagged has nothing meaningful to publish.
+          tags=""
           if [ -n "${version}" ]; then
-            tag_args="${tag_args:+${tag_args} }-t ${image}:${version}"
+            tags="${version}"
           fi
-          if [ -z "${tag_args}" ]; then
+          if [ "${is_latest}" = "true" ]; then
+            tags="${tags:+${tags} }latest"
+          fi
+          if [ -z "${tags}" ]; then
             echo "::error::${sha} is neither the ${default_branch} tip nor a tagged release — refusing to publish an image with no meaningful tag." >&2
             exit 1
           fi
+
+          # `docker buildx imagetools create` takes the tags as -t flags.
+          tag_args=""
+          for t in ${tags}; do
+            tag_args="${tag_args:+${tag_args} }-t ${image}:${t}"
+          done
 
           # 4) The slim, socket-free MCP-server image (container/mcp.Dockerfile). It is the
           #    artifact the official MCP Registry listing points at (server.json), so it has
@@ -317,15 +335,14 @@ jobs:
           #    Dockerfile just skips that job rather than failing the release.
           mcp_image="ghcr.io/${owner}/ironclaw-mcp"
           if gh api "repos/${REPO}/contents/container/mcp.Dockerfile?ref=${sha}" --silent >/dev/null 2>&1; then
-            # docker/build-push-action takes newline-separated tags. Same forwards-only
-            # :latest rule as the control-plane image above.
+            # docker/build-push-action takes newline-separated tags. Same tag set as the
+            # control-plane image above — both images ship under identical tags so a
+            # consumer can pair them by version.
+            nl=$'\n'
             mcp_tags=""
-            if [ "${is_latest}" = "true" ]; then
-              mcp_tags="${mcp_image}:latest"
-            fi
-            if [ -n "${version}" ]; then
-              mcp_tags="${mcp_tags:+${mcp_tags}$'\n'}${mcp_image}:${version}"
-            fi
+            for t in ${tags}; do
+              mcp_tags="${mcp_tags}${mcp_tags:+${nl}}${mcp_image}:${t}"
+            done
             {
               echo "mcp_present=true"
               echo "mcp_image=${mcp_image}"
@@ -343,6 +360,7 @@ jobs:
             echo "image=${image}"
             echo "version=${version:-dev}"
             echo "tag_args=${tag_args}"
+            echo "tags=${tags}"
             echo "sha=${sha}"
           } >> "${GITHUB_OUTPUT}"
           echo "Publishing ${tag_args} (VERSION=${version:-dev}) from ${sha}"
@@ -457,16 +475,51 @@ jobs:
         env:
           IMAGE: ${{ needs.prepare.outputs.image }}
           TAG_ARGS: ${{ needs.prepare.outputs.tag_args }}
+          TAGS: ${{ needs.prepare.outputs.tags }}
         run: |
           set -euo pipefail
           # shellcheck disable=SC2046,SC2086
           docker buildx imagetools create ${TAG_ARGS} \
             $(printf "${IMAGE}@sha256:%s " *)
-          # The index digest is the verifiable subject for the published tag.
-          digest="$(docker buildx imagetools inspect "${IMAGE}:latest" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+
+          # The index digest is the verifiable subject of everything downstream: the SLSA
+          # provenance attestation, the syft SBOM, verify-consumer's tag check, and the
+          # image ref stamped into the (IMMUTABLE) MCP Registry version.
+          #
+          # It MUST therefore be read back through a tag THIS RUN just pushed. Reading it
+          # from a hardcoded :latest was the IRO-629 release-blocker: since IRO-625 moved
+          # :latest forwards only, a rebuild of a non-tip commit does not publish :latest,
+          # so the inspect silently returned some OTHER, older index — and the run then
+          # attested and SBOM-stamped that unrelated image while the release it actually
+          # built (v0.1.411) went out with NO provenance at all. Wrong digest here is not
+          # a cosmetic slip; it signs a claim about an artifact this run never produced.
+          #
+          # prepare orders TAGS with the immutable :<version> first, so the lookup goes
+          # through the tag a concurrent run cannot move.
+          primary="${TAGS%% *}"
+          digest="$(docker buildx imagetools inspect "${IMAGE}:${primary}" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          if [ -z "${digest}" ]; then
+            echo "::error::Could not resolve an index digest for ${IMAGE}:${primary} — refusing to attest an unknown subject." >&2
+            exit 1
+          fi
+
+          # Every tag we just applied must name that one index. They were created in a
+          # single imagetools call so they cannot legitimately diverge; if they have, a
+          # concurrent run overwrote one mid-flight and the tags a consumer resolves no
+          # longer agree with what we are about to sign. Fail loud rather than attest one
+          # digest while :latest serves another.
+          for t in ${TAGS}; do
+            d="$(docker buildx imagetools inspect "${IMAGE}:${t}" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+            if [ "${d}" != "${digest}" ]; then
+              echo "::error::${IMAGE}:${t} resolves to ${d} but this run published index ${digest} — a concurrent publish moved the tag. Refusing to attest a set whose tags disagree." >&2
+              exit 1
+            fi
+            echo "  ${IMAGE}:${t} -> ${d}"
+          done
+
           echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
-          echo "Published ${IMAGE} index ${digest}"
-          docker buildx imagetools inspect "${IMAGE}:latest"
+          echo "Published ${IMAGE} index ${digest} as: ${TAGS}"
+          docker buildx imagetools inspect "${IMAGE}@${digest}"
 
       - name: Attest the control-plane image
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4
@@ -645,7 +698,11 @@ jobs:
       contents: read # gh attestation verify reads the public attestation; no push/sign here
     env:
       IMAGE: ${{ matrix.image }}
-      VERSION: ${{ needs.prepare.outputs.version }}
+      # Exactly the tags this run published — NOT a hardcoded "latest" plus a
+      # version-derived one. :latest is conditional since IRO-625, so asserting it here
+      # made the release fail on a tag the run had deliberately not moved (IRO-629).
+      # This replaces the old VERSION input: derive tags from here, never recompute them.
+      TAGS: ${{ needs.prepare.outputs.tags }}
       EXPECTED_DIGEST: ${{ matrix.digest }}
       REPO: ${{ github.repository }}
       GH_TOKEN: ${{ github.token }}
@@ -673,12 +730,17 @@ jobs:
           # GHCR repository path used by the registry v2 API.
           repo="${IMAGE#ghcr.io/}"
 
-          # Always check :latest; add the immutable :<version> when this commit carried a
-          # release tag (VERSION is "dev" when it didn't).
-          tags="latest"
-          if [ -n "${VERSION}" ] && [ "${VERSION}" != "dev" ]; then
-            tags="latest ${VERSION}"
+          # Check exactly the tags this run published, as prepare recorded them. A tag we
+          # deliberately did NOT move (:latest on a non-tip rebuild) still points at some
+          # other release's index, so asserting it against this run's digest would fail a
+          # perfectly good publish — and, worse, passing it would mean the digest we are
+          # holding came from that other image (IRO-629).
+          tags="${TAGS}"
+          if [ -z "${tags}" ]; then
+            echo "::error::prepare published no tags — nothing to verify, which should be impossible. Failing the release." >&2
+            exit 1
           fi
+          echo "Tags published by this run: ${tags}"
 
           # GHCR anonymous pull flow: request a bearer token with NO credentials. For a
           # PUBLIC package that token carries pull scope. For a PRIVATE package — or one
@@ -729,26 +791,36 @@ jobs:
             fi
             echo "  -> HTTP 200 (anonymously pullable)"
             # The tag a public consumer resolves must be exactly the index we attested.
+            # Every tag in the loop is one THIS run pushed, so a mismatch is real: either
+            # a concurrent publish moved it, or the digest we attested was never the one
+            # behind this tag. Both are fail-closed, and an absent header is too — a check
+            # that cannot read the digest has not passed, it has been skipped.
             pulled="$(grep -i '^docker-content-digest:' "${hdr}" | tr -d '\r' | awk '{print $2}')"
-            if [ -n "${EXPECTED_DIGEST}" ] && [ -n "${pulled}" ] && [ "${pulled}" != "${EXPECTED_DIGEST}" ]; then
+            if [ -z "${pulled}" ]; then
+              echo "::error::ghcr.io/${repo}:${tag} returned no Docker-Content-Digest header — cannot confirm it resolves to the attested index. Failing the release." >&2
+              exit 1
+            fi
+            if [ -n "${EXPECTED_DIGEST}" ] && [ "${pulled}" != "${EXPECTED_DIGEST}" ]; then
               echo "::error::ghcr.io/${repo}:${tag} resolves to ${pulled} but the just-published index digest is ${EXPECTED_DIGEST} — mismatch. Failing the release." >&2
               exit 1
             fi
+            echo "  -> ${pulled} (matches the attested index)"
           done
 
       - name: Verify build provenance from the consumer side
         if: ${{ steps.gate.outputs.skip != 'true' }}
         run: |
           set -euo pipefail
-          # Verify by digest (the attested subject) and by the tags users actually pull.
+          # Verify by digest (the attested subject) and by the tags users actually pull —
+          # again exactly the tags this run published, never a hardcoded :latest.
           # No registry login above means this exercises the genuine anonymous OCI path.
-          refs="oci://${IMAGE}@${EXPECTED_DIGEST}"
-          if [ -z "${EXPECTED_DIGEST}" ]; then
-            refs="oci://${IMAGE}:latest"
+          refs=""
+          if [ -n "${EXPECTED_DIGEST}" ]; then
+            refs="oci://${IMAGE}@${EXPECTED_DIGEST}"
           fi
-          if [ -n "${VERSION}" ] && [ "${VERSION}" != "dev" ]; then
-            refs="${refs} oci://${IMAGE}:${VERSION}"
-          fi
+          for tag in ${TAGS}; do
+            refs="${refs:+${refs} }oci://${IMAGE}:${tag}"
+          done
           for ref in ${refs}; do
             echo "gh attestation verify ${ref} --repo ${REPO}"
             # gh queries the public attestations API right after publish; brief retry to
