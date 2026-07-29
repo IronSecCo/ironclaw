@@ -56,4 +56,5 @@ nav:
       - Environment variables: env-reference.md
       - Release runbook: release-runbook.md
       - PR review & reviewer identity: pr-review-process.md
+      - CLA exceptions: cla-exceptions.md
       - Roadmap: roadmap.md
