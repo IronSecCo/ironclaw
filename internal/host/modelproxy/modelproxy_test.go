@@ -126,18 +126,20 @@ func TestMultiInjectorRoutesCredentialByHost(t *testing.T) {
 	cases := []struct {
 		host        string
 		wantAPIKey  string // x-api-key (Anthropic)
-		wantAuth    string // Authorization (OpenAI / OpenRouter)
+		wantAuth    string // Authorization (OpenAI / OpenRouter / Groq)
 		wantVersion string
 	}{
 		{"api.anthropic.com", "anthropic-secret", "", "2023-06-01"},
 		{"api.openai.com", "", "Bearer openai-secret", ""},
 		{"openrouter.ai", "", "Bearer openrouter-secret", ""},
+		{"api.groq.com", "", "Bearer groq-secret", ""},
 	}
 
 	inject := MultiInjector(
 		AnthropicInjector("anthropic-secret", "2023-06-01"),
 		OpenAIInjector("openai-secret"),
 		OpenRouterInjector("openrouter-secret"),
+		GroqInjector("groq-secret"),
 	)
 
 	for _, tc := range cases {
@@ -151,7 +153,7 @@ func TestMultiInjectorRoutesCredentialByHost(t *testing.T) {
 			}))
 			defer upstream.Close()
 
-			p := New([]string{"api.anthropic.com", "api.openai.com", "openrouter.ai"},
+			p := New([]string{"api.anthropic.com", "api.openai.com", "openrouter.ai", "api.groq.com"},
 				WithInjector(inject),
 				WithTransport(&redirectTransport{target: upstream.Listener.Addr().String()}),
 			)
@@ -189,6 +191,7 @@ func TestProviderInjectorsNoOpOffHost(t *testing.T) {
 	OpenAIInjector("k")("api.anthropic.com", req)
 	OpenRouterInjector("k")("api.openai.com", req)
 	AnthropicInjector("k", "v")("openrouter.ai", req)
+	GroqInjector("k")("api.openai.com", req)
 	if got := req.Header.Get("Authorization"); got != "" {
 		t.Errorf("Authorization set off-host: %q", got)
 	}

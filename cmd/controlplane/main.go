@@ -249,6 +249,13 @@ func main() {
 	if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
 		addProvider("api.openai.com", modelproxy.OpenAIInjector(apiKey), apiKey)
 	}
+	// Groq — an OpenAI-wire-compatible inference provider serving chat completions
+	// under /openai/v1. Like OpenRouter it is plain Bearer auth, so the injector and
+	// allowlist wiring mirror OpenRouter. The host is allowlisted only when
+	// GROQ_API_KEY is present; the injector self-guards on the api.groq.com host.
+	if apiKey := os.Getenv("GROQ_API_KEY"); apiKey != "" {
+		addProvider("api.groq.com", modelproxy.GroqInjector(apiKey), apiKey)
+	}
 	if apiKey := os.Getenv("OPENROUTER_API_KEY"); apiKey != "" {
 		addProvider("openrouter.ai", modelproxy.OpenRouterInjector(apiKey), apiKey)
 	}

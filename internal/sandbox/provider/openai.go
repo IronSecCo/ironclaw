@@ -70,6 +70,9 @@ func NewOpenAI(cfg Config) *OpenAIProvider {
 	if strings.Contains(strings.ToLower(cfg.UpstreamHost), "openrouter.ai") {
 		path = "/api/v1/chat/completions"
 	}
+	if strings.Contains(strings.ToLower(cfg.UpstreamHost), "api.groq.com") {
+		path = "/openai/v1/chat/completions"
+	}
 	return &OpenAIProvider{
 		cfg:    cfg,
 		client: newSocketClient(cfg.SocketPath, cfg.HTTPTimeout),
