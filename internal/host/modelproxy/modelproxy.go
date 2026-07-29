@@ -169,6 +169,19 @@ func OpenRouterInjector(apiKey string) Injector {
 	}
 }
 
+// GroqInjector returns an Injector that authenticates requests to the Groq API —
+// an OpenAI-compatible inference provider — with a host-held API key via the
+// Bearer scheme (e.g. from GROQ_API_KEY). It self-guards on the upstream host so
+// it no-ops for any other provider — safe to compose through MultiInjector.
+func GroqInjector(apiKey string) Injector {
+	return func(upstreamHost string, req *http.Request) {
+		if !strings.Contains(strings.ToLower(upstreamHost), "api.groq.com") {
+			return
+		}
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+}
+
 // GeminiInjector returns an Injector that authenticates requests to the Google
 // Generative Language API (Google AI Studio / Gemini) with a host-held API key via
 // the x-goog-api-key header (e.g. from GOOGLE_API_KEY or GEMINI_API_KEY). Like the
