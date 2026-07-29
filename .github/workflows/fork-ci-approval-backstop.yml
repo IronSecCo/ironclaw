@@ -27,6 +27,20 @@ name: Fork CI approval backstop
 # Scope guard: this only approves runs that are the CURRENT head of an OPEN pull request.
 # The repo carries ~180 historical `action_required` runs on superseded and bot SHAs; they
 # are dead and resurrecting them would burn runner time for nothing.
+#
+# CLA gate (IRO-657): a PR is only eligible once `license/cla` is green on its head commit.
+# This is not a security boundary and is not claimed as one. It does three things:
+#   - It stops us spending runner minutes on PRs we could not merge either way.
+#   - It keeps one deliberate human act by the contributor in front of us executing their
+#     code, which is what "first-touch is a human decision" was actually protecting. The
+#     act moves from a maintainer click to the contributor's own click, so the property
+#     survives and the latency does not.
+#   - It is free at decision time: `license/cla` is a cla-assistant webhook, not an Actions
+#     workflow, so it reports on a fork PR WITHOUT approval. It was the one check that ran
+#     on #577 for the entire stall.
+# `license/cla` is a commit STATUS, not a check run, so its verdict lives in `state` and
+# its `conclusion` is always null. Reading `.conclusion` here would approve nothing forever
+# and look healthy doing it, so this reads the status `state` and nothing else.
 
 on:
   schedule:
@@ -46,6 +60,8 @@ permissions:
   contents: read
   actions: write
   pull-requests: read
+  # Read-only, and only so the CLA gate can read the `license/cla` commit status.
+  statuses: read
 
 concurrency:
   group: fork-ci-approval-backstop
@@ -66,13 +82,29 @@ jobs:
           python3 - <<'PY'
           import sys, pathlib, yaml, re
 
+          # Relative on purpose: the fixture suite exercises this exact body by running it
+          # from a repo-shaped fixture root, so CI and the tests share one scanner with no
+          # test-only override to drift or be abused.
+          root = pathlib.Path(".github/workflows")
+
           violations = []
-          for f in sorted(pathlib.Path(".github/workflows").glob("*.yml")):
+          scanned = 0
+          pr_triggered = 0
+
+          # Both extensions. The repo is all `*.yml` today, which is exactly why the first
+          # `*.yaml` anyone adds would have slipped past a `*.yml`-only glob unnoticed.
+          files = sorted(set(root.glob("*.yml")) | set(root.glob("*.yaml")))
+
+          for f in files:
+              scanned += 1
               src = f.read_text()
               try:
                   doc = yaml.safe_load(src)
               except yaml.YAMLError as e:
                   violations.append(f"{f}: unparseable, cannot prove it is safe ({e})")
+                  continue
+              if not isinstance(doc, dict):
+                  violations.append(f"{f}: not a mapping, cannot prove it is safe")
                   continue
               # PyYAML parses the bare key `on:` as the boolean True.
               on = doc.get(True, doc.get("on"))
@@ -83,6 +115,7 @@ jobs:
                   violations.append(f"{f}: uses pull_request_target")
               if "pull_request" not in keys:
                   continue
+              pr_triggered += 1
               # GITHUB_TOKEN is read-only on a fork PR and is not a repo secret, so it is
               # the one permitted reference. Anything else is a real secret reaching
               # untrusted code.
@@ -90,6 +123,35 @@ jobs:
                   for m in re.finditer(r"secrets\.([A-Za-z_][A-Za-z0-9_]*)", line):
                       if m.group(1) != "GITHUB_TOKEN":
                           violations.append(f"{f}:{n}: reads secrets.{m.group(1)}")
+              # `secrets.FOO` is invisible in a reusable-workflow call: `jobs.<id>.uses`
+              # with `secrets: inherit` hands the callee EVERY repo secret without the
+              # string ever appearing in the caller. The regex above cannot see it.
+              jobs = doc.get("jobs")
+              if isinstance(jobs, dict):
+                  for jid, job in jobs.items():
+                      if not isinstance(job, dict):
+                          continue
+                      sec = job.get("secrets")
+                      if isinstance(sec, str) and sec.strip().lower() == "inherit":
+                          violations.append(
+                              f"{f}: job `{jid}` calls {job.get('uses', 'a reusable workflow')} "
+                              "with `secrets: inherit`, which passes every repo secret"
+                          )
+
+          # Vacuity guards. An empty scan is not a passing scan. If the directory moves, the
+          # glob stops matching, or the checkout silently produces an empty tree, this check
+          # would otherwise report "safe" having proved nothing at all -- the precise failure
+          # mode it exists to prevent.
+          if scanned == 0:
+              violations.append(
+                  f"{root}: scanned 0 workflow files -- the scan proved nothing"
+              )
+          if pr_triggered == 0:
+              violations.append(
+                  f"{root}: found 0 pull_request-triggered workflows among {scanned} "
+                  "scanned -- the invariant is about fork PR runs, so a scan that sees no "
+                  "pull_request workflow has not tested it"
+              )
 
           if violations:
               print("INVARIANT BROKEN -- refusing to auto-approve any fork run:")
@@ -99,8 +161,9 @@ jobs:
               print("A fork PR can now reach a secret or run with elevated context.")
               print("Fix the workflow, or delete this backstop, before re-enabling it.")
               sys.exit(1)
-          print("invariant holds: no pull_request_target, no non-GITHUB_TOKEN secrets "
-                "in any pull_request-triggered workflow")
+          print(f"invariant holds across {scanned} workflows ({pr_triggered} "
+                "pull_request-triggered): no pull_request_target, no non-GITHUB_TOKEN "
+                "secrets, no `secrets: inherit`")
           PY
 
       - name: Approve stalled runs on open pull requests
@@ -135,9 +198,30 @@ jobs:
 
           approved=0
           checked=0
+          cla_skipped=0
           while IFS=$'\t' read -r pr head_sha fork; do
             [ -n "${pr:-}" ] || continue
             checked=$((checked + 1))
+
+            # CLA gate. `license/cla` is a commit STATUS, so its verdict is `.state`; its
+            # `.conclusion` does not exist and every check-run rollup reads that absence as
+            # "queued". Gating on a conclusion here would skip every PR forever while the
+            # job stayed green, so read the status state and only the status state.
+            #
+            # `--jq` prints an EMPTY string, not `null`, when nothing matches, so an absent
+            # `license/cla` context lands as "" and falls through to the skip -- absent is
+            # not success. The REST API reports state in lower case; normalise anyway so a
+            # casing change upstream cannot silently turn this into a match-nothing gate
+            # that fails OPEN.
+            cla=$(gh api "repos/${REPO}/commits/${head_sha}/status" \
+              --jq '[.statuses[] | select(.context == "license/cla")] | last | .state // empty')
+            cla=$(printf '%s' "${cla}" | tr '[:upper:]' '[:lower:]')
+            if [ "${cla}" != "success" ]; then
+              echo "skip  PR #${pr} (${head_sha:0:8}, fork=${fork}) - license/cla is '${cla:-absent}', not success"
+              cla_skipped=$((cla_skipped + 1))
+              continue
+            fi
+
             runs=$(gh api \
               "repos/${REPO}/actions/runs?head_sha=${head_sha}&status=action_required&per_page=100" \
               --jq '.workflow_runs[] | [(.id|tostring), .name] | @tsv')
@@ -159,11 +243,12 @@ jobs:
             done <<< "$runs"
           done < open-prs.tsv
 
-          echo "checked=${checked} approved=${approved} dry_run=${DRY_RUN}"
+          echo "checked=${checked} cla_skipped=${cla_skipped} approved=${approved} dry_run=${DRY_RUN}"
           {
             echo "### Fork CI approval backstop"
             echo
             echo "- open pull requests checked: \`${checked}\`"
+            echo "- skipped, \`license/cla\` not green: \`${cla_skipped}\`"
             echo "- stalled runs approved: \`${approved}\`"
             echo "- dry run: \`${DRY_RUN}\`"
           } >> "$GITHUB_STEP_SUMMARY"
