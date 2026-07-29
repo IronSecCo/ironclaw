@@ -239,3 +239,7 @@ We build supply-chain security tooling, and we found this on ourselves. The reas
 worth publishing is not that the outcome was bad, it is that under the standard tooling the
 outcome looked fine. If your pipeline hands a digest to a signer as a plain input, and
 something upstream can get that digest wrong, you have the same primitive we do.
+
+The check itself, with the copyable YAML, the base rate we measured and where the build
+identifier lives in each provenance shape, is in
+[Appendix: assert your own build provenance in CI](assert-your-own-build-provenance.md).
