@@ -839,6 +839,104 @@ jobs:
             fi
           done
 
+      # Post-publish provenance gate (IRO-633 / IRO-640). The step above proves that AN
+      # attestation on this digest verifies. This proves the RIGHT one — and only it — is
+      # bound to what this run just pushed.
+      #
+      # `gh attestation verify` is MONOTONIC BY DESIGN: silent on success, and exit 0 as
+      # soon as ANY ONE statement verifies, with the remaining results discarded
+      # (cli/cli#9850; GitHub's stated threat is a MALFORMED extra statement, not a valid
+      # contradicting one). So a digest carrying a second, perfectly valid provenance
+      # minted by a run that built something else sails through it green.
+      #
+      # That is not hypothetical here. ghcr.io/ironsecco/ironclaw-controlplane
+      # @sha256:be66da22455e11b8625693a29535f599500c126165eeabb34775492a962ce5b7 — ONE
+      # digest carried on TWO tags (:v0.1.407 and :latest), not two incidents — holds two
+      # SLSA provenance statements, from runs 30409777856 and 30412119358, the second
+      # Rekor-logged 44 minutes AFTER the digest already existed. It came from `merge`
+      # reading the index digest back through a hardcoded :latest that this run had
+      # deliberately not moved, then attesting an index it never built (IRO-629). The
+      # attestation log is append-only and a tag move or package delete retracts NOTHING
+      # (IRO-632), so that image is permanently ambiguous. The only place this is
+      # catchable is here, in the publisher's own CI, while the set of statements is still
+      # authoritative — never in consumer admission control, where a non-monotonic rule
+      # can be disarmed by whoever can add statements.
+      #
+      # FAIL CLOSED. The ONLY path to green is an affirmative count of exactly 1, whose
+      # subject is this image at this digest, and whose invocationId is THIS run. A query
+      # that errors, returns empty, returns null, or returns a non-array all FAIL. Note
+      # `jq length` prints an EMPTY STRING for an unreadable body, and empty-read-as-pass
+      # is precisely how release gates have false-passed in this repo before — so every
+      # read below is shape-checked against ^[0-9]+$ or asserted with `jq -e`, and nothing
+      # is ever tested for mere truthiness.
+      - name: Assert exactly one provenance statement, minted by this run for this digest
+        if: ${{ steps.gate.outputs.skip != 'true' }}
+        run: |
+          set -euo pipefail
+
+          # A gate with no subject has not passed, it has been skipped.
+          if [ -z "${EXPECTED_DIGEST}" ]; then
+            echo "::error::No published index digest for ${IMAGE} — refusing to green a provenance gate that had nothing to check. Failing the release." >&2
+            exit 1
+          fi
+
+          out="$(mktemp)"
+          err="$(mktemp)"
+          if ! gh attestation verify "oci://${IMAGE}@${EXPECTED_DIGEST}" \
+                --repo "${REPO}" --format json >"${out}" 2>"${err}"; then
+            echo "::error::Could not read provenance statements for ${IMAGE}@${EXPECTED_DIGEST} — the query itself failed, which is a FAIL, not a pass. Failing the release." >&2
+            cat "${err}" >&2 || true
+            exit 1
+          fi
+
+          # Affirmative integer, or refuse. A non-array body yields -1, which fails the
+          # shape check below alongside the empty string an unreadable body produces.
+          count="$(jq 'if type == "array" then length else -1 end' "${out}" 2>/dev/null || true)"
+          if ! printf '%s' "${count}" | grep -Eq '^[0-9]+$'; then
+            echo "::error::Could not read a provenance statement count for ${IMAGE}@${EXPECTED_DIGEST} (got '${count}') — an unreadable answer is a FAIL. Failing the release." >&2
+            exit 1
+          fi
+
+          if [ "${count}" != "1" ]; then
+            echo "::error title=Provenance statement count is ${count}, expected exactly 1::${IMAGE}@${EXPECTED_DIGEST} carries ${count} SLSA provenance statements. 0 means this run published an image with no provenance at all. 2 or more means the digest is claimed by more than one build, so a consumer running 'gh attestation verify' gets whichever statement happens to verify first and cannot tell which build really produced this image (IRO-633). Do NOT re-run to clear this: the attestation log is append-only and nothing retracts a statement (IRO-632). Investigate which run minted each statement below, fix the publisher, and cut a new release. Failing the release." >&2
+            jq -r '.[] | "  run=\(.verificationResult.statement.predicate.runDetails.metadata.invocationId // "<unknown>") subject=\(.verificationResult.statement.subject // [] | map("\(.name)@sha256:\(.digest.sha256 // "?")") | join(","))"' \
+              "${out}" >&2 || true
+            exit 1
+          fi
+
+          # The one statement must name THIS image at THIS digest.
+          # actions/attest-build-provenance takes subject-digest as a free-form input and
+          # signs whatever it is handed — nothing in the action binds that digest to what
+          # the run actually built. This assertion is that missing binding.
+          want_hex="${EXPECTED_DIGEST#sha256:}"
+          if ! jq -e --arg img "${IMAGE}" --arg hex "${want_hex}" \
+              '(.[0].verificationResult.statement.subject // [])
+                 | map(select(.name == $img and .digest.sha256 == $hex)) | length == 1' \
+              "${out}" >/dev/null 2>&1; then
+            echo "::error::The provenance statement on ${IMAGE}@${EXPECTED_DIGEST} does not name that image and digest as its subject — refusing to ship an image whose provenance describes something else. Failing the release." >&2
+            jq -r '.[0].verificationResult.statement.subject' "${out}" >&2 || true
+            exit 1
+          fi
+
+          # ...and it must have been minted by THIS run. This is the assertion IRO-629
+          # would have tripped: that run attested an older index it had not built, so the
+          # provenance on the digest it shipped came from a different run entirely.
+          # invocationId is a run URL ending .../actions/runs/<id>/attempts/<n>; normalize
+          # to the run id. `// empty` yields an empty string for a JSON null, which the
+          # shape check below rejects — never compare against the literal "null".
+          claim_url="$(jq -r '.[0].verificationResult.statement.predicate.runDetails.metadata.invocationId // empty' "${out}" 2>/dev/null || true)"
+          claim_run="$(printf '%s' "${claim_url}" | sed -E 's#.*/actions/runs/([0-9]+).*#\1#')"
+          if ! printf '%s' "${claim_run}" | grep -Eq '^[0-9]+$'; then
+            echo "::error::Could not read the run that minted the provenance for ${IMAGE}@${EXPECTED_DIGEST} (invocationId='${claim_url}') — an unreadable answer is a FAIL. Failing the release." >&2
+            exit 1
+          fi
+          if [ "${claim_run}" != "${GITHUB_RUN_ID}" ]; then
+            echo "::error::Provenance on ${IMAGE}@${EXPECTED_DIGEST} was minted by run ${claim_run}, but this run is ${GITHUB_RUN_ID} — this run published a digest it did not attest, or attested one it did not publish (IRO-629). Failing the release." >&2
+            exit 1
+          fi
+
+          echo "  ${IMAGE}@${EXPECTED_DIGEST}: exactly 1 provenance statement, subject matches, minted by run ${claim_run}."
+
   # Publish (or refresh) the IronClaw listing on the official MCP Registry
   # (registry.modelcontextprotocol.io) under the account-free `io.github.IronSecCo`
   # namespace. This runs ONLY after the image is built, merged, attested, AND proven
