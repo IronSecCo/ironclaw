@@ -29,7 +29,6 @@ name: Fork CI approval backstop
 # are dead and resurrecting them would burn runner time for nothing.
 
 on:
-  pull_request:
   schedule:
     # Every 30 minutes. A contributor should never wait longer than one cycle.
     - cron: "*/30 * * * *"
