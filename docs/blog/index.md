@@ -11,6 +11,10 @@ adjectives standing in for numbers.
 
 ## Posts
 
+- [One of our container images carries two green provenance statements. Only one of them is true.](two-green-provenance-statements.md) -
+  we published a signed SLSA provenance statement that verifies green and is false. The
+  digest, why it cannot be retracted, the two checks an outsider can run to tell the
+  statements apart, and what to go check on your own release pipeline.
 - [State of Container Isolation 2026: we graded 16 popular images and 15 scored a D or worse](state-of-container-isolation-2026.md) -
   a reproducible survey of 16 popular public images in their common run
   configurations, graded 0 to 100 with `ironctl scan`. Only one hit an A;
