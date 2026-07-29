@@ -4,7 +4,9 @@
 > permanent, non-exclusive, worldwide, royalty-free license to use, modify, and
 > commercially dual-license your contributions.** This is formalized in the
 > [Contributor License Agreement](CLA.md), which the CLA Assistant bot asks you to sign
-> on your first pull request.
+> on your first pull request. Sign it in one click at
+> **<https://cla-assistant.io/IronSecCo/ironclaw>**. Posting a sign comment on the pull
+> request does **not** work here, see [Signing the CLA](#signing-the-cla).
 
 Thanks for your interest in IronClaw! Contributions of every kind are welcome —
 bug reports, fixes, new channel adapters, docs, and tests.
@@ -34,14 +36,29 @@ git push -u origin my-change
 ```
 
 Then open the pull request, fill in the template, and link the issue it closes.
-The **CLA Assistant** bot comments on your first PR with a one-click signing link —
-that's all the setup there is. A maintainer reviews and merges.
+A maintainer reviews and merges.
 
 **Looking for something to work on?** Grab a
 [**good first issue**](https://github.com/IronSecCo/ironclaw/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 (comment to claim it first), or ask in
 [**Discussions**](https://github.com/IronSecCo/ironclaw/discussions). The rest of this
 guide covers the ground rules, the frozen contract, and the code layout in detail.
+
+### Signing the CLA
+
+One click, and it is the only setup step there is:
+
+**<https://cla-assistant.io/IronSecCo/ironclaw>**
+
+The signature is recorded against your GitHub account, so you sign once and every later
+pull request is covered. The **CLA Assistant** bot posts that same link on your first PR.
+
+**Do not try to sign by comment.** Other projects accept a
+`I have read the CLA Document and I hereby sign the CLA` comment on the pull request.
+This one does not: the bot we run only reads pull request events, so a sign comment is
+silently ignored and `license/cla` stays red no matter how many times you post it.
+If you have signed and the check is still red, use the `recheck` link in the bot's
+comment rather than replying to it.
 
 ### Good places to start
 
