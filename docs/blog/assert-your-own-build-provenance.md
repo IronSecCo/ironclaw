@@ -58,7 +58,7 @@ everything anybody has ever said about it.
 |---|---|---|
 | PASS | Provenance is present, every statement comes from one run, that run is this run, and every subject is this digest or one of its platform children | Step is green |
 | FAIL | Two or more distinct runs, a run that is not this one, or a subject this run did not publish | Warning annotation and a job summary line. Exits non zero only if you opt in |
-| NOT-EVALUABLE | No provenance found on this carrier, or provenance that carries no comparable build identifier | Warning annotation and a job summary line. Never a pass |
+| NOT-EVALUABLE | No provenance found on this carrier, provenance that carries no comparable build identifier, or a query that did not answer | Warning annotation and a job summary line. Never a pass |
 
 NOT-EVALUABLE must never render as green. It is the honest answer for most of the ecosystem
 and treating it as a pass is how a check ends up certifying nothing while looking like it
@@ -123,10 +123,10 @@ data, across two independent measurements:
   statement, all benign duplicate storage. After run identifier normalisation, the assertion
   fires **once, with zero false positives**, and the one fire is the incident this appendix
   is about.
-- **cosign `.att` path: 746 digests swept, 49 decoded to statement level, 84 statements,
-  zero fires.** One publisher there attests SBOMs only and carries no provenance at all, so
-  the assertion is inapplicable rather than passing, which is exactly the case the
-  NOT-EVALUABLE outcome exists for.
+- **cosign `.att` path: 746 digests swept, 49 decoded to statement level, zero fires.** One
+  publisher there attests SBOMs only and carries no provenance at all, so the assertion is
+  inapplicable rather than passing, which is exactly the case the NOT-EVALUABLE outcome
+  exists for.
 
 We have not found a single legitimate multi run provenance set in any dataset.
 
@@ -145,6 +145,22 @@ cosign fallback tag scheme `sha256-<hex>.att`.
 Add this to the job that publishes the image, after the push step. `DIGEST` is the digest
 that step reported.
 
+`IMAGE`, `DIGEST` and `FAIL_ON` are the three values you set. Four things it assumes about
+the job around it, none of which it can check for you:
+
+- **A push step whose digest you can reference.** `steps.push.outputs.digest` is the id of
+  our push step, not a builtin. Point it at yours.
+- **`attestations: read` in the job's `permissions`.** `github.token` carries it under the
+  permissive default, but not if your repository or workflow narrows permissions, which is
+  the setting we would recommend anyway.
+- **`gh`, `jq` and `docker buildx` on the runner.** All three are present on GitHub hosted
+  runners. On a self hosted runner or inside a container job you may have none of them.
+- **Registry access for a private image.** Both `gh attestation verify` and `imagetools`
+  read the registry. If the package is private, the job needs to be logged in to it already.
+
+It writes `att.json` and `att.err` into the working directory, so run it after any step that
+cares about a clean tree.
+
 ```yaml
 - name: Assert published provenance is single run and mine
   env:
@@ -153,7 +169,7 @@ that step reported.
     GH_TOKEN: ${{ github.token }}
     FAIL_ON: ""                                # set to "multi-run" to make FAIL red
   run: |
-    set -uo pipefail
+    set +e -uo pipefail
     say()  { echo "$1"; echo "$1" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"; }
     warn() { echo "::warning::$1"; say "$1"; }
     if ! gh attestation verify "oci://${IMAGE}@${DIGEST}" --repo "${GITHUB_REPOSITORY}" \
@@ -167,15 +183,16 @@ that step reported.
        // .predicate.invocation.environment.github_run_id // "") | tostring
       | sub("/attempts/[0-9]+$"; "")
       | if test("^[0-9]+$") then . elif test("/actions/runs/[0-9]+$")
-        then capture("/actions/runs/(?<i>[0-9]+)$").i else empty end;
+        then capture("/actions/runs/(?<i>[0-9]+)$").i else "?" end;
     [ .[].verificationResult.statement
       | select(.predicateType | startswith("https://slsa.dev/provenance/")) ]
-    | "\(length) \([.[]|runid]|unique|join(",")|if .=="" then "-" else . end) \([.[].subject[].digest.sha256]|unique|join(","))"
+    | "\(length) \([.[]|runid]|unique|join(",")|if .=="" or test("[?]") then "-" else . end) \([.[].subject[].digest.sha256]|unique|join(","))"
     ' att.json)
     EOF
     case "${n:-}" in ''|0) warn "provenance NOT-EVALUABLE on ${DIGEST}: no SLSA provenance statement"; exit 0;; esac
-    [ "$runs" = "-" ] && { warn "provenance NOT-EVALUABLE on ${DIGEST}: ${n} statement(s), no comparable build identifier"; exit 0; }
-    kids=$(docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --raw | jq -r '[.manifests[]?.digest]|join(" ")' | sed 's/sha256://g')
+    [ "$runs" = "-" ] && { warn "provenance NOT-EVALUABLE on ${DIGEST}: ${n} statement(s), not every one carries a comparable build identifier"; exit 0; }
+    kids=$(docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --raw | jq -r '[.manifests[]?.digest]|join(" ")' | sed 's/sha256://g') ||
+      { warn "provenance NOT-EVALUABLE on ${DIGEST}: could not read the image index to resolve platform children"; exit 0; }
     allowed=" ${DIGEST#sha256:} ${kids} "
     stray=""; for s in ${subs//,/ }; do [[ "$allowed" == *" $s "* ]] || stray="$stray $s"; done
     if [ "$runs" = "${GITHUB_RUN_ID}" ] && [ -z "$stray" ]; then
@@ -185,8 +202,12 @@ that step reported.
     [ "${FAIL_ON:-}" = "multi-run" ] && exit 1 || exit 0
 ```
 
-Four notes on why it is written the way it is.
+Five notes on why it is written the way it is.
 
+- **`set +e` is the first line, and it is not a typo.** A `run:` step with no `shell:` key
+  runs under `bash -e`, so any unchecked command failure ends the step before the check can
+  report anything. This step decides its own exit code, so it turns that off deliberately.
+  Delete that and a slow registry ends your build with no verdict at all.
 - **It reads the JSON, not the exit code.** `gh attestation verify` exits 0 if at least one
   statement verifies, and when stdout is not a terminal it prints nothing at all. Both are
   deliberate on GitHub's side, and both are why a green verify did not save us.
@@ -196,16 +217,21 @@ Four notes on why it is written the way it is.
 - **The `imagetools` call is what makes A4 usable on a multi platform image.** Provenance is
   frequently attached per platform, so a per platform child digest is a legitimate subject
   and the check has to say so rather than flagging it.
-- **A query failure is NOT-EVALUABLE, not FAIL.** The attestations endpoint has its own
+- **Either query failing is NOT-EVALUABLE, not FAIL.** The attestations endpoint has its own
   secondary rate limit, and a 403 from it means you did not get an answer, not that the
-  answer was bad.
+  answer was bad. The same goes for the registry read: if the index cannot be fetched, the
+  check does not know which platform children are legitimate subjects, so it says so rather
+  than reporting subjects it could not resolve as strays.
 
-We replayed this snippet against eight real inputs, with the API call served from recorded
-responses: the incident digest (FAIL, two runs), goreleaser and uv (PASS, four and two
-statements from one run), a matching digest with a mismatched run id (FAIL), a statement
-naming a digest the run did not publish (FAIL), a digest with no attestations (NOT-EVALUABLE),
-and a statement whose identifier is a non GitHub UUID (NOT-EVALUABLE). With `FAIL_ON` unset
-every case exits 0.
+We replayed the snippet against every branch it has, with `gh` and `docker` answering from
+fixtures: the incident digest (FAIL, two runs), goreleaser and uv shapes (PASS,
+four and two statements from one run), a mismatched run id (FAIL), a statement naming a
+digest the run did not publish (FAIL), a legitimate platform child subject (PASS), no
+attestations at all (NOT-EVALUABLE), a statement whose identifier is a non GitHub UUID
+(NOT-EVALUABLE), a set mixing a real run id with an uncomparable one (NOT-EVALUABLE), and a
+registry that refused the index read (NOT-EVALUABLE). Every case was run under `bash -e`,
+the runner's own default, because that flag decides the outcome of three of them. With
+`FAIL_ON` unset every case exits 0.
 
 ### The cosign path
 
@@ -263,7 +289,8 @@ Stated plainly, because the numbers above are worth exactly what their method is
 - Adoption on registries other than GHCR and Docker Hub.
 - Whether any publisher legitimately attests one digest from two different workflows. This is
   the one false positive we expect to exist and have never seen.
-- The cosign path base rate beyond the two publishers we swept in full.
+- The cosign path base rate beyond the two publishers we swept, one of them in full and the
+  other as a sample across its tag list rather than all of it.
 - Whether this assertion catches a real regression in production. Our own gate has run green
   on shipped releases, which demonstrates the absence of false positives and nothing more.
   Passing is not catching. Its true positive behaviour rests on replay against the run
