@@ -37,6 +37,41 @@ func TestCmdToolsJSON(t *testing.T) {
 	}
 }
 
+func TestCmdToolsListJSON(t *testing.T) {
+	out, errOut := captureStdouterr(t, func() {
+		if err := cmdTools("", []string{"list", "--json"}); err != nil {
+			t.Fatalf("cmdTools list --json: %v", err)
+		}
+	})
+	if errOut != "" {
+		t.Fatalf("unexpected stderr: %q", errOut)
+	}
+	if !strings.HasPrefix(strings.TrimSpace(out), "[") {
+		t.Fatalf("list --json should emit JSON array, got %q", out)
+	}
+	var tools []catalog.ToolInfo
+	if err := json.Unmarshal([]byte(out), &tools); err != nil {
+		t.Fatalf("output is not valid JSON: %v\n%q", err, out)
+	}
+	if len(tools) != len(catalog.Tools()) {
+		t.Fatalf("got %d tools in JSON, want %d", len(tools), len(catalog.Tools()))
+	}
+}
+
+func TestCmdToolsLsJSON(t *testing.T) {
+	out, errOut := captureStdouterr(t, func() {
+		if err := cmdTools("", []string{"ls", "--json"}); err != nil {
+			t.Fatalf("cmdTools ls --json: %v", err)
+		}
+	})
+	if errOut != "" {
+		t.Fatalf("unexpected stderr: %q", errOut)
+	}
+	if !strings.HasPrefix(strings.TrimSpace(out), "[") {
+		t.Fatalf("ls --json should emit JSON array, got %q", out)
+	}
+}
+
 func TestCmdToolsDefaultTextOutput(t *testing.T) {
 	out, errOut := captureStdouterr(t, func() {
 		if err := cmdTools("", nil); err != nil {

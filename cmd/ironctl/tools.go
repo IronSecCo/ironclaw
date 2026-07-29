@@ -15,10 +15,22 @@ import (
 func cmdTools(_ string, args []string) error {
 	fs := flag.NewFlagSet("tools", flag.ContinueOnError)
 	asJSON := fs.Bool("json", false, "emit the tool catalog as indented JSON")
-	if err := fs.Parse(args); err != nil {
-		return err
+	// Go's flag package stops at the first positional, so `tools list --json`
+	// would silently drop the flag. Re-parse around each positional so flags may
+	// appear anywhere, matching ironctl scan.
+	var remaining []string
+	rest := args
+	for len(rest) > 0 {
+		if err := fs.Parse(rest); err != nil {
+			return err
+		}
+		rest = fs.Args()
+		if len(rest) == 0 {
+			break
+		}
+		remaining = append(remaining, rest[0])
+		rest = rest[1:]
 	}
-	remaining := fs.Args()
 	if len(remaining) > 0 && remaining[0] != "list" && remaining[0] != "ls" {
 		return fmt.Errorf("usage: tools [list]")
 	}
