@@ -95,6 +95,9 @@ image we have graded, with its default and hardened score in one table.
 - [How to harden a Traefik container](harden-traefik-container-isolation.md) -
   `traefik:v3.2` scores 48 of 100 (D). The honest hardened ceiling for an edge reverse proxy is 89 of
   100 (B), because it exists to accept and forward traffic. Here is exactly why.
+- [How to harden a ZooKeeper container](harden-zookeeper-container-isolation.md) -
+  `zookeeper:latest` runs non-root and starts at 55 of 100 (C). Dropped capabilities and a read-only rootfs
+  with tmpfs datalog mounts take the distributed coordinator to its honest 89 of 100 (B) ceiling.
 - [How to harden an InfluxDB container](harden-influxdb-container-isolation.md) -
   `influxdb:2.7` scores 48 of 100 (D). Four flags take a co-located time-series store to 100 of 100
   (A); a fleet pushing metrics over the network has an honest 89 of 100 (B) ceiling.

@@ -74,6 +74,7 @@ These services must accept client connections, so the network dimension holds at
 | [nginx](harden-nginx-container-isolation.md) | 48/100 D | **89/100 B** | proxy: it exists to forward traffic |
 | [Vault](harden-vault-container-isolation.md) | 48/100 D | **89/100 B** | secrets server: apps must reach the API |
 | [Consul](harden-consul-container-isolation.md) | 48/100 D | **89/100 B** | service mesh: peers and clients must connect |
+| [ZooKeeper](harden-zookeeper-container-isolation.md) | 55/100 C | **89/100 B** | coordination server: peers and clients must connect |
 | [MinIO](harden-minio-container-isolation.md) | 48/100 D | **89/100 B** | object store: S3 clients must reach the API |
 | [Grafana](harden-grafana-container-isolation.md) | 63/100 C | **89/100 B** | dashboard: browsers must reach the UI |
 | [Prometheus](harden-prometheus-container-isolation.md) | 63/100 C | **89/100 B** | metrics: it scrapes targets and serves its API |

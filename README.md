@@ -301,7 +301,8 @@ Per-image hardening walkthroughs, the default grade, the dimensions that fail, a
 [CockroachDB](https://ironsecco.github.io/ironclaw/blog/harden-cockroachdb-container-isolation/),
 [TimescaleDB](https://ironsecco.github.io/ironclaw/blog/harden-timescaledb-container-isolation/),
 [Valkey](https://ironsecco.github.io/ironclaw/blog/harden-valkey-container-isolation/),
-[HAProxy](https://ironsecco.github.io/ironclaw/blog/harden-haproxy-container-isolation/), and
+[HAProxy](https://ironsecco.github.io/ironclaw/blog/harden-haproxy-container-isolation/),
+[ZooKeeper](https://ironsecco.github.io/ironclaw/blog/harden-zookeeper-container-isolation/) and
 [untrusted Node.js](https://ironsecco.github.io/ironclaw/blog/run-untrusted-nodejs-code-safely/).
 
 ### Grade every pull request
