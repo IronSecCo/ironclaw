@@ -219,6 +219,11 @@ fi
 # formula must go red; rendering either as "in sync" is how a guard becomes decoration.
 # ===========================================================================
 STALE=""
+# Arm B's green wording, filled in by whichever branch below actually runs, so the
+# final verdict quotes what arm B found instead of a hardcoded claim. Under `set -u`
+# an unset value would be a hard error, which is the intent: every arm-B path that can
+# reach the green verdict must say what it saw.
+TAP_VERDICT=""
 
 # `releases/latest` deliberately, not `git tag`: it excludes drafts and prereleases and
 # resolves to exactly what a user browsing the repo (and `gh release view`, which
@@ -259,6 +264,7 @@ say "Tap serves:  ${FORMULA_VERSION} (${TRACK_BRANCH}:${FORMULA_PATH})"
 say "Newest rel:  ${LATEST_VERSION} (${LATEST_TAG}, published ${LATEST_PUBLISHED})"
 
 if [ "$FORMULA_VERSION" = "$LATEST_VERSION" ]; then
+  TAP_VERDICT="the tap serves the newest release (${LATEST_VERSION})"
   say "Tap is in sync with the newest release."
 else
   published_epoch="$(to_epoch "$LATEST_PUBLISHED")" \
@@ -271,7 +277,8 @@ else
     # because that is when the user-visible trail starts: from that moment
     # `brew install` hands out the older binary.
     if [ "$stale_min" -le "$STALE_THRESHOLD_MINUTES" ]; then
-      say "Tap trails by ${LATEST_VERSION} but ${LATEST_TAG} has only been published ${stale_min}m, under the ${STALE_THRESHOLD_MINUTES}m threshold. Inside the advertised brief-trail window."
+      TAP_VERDICT="the tap trails ${LATEST_TAG} by ${stale_min}m, inside the ${STALE_THRESHOLD_MINUTES}m brief-trail window"
+      say "Tap serves ${FORMULA_VERSION} while ${LATEST_TAG} is newest, but ${LATEST_TAG} has only been published ${stale_min}m, under the ${STALE_THRESHOLD_MINUTES}m threshold. Inside the advertised brief-trail window."
     else
       STALE="the tap has been serving ${FORMULA_VERSION} for ${stale_min}m while ${LATEST_TAG} is the newest release (threshold ${STALE_THRESHOLD_MINUTES}m)"
     fi
@@ -290,7 +297,13 @@ fi
 # trips one does not hide the other.
 # ===========================================================================
 if [ -z "$WAITING" ] && [ -z "$STALE" ]; then
-  say "Both arms clear: nothing waiting past ${THRESHOLD_MINUTES}m, and the tap serves the newest release. Tap freshness is within the advertised window."
+  # ${TAP_VERDICT} is arm B's own words for the branch it actually took, not a fixed
+  # sentence. Observed in run 30546035595: arm B reported the tap trailing v0.1.452
+  # inside the grace window, and this line then asserted "the tap serves the newest
+  # release" one line below it. A green that states a property arm B did not find is
+  # the same class of dishonesty arm B was written to remove (IRO-690), just in the
+  # reporting half rather than the discovery half.
+  say "Both arms clear: nothing waiting past ${THRESHOLD_MINUTES}m, and ${TAP_VERDICT}. Tap freshness is within the advertised window."
   exit 0
 fi
 
