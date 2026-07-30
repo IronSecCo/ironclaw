@@ -82,7 +82,7 @@ jobs:
           SHA: ${{ steps.arm_a.outputs.sha }}
         run: |
           set -euo pipefail
-          sleep 75
+          sleep 110
           gh api "repos/${REPO}/actions/runs?head_sha=${SHA}&per_page=100" \
             --jq '.workflow_runs[] | [.id, .name, .event, .status, (.conclusion // "-"), .actor.login] | @tsv' \
             > arm-a.tsv
@@ -126,17 +126,60 @@ jobs:
           SHA: ${{ steps.arm_b.outputs.sha }}
         run: |
           set -euo pipefail
-          sleep 75
+          sleep 110
           gh api "repos/${REPO}/actions/runs?head_sha=${SHA}&per_page=100" \
             --jq '.workflow_runs[] | [.id, .name, .event, .status, (.conclusion // "-"), .actor.login] | @tsv' \
             > arm-b.tsv
           echo "--- arm B runs on ${SHA} ---"
           cat arm-b.tsv
 
+      - name: Arm C -- GITHUB_TOKEN write, then close+reopen the PR as the App
+        id: arm_c
+        env:
+          READ_TOKEN: ${{ github.token }}
+          WRITE_TOKEN: ${{ github.token }}
+          APP_TOKEN: ${{ steps.app.outputs.token }}
+          TARGET_PR: "618"
+          ARM: C
+        run: |
+          set -euo pipefail
+          base_sha="$(GH_TOKEN="${READ_TOKEN}" gh api "repos/${REPO}/git/ref/heads/${BASE_BRANCH}" --jq .object.sha)"
+          GH_TOKEN="${WRITE_TOKEN}" gh api -X PATCH "repos/${REPO}/git/refs/heads/${TARGET_BRANCH}" \
+            -f "sha=${base_sha}" -F "force=true" --jq .object.sha
+          sha="$(GH_TOKEN="${WRITE_TOKEN}" gh api -X PUT "repos/${REPO}/contents/iro677-probe.txt" \
+            -f "message=probe(iro677): arm ${ARM}" \
+            -f "content=$(printf 'arm %s / run %s\n' "${ARM}" "${GITHUB_RUN_ID}" | base64 -w0)" \
+            -f "branch=${TARGET_BRANCH}" \
+            -f "author[name]=Omer Zamir" \
+            -f "author[email]=zamir98@gmail.com" --jq .commit.sha)"
+          echo "arm ${ARM} head: ${sha} (expected to be stalled right now, like arm A)"
+          sleep 45
+          # The unstall attempt: a `reopened` pull_request event whose actor is the App.
+          # Needs pull-requests:write only -- no contents:write anywhere.
+          GH_TOKEN="${APP_TOKEN}" gh api -X PATCH "repos/${REPO}/pulls/${TARGET_PR}" -f state=closed --jq .state
+          sleep 5
+          GH_TOKEN="${APP_TOKEN}" gh api -X PATCH "repos/${REPO}/pulls/${TARGET_PR}" -f state=open --jq .state
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Let GitHub settle, then snapshot arm C
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.arm_c.outputs.sha }}
+        run: |
+          set -euo pipefail
+          sleep 110
+          gh api "repos/${REPO}/actions/runs?head_sha=${SHA}&per_page=100" \
+            --jq '.workflow_runs[] | [.id, .name, .event, .status, (.conclusion // "-"), .actor.login] | @tsv' \
+            > arm-c.tsv
+          echo "--- arm C runs on ${SHA} ---"
+          cat arm-c.tsv
+          echo "--- arm C: pull_request runs that are NOT action_required ---"
+          awk -F'\t' '$3 == "pull_request" && $4 != "action_required" && $5 != "action_required"' arm-c.tsv || true
       - name: Verdict
         env:
           SHA_A: ${{ steps.arm_a.outputs.sha }}
           SHA_B: ${{ steps.arm_b.outputs.sha }}
+          SHA_C: ${{ steps.arm_c.outputs.sha }}
         run: |
           set -euo pipefail
 
@@ -148,6 +191,8 @@ jobs:
 
           a_pr="$(count arm-a.tsv pull_request)"; a_push="$(count arm-a.tsv push)"; a_stall="$(stalled arm-a.tsv)"
           b_pr="$(count arm-b.tsv pull_request)"; b_push="$(count arm-b.tsv push)"; b_stall="$(stalled arm-b.tsv)"
+          c_pr="$(count arm-c.tsv pull_request)"; c_push="$(count arm-c.tsv push)"; c_stall="$(stalled arm-c.tsv)"
+          c_live=$((c_pr - c_stall))
 
           {
             echo "### IRO-677 approval probe"
@@ -158,10 +203,12 @@ jobs:
             echo "|---|---|---|---|---|"
             echo "| A (\`${SHA_A:0:8}\`) | \`GITHUB_TOKEN\` | ${a_pr} | ${a_stall} | ${a_push} |"
             echo "| B (\`${SHA_B:0:8}\`) | reviewer-App | ${b_pr} | ${b_stall} | ${b_push} |"
+            echo "| C (\`${SHA_C:0:8}\`) | \`GITHUB_TOKEN\` + App close/reopen | ${c_pr} | ${c_stall} | ${c_push} |"
             echo
             echo '```'
             echo "arm A:"; cat arm-a.tsv
             echo "arm B:"; cat arm-b.tsv
+            echo "arm C:"; cat arm-c.tsv
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -190,19 +237,12 @@ jobs:
             echo "arm B cleared the gate: 0/${b_pr} pull_request runs action_required."
           fi
 
+          if [ "${c_live}" -gt 0 ]; then
+            echo "arm C cleared the gate via close+reopen: ${c_live} live pull_request run(s)."
+          else
+            echo "::error::arm C did NOT clear the gate (${c_stall}/${c_pr} action_required, 0 live)."
+            fail=1
+          fi
+
           exit "${fail}"
 
-      - name: Cancel every run this probe started
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -uo pipefail
-          for f in arm-a.tsv arm-b.tsv; do
-            [ -f "$f" ] || continue
-            while IFS=$'\t' read -r id _rest; do
-              [ -n "${id:-}" ] || continue
-              gh api -X POST "repos/${REPO}/actions/runs/${id}/cancel" >/dev/null 2>&1 \
-                && echo "cancelled ${id}" || echo "could not cancel ${id} (already terminal)"
-            done < "$f"
-          done
