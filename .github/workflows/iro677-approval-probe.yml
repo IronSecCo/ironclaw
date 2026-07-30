@@ -7,11 +7,19 @@
 #
 # Two arms against ONE already-open pull request (`test/iro677-target`, authored by a
 # repo MEMBER, base `test/iro677-base`), differing in exactly one variable -- the
-# token used for the force-push. Commit author, commit shape, branch, PR and base are
-# held constant across both arms.
+# token. Target branch, base, PR, commit author pin and commit shape are held
+# constant.
 #
-#   Arm A  force-push with the default GITHUB_TOKEN  (what release.yml does today)
-#   Arm B  force-push with the reviewer-App installation token
+#   Arm A  write with the default GITHUB_TOKEN        (what release.yml does today)
+#   Arm B  write with the reviewer-App installation token
+#
+# Both arms use the SAME two REST calls release.yml's `formula` job uses -- a force
+# `PATCH git/refs/heads/<branch>` back to the base tip, then a `PUT contents/...`
+# with the author pinned to the CLA-signed maintainer. Deliberately NOT `git push`:
+# `actions/checkout` persists GITHUB_TOKEN as `http.https://github.com/.extraheader`,
+# and that header outranks any userinfo in an explicit push URL -- so a `git push`
+# arm B silently re-authenticates as `github-actions[bot]` and the probe reads as
+# "the fix does not work" when it never tested the fix. (Observed: run 30512123764.)
 #
 # Arm A is the negative control and it must reproduce the stall, or the probe has
 # proved nothing and fails.
@@ -21,7 +29,7 @@ on:
   pull_request:
     branches: [test/iro677-base]
 
-# Arm A must push with the SAME GITHUB_TOKEN scope release.yml's `formula` job has
+# Arm A must write with the SAME GITHUB_TOKEN scope release.yml's `formula` job has
 # (`contents: write`), or the negative control fails on a 403 instead of testing the
 # approval gate.
 permissions:
@@ -36,10 +44,6 @@ jobs:
       TARGET_BRANCH: test/iro677-target
       BASE_BRANCH: test/iro677-base
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
       # If this step fails with "permissions requested are not granted", the fix in
       # release.yml is not available at all and the answer is escalation, not a
       # workaround. Deliberately NOT continue-on-error.
@@ -52,29 +56,27 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      - name: Arm A -- force-push the target branch with the default GITHUB_TOKEN
+      - name: Arm A -- force-reset + commit with the default GITHUB_TOKEN
         id: arm_a
         env:
-          PUSH_TOKEN: ${{ github.token }}
+          READ_TOKEN: ${{ github.token }}
+          WRITE_TOKEN: ${{ github.token }}
+          ARM: A
         run: |
           set -euo pipefail
-          git fetch origin "${BASE_BRANCH}"
-          git checkout -B probe-head "origin/${BASE_BRANCH}"
-          # A real file change, not an empty commit: the PR must keep a non-empty diff
-          # across both arms so the two run sets are comparable.
-          printf 'arm A / run %s\n' "${GITHUB_RUN_ID}" > iro677-probe.txt
-          git add iro677-probe.txt
-          git -c user.name='Omer Zamir' -c user.email='zamir98@gmail.com' \
-            commit -m "probe(iro677): arm A -- pushed with GITHUB_TOKEN"
-          sha="$(git rev-parse HEAD)"
-          git push --force \
-            "https://x-access-token:${PUSH_TOKEN}@github.com/${REPO}.git" \
-            "HEAD:refs/heads/${TARGET_BRANCH}"
+          base_sha="$(GH_TOKEN="${READ_TOKEN}" gh api "repos/${REPO}/git/ref/heads/${BASE_BRANCH}" --jq .object.sha)"
+          GH_TOKEN="${WRITE_TOKEN}" gh api -X PATCH "repos/${REPO}/git/refs/heads/${TARGET_BRANCH}" \
+            -f "sha=${base_sha}" -F "force=true" --jq .object.sha
+          sha="$(GH_TOKEN="${WRITE_TOKEN}" gh api -X PUT "repos/${REPO}/contents/iro677-probe.txt" \
+            -f "message=probe(iro677): arm ${ARM}" \
+            -f "content=$(printf 'arm %s / run %s\n' "${ARM}" "${GITHUB_RUN_ID}" | base64 -w0)" \
+            -f "branch=${TARGET_BRANCH}" \
+            -f "author[name]=Omer Zamir" \
+            -f "author[email]=zamir98@gmail.com" --jq .commit.sha)"
           echo "sha=${sha}" >> "$GITHUB_OUTPUT"
-          echo "arm A head: ${sha}"
+          echo "arm ${ARM} head: ${sha}"
 
       - name: Let GitHub settle, then snapshot arm A
-        id: snap_a
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ steps.arm_a.outputs.sha }}
@@ -87,26 +89,38 @@ jobs:
           echo "--- arm A runs on ${SHA} ---"
           cat arm-a.tsv
 
-      - name: Arm B -- force-push the target branch with the reviewer-App token
+      - name: Arm B -- force-reset + commit with the reviewer-App token
         id: arm_b
         env:
-          PUSH_TOKEN: ${{ steps.app.outputs.token }}
+          READ_TOKEN: ${{ github.token }}
+          WRITE_TOKEN: ${{ steps.app.outputs.token }}
+          ARM: B
         run: |
           set -euo pipefail
-          git checkout -B probe-head "origin/${BASE_BRANCH}"
-          printf 'arm B / run %s\n' "${GITHUB_RUN_ID}" > iro677-probe.txt
-          git add iro677-probe.txt
-          git -c user.name='Omer Zamir' -c user.email='zamir98@gmail.com' \
-            commit -m "probe(iro677): arm B -- pushed with the reviewer-App token"
-          sha="$(git rev-parse HEAD)"
-          git push --force \
-            "https://x-access-token:${PUSH_TOKEN}@github.com/${REPO}.git" \
-            "HEAD:refs/heads/${TARGET_BRANCH}"
+          # Prove the two arms really are different identities before using the token,
+          # so a silently-empty or identical token cannot masquerade as a result.
+          if [ -z "${WRITE_TOKEN:-}" ]; then
+            echo "::error::arm B has no App token -- it would have re-run arm A."
+            exit 1
+          fi
+          if [ "${WRITE_TOKEN}" = "${READ_TOKEN}" ]; then
+            echo "::error::arm B token is identical to GITHUB_TOKEN -- the arms are not independent."
+            exit 1
+          fi
+          echo "arm B writer is a distinct installation token (${#WRITE_TOKEN} chars)."
+          base_sha="$(GH_TOKEN="${READ_TOKEN}" gh api "repos/${REPO}/git/ref/heads/${BASE_BRANCH}" --jq .object.sha)"
+          GH_TOKEN="${WRITE_TOKEN}" gh api -X PATCH "repos/${REPO}/git/refs/heads/${TARGET_BRANCH}" \
+            -f "sha=${base_sha}" -F "force=true" --jq .object.sha
+          sha="$(GH_TOKEN="${WRITE_TOKEN}" gh api -X PUT "repos/${REPO}/contents/iro677-probe.txt" \
+            -f "message=probe(iro677): arm ${ARM}" \
+            -f "content=$(printf 'arm %s / run %s\n' "${ARM}" "${GITHUB_RUN_ID}" | base64 -w0)" \
+            -f "branch=${TARGET_BRANCH}" \
+            -f "author[name]=Omer Zamir" \
+            -f "author[email]=zamir98@gmail.com" --jq .commit.sha)"
           echo "sha=${sha}" >> "$GITHUB_OUTPUT"
-          echo "arm B head: ${sha}"
+          echo "arm ${ARM} head: ${sha}"
 
       - name: Let GitHub settle, then snapshot arm B
-        id: snap_b
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ steps.arm_b.outputs.sha }}
@@ -138,9 +152,9 @@ jobs:
           {
             echo "### IRO-677 approval probe"
             echo
-            echo "One open PR, one base, one commit author, two tokens."
+            echo "One open PR, one base, one pinned commit author, two tokens."
             echo
-            echo "| arm | push token | pull_request runs | of those, action_required | push-event runs |"
+            echo "| arm | write token | pull_request runs | of those, action_required | push-event runs |"
             echo "|---|---|---|---|---|"
             echo "| A (\`${SHA_A:0:8}\`) | \`GITHUB_TOKEN\` | ${a_pr} | ${a_stall} | ${a_push} |"
             echo "| B (\`${SHA_B:0:8}\`) | reviewer-App | ${b_pr} | ${b_stall} | ${b_push} |"
@@ -170,7 +184,7 @@ jobs:
             echo "::error::arm B produced ZERO pull_request runs -- cannot tell whether the fix works."
             fail=1
           elif [ "${b_stall}" -ne 0 ]; then
-            echo "::error::arm B STILL stalled (${b_stall}/${b_pr} action_required). Pushing as the App does not clear the gate."
+            echo "::error::arm B STILL stalled (${b_stall}/${b_pr} action_required). Writing as the App does not clear the gate."
             fail=1
           else
             echo "arm B cleared the gate: 0/${b_pr} pull_request runs action_required."
