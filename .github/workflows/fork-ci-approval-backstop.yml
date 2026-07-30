@@ -79,8 +79,15 @@ on:
     # window 55 intervals of daily and weekly crons here came in at p50 -7 / p90 +36 /
     # max +75 minutes against nominal, so the scheduler honours low-frequency cadence and
     # was dropping this one -- consistent with GitHub's documented deprioritisation of
-    # high-frequency schedules. n=2 cannot prove that on its own; the useful independent
-    # observation is the 92-minute silence caught live with no run pending.
+    # high-frequency schedules.
+    #
+    # n=2 cannot prove that on its own, so do not lean on those two gaps. The load-bearing
+    # number is the script's LIVE SILENCE column, which needs no sample at all: re-measured
+    # at 04:48Z this cron had been silent 156 minutes against a 30-minute period (5.2x)
+    # while `state: active` with nothing queued, and over the 6h20m since its first-ever
+    # scheduled run the scheduler delivered 3 runs where `*/30` predicts ~12. Every
+    # daily/weekly cron in the repo sat at 0.4x-0.9x of its period in that same table, so
+    # the metric is not just flagging everything.
     #
     # The minutes are offset off :00/:30 as a cheap, strictly-dominating experiment: same
     # 30-minute cadence and the same promise, but off the two most congested minutes of
