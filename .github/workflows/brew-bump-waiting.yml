@@ -1,0 +1,130 @@
+# Freshness guard for the Homebrew tap (IRO-676).
+#
+# Goes RED when a rolling `brew/track` bump PR has been sitting open past a threshold,
+# so a waiting bump ANNOUNCES ITSELF instead of being found by someone sweeping open
+# PRs by hand. A red scheduled run is a real notification path: GitHub emails on
+# scheduled-workflow failure and it is visible in the Actions tab.
+#
+# WHY A RED CRON AND NOT A PAPERCLIP ISSUE
+# ----------------------------------------
+# The alternative was having the Release workflow file a Paperclip issue so the bump
+# lands in the board's normal queue. It was priced and rejected, for two independent
+# reasons: the Paperclip API listens on 127.0.0.1:3100 with no public ingress, so a
+# GitHub-hosted runner cannot reach it at all; and reaching it would require a
+# long-lived Paperclip credential in repo secrets, which is a new credential this
+# issue explicitly rules out. The cron needs no credential beyond the run's own
+# read-only GITHUB_TOKEN. One mechanism was built, not both.
+#
+# WHAT THIS DELIBERATELY IS NOT
+# -----------------------------
+#   - NOT a required status check. It gates nothing. Adding it to
+#     required_status_checks in .github/rulesets/main.json would block every
+#     unrelated PR whenever the tap happened to be trailing.
+#   - NOT a merger or an approver. It has no write scope. The approving-review click
+#     on the bump PR stays human; that was settled on IRO-670 and this workflow does
+#     not touch the approval model, the ruleset, or Formula/ironclaw.rb.
+#
+# NOTIFICATION TARGET — load-bearing
+# ----------------------------------
+# GitHub sends scheduled-workflow failure email to the user who most recently edited
+# the cron expression in this file, NOT to the repo's watchers. So whoever last
+# touched the `schedule:` block below is the person this guard pages. Keep that a
+# human who can perform the merge; if a bot identity ever rewrites the cron, the
+# alarm silently redirects to an inbox nobody reads and this whole file becomes
+# decoration.
+
+name: Brew bump waiting
+
+on:
+  schedule:
+    # Hourly, offset off the hour to dodge top-of-hour scheduler congestion. Detection
+    # latency is therefore <= 60 min, comfortably inside the 240 min staleness
+    # threshold, so a bump that crosses the threshold is reported well within one
+    # threshold window rather than at the far end of it.
+    - cron: "23 * * * *"
+  workflow_dispatch:
+    inputs:
+      threshold_minutes:
+        description: "Override the staleness threshold in minutes (blank = the script default, 240)"
+        required: false
+        default: ""
+  # Negative-control path. The standing rule is that a guard which has never gone red
+  # is not evidence that it can, and this one cannot be proven from a schedule without
+  # waiting hours for a real stall. Pushing a branch named
+  # `test/brew-bump-waiting-<minutes>` runs the guard against the LIVE repo with that
+  # threshold, so both arms are demonstrable on demand: a small number reports the
+  # currently-open bump PR (red), a large one reports it as within the window (green).
+  # It reads the same live API as the scheduled run — nothing is stubbed.
+  push:
+    branches:
+      - "test/brew-bump-waiting-*"
+
+# Least privilege. Read the open PR list and its check rollup; nothing else. No
+# `pull-requests: write` (it does not comment), no `contents: write` (it does not
+# merge). Notify-only means read-only.
+permissions:
+  contents: read # checkout the script + the ruleset spec it reads required contexts from
+  pull-requests: read # list open brew/track PRs
+  checks: read # CheckRun conclusions in the status rollup
+  statuses: read # legacy StatusContext states in the same rollup
+
+concurrency:
+  group: brew-bump-waiting-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  brew-bump-waiting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false # nothing here pushes; do not leave a token in .git/config
+
+      - name: Resolve the staleness threshold
+        id: threshold
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          # Via env, never interpolated into the script body: a dispatch input is
+          # attacker-influenceable text and `${{ }}` inside `run:` is substituted
+          # before bash ever sees it.
+          INPUT_MINUTES: ${{ inputs.threshold_minutes }}
+        run: |
+          set -euo pipefail
+          # Emitted EMPTY when there is no override, so the 240 min default lives in
+          # exactly one place (scripts/check-brew-bump-waiting.sh) and cannot drift
+          # between the script and this workflow.
+          minutes=""
+          case "${EVENT}" in
+            workflow_dispatch)
+              minutes="${INPUT_MINUTES}"
+              ;;
+            push)
+              # Suffix after the last '-' is the threshold. Validated here rather than
+              # left to the script so a typo'd control branch fails on the typo instead
+              # of silently exercising the default and looking like a clean pass.
+              minutes="${REF_NAME##*-}"
+              case "${minutes}" in
+                ''|*[!0-9]*)
+                  echo "::error::branch '${REF_NAME}' must end in '-<minutes>' (e.g. test/brew-bump-waiting-10) so the threshold under test is explicit." >&2
+                  exit 1
+                  ;;
+              esac
+              ;;
+          esac
+          echo "minutes=${minutes}" >> "$GITHUB_OUTPUT"
+
+      - name: Report any rolling-bump PR waiting past the threshold
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          OVERRIDE: ${{ steps.threshold.outputs.minutes }}
+        run: |
+          set -euo pipefail
+          # Only export THRESHOLD_MINUTES when actually overriding: exporting an empty
+          # value would trip the script's numeric validation and go red for the wrong
+          # reason.
+          if [ -n "${OVERRIDE}" ]; then
+            export THRESHOLD_MINUTES="${OVERRIDE}"
+          fi
+          exec scripts/check-brew-bump-waiting.sh
