@@ -165,6 +165,44 @@ runs and short-circuits to a pass when the diff has no formula change.
 > `.github/rulesets/main.json`. Renaming the job (or giving it a `name:`) orphans
 > the required check and the gate silently stops gating.
 
+#### The base commit must be a merge base (IRO-673)
+
+Assertion 1 above is only as good as the base it diffs against, and the first
+version of this gate got that wrong: it used
+`github.event.pull_request.base.sha`. **That field is not a merge base.** It is a
+snapshot of the base branch *tip*, and in webhook payloads a stale one. Diffing a
+PR head against it attributes every commit that landed on `main` after the PR
+forked to the PR itself — and since the rolling bump touches
+`Formula/ironclaw.rb` once or twice a day, a *required* check hard-failed PRs it
+exists to wave through. A one-file docs PR (#569) was reported as an 84-path
+formula edit and told to split itself up.
+
+Both arms now resolve a real merge base, against
+`github.event.pull_request.base.ref` rather than a hardcoded `main`:
+
+```sh
+git fetch --no-tags --quiet origin "+refs/heads/$1:refs/remotes/origin/$1"
+base="$(git merge-base "refs/remotes/origin/${PR_BASE_REF}" HEAD)"
+```
+
+Two things this depends on, both easy to break by accident:
+
+- **`fetch-depth: 0`** on the checkout. Without full history there is no merge
+  base to compute.
+- **No `ref:` override on the checkout.** On a `pull_request` event, checkout
+  resolves GitHub's `refs/pull/N/merge`, whose first parent *is* the base commit,
+  so `git merge-base` lands exactly there and the diff is precisely what the
+  merge would write — stale merge ref or not. Pinning
+  `ref: ${{ github.event.pull_request.head.sha }}` looks tidier and is a trap: it
+  removes `main`'s copy of `scripts/verify-homebrew-formula.sh` from the
+  checkout, so this required check fails every PR opened before the gate landed
+  with `No such file or directory`. Same outage, different message.
+
+The lesson generalises past this workflow: **a required check that can fail a PR
+for something the PR did not do is worse than no check**, because the only
+remedies on offer are relaxing the check or bypassing protection. Fix the base
+resolution instead.
+
 ### Squash only. This is load-bearing, not a style preference
 
 `allowed_merge_methods` is `["squash", "rebase"]`, but a bump PR **must** be
@@ -203,14 +241,32 @@ signatures, linear history — to work around a stale cache. Taking the flag `gh
 suggests here trades the whole gate for a cosmetic convenience. Use the REST API
 form above.
 
-> **Still one human action: the approving review.** `brew-formula-verify` removes
-> the *review value* of the click but cannot remove the click itself, because
-> `pull_request.required_approving_review_count: 1` needs an approval from an
-> actor that is not the PR author, and the reviewer App **is** the author. Closing
-> that last gap needs a second identity; the ask and its trade-offs are on
-> IRO-670. Until then: dispatch `reviewer-approve.yml`, then merge with the REST
-> API form above. Do not reach for `--admin`, and do not add a `bypass_actors`
-> entry for the App.
+### The last click stays. Settled, not pending (IRO-670)
+
+`pull_request.required_approving_review_count: 1` needs an approval from an actor
+that is not the PR author, and the reviewer App **is** the author of the bump PR.
+So one human action per release remains: dispatch `reviewer-approve.yml`, then
+merge with the REST API form above.
+
+Two ways to remove it were put to the board and **both were declined**:
+
+- **a second long-lived credential** (another App or account to approve as) — one
+  more standing credential with write reach on a protected branch, to save a
+  keystroke;
+- **a `bypass_actors` entry for the reviewer App** — rulesets cannot scope a
+  bypass to one path, so exempting the App for `Formula/ironclaw.rb` exempts it
+  for all of `main`.
+
+The reasoning, recorded so it is not re-litigated: the 17 issues of recurring
+toil were never the *click*, they were the *judgment* — a maintainer squinting at
+a generated `sha256` they had no way to validate. `brew-formula-verify` removes
+100% of that judgment, which was the entire win. What is left is one mechanical
+action per release on the protected branch of a container-security product, and
+that is a reasonable place to keep a human. **Revisit only if release cadence
+makes it material** — not as a tidiness argument.
+
+Until then, and regardless of how tempting a green-but-blocked PR makes it: do
+not reach for `--admin`, and do not add a `bypass_actors` entry for the App.
 
 ## Branch protection: the reviewer path needs no change
 

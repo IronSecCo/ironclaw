@@ -49,11 +49,21 @@ jobs:
   brew-formula-verify:
     runs-on: ubuntu-latest
     steps:
-      # fetch-depth: 0 so the base commit is present locally; the script diffs the
+      # fetch-depth: 0 so the merge base is computable locally; the script diffs the
       # head against it to decide which paths changed.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          # Deliberately NO `ref:` override. On a pull_request event checkout resolves
+          # GitHub's refs/pull/N/merge, and that is what we want for two reasons:
+          #   - it is a real merge commit whose first parent is the base commit, so
+          #     `git merge-base` against the base branch resolves to exactly that
+          #     parent and the diff is precisely what the merge would write;
+          #   - the checkout therefore contains main's copy of this script even when
+          #     the PR head predates it. Pinning `ref: head.sha` instead makes
+          #     scripts/verify-homebrew-formula.sh vanish on any PR opened before
+          #     IRO-670 landed, and this required check then fails those PRs with
+          #     "no such file" — a different flavour of the same IRO-673 outage.
 
       # Same 2.x cosign the Release workflow signs SHA256SUMS with. cosign 3.x
       # deprecates the detached --output-signature/--output-certificate pair this
@@ -66,15 +76,37 @@ jobs:
       - name: Resolve the base commit to diff against
         id: base
         env:
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
           EVENT: ${{ github.event_name }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+
+          # Materialise a base BRANCH ref locally so `git merge-base` has a real ref
+          # to work against. checkout above already fetched full history, so this only
+          # adds the ref itself. Deliberately NOT silenced with `|| true`: if the base
+          # branch is not visible we must fail loud rather than diff against something
+          # arbitrary and report a confident wrong answer.
+          fetch_branch() {
+            git fetch --no-tags --quiet origin "+refs/heads/$1:refs/remotes/origin/$1"
+          }
+
           case "$EVENT:$GITHUB_REF_NAME" in
             pull_request:*)
-              # The real merge base GitHub computed for this PR.
-              base="$PR_BASE_SHA"
+              # A TRUE merge base — NOT `github.event.pull_request.base.sha`.
+              #
+              # That field is a snapshot of the base branch TIP, and in webhook
+              # payloads a stale one; it is not a merge base at any point. Diffing the
+              # head against it charges the PR with every commit that landed on the
+              # base after the PR forked. Because the rolling bump touches
+              # Formula/ironclaw.rb 1-2x/day, that made this REQUIRED check hard-fail
+              # PRs it exists to wave through: a one-file docs PR was reported as a
+              # 17-path formula edit and failed the formula-only assertion (IRO-673).
+              #
+              # Resolved against base.ref, not a hardcoded main, so this stays correct
+              # if the gate is ever extended to another protected branch.
+              fetch_branch "$PR_BASE_REF"
+              base="$(git merge-base "refs/remotes/origin/${PR_BASE_REF}" HEAD)"
               ;;
             push:test/brew-formula-verify-*)
               # Negative-control branches (acceptance criterion 5). Diff against the
@@ -92,9 +124,10 @@ jobs:
               base="$(git rev-parse HEAD^)"
               ;;
             *)
-              # Push to brew/**: compare against where this branch left main.
-              git fetch --no-tags --depth=0 origin main >/dev/null 2>&1 || true
-              base="$(git merge-base origin/main HEAD)"
+              # Push to brew/**: compare against where this branch left main. Same
+              # merge-base resolution as the pull_request arm above.
+              fetch_branch main
+              base="$(git merge-base refs/remotes/origin/main HEAD)"
               ;;
           esac
           [ -n "$base" ] || { echo "::error::could not resolve a base commit to diff against." >&2; exit 1; }
