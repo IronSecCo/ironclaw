@@ -81,6 +81,7 @@ brew install ironsecco/ironclaw/ironclaw
 ironctl scan my-zookeeper
 ironctl scan my-zookeeper --fix
 ```
+`ironctl scan` also reads a `docker-compose.yml` service or a Kubernetes manifest, allowing you to grade the ZooKeeper instance within your orchestration stack.
 
 ## Keep going
 
