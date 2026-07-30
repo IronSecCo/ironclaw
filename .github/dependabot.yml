@@ -1,8 +1,20 @@
 # Dependabot keeps the supply chain current: Go modules, the GitHub Actions used by
-# the workflows, and the Docker base images. Everything is pinned to immutable hashes
-# (action commit SHAs, image @sha256 digests) for provenance, so Dependabot is what
-# bumps those pins as upstream patches land. Weekly to keep PR volume (and Actions
-# minutes from the resulting CI runs) bounded.
+# the workflows, the Docker base images, and the hash-locked docs-site toolchain.
+# Everything is pinned to immutable hashes (action commit SHAs, image @sha256 digests,
+# wheel SHA-256s) for provenance, so Dependabot is what bumps those pins as upstream
+# patches land. Weekly to keep PR volume (and Actions minutes from the resulting CI
+# runs) bounded.
+#
+# SCOPE NOTE (IRO-682) — what is deliberately NOT here, so nobody "fixes" it later:
+# the entries below cover *version* updates only for the shipped binary, its images,
+# CI, and the published docs site. `examples/integrations/**` (14 pip + 4 npm
+# manifests) is intentionally absent: it is example source, not a shipped or
+# published artifact, and covering it measured out at roughly +7-9 PRs/week against a
+# ~1-2/week baseline. That is a freshness-vs-PR-volume trade, NOT an alert-coverage
+# gap — Dependabot *security* updates are driven by the dependency graph and are not
+# gated by this file, which is why PRs #349, #565, #566, #576, #382 and #383 all
+# landed security bumps in examples/integrations/** while no entry for it existed.
+# Add examples here only as a deliberate volume decision, not to "close alerts".
 version: 2
 updates:
   - package-ecosystem: gomod
@@ -50,3 +62,23 @@ updates:
         update-types:
           - "version-update:semver-major"
           - "version-update:semver-minor"
+
+  # The published docs site (IRO-682). docs/requirements.in is the source and
+  # docs/requirements.txt is its `pip-compile --generate-hashes` closure, installed by
+  # the Pages build with `pip install --require-hashes` — so these wheel SHA-256s are
+  # exactly as load-bearing as the action SHAs and image digests above, and were the
+  # one shipped surface with no entry here. Dependabot's pip-compile support updates
+  # the .in/.txt pair together; requirements.in stays the source of truth, so if the
+  # two ever drift, re-run the pip-compile documented at the top of requirements.in
+  # rather than hand-editing the lock. Grouped so ~400 locked transitives arrive as
+  # one reviewable PR instead of a flood.
+  - package-ecosystem: pip
+    directory: "/docs"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: docs
+    groups:
+      docs-toolchain:
+        patterns: ["*"]
