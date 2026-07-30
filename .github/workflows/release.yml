@@ -687,11 +687,11 @@ jobs:
   # that PR never loops back into another release.
   #
   # SQUASH-ONLY IS A LOAD-BEARING INVARIANT — DO NOT "FIX" THIS TO REBASE.
-  # This job's commit is deliberately NOT signed. It is written through the Contents
-  # API with an explicit `author` (the CLA-signed maintainer, so cla-assistant passes
-  # — IRO-353/363), and passing `author` makes the API set committer=author too,
-  # which turns OFF GitHub's web-flow signing. So `brew/track`'s head commit is
-  # `verification.verified: false, reason: unsigned`, and main's required_signatures
+  # This job's commit is deliberately NOT signed. It is built through the Git Data API
+  # (blob → tree → commit → one ref update) with `author`/`committer` pinned to the
+  # CLA-signed maintainer so cla-assistant passes (IRO-353/363), and neither that API
+  # nor the Contents API it replaced signs such a commit. So `brew/track`'s head commit
+  # is `verification.verified: false, reason: unsigned`, and main's required_signatures
   # rule would reject it. What rescues it is that a SQUASH merge discards this commit
   # and GitHub mints a fresh, GitHub-signed commit on main in its place. A REBASE
   # merge would replay the unsigned commit verbatim and be blocked — which is why
@@ -701,6 +701,14 @@ jobs:
   # It does not, and believing it sent an operator hunting for a phantom signing bug
   # while the real, benign cause was the author pin (IRO-670). See
   # docs/pr-review-process.md → "Homebrew formula bump PRs".
+  #
+  # THE REF IS UPDATED EXACTLY ONCE, AND THE PR IS READ BACK (IRO-689). Pointing
+  # brew/track at main's tip "first" and committing the formula "second" made the head
+  # equal the base for an instant, GitHub auto-closed the open PR, and the job then
+  # "refreshed" that closed PR and exited green — `brew install` served v0.1.447 for 40
+  # minutes against a v0.1.450 release. Never reintroduce a state where the branch
+  # equals main, and never treat a successful `gh pr edit`/`create` as proof the PR is
+  # live: assert OPEN *and* head == the pushed commit.
   # ---------------------------------------------------------------------------
   formula:
     needs: [version, release, smoke, smoke_windows]
@@ -814,12 +822,18 @@ jobs:
           # common ancestor → CONFLICT that update-branch cannot auto-resolve
           # (IRO-482). Fetching via the API gives us the true current tip.
           base_sha="$(gh api "repos/${REPO}/git/ref/heads/main" --jq .object.sha)"
-          # Blob OID of the formula on the LIVE main, not the release checkout.
-          # The Contents API `sha` must match the file being replaced on the branch;
-          # after the reset below brew/track == live main, so we need live main's
-          # blob sha, not the release tag's blob sha.
-          file_sha="$(gh api "repos/${REPO}/contents/Formula/ironclaw.rb?ref=main" --jq .sha)"
-          content_b64="$(base64 -w0 < Formula/ironclaw.rb)"
+          # Blob OID of the formula on the LIVE main, and of the one we just generated.
+          # Both are git blob SHA-1s, so they are directly comparable. If they match,
+          # live main ALREADY tracks ${TAG} (a bump merged between the release being cut
+          # and this job running, or this job is being re-run after its own bump landed)
+          # and there is nothing to push: committing an identical formula would leave a
+          # zero-diff bump PR open forever. Re-running this job is a no-op (IRO-689).
+          main_blob="$(gh api "repos/${REPO}/contents/Formula/ironclaw.rb?ref=main" --jq .sha)"
+          new_blob="$(git hash-object Formula/ironclaw.rb)"
+          if [ "${main_blob}" = "${new_blob}" ]; then
+            echo "Live main already tracks ${TAG} (formula blob ${new_blob}) — nothing to push."
+            exit 0
+          fi
 
           # Which identity PUSHES the rolling branch decides whether the bump PR needs
           # a second human click (IRO-677 — see the mint step above). The App is a
@@ -841,10 +855,81 @@ jobs:
             echo "::warning title=Bump branch pushed as github-actions[bot]::The reviewer-App token was not minted, so ${branch} is being pushed with GITHUB_TOKEN. If the rolling PR is already open this force-push will park all of its workflow runs in \`action_required\` and the required checks (build, CodeQL, brew-formula-verify) will NOT report until a maintainer approves the runs (IRO-677)."
           fi
 
-          # Create the rolling branch at the current main tip, or force-reset it there
-          # if it already exists (leftover from a prior release whose PR is still open,
-          # or was merged without deleting the branch). Force-reset is what keeps the
-          # PR rebased and conflict-free — never a plain create-if-missing.
+          # BUILD THE BUMP COMMIT BEFORE THE REF MOVES — ONE REF WRITE, NO EMPTY WINDOW.
+          # ---------------------------------------------------------------------------
+          # This used to be two writes: force-reset brew/track to ${base_sha} (main's
+          # tip), THEN commit the formula on top via the Contents API. Between them the
+          # rolling branch was byte-identical to main, so the open PR had ZERO commits —
+          # and GitHub AUTO-CLOSES a PR whose head becomes equal to its base. The bump
+          # commit then landed on the branch but the PR did NOT auto-reopen, so the
+          # release shipped nothing while reporting success: run 30535240346 force-pushed
+          # and closed #636 in the same second (both actor `ironclaw-reviewer[bot]` —
+          # GitHub reacting to our own push), leaving `brew install` on v0.1.447 against
+          # a v0.1.450 release for 40 minutes (IRO-689).
+          #
+          # So assemble the commit as loose git objects first — tree off main's tree with
+          # the regenerated formula swapped in, commit with ${base_sha} as its only
+          # parent — and move the ref ONCE, straight to that commit. The branch is still
+          # force-reset onto the live main tip every release (IRO-482's conflict-freedom
+          # is unchanged: the new commit's parent IS live main), but it is never equal to
+          # main for any observable instant, so there is no window to auto-close in.
+          # Loose objects are unreachable until the ref update, so a failure partway
+          # through leaves the branch and its PR exactly as they were.
+          #
+          # `--rawfile` (not `$(cat …)`) reads the formula verbatim: command substitution
+          # strips the trailing newline, which would change the blob and red the
+          # brew-formula-verify gate that re-derives this file byte-for-byte.
+          #
+          # No new credential scope: creating blobs/trees/commits and updating a ref are
+          # all `contents: write`, which this job and the App token already had for the
+          # Contents API write this replaces (IRO-689 — nothing to escalate).
+          base_tree="$(gh api "repos/${REPO}/git/commits/${base_sha}" --jq .tree.sha)"
+          new_tree="$(jq -nc --arg base "${base_tree}" --rawfile body Formula/ironclaw.rb \
+            '{base_tree: $base, tree: [{path: "Formula/ironclaw.rb", mode: "100644", type: "blob", content: $body}]}' \
+            | GH_TOKEN="${BUMP_TOKEN}" gh api -X POST "repos/${REPO}/git/trees" --input - --jq .sha)"
+
+          # Author it as the CLA-signed release maintainer, NOT the default
+          # github-actions[bot]. cla-assistant (the external license/cla gate) checks
+          # every commit AUTHOR against the signed-CLA roster; a bot-authored commit
+          # leaves the PR stuck on "Contributor License Agreement is not signed yet"
+          # forever, and each release had to be manually re-authored to land the bump
+          # (IRO-353, IRO-363). Pinning the author to the maintainer who has signed the
+          # CLA makes the gate pass automatically. The email here is already public in
+          # the verified-commit history; it is not a secret.
+          #
+          # `committer` is pinned to that same identity, and this DOES change one field
+          # versus the Contents API write it replaces: that endpoint ignored the committer
+          # we passed and stamped the authenticated identity instead, so every shipped
+          # bump commit reads `committer: ironclaw-reviewer[bot]` (verified in the
+          # v0.1.445, v0.1.447 and v0.1.449 formula job logs). Nothing reads that field —
+          # the CLA gate checks the AUTHOR, brew-formula-verify re-derives file CONTENT,
+          # and the workflow-approval gate keys off who PUSHED the ref (still the App, see
+          # above), not who committed. So pinning both to one human identity is cosmetic,
+          # not a behavioural risk. Do not "restore" the bot committer.
+          #
+          # Signing note: this commit is NOT GitHub-signed — and neither was the one it
+          # replaces. Those same logs show `verification: {verified: false, reason:
+          # "unsigned"}` on every Contents API bump, and the Git Data API never signs
+          # either, so the signing posture is UNCHANGED by this rewrite. That is fine
+          # because the rolling PR lands via SQUASH merge and GitHub signs the squashed
+          # commit it writes to main, so main's required_signatures rule is still
+          # satisfied. A REBASE merge would replay this unsigned commit verbatim and be
+          # blocked; do not switch this PR's merge method to rebase.
+          #
+          # None of this depends on WHICH token writes it (IRO-677 changed the token, not
+          # the authorship): unsigned under the App token exactly as under GITHUB_TOKEN,
+          # `license/cla` passing on the pinned author, and the squash minting main's
+          # signature.
+          new_sha="$(jq -nc \
+            --arg msg "chore(brew): track ${TAG} in the Homebrew formula" \
+            --arg tree "${new_tree}" --arg parent "${base_sha}" \
+            '{message: $msg, tree: $tree, parents: [$parent],
+              author:    {name: "Omer Zamir", email: "zamir98@gmail.com"},
+              committer: {name: "Omer Zamir", email: "zamir98@gmail.com"}}' \
+            | GH_TOKEN="${BUMP_TOKEN}" gh api -X POST "repos/${REPO}/git/commits" --input - --jq .sha)"
+
+          # THE SINGLE REF WRITE. Everything above only created unreachable objects; this
+          # is the one mutation, and it lands the branch directly on the bump commit.
           #
           # Use the SINGULAR git/ref/heads/<branch> endpoint for the existence probe,
           # NOT the plural git/refs/heads/<branch>. The plural endpoint does PREFIX
@@ -856,45 +941,13 @@ jobs:
           # matches the ref exactly and 404s when brew/track is truly absent.
           if gh api "repos/${REPO}/git/ref/heads/${branch}" >/dev/null 2>&1; then
             GH_TOKEN="${BUMP_TOKEN}" gh api -X PATCH "repos/${REPO}/git/refs/heads/${branch}" \
-              -f "sha=${base_sha}" -F "force=true"
+              -f "sha=${new_sha}" -F "force=true"
           else
             GH_TOKEN="${BUMP_TOKEN}" gh api -X POST "repos/${REPO}/git/refs" \
               -f "ref=refs/heads/${branch}" \
-              -f "sha=${base_sha}"
+              -f "sha=${new_sha}"
           fi
-
-          # Commit the regenerated formula onto the rolling branch via the Contents API.
-          #
-          # Author it as the CLA-signed release maintainer, NOT the default
-          # github-actions[bot]. cla-assistant (the external license/cla gate) checks
-          # every commit AUTHOR against the signed-CLA roster; a bot-authored commit
-          # leaves the PR stuck on "Contributor License Agreement is not signed yet"
-          # forever, and each release had to be manually re-authored to land the bump
-          # (IRO-353, IRO-363). Pinning the author to the maintainer who has signed the
-          # CLA makes the gate pass automatically. The email here is already public in
-          # the verified-commit history; it is not a secret.
-          #
-          # Signing note: passing `author` makes the Contents API set committer=author
-          # too, so this commit is NOT GitHub-web-flow-signed (the API only signs when
-          # committer defaults to the authenticated identity). That is fine because the
-          # rolling PR lands via SQUASH merge, and GitHub signs the squashed commit it
-          # writes to main — so main's required_signatures rule is still satisfied. (A
-          # rebase-merge would replay this unsigned commit and be blocked; do not switch
-          # the merge method for this PR to rebase.)
-          #
-          # The `author` pin is what makes the commit unsigned, and it is independent of
-          # WHICH token writes it (IRO-677 changed the token, not the authorship): the
-          # Contents API mirrors committer=author whenever `author` is supplied, so this
-          # commit is `verified: false, reason: unsigned` under the App token exactly as
-          # it was under GITHUB_TOKEN, `license/cla` still passes on the pinned author,
-          # and the squash still mints main's signature.
-          GH_TOKEN="${BUMP_TOKEN}" gh api -X PUT "repos/${REPO}/contents/Formula/ironclaw.rb" \
-            -f "message=chore(brew): track ${TAG} in the Homebrew formula" \
-            -f "content=${content_b64}" \
-            -f "sha=${file_sha}" \
-            -f "branch=${branch}" \
-            -f "author[name]=Omer Zamir" \
-            -f "author[email]=zamir98@gmail.com"
+          echo "${branch} now at ${new_sha} (parent ${base_sha} = live main tip)."
 
           # emit_manual_fallback writes the human runbook to the job summary and exits 1.
           # Do NOT swallow a failure: a silently-skipped PR strands `brew install` on a
@@ -905,13 +958,13 @@ jobs:
             {
               echo "### ⚠️ Homebrew formula bump for \`${TAG}\` needs a manual PR"
               echo
-              echo "The GitHub-signed rolling branch [\`${branch}\`](https://github.com/${REPO}/tree/${branch}) was updated to \`${TAG}\`, but the workflow could not open its PR:"
+              echo "The rolling branch [\`${branch}\`](https://github.com/${REPO}/tree/${branch}) was updated to \`${TAG}\`, but the workflow could not open its PR:"
               echo
               echo '```'
               printf '%s\n' "${1}"
               echo '```'
               echo
-              echo "Usual cause: the scoped **reviewer-App** token could not be minted — check that the \`REVIEWER_APP_CLIENT_ID\` variable and \`REVIEWER_APP_PRIVATE_KEY\` secret are present and the App still has \`pull-requests: write\` on this repo (board owns org-secret provisioning). Then re-run, or open the PR manually from the already-signed branch:"
+              echo "Usual cause: the scoped **reviewer-App** token could not be minted — check that the \`REVIEWER_APP_CLIENT_ID\` variable and \`REVIEWER_APP_PRIVATE_KEY\` secret are present and the App still has \`pull-requests: write\` on this repo (board owns org-secret provisioning). Then re-run, or open the PR manually from the branch, which already carries the bump commit:"
               echo
               echo '```'
               echo "gh pr create --repo ${REPO} --base main --head ${branch} \\"
@@ -924,10 +977,44 @@ jobs:
           title="chore(brew): track ${TAG} in the Homebrew formula"
           body="Automated by the Release workflow: regenerates \`Formula/ironclaw.rb\` from the signed \`SHA256SUMS\` of \`${TAG}\` so \`brew install ironsecco/ironclaw/ironclaw\` tracks the latest release. This is the single **rolling** bump PR — it is force-reset onto the current main tip every release, so it never conflicts and supersedes any prior bump. Opened by the reviewer App (PR creation only — a human still approves+merges). Merge to publish; the push trigger ignores this file so the merge does not cut another release."
 
-          # Is the rolling PR already open? The force-reset + signed commit above have
-          # already refreshed its diff to ${TAG}; we only need to refresh its metadata.
+          # Is the rolling PR already open? The ref write above has already refreshed its
+          # diff to ${TAG}; we only need to refresh its metadata.
           existing="$(gh pr list --repo "${REPO}" --head "${branch}" --state open \
             --json number -q '.[0].number' 2>/dev/null || true)"
+
+          # Recover a rolling PR that a PRE-IRO-689 release orphaned. The old two-step
+          # push briefly pointed brew/track at main, GitHub auto-closed the PR for having
+          # zero commits, and nothing ever reopened it. Prefer reopening that PR over
+          # stacking a competing one: the branch already carries this release's bump
+          # commit, so a reopened PR is immediately correct.
+          #
+          # Only the MOST RECENT brew/track PR can be the orphan — the rolling PR is a
+          # single logical slot — and it qualifies only if it is closed AND unmerged.
+          # Select it by highest number, which is monotonic, rather than trusting gh's
+          # list order. If the latest one MERGED, that bump landed and we want a brand-new
+          # PR: the naive "newest closed-and-unmerged PR anywhere in the history" query
+          # would instead resurrect a leftover an operator closed on purpose, and #629
+          # (v0.1.442) is exactly such a PR sitting in this repo right now.
+          #
+          # The reopen itself is BEST-EFFORT ON PURPOSE. GitHub often refuses it with
+          # `422 state cannot be changed. The brew/track branch was force-pushed or
+          # recreated.` — which is exactly what we just did to the branch (see
+          # docs/pr-review-process.md → "Homebrew formula bump PRs"). A refusal is not
+          # fatal: we fall through to `gh pr create`, which GitHub allows because the
+          # prior PR is closed, and the assertion below covers whichever path we took.
+          if [ -z "${existing:-}" ]; then
+            orphan="$(gh pr list --repo "${REPO}" --head "${branch}" --state all --limit 20 \
+              --json number,state,mergedAt \
+              -q 'max_by(.number) | select(.mergedAt == null and .state == "CLOSED") | .number' 2>/dev/null || true)"
+            if [ -n "${orphan:-}" ]; then
+              if GH_TOKEN="${BUMP_TOKEN}" gh pr reopen "${orphan}" --repo "${REPO}"; then
+                existing="${orphan}"
+                echo "::warning title=Reopened orphaned rolling bump PR::PR #${orphan} was CLOSED while ${branch} carried a bump commit — an earlier release auto-closed it by pointing the branch at main (IRO-689). Reopened."
+              else
+                echo "Could not reopen closed PR #${orphan} (GitHub refuses reopen after a force-push) — opening a fresh rolling PR instead."
+              fi
+            fi
+          fi
 
           if [ -n "${existing:-}" ]; then
             # Refresh title/body. gh pr edit works with the default GITHUB_TOKEN — the
@@ -938,6 +1025,7 @@ jobs:
               echo "::warning title=Rolling bump PR not refreshed::could not update PR #${existing} metadata (non-fatal; its diff already tracks ${TAG})."
             fi
           else
+            created=""
             # No open rolling PR — create one. Creation needs the scoped reviewer-App
             # token (PR_TOKEN); the default GITHUB_TOKEN cannot create PRs while the
             # repo setting "Allow GitHub Actions to create and approve pull requests"
@@ -952,6 +1040,19 @@ jobs:
               --title "${title}" \
               --body "${body}" 2>&1)"; then
               echo "Opened rolling tracking PR: ${out}"
+              # KEEP the number gh just handed us; do not re-derive it. `gh pr create`
+              # prints the new PR's URL, which is authoritative — whereas resolving the
+              # number again with `gh pr list` is both a second chance to read a DIFFERENT
+              # PR than the one we created and a dependency on the list endpoint already
+              # reflecting a write from a moment ago. This is the same reasoning the
+              # mergeability guard below applies when it reuses ${pr_num} instead of
+              # re-listing; the assertion deserves it too, and the create path is the
+              # COMMON one (every release whose predecessor bump already merged).
+              #
+              # stderr is folded into ${out}, so gh's warnings can precede the URL: take
+              # the LAST /pull/<n> match. `tail -1` not `head -1` — head closes the pipe
+              # early and can make a good parse exit 141 under `set -o pipefail`.
+              created="$(printf '%s\n' "${out}" | sed -n 's#.*/pull/\([0-9][0-9]*\).*#\1#p' | tail -1)"
             elif printf '%s' "$out" | grep -qi 'already exists'; then
               echo "A rolling tracking PR for ${branch} already exists — left it in place."
             else
@@ -959,10 +1060,97 @@ jobs:
             fi
           fi
 
+          # ASSERT THE END STATE — A SUCCESSFUL WRITE IS NOT PROOF OF A LIVE PR (IRO-689).
+          # ---------------------------------------------------------------------------
+          # `gh pr edit` and `gh pr create --head <existing branch>` both SUCCEED against a
+          # CLOSED pull request and return its URL. That is what made this job's failure
+          # invisible for three releases: run 30535240346 printed "Refreshed rolling
+          # tracking PR #636 to v0.1.450." and exited 0 while #636 was closed and its head
+          # was main's own commit, so nothing shipped and the run list was solid green.
+          #
+          # So stop believing the write and read the PR back. BOTH conditions are required:
+          #   - OPEN, because a closed PR ships nothing however good its diff is;
+          #   - head == the commit this job just pushed, because at the instant before
+          #     GitHub closed #636 the state alone was still "open" and would have passed.
+          # Either one alone is a gate that this exact outage walks straight through.
+          #
+          # Poll briefly first: this reads back a write from a moment ago, and failing a
+          # published release over GitHub's read-after-write lag would just teach the next
+          # operator to ignore a red formula job. A genuine orphaning is permanent, so it
+          # survives the poll and reds the run.
+          fail_pr_not_live() {
+            echo "::error title=Homebrew bump PR is not live::${1}"
+            {
+              echo "### ⚠️ Homebrew formula bump for \`${TAG}\` did not reach a live PR"
+              echo
+              printf '%s\n' "${1}"
+              echo
+              echo "\`brew install ironsecco/ironclaw/ironclaw\` is serving a STALE version until this lands. Fix it by hand now, then work out why:"
+              echo
+              echo '```'
+              echo "# 1. the bump commit is already on the branch — confirm it:"
+              echo "gh api repos/${REPO}/git/ref/heads/${branch} --jq .object.sha   # expect ${new_sha}"
+              echo "# 2. reopen the rolling PR (or open a fresh one if it was merged):"
+              echo "gh pr reopen ${pr_num:-<PR>} --repo ${REPO}"
+              echo "gh pr create --repo ${REPO} --base main --head ${branch} \\"
+              echo "  --title 'chore(brew): track ${TAG} in the Homebrew formula'"
+              echo "# 3. confirm the head re-resolved to the bump commit, then approve + squash-merge:"
+              echo "gh pr view ${pr_num:-<PR>} --repo ${REPO} --json state,headRefOid"
+              echo '```'
+              echo
+              echo "If the PR was CLOSED with the branch already correct, GitHub auto-closed it because the branch head equalled \`main\` at some instant — that is IRO-689 and this job is supposed to make it impossible. Treat a recurrence as a regression in the single-ref-write above, not as a one-off."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+
+          # Prefer the number we already know: ${existing} (refreshed or reopened) or
+          # ${created} (parsed from gh's own create output). Both name the exact PR this
+          # job acted on. The list query is only a FALLBACK for the "already exists" race,
+          # where gh refused to create because a PR appeared between our list and our
+          # create, so we never learned its number.
+          pr_num="${existing:-${created:-}}"
+          if [ -z "${pr_num}" ]; then
+            # Poll: this is a read-after-write against the list endpoint, so an empty
+            # first answer means "not indexed yet" at least as often as "absent". Failing
+            # a published release on the first empty read would teach the next operator to
+            # ignore a red formula job — the same reason the state/head assertion below
+            # polls. A genuinely missing PR stays missing and still reds the run.
+            for _i in 1 2 3 4 5; do
+              pr_num="$(gh pr list --repo "${REPO}" --head "${branch}" --state open \
+                --json number -q '.[0].number' 2>/dev/null || true)"
+              if [ -n "${pr_num}" ]; then
+                break
+              fi
+              echo "No open PR listed for ${branch} yet — re-reading in 3s"
+              sleep 3
+            done
+          fi
+          if [ -z "${pr_num}" ]; then
+            fail_pr_not_live "No pull request exists for \`${branch}\` after the refresh, even though the branch was updated to \`${new_sha}\`."
+          fi
+
+          pr_state=""
+          pr_head=""
+          for _i in 1 2 3 4 5; do
+            pr_json="$(gh api "repos/${REPO}/pulls/${pr_num}" 2>/dev/null || printf '{}')"
+            pr_state="$(printf '%s' "${pr_json}" | jq -r '.state // ""')"
+            pr_head="$(printf '%s' "${pr_json}" | jq -r '.head.sha // ""')"
+            if [ "${pr_state}" = "open" ] && [ "${pr_head}" = "${new_sha}" ]; then
+              break
+            fi
+            echo "PR #${pr_num}: state=${pr_state:-<none>} head=${pr_head:-<none>} (want open @ ${new_sha}) — re-reading in 3s"
+            sleep 3
+          done
+
+          if [ "${pr_state}" != "open" ] || [ "${pr_head}" != "${new_sha}" ]; then
+            fail_pr_not_live "Rolling bump PR #${pr_num} is \`state=${pr_state:-<unreadable>}\` with head \`${pr_head:-<unreadable>}\`, but this job pushed \`${new_sha}\` to \`${branch}\` and needs the PR OPEN at that commit."
+          fi
+          echo "Verified: rolling bump PR #${pr_num} is OPEN with head ${new_sha} — the commit this job pushed. The bump can actually ship."
+
           # Guardrail (IRO-482, fixed by IRO-621): assert the rolling PR is actually
-          # MERGEABLE after the branch reset + formula commit. A REAL conflict still fails
-          # LOUD here with the manual runbook instead of silently leaving a CONFLICTING PR
-          # for the next operator to discover.
+          # MERGEABLE after the branch update. A REAL conflict still fails LOUD here with
+          # the manual runbook instead of silently leaving a CONFLICTING PR for the next
+          # operator to discover.
           #
           # GitHub computes `mergeable` asynchronously and answers JSON `null` until its
           # background merge job finishes. `gh api --jq` renders a null field as an EMPTY
@@ -980,30 +1168,30 @@ jobs:
           # state that just means "checks have not passed yet" — warns and continues: the
           # release is published, smoke-tested and signed by this point, and "GitHub has
           # not finished thinking" must never red a release over a cosmetic brew bump.
-          pr_num="$(gh pr list --repo "${REPO}" --head "${branch}" --state open \
-            --json number -q '.[0].number' 2>/dev/null || true)"
-          if [ -n "${pr_num:-}" ]; then
-            mergeable="null"
-            merge_state="unknown"
-            # Poll up to ~50 s (10 x 5 s), sleeping BEFORE the retry, not after the break.
-            for _i in 1 2 3 4 5 6 7 8 9 10; do
-              pr_json="$(gh api "repos/${REPO}/pulls/${pr_num}" 2>/dev/null || printf '{}')"
-              mergeable="$(printf '%s' "${pr_json}" | jq -r '.mergeable | tostring' 2>/dev/null || printf 'null')"
-              merge_state="$(printf '%s' "${pr_json}" | jq -r '.mergeable_state // "unknown"' 2>/dev/null || printf 'unknown')"
-              case "${mergeable}" in
-                true | false) break ;;
-              esac
-              echo "PR #${pr_num}: mergeability not computed yet (mergeable=${mergeable}, state=${merge_state}) — retrying in 5s"
-              sleep 5
-            done
+          #
+          # ${pr_num} is the PR the assertion above just proved OPEN at ${new_sha}; do not
+          # re-resolve it here. A second `gh pr list` would be a second chance to read a
+          # DIFFERENT PR than the one we verified.
+          mergeable="null"
+          merge_state="unknown"
+          # Poll up to ~50 s (10 x 5 s), sleeping BEFORE the retry, not after the break.
+          for _i in 1 2 3 4 5 6 7 8 9 10; do
+            pr_json="$(gh api "repos/${REPO}/pulls/${pr_num}" 2>/dev/null || printf '{}')"
+            mergeable="$(printf '%s' "${pr_json}" | jq -r '.mergeable | tostring' 2>/dev/null || printf 'null')"
+            merge_state="$(printf '%s' "${pr_json}" | jq -r '.mergeable_state // "unknown"' 2>/dev/null || printf 'unknown')"
+            case "${mergeable}" in
+              true | false) break ;;
+            esac
+            echo "PR #${pr_num}: mergeability not computed yet (mergeable=${mergeable}, state=${merge_state}) — retrying in 5s"
+            sleep 5
+          done
 
-            if [ "${mergeable}" = "true" ]; then
-              echo "brew/track PR #${pr_num} is MERGEABLE — conflict-free."
-            elif [ "${mergeable}" = "false" ] && [ "${merge_state}" = "dirty" ]; then
-              emit_manual_fallback "brew/track PR #${pr_num} is CONFLICTING against main (mergeable=false, mergeable_state=dirty). Force-reset brew/track to live main and re-run, or merge manually."
-            else
-              echo "::warning title=brew/track mergeability indeterminate::PR #${pr_num} reported mergeable=${mergeable} (state=${merge_state}) after ~50s of polling — GitHub had not finished computing mergeability, or the PR is merely waiting on checks. That is not a conflict, so the release continues; confirm the PR is clean before merging it."
-            fi
+          if [ "${mergeable}" = "true" ]; then
+            echo "brew/track PR #${pr_num} is MERGEABLE — conflict-free."
+          elif [ "${mergeable}" = "false" ] && [ "${merge_state}" = "dirty" ]; then
+            emit_manual_fallback "brew/track PR #${pr_num} is CONFLICTING against main (mergeable=false, mergeable_state=dirty). Force-reset brew/track to live main and re-run, or merge manually."
+          else
+            echo "::warning title=brew/track mergeability indeterminate::PR #${pr_num} reported mergeable=${mergeable} (state=${merge_state}) after ~50s of polling — GitHub had not finished computing mergeability, or the PR is merely waiting on checks. That is not a conflict, so the release continues; confirm the PR is clean before merging it."
           fi
 
           # Housekeeping: close any legacy per-tag bump PRs the pre-IRO-270 flow left

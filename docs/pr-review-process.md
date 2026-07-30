@@ -117,7 +117,7 @@ release path depends on it, so landing the scaffold changes no current behaviour
 ## Homebrew formula bump PRs (the one self-authored case)
 
 The Release workflow's `formula` job (IRO-204) opens the rolling `brew/track` PR
-(one long-lived branch, force-reset to the release tip each cut — IRO-270; older
+(one long-lived branch, force-reset onto the live main tip each cut — IRO-270; older
 releases used a per-tag `brew/track-<tag>` branch) that points
 `brew install ironsecco/ironclaw/ironclaw` at each new release. Per
 [IRO-203](https://github.com/IronSecCo/ironclaw/issues) the repo keeps *"Allow
@@ -161,14 +161,15 @@ controlled two-arm probe (one virgin App-opened PR per arm, identical REST calls
 identical pinned commit author, only the token differing) reproduced it on demand —
 `GITHUB_TOKEN` arm 3/3 `action_required`, App arm 0/3.
 
-So the job now mints the App token with `contents: write` and uses it for the ref
-force-reset and the Contents commit as well as for `gh pr create`. Things this
+So the job now mints the App token with `contents: write` and uses it for every
+write that builds and moves the bump branch — the blob/tree/commit objects and the
+single ref update (IRO-689) — as well as for `gh pr create`. Things this
 deliberately does **not** do:
 
 - it does not touch `fork-pr-contributor-approval`, which stays
   `first_time_contributors_new_to_github` and still gates every genuine fork PR;
 - it does not add a credential — the App and its two secrets already existed, and
-  this replaces `GITHUB_TOKEN`'s `contents: write` on the same two writes rather
+  this replaces `GITHUB_TOKEN`'s `contents: write` on the same writes rather
   than adding a writer;
 - it does not widen reach into `main`. The App is **not** in the ruleset's
   `bypass_actors` (only the admin repository role is), so main still requires a
@@ -269,18 +270,72 @@ resolution instead.
 `allowed_merge_methods` is `["squash", "rebase"]`, but a bump PR **must** be
 squash-merged:
 
-The `formula` job writes its commit through the Contents API with an explicit
-`author` (the CLA-signed maintainer, so `cla-assistant` passes — IRO-353/363).
-Passing `author` makes the API set `committer` to the author too, which turns
-**off** GitHub's web-flow signing. So `brew/track`'s head commit is
-`verification.verified: false`, `reason: unsigned`, and main's
-`required_signatures` rule rejects it. A **squash** merge discards that commit
-and GitHub mints a fresh, GitHub-signed commit on main in its place. A **rebase**
-merge would replay the unsigned commit verbatim and be blocked.
+The `formula` job builds its commit through the Git Data API with an explicit
+`author`/`committer` (the CLA-signed maintainer, so `cla-assistant` passes —
+IRO-353/363). Neither that API nor the Contents API it replaced (IRO-689) signs
+such a commit: the v0.1.445, v0.1.447 and v0.1.449 formula job logs all show
+`verification: {verified: false, reason: "unsigned"}` on the Contents API bump,
+so this is long-standing behaviour and not something the IRO-689 rewrite changed.
+Those same logs also correct a detail this document used to assert — the Contents
+API did **not** mirror `committer` onto the `author` we passed; it ignored our
+`committer` and stamped the authenticated identity, so the shipped bumps read
+`committer: ironclaw-reviewer[bot]`. Pinning both fields to the maintainer is
+therefore a real one-field change, with no reader: the CLA gate checks the
+**author**, `brew-formula-verify` re-derives file **content**, and the
+workflow-approval gate keys off who **pushed** the ref. So `brew/track`'s head
+commit is `verification.verified: false`, `reason: unsigned`, and main's
+`required_signatures` rule rejects it. A
+**squash** merge discards that commit and GitHub mints a fresh, GitHub-signed
+commit on main in its place. A **rebase** merge would replay the unsigned commit
+verbatim and be blocked.
 
 An earlier comment in `release.yml` claimed the Contents API signed that commit.
-It does not. That wrong comment sent an operator hunting a phantom signing bug
-when the real cause was the benign author pin (IRO-670).
+It does not, and that wrong comment sent an operator hunting a phantom signing
+bug (IRO-670). Do not replace it with a different guess: the *mechanism* GitHub
+uses to decide whether to web-flow-sign an API commit is **not** established
+here, and the obvious candidate is ruled out — the bumps were unsigned even
+though GitHub itself set `committer` to the authenticated App identity. What is
+established is the observable: these commits arrive unsigned, always have, and
+the squash is what satisfies `required_signatures`. Treat "why" as unknown rather
+than inventing a cause, and note that an unsigned bump head is **expected** here,
+not a symptom to chase.
+
+### One ref write, then read the PR back (IRO-689)
+
+The bump used to reach `brew/track` in **two** writes: force-reset the ref to
+main's tip, then commit the formula on top via the Contents API. Between them the
+branch was byte-identical to main, so the open PR had **zero commits** — and
+**GitHub auto-closes a PR whose head becomes equal to its base**. The commit then
+landed on the branch, but a PR does **not** auto-reopen. Release run
+`30535240346` force-pushed and closed #636 in the same second (both actor
+`ironclaw-reviewer[bot]`; GitHub reacting to our own push), so v0.1.450 shipped
+no bump and `brew install` served **v0.1.447 for 40 minutes** — and would have
+stayed stale indefinitely.
+
+It reported **success**, because `gh pr edit` succeeds on a **closed** PR and
+returns its URL. The job took that as proof of life and printed `Refreshed
+rolling tracking PR #636 to v0.1.450.` A fully broken release step was
+indistinguishable from a healthy one in the run list for three releases.
+
+Both halves are fixed, and both matter — the first caused the outage, the second
+hid it:
+
+- the commit is assembled as **unreachable objects first** (blob → tree off
+  main's tree → commit parented on main's tip), then the ref moves **exactly
+  once**, straight to that commit. `brew/track` is still force-reset onto the
+  live main tip every release, so IRO-482's conflict-freedom is unchanged — the
+  new commit's *parent* is live main — but the branch is never equal to main for
+  any observable instant, so there is no window to auto-close in. This needs no
+  new credential scope: blobs, trees, commits and ref updates are all
+  `contents: write`, which the job and the App token already had;
+- after the refresh the job **re-reads the PR** and asserts `state == open`
+  **and** `head.sha ==` the commit it just pushed, failing loud with a runbook
+  otherwise. Both conditions are required: at the instant before GitHub closed
+  #636 the state alone was still `open`, and the head alone was correct while the
+  PR was closed, so either check on its own lets this exact outage through.
+
+Do not "simplify" the object-then-ref dance back into a reset-then-commit, and do
+not treat a successful write to a PR as evidence the PR is live.
 
 ### Trap: `gh pr merge` refuses a PR the REST API merges cleanly
 
