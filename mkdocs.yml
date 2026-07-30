@@ -18,6 +18,16 @@ docs_dir: docs
 # ~5.5 MB of .mp4/.gif out of the published site; nothing under docs/ links to
 # them, and the repo-relative link from examples/live-containment/README.md
 # still resolves on GitHub.
+# MkDocs resolves anchors against the real rendered heading tree, so this gates
+# every `page.md#fragment` link across docs/** without a second copy of the slug
+# rules living in a script. `anchors` defaults to `info`, which --strict does NOT
+# fail on, so a broken anchor shipped green until IRO-688. Root Markdown
+# (README.md and friends) is invisible to MkDocs; scripts/check_links.py gates
+# that, using GitHub's slug rules because that is where those files render.
+validation:
+  links:
+    anchors: warn
+
 exclude_docs: |
   site/
   docs.json
