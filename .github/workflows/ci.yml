@@ -107,6 +107,31 @@ jobs:
             echo "::endgroup::"
           done
 
+  # Regression tests for the repo's Python tooling scripts (IRO-685). Small surface, but
+  # these scripts produce the numbers that go into doc claims, and their failure modes are
+  # fail-QUIET: measure-cron-latency.py used to render a 403 from `gh` as the factual claim
+  # "(never fired on a schedule)" and still exit 0. A defect that erases evidence is
+  # invisible to a smoke test that only checks the script runs, so it needs assertions on
+  # what the output must NOT say — and those assertions need a job that runs them, or they
+  # are decoration. Stdlib unittest only: no test dependency to install or pin.
+  script-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # Same pin as docs.yml, so both Python jobs run one toolchain.
+          python-version: "3.12"
+      - name: unittest (scripts/tests)
+        # `discover` is silent about finding nothing, which would be a green vacuous job,
+        # so assert the suite is non-empty before trusting the result.
+        run: |
+          set -euo pipefail
+          found=$(find scripts/tests -name 'test_*.py' | wc -l | tr -d ' ')
+          echo "test modules found: ${found}"
+          [ "${found}" -gt 0 ] || { echo "::error::no test modules under scripts/tests" >&2; exit 1; }
+          python3 -m unittest discover -s scripts/tests -v
+
   # Guard the published Linux binaries' glibc floor on every PR (IRO-192). The release job
   # builds the linux artifacts inside a pinned glibc-2.31 (Debian 11 "bullseye") container
   # so they run on every mainstream server LTS (Ubuntu 22.04 = 2.35, Debian 12 = 2.36,
