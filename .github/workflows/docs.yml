@@ -18,6 +18,7 @@ on:
       - "api/openapi.yaml"
       - "scripts/check-docs-meta.py"
       - "scripts/check_links.py"
+      - "scripts/check-guide-index.py"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
@@ -28,6 +29,7 @@ on:
       - "api/openapi.yaml"
       - "scripts/check-docs-meta.py"
       - "scripts/check_links.py"
+      - "scripts/check-guide-index.py"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -71,6 +73,21 @@ jobs:
         # The other half of the gate is validation.links.anchors in mkdocs.yml,
         # which covers docs/** against the real rendered heading tree.
         run: python3 scripts/check_links.py
+
+      - name: Check every hardening guide is wired into its indexes
+        # A guide missing from an index is not a broken link, so neither
+        # check_links.py nor `mkdocs build --strict` can see it: both only follow
+        # links that already exist. IRO-696 is what that costs -- an outside
+        # contributor found harden-haproxy missing from docs/blog/index.md by
+        # hand, and the sweep that followed showed the drift ran to 40 guides.
+        # This asserts presence on the two surfaces that claim to be exhaustive
+        # (the nav and the hub); index.md and README.md are curated prose and are
+        # deliberately out of scope, see the module docstring. A step in `build`
+        # for the same reason as the two checks around it: `build` is the
+        # required check on ruleset 17917971 and a new job name would not be.
+        # Stdlib only, so it runs before the toolchain install and fails fast.
+        # Negative controls: scripts/tests/test_check_guide_index.py (ci.yml).
+        run: python3 scripts/check-guide-index.py
 
       - name: Install MkDocs toolchain (hash-pinned)
         # --require-hashes makes pip refuse any wheel whose SHA-256 isn't in the
