@@ -733,15 +733,40 @@ jobs:
           scripts/update-homebrew-formula.sh "${TAG}"
 
       # Mint a short-lived, least-privilege token for the existing reviewer App so
-      # the bump PR opens itself. The default GITHUB_TOKEN cannot create PRs while
-      # the repo setting "Allow GitHub Actions to create and approve pull requests"
-      # stays OFF (IRO-203 chose to keep it off and use a scoped App token instead).
-      # Scoped to pull-requests:write (+ contents:read to resolve the branch); NO
-      # other App permission is requested, and the token is used ONLY to open the PR
-      # — never to approve or merge it (a human/reviewer still does that).
+      # the bump PR opens itself AND its branch is pushed under an identity GitHub
+      # already trusts. The default GITHUB_TOKEN cannot create PRs while the repo
+      # setting "Allow GitHub Actions to create and approve pull requests" stays OFF
+      # (IRO-203 chose to keep it off and use a scoped App token instead).
+      #
+      # WHY THIS ALSO NEEDS contents:write (IRO-677) — THE SECOND HUMAN CLICK.
+      # ---------------------------------------------------------------------------
+      # This job used to push the rolling branch with GITHUB_TOKEN and use the App
+      # only for `gh pr create`. That split is what produced a SECOND approval click
+      # nobody signed up for. GitHub arms the workflow-approval gate on the identity
+      # that PUSHED the head ref, not on the PR author:
+      #   - opening the rolling PR pushes nothing, so the `opened` event's actor is
+      #     the App — a real contributor here (90 merged PRs) — and CI just runs;
+      #   - force-pushing the NEXT bump onto that still-open PR fires `synchronize`
+      #     with actor `github-actions[bot]`, which has zero merged PRs and is absent
+      #     from /contributors, so all six runs land in `action_required`.
+      # Measured over every run ever on `brew/track`: 165 of 165 `action_required`
+      # runs were pushed by `github-actions[bot]`; 0 of 352 App-pushed runs stalled.
+      # A parked run never REPORTS, so `build`, `CodeQL` and `brew-formula-verify`
+      # were simply MISSING and the PR sat at "waiting for status" forever (#614).
+      # Pushing as the App removes the re-arm at the source. It does NOT touch
+      # `fork-pr-contributor-approval`, which still gates every genuine fork PR.
+      #
+      # Least privilege is preserved, not spent: this replaces GITHUB_TOKEN's
+      # `contents: write` on the same two writes rather than adding a new writer, and
+      # an App installation token is repo-scoped, permission-scoped, expires in an
+      # hour and is revoked by the action's post step. It cannot land on main either
+      # way — main's ruleset requires a reviewed PR and signed commits, and the App
+      # is deliberately NOT in `bypass_actors` (IRO-670). The token is still never
+      # used to approve or merge anything; a human still does that.
+      #
       # continue-on-error so a missing/rotated App secret degrades to the loud manual
-      # fallback below instead of aborting before the signed branch is even pushed.
-      - name: Mint a scoped reviewer-App token to open the formula PR
+      # fallback below instead of aborting before the branch is even pushed.
+      - name: Mint a scoped reviewer-App token to push the bump branch and open its PR
         id: pr-app-token
         continue-on-error: true
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
@@ -749,7 +774,7 @@ jobs:
           app-id: ${{ secrets.REVIEWER_APP_ID }}
           private-key: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
           permission-pull-requests: write
-          permission-contents: read
+          permission-contents: write
 
       - name: Open a PR if the formula changed
         env:
@@ -788,6 +813,26 @@ jobs:
           file_sha="$(gh api "repos/${REPO}/contents/Formula/ironclaw.rb?ref=main" --jq .sha)"
           content_b64="$(base64 -w0 < Formula/ironclaw.rb)"
 
+          # Which identity PUSHES the rolling branch decides whether the bump PR needs
+          # a second human click (IRO-677 — see the mint step above). The App is a
+          # known contributor here and its pushes run CI immediately; a
+          # `github-actions[bot]` push re-arms the workflow-approval gate and the
+          # required checks never report. So every write below goes through the App
+          # token when we have one.
+          #
+          # The fallback is deliberate and is exactly today's behaviour: if the App
+          # secret is missing or rotated we still push the branch (a stale `brew
+          # install` is worse than a click) — but we say out loud that the bump will
+          # stall on approval, because the alternative is a PR that silently sits at
+          # "waiting for status" and looks merely slow.
+          if [ -n "${PR_TOKEN:-}" ]; then
+            BUMP_TOKEN="${PR_TOKEN}"
+            echo "Pushing ${branch} as the reviewer App (no workflow-approval re-arm)."
+          else
+            BUMP_TOKEN="${GH_TOKEN}"
+            echo "::warning title=Bump branch pushed as github-actions[bot]::The reviewer-App token was not minted, so ${branch} is being pushed with GITHUB_TOKEN. If the rolling PR is already open this force-push will park all of its workflow runs in \`action_required\` and the required checks (build, CodeQL, brew-formula-verify) will NOT report until a maintainer approves the runs (IRO-677)."
+          fi
+
           # Create the rolling branch at the current main tip, or force-reset it there
           # if it already exists (leftover from a prior release whose PR is still open,
           # or was merged without deleting the branch). Force-reset is what keeps the
@@ -802,10 +847,10 @@ jobs:
           # "gh: Reference does not exist (HTTP 422)" (IRO-318). The singular endpoint
           # matches the ref exactly and 404s when brew/track is truly absent.
           if gh api "repos/${REPO}/git/ref/heads/${branch}" >/dev/null 2>&1; then
-            gh api -X PATCH "repos/${REPO}/git/refs/heads/${branch}" \
+            GH_TOKEN="${BUMP_TOKEN}" gh api -X PATCH "repos/${REPO}/git/refs/heads/${branch}" \
               -f "sha=${base_sha}" -F "force=true"
           else
-            gh api -X POST "repos/${REPO}/git/refs" \
+            GH_TOKEN="${BUMP_TOKEN}" gh api -X POST "repos/${REPO}/git/refs" \
               -f "ref=refs/heads/${branch}" \
               -f "sha=${base_sha}"
           fi
@@ -828,7 +873,14 @@ jobs:
           # writes to main — so main's required_signatures rule is still satisfied. (A
           # rebase-merge would replay this unsigned commit and be blocked; do not switch
           # the merge method for this PR to rebase.)
-          gh api -X PUT "repos/${REPO}/contents/Formula/ironclaw.rb" \
+          #
+          # The `author` pin is what makes the commit unsigned, and it is independent of
+          # WHICH token writes it (IRO-677 changed the token, not the authorship): the
+          # Contents API mirrors committer=author whenever `author` is supplied, so this
+          # commit is `verified: false, reason: unsigned` under the App token exactly as
+          # it was under GITHUB_TOKEN, `license/cla` still passes on the pinned author,
+          # and the squash still mints main's signature.
+          GH_TOKEN="${BUMP_TOKEN}" gh api -X PUT "repos/${REPO}/contents/Formula/ironclaw.rb" \
             -f "message=chore(brew): track ${TAG} in the Homebrew formula" \
             -f "content=${content_b64}" \
             -f "sha=${file_sha}" \
