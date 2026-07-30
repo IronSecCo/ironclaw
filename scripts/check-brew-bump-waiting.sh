@@ -220,9 +220,12 @@ fi
 # ===========================================================================
 STALE=""
 # Arm B's green wording, filled in by whichever branch below actually runs, so the
-# final verdict quotes what arm B found instead of a hardcoded claim. Under `set -u`
-# an unset value would be a hard error, which is the intent: every arm-B path that can
-# reach the green verdict must say what it saw.
+# final verdict quotes what arm B found instead of a hardcoded claim. Every arm-B path
+# that can reach the green verdict must say what it saw; the empty initialiser is not
+# the enforcement of that (an empty string interpolates silently and would print
+# "... and . Tap freshness is within the advertised window."), the non-empty assertion
+# at the verdict is. Initialised anyway so the assertion is what fires, rather than a
+# bare `set -u` unbound-variable trace that says nothing about which branch is at fault.
 TAP_VERDICT=""
 
 # `releases/latest` deliberately, not `git tag`: it excludes drafts and prereleases and
@@ -303,6 +306,13 @@ if [ -z "$WAITING" ] && [ -z "$STALE" ]; then
   # release" one line below it. A green that states a property arm B did not find is
   # the same class of dishonesty arm B was written to remove (IRO-690), just in the
   # reporting half rather than the discovery half.
+  #
+  # Reaching here with it empty means an arm-B branch was added that fills neither
+  # TAP_VERDICT nor STALE, so the guard has a green with nothing behind it. That is the
+  # same overclaim one level down and it is the harder one to spot, because an empty
+  # interpolation still reads as a well-formed all-clear to anyone skimming the last
+  # line. Fail loud instead: a guard that cannot say what it found has not found it.
+  [ -n "$TAP_VERDICT" ] || fail "arm B finished without recording what it found, so the all-clear line has no verdict to quote. Some arm-B branch reached the green path filling neither TAP_VERDICT nor STALE; every branch must set exactly one. Refusing to print an all-clear this run did not earn."
   say "Both arms clear: nothing waiting past ${THRESHOLD_MINUTES}m, and ${TAP_VERDICT}. Tap freshness is within the advertised window."
   exit 0
 fi

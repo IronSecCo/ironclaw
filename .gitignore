@@ -50,3 +50,8 @@ node_modules/
 _site/
 docs/reference/openapi.yaml
 __pycache__/
+
+# Mutation copies of scripts/check-brew-bump-waiting.sh, written next to the real script
+# by scripts/tests/test_check_brew_bump_waiting.py because the guard derives ${ROOT}
+# from $0. Unlinked on cleanup; ignored so a crashed run cannot leave one committable.
+scripts/.mutant-*.sh
