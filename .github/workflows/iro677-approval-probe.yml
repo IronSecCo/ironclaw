@@ -21,8 +21,11 @@ on:
   pull_request:
     branches: [test/iro677-base]
 
+# Arm A must push with the SAME GITHUB_TOKEN scope release.yml's `formula` job has
+# (`contents: write`), or the negative control fails on a 403 instead of testing the
+# approval gate.
 permissions:
-  contents: read
+  contents: write
   actions: write # cancel the runs this probe starts
 
 jobs:
