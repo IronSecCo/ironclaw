@@ -764,14 +764,22 @@ jobs:
       # is deliberately NOT in `bypass_actors` (IRO-670). The token is still never
       # used to approve or merge anything; a human still does that.
       #
-      # continue-on-error so a missing/rotated App secret degrades to the loud manual
-      # fallback below instead of aborting before the branch is even pushed.
+      # continue-on-error so a missing/rotated App credential degrades to the loud
+      # manual fallback below instead of aborting before the branch is even pushed.
+      #
+      # `client-id` (not the deprecated `app-id`) identifies the App: the action reads
+      # `client-id` first and only falls back to `app-id`, which now emits a
+      # deprecation warning and will eventually be dropped (IRO-684). Losing the mint
+      # here is a QUIET degradation -- the fallback below re-opens the bump PR under
+      # GITHUB_TOKEN, which parks every run in `action_required` (the IRO-677
+      # regression) -- so this identifier must stay valid. It is the App's Client ID,
+      # re-derivable with `gh api /apps/ironclaw-reviewer --jq .client_id`.
       - name: Mint a scoped reviewer-App token to push the bump branch and open its PR
         id: pr-app-token
         continue-on-error: true
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ secrets.REVIEWER_APP_ID }}
+          client-id: ${{ vars.REVIEWER_APP_CLIENT_ID }}
           private-key: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
           permission-pull-requests: write
           permission-contents: write
@@ -903,7 +911,7 @@ jobs:
               printf '%s\n' "${1}"
               echo '```'
               echo
-              echo "Usual cause: the scoped **reviewer-App** token could not be minted — check that the \`REVIEWER_APP_ID\` / \`REVIEWER_APP_PRIVATE_KEY\` secrets are present and the App still has \`pull-requests: write\` on this repo (board owns org-secret provisioning). Then re-run, or open the PR manually from the already-signed branch:"
+              echo "Usual cause: the scoped **reviewer-App** token could not be minted — check that the \`REVIEWER_APP_CLIENT_ID\` variable and \`REVIEWER_APP_PRIVATE_KEY\` secret are present and the App still has \`pull-requests: write\` on this repo (board owns org-secret provisioning). Then re-run, or open the PR manually from the already-signed branch:"
               echo
               echo '```'
               echo "gh pr create --repo ${REPO} --base main --head ${branch} \\"
