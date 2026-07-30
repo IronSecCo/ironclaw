@@ -268,6 +268,42 @@ makes it material** — not as a tidiness argument.
 Until then, and regardless of how tempting a green-but-blocked PR makes it: do
 not reach for `--admin`, and do not add a `bypass_actors` entry for the App.
 
+### A waiting bump PR announces itself (IRO-676)
+
+Keeping the click has one cost the click itself does not name: the tap's freshness
+then depends on someone *noticing* the bump PR, and for a while nothing did.
+[#610](https://github.com/IronSecCo/ironclaw/pull/610) sat green and unmerged as
+the third untracked bump in three days and was found by a manual sweep of open
+PRs; [#614](https://github.com/IronSecCo/ironclaw/pull/614) was green and unmerged
+while IRO-670 was being closed out. The README says the tap **can briefly trail**
+the newest release, and "briefly" needs an enforcer.
+
+[`brew-bump-waiting.yml`](https://github.com/IronSecCo/ironclaw/blob/main/.github/workflows/brew-bump-waiting.yml)
+runs hourly and goes **red** when an open `brew/track` PR is older than 240
+minutes. A red scheduled run *is* the notification: GitHub emails on
+scheduled-workflow failure and it is visible in the Actions tab. Notes that matter
+if you touch it:
+
+- **240 min is derived, not picked.** Real merge latency over the last 60
+  `brew/track` PRs was p50 59m, p75 118m, p90 264m, max 8.2 days. The threshold
+  sits above the routine path so an ordinary release never pages, and below every
+  genuinely-late bump on record (#600 9h, #607 8.3h, #562 8.2d).
+- **It fires on age, not on "all required checks green."** Gating the alarm on
+  green builds in a silent-green hole: a required check that never *reports* — the
+  IRO-670 and IRO-673 failure mode, twice — reads as "not green", so the alarm
+  would go quiet on exactly the PRs that are most stuck. Check state is reported
+  in the error message as the remediation hint instead.
+- **Scheduled-failure email goes to whoever last edited the `cron:` line**, not to
+  the repo's watchers. If a bot identity ever rewrites that line the alarm
+  silently redirects to an unread inbox. Keep it a human who can do the merge.
+- **It is notify-only and must stay that way.** Read-only scopes, no merge, no
+  approve, and deliberately **not** in `required_status_checks` — it gates
+  nothing, and requiring it would block unrelated PRs whenever the tap trailed.
+- **To re-prove it** (a guard that has never gone red is not evidence that it
+  can), push a branch named `test/brew-bump-waiting-<minutes>`. It runs against
+  the live API with that threshold, so a small number reports the currently-open
+  bump PR and a large one reports it as within the window.
+
 ## Branch protection: the reviewer path needs no change
 
 The machine-reviewer path above needs **no edit** to
