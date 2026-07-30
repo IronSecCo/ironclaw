@@ -3,5 +3,15 @@
 #   docker run --rm -v "$PWD/docs:/d" python:3.12 sh -c \
 #     'pip install pip-tools && pip-compile --generate-hashes --allow-unsafe -o /d/requirements.txt /d/requirements.in'
 mkdocs==1.6.1
-mkdocs-material==9.5.39
+mkdocs-material==9.7.7
 mkdocs-render-swagger-plugin==0.1.2
+
+# Security floor, not a direct docs dependency: pymdown-extensions is pulled in
+# transitively by mkdocs-material, and every release <= 10.21.3 is vulnerable to
+# GHSA-9xwg-3r6f-jcx2 (path traversal in the b64 extension — an <img src> can read
+# files outside base_path). The fix is 11.0. mkdocs-material pinned <= 9.6.x caps it
+# at `pymdown-extensions~=10.2`, which EXCLUDES 11.x, so the material bump to 9.7.x
+# (constraint relaxed to `>=10.2`) is what makes the patched version reachable at all
+# — that pairing is why both lines moved together. Keeping the floor explicit means a
+# future material downgrade fails to resolve instead of silently reintroducing it.
+pymdown-extensions>=11.0.1
