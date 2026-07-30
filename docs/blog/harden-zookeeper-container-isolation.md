@@ -57,7 +57,7 @@ docker run -d --name zookeeper \
 
 # After: 89/100, grade B (Hardened runtime specification)
 docker run -d --name zookeeper-hardened \
-  --user 1000:1000 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only \
@@ -90,7 +90,7 @@ IronClaw containment scan
   score:   89/100  grade B  (solid, minor gaps)
 
 DIMENSION                    VERDICT   SCORE  DETAIL
-Non-root user (uid != 0)    [+] PASS  15/15  runs as 1000:1000 (uid != 0)
+Non-root user (uid != 0)    [+] PASS  15/15  runs as 65532:65532 (uid != 0)
 Dropped capabilities        [+] PASS  20/20  all capabilities dropped, none added back
 Seccomp profile             [+] PASS  15/15  seccomp profile active (syscall surface filtered)
 Network isolation / egress  [~] WARN   4/15  network=bridge: outbound egress is possible; prefer network=none
