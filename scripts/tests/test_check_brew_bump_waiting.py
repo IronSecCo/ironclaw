@@ -276,6 +276,8 @@ class BrewBumpWaitingTest(unittest.TestCase):
         out = self.assertGreen(self.h.run())
         self.assertIn("Tap is in sync with the newest release", out)
         self.assertIn("Both arms clear", out)
+        # Only in THIS branch may the summary claim the newest release is served.
+        self.assertIn("the tap serves the newest release (0.1.450)", out)
 
     def test_stale_tap_inside_the_threshold_is_green(self) -> None:
         """The IRO-689 window as actually observed: ~40 min of trail. The README
@@ -285,6 +287,26 @@ class BrewBumpWaitingTest(unittest.TestCase):
         self.h.set_release(IRO689_LATEST_TAG, published_minutes_ago=40)
         out = self.assertGreen(self.h.run())
         self.assertIn("Inside the advertised brief-trail window", out)
+
+    def test_green_summary_does_not_claim_a_trailing_tap_is_in_sync(self) -> None:
+        """The load-bearing negative for the SUMMARY line (IRO-694). Arm B is allowed to
+        be green while the tap trails inside the grace window, but the summary must then
+        say so rather than assert the opposite one line below arm B's own finding.
+
+        NON-VACUITY: this is a suppressing/report-half defect, so it passes against the
+        fixed script by construction and proves nothing on its own. Run it against the
+        pre-fix file (`git show 84e7594:scripts/check-brew-bump-waiting.sh`) and it FAILS
+        on the assertNotIn: that summary hardcoded "the tap serves the newest release"
+        and printed it verbatim under a trailing tap. Observed live in run 30546035595,
+        which reported the tap on 0.1.450 against a published v0.1.452 and then called
+        itself in sync. Same rule as IRO-676's "an honest green must ENUMERATE a real
+        row", applied to the verdict instead of the discovery."""
+        self.h.set_formula_version(IRO689_FORMULA_VERSION)
+        self.h.set_release(IRO689_LATEST_TAG, published_minutes_ago=40)
+        out = self.assertGreen(self.h.run())
+        self.assertIn("Both arms clear", out)
+        self.assertNotIn("the tap serves the newest release", out)
+        self.assertIn(f"the tap trails {IRO689_LATEST_TAG} by 40m", out)
 
     def test_stale_threshold_is_independently_tunable(self) -> None:
         """Same 40-minute trail goes red under a tighter arm-B threshold, and arm A's
