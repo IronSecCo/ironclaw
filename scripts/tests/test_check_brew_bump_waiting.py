@@ -67,6 +67,7 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import tempfile
@@ -211,15 +212,38 @@ class GuardHarness:
         return path.read_text() if path.exists() else ""
 
     # --- runner ----------------------------------------------------------
-    def run(self, **env_overrides: str) -> subprocess.CompletedProcess[str]:
+    def run(self, *, script: pathlib.Path | None = None,
+            **env_overrides: str) -> subprocess.CompletedProcess[str]:
         env = dict(os.environ)
         env["PATH"] = f"{self.bindir}{os.pathsep}{env['PATH']}"
         env["STUB_DIR"] = str(self.dir)
         env["REPO"] = REPO
         env.update(env_overrides)
         return subprocess.run(
-            [str(SCRIPT)], capture_output=True, text=True, env=env, timeout=120
+            [str(script or SCRIPT)], capture_output=True, text=True, env=env, timeout=120
         )
+
+
+def _mutant(drop_pattern: str, suffix: str) -> pathlib.Path:
+    """A copy of the guard with every line matching `drop_pattern` removed.
+
+    Proves a defence is load-bearing without waiting for someone to reintroduce the
+    defect for real: delete what the defence protects against and the defence must fire.
+    Written next to the real script because the guard derives `${ROOT}` from `$0`, so a
+    copy anywhere else would read a different (missing) ruleset and fail for the wrong
+    reason. The caller unlinks it.
+    """
+    src = SCRIPT.read_text().splitlines(keepends=True)
+    kept = [line for line in src if not re.search(drop_pattern, line)]
+    if len(kept) == len(src):
+        raise AssertionError(
+            f"mutation pattern {drop_pattern!r} matched nothing in {SCRIPT}; the test it "
+            "backs would pass against an unmutated script and prove nothing"
+        )
+    out = SCRIPT.parent / f".mutant-{suffix}.sh"
+    out.write_text("".join(kept))
+    out.chmod(0o755)
+    return out
 
 
 class BrewBumpWaitingTest(unittest.TestCase):
@@ -307,6 +331,34 @@ class BrewBumpWaitingTest(unittest.TestCase):
         self.assertIn("Both arms clear", out)
         self.assertNotIn("the tap serves the newest release", out)
         self.assertIn(f"the tap trails {IRO689_LATEST_TAG} by 40m", out)
+
+    def test_green_verdict_refuses_to_print_without_an_arm_b_finding(self) -> None:
+        """IRO-693. Carrying arm B's finding into the verdict fixed the wording for the
+        two branches that exist today; it did not stop a THIRD branch from being added
+        that fills neither TAP_VERDICT nor STALE. That case still reaches the all-clear,
+        and an empty interpolation reads as a well-formed green ("...waiting past 240m,
+        and . Tap freshness is within the advertised window.") to anyone skimming the
+        last line — the same overclaim, one level down and harder to see.
+
+        Driven by MUTATION rather than by a fixture, because no input can reach that
+        state on today's four branches: strip the in-branch `TAP_VERDICT=` assignments
+        and run the otherwise-green in-sync fixture. Without the assertion this mutant
+        exits 0 with the empty sentence; with it, it exits 1 naming the cause."""
+        mutant = _mutant(r'^\s+TAP_VERDICT=', "no-tap-verdict")
+        self.addCleanup(mutant.unlink)
+
+        self.h.set_formula_version("0.1.450")
+        self.h.set_release("v0.1.450", published_minutes_ago=500)
+        proc = self.h.run(script=mutant)
+
+        self.assertEqual(
+            proc.returncode,
+            1,
+            "a green verdict with no arm-B finding behind it must be RED.\n"
+            f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}",
+        )
+        self.assertIn("arm B finished without recording what it found", proc.stderr)
+        self.assertNotIn("Both arms clear", proc.stdout)
 
     def test_stale_threshold_is_independently_tunable(self) -> None:
         """Same 40-minute trail goes red under a tighter arm-B threshold, and arm A's
