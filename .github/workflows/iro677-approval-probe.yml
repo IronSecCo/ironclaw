@@ -1,0 +1,191 @@
+# TEMPORARY PROBE -- IRO-677. Never merged to main; lives only on
+# `test/iro677-probe` and is deleted with its branches once the evidence is filed.
+#
+# Question: does the workflow-approval gate on the rolling bump PR key on the PR
+# AUTHOR (the hypothesis in the issue: squash merges starve the App of contributor
+# history) or on the identity that PUSHED the head ref?
+#
+# Two arms against ONE already-open pull request (`test/iro677-target`, authored by a
+# repo MEMBER, base `test/iro677-base`), differing in exactly one variable -- the
+# token used for the force-push. Commit author, commit shape, branch, PR and base are
+# held constant across both arms.
+#
+#   Arm A  force-push with the default GITHUB_TOKEN  (what release.yml does today)
+#   Arm B  force-push with the reviewer-App installation token
+#
+# Arm A is the negative control and it must reproduce the stall, or the probe has
+# proved nothing and fails.
+name: IRO-677 approval probe
+
+on:
+  pull_request:
+    branches: [test/iro677-base]
+
+permissions:
+  contents: read
+  actions: write # cancel the runs this probe starts
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    env:
+      REPO: ${{ github.repository }}
+      TARGET_BRANCH: test/iro677-target
+      BASE_BRANCH: test/iro677-base
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # If this step fails with "permissions requested are not granted", the fix in
+      # release.yml is not available at all and the answer is escalation, not a
+      # workaround. Deliberately NOT continue-on-error.
+      - name: Mint the reviewer-App token with contents:write
+        id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.REVIEWER_APP_ID }}
+          private-key: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Arm A -- force-push the target branch with the default GITHUB_TOKEN
+        id: arm_a
+        env:
+          PUSH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch origin "${BASE_BRANCH}"
+          git checkout -B probe-head "origin/${BASE_BRANCH}"
+          # A real file change, not an empty commit: the PR must keep a non-empty diff
+          # across both arms so the two run sets are comparable.
+          printf 'arm A / run %s\n' "${GITHUB_RUN_ID}" > iro677-probe.txt
+          git add iro677-probe.txt
+          git -c user.name='Omer Zamir' -c user.email='zamir98@gmail.com' \
+            commit -m "probe(iro677): arm A -- pushed with GITHUB_TOKEN"
+          sha="$(git rev-parse HEAD)"
+          git push --force \
+            "https://x-access-token:${PUSH_TOKEN}@github.com/${REPO}.git" \
+            "HEAD:refs/heads/${TARGET_BRANCH}"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "arm A head: ${sha}"
+
+      - name: Let GitHub settle, then snapshot arm A
+        id: snap_a
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.arm_a.outputs.sha }}
+        run: |
+          set -euo pipefail
+          sleep 75
+          gh api "repos/${REPO}/actions/runs?head_sha=${SHA}&per_page=100" \
+            --jq '.workflow_runs[] | [.id, .name, .event, .status, (.conclusion // "-"), .actor.login] | @tsv' \
+            > arm-a.tsv
+          echo "--- arm A runs on ${SHA} ---"
+          cat arm-a.tsv
+
+      - name: Arm B -- force-push the target branch with the reviewer-App token
+        id: arm_b
+        env:
+          PUSH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          set -euo pipefail
+          git checkout -B probe-head "origin/${BASE_BRANCH}"
+          printf 'arm B / run %s\n' "${GITHUB_RUN_ID}" > iro677-probe.txt
+          git add iro677-probe.txt
+          git -c user.name='Omer Zamir' -c user.email='zamir98@gmail.com' \
+            commit -m "probe(iro677): arm B -- pushed with the reviewer-App token"
+          sha="$(git rev-parse HEAD)"
+          git push --force \
+            "https://x-access-token:${PUSH_TOKEN}@github.com/${REPO}.git" \
+            "HEAD:refs/heads/${TARGET_BRANCH}"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "arm B head: ${sha}"
+
+      - name: Let GitHub settle, then snapshot arm B
+        id: snap_b
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.arm_b.outputs.sha }}
+        run: |
+          set -euo pipefail
+          sleep 75
+          gh api "repos/${REPO}/actions/runs?head_sha=${SHA}&per_page=100" \
+            --jq '.workflow_runs[] | [.id, .name, .event, .status, (.conclusion // "-"), .actor.login] | @tsv' \
+            > arm-b.tsv
+          echo "--- arm B runs on ${SHA} ---"
+          cat arm-b.tsv
+
+      - name: Verdict
+        env:
+          SHA_A: ${{ steps.arm_a.outputs.sha }}
+          SHA_B: ${{ steps.arm_b.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          count() { awk -F'\t' -v e="$2" '$3 == e' "$1" | wc -l | tr -d ' '; }
+          stalled() {
+            awk -F'\t' '$3 == "pull_request" && ($4 == "action_required" || $5 == "action_required")' "$1" \
+              | wc -l | tr -d ' '
+          }
+
+          a_pr="$(count arm-a.tsv pull_request)"; a_push="$(count arm-a.tsv push)"; a_stall="$(stalled arm-a.tsv)"
+          b_pr="$(count arm-b.tsv pull_request)"; b_push="$(count arm-b.tsv push)"; b_stall="$(stalled arm-b.tsv)"
+
+          {
+            echo "### IRO-677 approval probe"
+            echo
+            echo "One open PR, one base, one commit author, two tokens."
+            echo
+            echo "| arm | push token | pull_request runs | of those, action_required | push-event runs |"
+            echo "|---|---|---|---|---|"
+            echo "| A (\`${SHA_A:0:8}\`) | \`GITHUB_TOKEN\` | ${a_pr} | ${a_stall} | ${a_push} |"
+            echo "| B (\`${SHA_B:0:8}\`) | reviewer-App | ${b_pr} | ${b_stall} | ${b_push} |"
+            echo
+            echo '```'
+            echo "arm A:"; cat arm-a.tsv
+            echo "arm B:"; cat arm-b.tsv
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          fail=0
+
+          # Vacuity guard. A negative control that produced no runs at all has not
+          # tested anything, and reading it as "no stall" would be the exact
+          # false-green this probe exists to rule out.
+          if [ "${a_pr}" -eq 0 ]; then
+            echo "::error::arm A produced ZERO pull_request runs -- the negative control proved nothing."
+            fail=1
+          elif [ "${a_stall}" -ne "${a_pr}" ]; then
+            echo "::error::arm A did NOT reproduce the stall (${a_stall}/${a_pr} action_required). The pushing-identity model is wrong -- do not ship the release.yml change on this evidence."
+            fail=1
+          else
+            echo "arm A reproduced the stall: ${a_stall}/${a_pr} pull_request runs action_required."
+          fi
+
+          if [ "${b_pr}" -eq 0 ]; then
+            echo "::error::arm B produced ZERO pull_request runs -- cannot tell whether the fix works."
+            fail=1
+          elif [ "${b_stall}" -ne 0 ]; then
+            echo "::error::arm B STILL stalled (${b_stall}/${b_pr} action_required). Pushing as the App does not clear the gate."
+            fail=1
+          else
+            echo "arm B cleared the gate: 0/${b_pr} pull_request runs action_required."
+          fi
+
+          exit "${fail}"
+
+      - name: Cancel every run this probe started
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          for f in arm-a.tsv arm-b.tsv; do
+            [ -f "$f" ] || continue
+            while IFS=$'\t' read -r id _rest; do
+              [ -n "${id:-}" ] || continue
+              gh api -X POST "repos/${REPO}/actions/runs/${id}/cancel" >/dev/null 2>&1 \
+                && echo "cancelled ${id}" || echo "could not cancel ${id} (already terminal)"
+            done < "$f"
+          done
