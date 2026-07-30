@@ -19,6 +19,12 @@ on:
       - "scripts/check-docs-meta.py"
       - "scripts/check_links.py"
       - "scripts/check-guide-index.py"
+      - "scripts/check-guide-uid.py"
+      # check-guide-uid.py reads `hardenedUID` out of this file, so a change to
+      # the constant has to trigger this workflow too. Without it, moving the
+      # constant would leave 56 guides quoting the old uid and nothing in CI
+      # would ever look: the paths filter, not the check, would be the hole.
+      - "internal/host/scan/remediate.go"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
@@ -30,6 +36,12 @@ on:
       - "scripts/check-docs-meta.py"
       - "scripts/check_links.py"
       - "scripts/check-guide-index.py"
+      - "scripts/check-guide-uid.py"
+      # check-guide-uid.py reads `hardenedUID` out of this file, so a change to
+      # the constant has to trigger this workflow too. Without it, moving the
+      # constant would leave 56 guides quoting the old uid and nothing in CI
+      # would ever look: the paths filter, not the check, would be the hole.
+      - "internal/host/scan/remediate.go"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -88,6 +100,30 @@ jobs:
         # Stdlib only, so it runs before the toolchain install and fails fast.
         # Negative controls: scripts/tests/test_check_guide_index.py (ci.yml).
         run: python3 scripts/check-guide-index.py
+
+      - name: Check the guides quote the uid `--fix` actually emits
+        # Every harden-*.md heads its remediation section "the exact `--fix`
+        # remediation", so the flags under it are a claim about our own tool's
+        # output. Twice that claim was false and both times a human reading the
+        # page caught it, not CI: IRO-698 shipped a guide whose bullet and run
+        # block pinned different uids, and the IRO-699 sweep found 17 guides
+        # quoting a uid --fix never emits (couchdb and neo4j had reused the
+        # image's port number as a uid). A wrong-but-well-formed number inside a
+        # code fence is invisible to check_links.py, check-guide-index.py and
+        # `mkdocs build --strict` alike: none of them read prose, only links,
+        # nav wiring and front-matter.
+        #
+        # The uid is read out of internal/host/scan/remediate.go, so the
+        # assertion follows the constant instead of being a second place to
+        # remember; that file is in this workflow's paths filter for the same
+        # reason. A step in `build` for the same reason as the checks around it:
+        # `build` is the required check on ruleset 17917971 and a new job name
+        # would not be. Stdlib only, so it runs before the toolchain install and
+        # fails fast. Negative controls: scripts/tests/test_check_guide_uid.py
+        # (run by ci.yml script-tests), including the two that assert it stays
+        # silent on haproxy/grafana/prometheus, where the uid is the image's own
+        # and rewriting it would break the container.
+        run: python3 scripts/check-guide-uid.py
 
       - name: Install MkDocs toolchain (hash-pinned)
         # --require-hashes makes pip refuse any wheel whose SHA-256 isn't in the
