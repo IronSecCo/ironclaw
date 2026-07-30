@@ -2,27 +2,34 @@
 # `test/iro677-probe` and is deleted with its branches once the evidence is filed.
 #
 # Question: does the workflow-approval gate on the rolling bump PR key on the PR
-# AUTHOR (the hypothesis in the issue: squash merges starve the App of contributor
-# history) or on the identity that PUSHED the head ref?
+# AUTHOR (the issue's hypothesis: squash merges starve the App of contributor
+# history) or on the identity that WROTE the head ref?
 #
-# Two arms against ONE already-open pull request (`test/iro677-target`, authored by a
-# repo MEMBER, base `test/iro677-base`), differing in exactly one variable -- the
-# token. Target branch, base, PR, commit author pin and commit shape are held
-# constant.
+# Each arm gets its OWN virgin branch and PR and mirrors the real release flow
+# exactly:
+#     1. seed a branch off the base and open its PR AS THE REVIEWER APP
+#        (this is what release.yml's `formula` job does on the first bump)
+#     2. then force-reset that branch and re-commit onto the ALREADY-OPEN PR
+#        (this is the later bump, and it is the only step that differs per arm)
+# Arm A does step 2 with the default GITHUB_TOKEN -- today's behaviour, and the
+# negative control. Arm B does step 2 with the reviewer-App installation token.
 #
-#   Arm A  write with the default GITHUB_TOKEN        (what release.yml does today)
-#   Arm B  write with the reviewer-App installation token
+# One PR per arm on purpose. An earlier revision reused a single PR across arms and
+# GitHub eventually stopped emitting `synchronize` for it altogether -- repeated
+# force-pushes decouple a PR from its head ref, which the API states outright when
+# you try to reopen it: "state cannot be changed. The <branch> branch was
+# force-pushed or recreated." (That 422 is also why an App-driven close+reopen is
+# NOT an available way to unstall a rolling bump PR.)
 #
-# Both arms use the SAME two REST calls release.yml's `formula` job uses -- a force
+# Both arms write through the SAME two REST calls release.yml uses -- a force
 # `PATCH git/refs/heads/<branch>` back to the base tip, then a `PUT contents/...`
 # with the author pinned to the CLA-signed maintainer. Deliberately NOT `git push`:
-# `actions/checkout` persists GITHUB_TOKEN as `http.https://github.com/.extraheader`,
-# and that header outranks any userinfo in an explicit push URL -- so a `git push`
-# arm B silently re-authenticates as `github-actions[bot]` and the probe reads as
-# "the fix does not work" when it never tested the fix. (Observed: run 30512123764.)
+# `actions/checkout` persists GITHUB_TOKEN as `http.https://github.com/.extraheader`
+# and that header outranks any userinfo in an explicit push URL, so a `git push` arm
+# silently re-authenticates as `github-actions[bot]` and the probe reads "the fix
+# does not work" having never tested the fix (observed: run 30512123764).
 #
-# Arm A is the negative control and it must reproduce the stall, or the probe has
-# proved nothing and fails.
+# Arm A must reproduce the stall or the probe has proved nothing and fails.
 name: IRO-677 approval probe
 
 on:
@@ -34,6 +41,7 @@ on:
 # approval gate.
 permissions:
   contents: write
+  pull-requests: write
   actions: write # cancel the runs this probe starts
 
 jobs:
@@ -41,7 +49,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REPO: ${{ github.repository }}
-      TARGET_BRANCH: test/iro677-target
       BASE_BRANCH: test/iro677-base
     steps:
       # If this step fails with "permissions requested are not granted", the fix in
@@ -56,130 +63,84 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      - name: Arm A -- force-reset + commit with the default GITHUB_TOKEN
-        id: arm_a
-        env:
-          READ_TOKEN: ${{ github.token }}
-          WRITE_TOKEN: ${{ github.token }}
-          ARM: A
+      - name: Write the shared arm driver
         run: |
           set -euo pipefail
-          base_sha="$(GH_TOKEN="${READ_TOKEN}" gh api "repos/${REPO}/git/ref/heads/${BASE_BRANCH}" --jq .object.sha)"
-          GH_TOKEN="${WRITE_TOKEN}" gh api -X PATCH "repos/${REPO}/git/refs/heads/${TARGET_BRANCH}" \
-            -f "sha=${base_sha}" -F "force=true" --jq .object.sha
-          sha="$(GH_TOKEN="${WRITE_TOKEN}" gh api -X PUT "repos/${REPO}/contents/iro677-probe.txt" \
-            -f "message=probe(iro677): arm ${ARM}" \
-            -f "content=$(printf 'arm %s / run %s\n' "${ARM}" "${GITHUB_RUN_ID}" | base64 -w0)" \
-            -f "branch=${TARGET_BRANCH}" \
-            -f "author[name]=Omer Zamir" \
-            -f "author[email]=zamir98@gmail.com" --jq .commit.sha)"
-          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
-          echo "arm ${ARM} head: ${sha}"
+          cat > run-arm.sh <<'SH'
+          set -euo pipefail
+          arm="$1"; bump_token="$2"
+          br="test/iro677-${arm}-${GITHUB_RUN_ID}"
+          base_sha="$(gh api "repos/${REPO}/git/ref/heads/${BASE_BRANCH}" --jq .object.sha)"
 
-      - name: Let GitHub settle, then snapshot arm A
+          # --- step 1: virgin branch + PR opened BY THE APP, exactly like the first bump
+          gh api -X POST "repos/${REPO}/git/refs" \
+            -f "ref=refs/heads/${br}" -f "sha=${base_sha}" --jq .ref
+          gh api -X PUT "repos/${REPO}/contents/iro677-probe.txt" \
+            -f "message=probe(iro677): seed arm ${arm}" \
+            -f "content=$(printf 'seed %s\n' "${arm}" | base64 -w0)" \
+            -f "branch=${br}" \
+            -f "author[name]=Omer Zamir" -f "author[email]=zamir98@gmail.com" --jq .commit.sha
+          pr="$(GH_TOKEN="${APP_TOKEN}" gh api -X POST "repos/${REPO}/pulls" \
+            -f "title=TEMP IRO-677 probe arm ${arm} - do not merge" \
+            -f "head=${br}" -f "base=${BASE_BRANCH}" \
+            -f "body=Throwaway. Opened by the reviewer App to mirror release.yml." --jq .number)"
+          echo "arm ${arm}: PR #${pr} on ${br}, opened by the App"
+          sleep 20
+
+          # --- step 2: THE BUMP. Force-reset + re-commit onto the already-open PR.
+          # This is the only line that differs between the arms.
+          GH_TOKEN="${bump_token}" gh api -X PATCH "repos/${REPO}/git/refs/heads/${br}" \
+            -f "sha=${base_sha}" -F "force=true" --jq .object.sha
+          sha="$(GH_TOKEN="${bump_token}" gh api -X PUT "repos/${REPO}/contents/iro677-probe.txt" \
+            -f "message=probe(iro677): bump arm ${arm}" \
+            -f "content=$(printf 'bump %s / run %s\n' "${arm}" "${GITHUB_RUN_ID}" | base64 -w0)" \
+            -f "branch=${br}" \
+            -f "author[name]=Omer Zamir" -f "author[email]=zamir98@gmail.com" --jq .commit.sha)"
+          echo "arm ${arm}: bumped head to ${sha}"
+
+          sleep 110
+          gh api "repos/${REPO}/actions/runs?head_sha=${sha}&per_page=100" \
+            --jq '.workflow_runs[] | [.id, .name, .event, .status, (.conclusion // "-"), .actor.login] | @tsv' \
+            > "arm-${arm}.tsv"
+          echo "--- arm ${arm} runs on ${sha} ---"
+          cat "arm-${arm}.tsv"
+
+          # Who does GitHub say pushed? This is the variable under test, so read it
+          # back rather than assuming the token took effect.
+          gh api "repos/${REPO}/issues/${pr}/timeline?per_page=100" \
+            --jq '[.[] | select(.event == "head_ref_force_pushed") | .actor.login] | last // "none"' \
+            > "arm-${arm}.pusher"
+          echo "arm ${arm}: force-push attributed to $(cat "arm-${arm}.pusher")"
+
+          # Tidy up: cancel what we started, close the PR, drop the branch.
+          while IFS=$'\t' read -r id _rest; do
+            [ -n "${id:-}" ] || continue
+            gh api -X POST "repos/${REPO}/actions/runs/${id}/cancel" >/dev/null 2>&1 || true
+          done < "arm-${arm}.tsv"
+          gh api -X PATCH "repos/${REPO}/pulls/${pr}" -f state=closed >/dev/null 2>&1 || true
+          gh api -X DELETE "repos/${REPO}/git/refs/heads/${br}" >/dev/null 2>&1 || true
+          SH
+          chmod +x run-arm.sh
+
+      - name: Arm A -- bump with the default GITHUB_TOKEN (negative control)
         env:
           GH_TOKEN: ${{ github.token }}
-          SHA: ${{ steps.arm_a.outputs.sha }}
-        run: |
-          set -euo pipefail
-          sleep 110
-          gh api "repos/${REPO}/actions/runs?head_sha=${SHA}&per_page=100" \
-            --jq '.workflow_runs[] | [.id, .name, .event, .status, (.conclusion // "-"), .actor.login] | @tsv' \
-            > arm-a.tsv
-          echo "--- arm A runs on ${SHA} ---"
-          cat arm-a.tsv
-
-      - name: Arm B -- force-reset + commit with the reviewer-App token
-        id: arm_b
-        env:
-          READ_TOKEN: ${{ github.token }}
-          WRITE_TOKEN: ${{ steps.app.outputs.token }}
-          ARM: B
-        run: |
-          set -euo pipefail
-          # Prove the two arms really are different identities before using the token,
-          # so a silently-empty or identical token cannot masquerade as a result.
-          if [ -z "${WRITE_TOKEN:-}" ]; then
-            echo "::error::arm B has no App token -- it would have re-run arm A."
-            exit 1
-          fi
-          if [ "${WRITE_TOKEN}" = "${READ_TOKEN}" ]; then
-            echo "::error::arm B token is identical to GITHUB_TOKEN -- the arms are not independent."
-            exit 1
-          fi
-          echo "arm B writer is a distinct installation token (${#WRITE_TOKEN} chars)."
-          base_sha="$(GH_TOKEN="${READ_TOKEN}" gh api "repos/${REPO}/git/ref/heads/${BASE_BRANCH}" --jq .object.sha)"
-          GH_TOKEN="${WRITE_TOKEN}" gh api -X PATCH "repos/${REPO}/git/refs/heads/${TARGET_BRANCH}" \
-            -f "sha=${base_sha}" -F "force=true" --jq .object.sha
-          sha="$(GH_TOKEN="${WRITE_TOKEN}" gh api -X PUT "repos/${REPO}/contents/iro677-probe.txt" \
-            -f "message=probe(iro677): arm ${ARM}" \
-            -f "content=$(printf 'arm %s / run %s\n' "${ARM}" "${GITHUB_RUN_ID}" | base64 -w0)" \
-            -f "branch=${TARGET_BRANCH}" \
-            -f "author[name]=Omer Zamir" \
-            -f "author[email]=zamir98@gmail.com" --jq .commit.sha)"
-          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
-          echo "arm ${ARM} head: ${sha}"
-
-      - name: Let GitHub settle, then snapshot arm B
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SHA: ${{ steps.arm_b.outputs.sha }}
-        run: |
-          set -euo pipefail
-          sleep 110
-          gh api "repos/${REPO}/actions/runs?head_sha=${SHA}&per_page=100" \
-            --jq '.workflow_runs[] | [.id, .name, .event, .status, (.conclusion // "-"), .actor.login] | @tsv' \
-            > arm-b.tsv
-          echo "--- arm B runs on ${SHA} ---"
-          cat arm-b.tsv
-
-      - name: Arm C -- GITHUB_TOKEN write, then close+reopen the PR as the App
-        id: arm_c
-        env:
-          READ_TOKEN: ${{ github.token }}
-          WRITE_TOKEN: ${{ github.token }}
           APP_TOKEN: ${{ steps.app.outputs.token }}
-          TARGET_PR: "618"
-          ARM: C
-        run: |
-          set -euo pipefail
-          base_sha="$(GH_TOKEN="${READ_TOKEN}" gh api "repos/${REPO}/git/ref/heads/${BASE_BRANCH}" --jq .object.sha)"
-          GH_TOKEN="${WRITE_TOKEN}" gh api -X PATCH "repos/${REPO}/git/refs/heads/${TARGET_BRANCH}" \
-            -f "sha=${base_sha}" -F "force=true" --jq .object.sha
-          sha="$(GH_TOKEN="${WRITE_TOKEN}" gh api -X PUT "repos/${REPO}/contents/iro677-probe.txt" \
-            -f "message=probe(iro677): arm ${ARM}" \
-            -f "content=$(printf 'arm %s / run %s\n' "${ARM}" "${GITHUB_RUN_ID}" | base64 -w0)" \
-            -f "branch=${TARGET_BRANCH}" \
-            -f "author[name]=Omer Zamir" \
-            -f "author[email]=zamir98@gmail.com" --jq .commit.sha)"
-          echo "arm ${ARM} head: ${sha} (expected to be stalled right now, like arm A)"
-          sleep 45
-          # The unstall attempt: a `reopened` pull_request event whose actor is the App.
-          # Needs pull-requests:write only -- no contents:write anywhere.
-          GH_TOKEN="${APP_TOKEN}" gh api -X PATCH "repos/${REPO}/pulls/${TARGET_PR}" -f state=closed --jq .state
-          sleep 5
-          GH_TOKEN="${APP_TOKEN}" gh api -X PATCH "repos/${REPO}/pulls/${TARGET_PR}" -f state=open --jq .state
-          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+        run: bash run-arm.sh A "${GH_TOKEN}"
 
-      - name: Let GitHub settle, then snapshot arm C
+      - name: Arm B -- bump with the reviewer-App installation token
         env:
           GH_TOKEN: ${{ github.token }}
-          SHA: ${{ steps.arm_c.outputs.sha }}
+          APP_TOKEN: ${{ steps.app.outputs.token }}
         run: |
           set -euo pipefail
-          sleep 110
-          gh api "repos/${REPO}/actions/runs?head_sha=${SHA}&per_page=100" \
-            --jq '.workflow_runs[] | [.id, .name, .event, .status, (.conclusion // "-"), .actor.login] | @tsv' \
-            > arm-c.tsv
-          echo "--- arm C runs on ${SHA} ---"
-          cat arm-c.tsv
-          echo "--- arm C: pull_request runs that are NOT action_required ---"
-          awk -F'\t' '$3 == "pull_request" && $4 != "action_required" && $5 != "action_required"' arm-c.tsv || true
+          if [ -z "${APP_TOKEN:-}" ] || [ "${APP_TOKEN}" = "${GH_TOKEN}" ]; then
+            echo "::error::arm B has no distinct App token -- it would just re-run arm A."
+            exit 1
+          fi
+          bash run-arm.sh B "${APP_TOKEN}"
+
       - name: Verdict
-        env:
-          SHA_A: ${{ steps.arm_a.outputs.sha }}
-          SHA_B: ${{ steps.arm_b.outputs.sha }}
-          SHA_C: ${{ steps.arm_c.outputs.sha }}
         run: |
           set -euo pipefail
 
@@ -189,26 +150,23 @@ jobs:
               | wc -l | tr -d ' '
           }
 
-          a_pr="$(count arm-a.tsv pull_request)"; a_push="$(count arm-a.tsv push)"; a_stall="$(stalled arm-a.tsv)"
-          b_pr="$(count arm-b.tsv pull_request)"; b_push="$(count arm-b.tsv push)"; b_stall="$(stalled arm-b.tsv)"
-          c_pr="$(count arm-c.tsv pull_request)"; c_push="$(count arm-c.tsv push)"; c_stall="$(stalled arm-c.tsv)"
-          c_live=$((c_pr - c_stall))
+          a_pr="$(count arm-A.tsv pull_request)"; a_push="$(count arm-A.tsv push)"; a_stall="$(stalled arm-A.tsv)"
+          b_pr="$(count arm-B.tsv pull_request)"; b_push="$(count arm-B.tsv push)"; b_stall="$(stalled arm-B.tsv)"
+          a_who="$(cat arm-A.pusher)"; b_who="$(cat arm-B.pusher)"
 
           {
             echo "### IRO-677 approval probe"
             echo
-            echo "One open PR, one base, one pinned commit author, two tokens."
+            echo "One virgin App-opened PR per arm. Only the bump token differs."
             echo
-            echo "| arm | write token | pull_request runs | of those, action_required | push-event runs |"
-            echo "|---|---|---|---|---|"
-            echo "| A (\`${SHA_A:0:8}\`) | \`GITHUB_TOKEN\` | ${a_pr} | ${a_stall} | ${a_push} |"
-            echo "| B (\`${SHA_B:0:8}\`) | reviewer-App | ${b_pr} | ${b_stall} | ${b_push} |"
-            echo "| C (\`${SHA_C:0:8}\`) | \`GITHUB_TOKEN\` + App close/reopen | ${c_pr} | ${c_stall} | ${c_push} |"
+            echo "| arm | bump token | force-push attributed to | pull_request runs | of those \`action_required\` | push runs |"
+            echo "|---|---|---|---|---|---|"
+            echo "| A | \`GITHUB_TOKEN\` | \`${a_who}\` | ${a_pr} | ${a_stall} | ${a_push} |"
+            echo "| B | reviewer-App | \`${b_who}\` | ${b_pr} | ${b_stall} | ${b_push} |"
             echo
             echo '```'
-            echo "arm A:"; cat arm-a.tsv
-            echo "arm B:"; cat arm-b.tsv
-            echo "arm C:"; cat arm-c.tsv
+            echo "arm A:"; cat arm-A.tsv
+            echo "arm B:"; cat arm-B.tsv
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -221,28 +179,23 @@ jobs:
             echo "::error::arm A produced ZERO pull_request runs -- the negative control proved nothing."
             fail=1
           elif [ "${a_stall}" -ne "${a_pr}" ]; then
-            echo "::error::arm A did NOT reproduce the stall (${a_stall}/${a_pr} action_required). The pushing-identity model is wrong -- do not ship the release.yml change on this evidence."
+            echo "::error::arm A did NOT reproduce the stall (${a_stall}/${a_pr} action_required). The writing-identity model is wrong -- do not ship the release.yml change on this evidence."
             fail=1
           else
-            echo "arm A reproduced the stall: ${a_stall}/${a_pr} pull_request runs action_required."
+            echo "arm A reproduced the stall: ${a_stall}/${a_pr} pull_request runs action_required, pushed by ${a_who}."
           fi
 
+          # The required contexts are build, CodeQL and brew-formula-verify. CodeQL is
+          # pull_request-ONLY, so "the push-event runs went green" is not sufficient --
+          # arm B has to produce live pull_request runs or the PR still cannot merge.
           if [ "${b_pr}" -eq 0 ]; then
-            echo "::error::arm B produced ZERO pull_request runs -- cannot tell whether the fix works."
+            echo "::error::arm B produced ZERO pull_request runs. Push-event coverage alone cannot satisfy CodeQL, which is pull_request-only -- the PR would hang on a MISSING required check instead of a parked one."
             fail=1
           elif [ "${b_stall}" -ne 0 ]; then
             echo "::error::arm B STILL stalled (${b_stall}/${b_pr} action_required). Writing as the App does not clear the gate."
             fail=1
           else
-            echo "arm B cleared the gate: 0/${b_pr} pull_request runs action_required."
-          fi
-
-          if [ "${c_live}" -gt 0 ]; then
-            echo "arm C cleared the gate via close+reopen: ${c_live} live pull_request run(s)."
-          else
-            echo "::error::arm C did NOT clear the gate (${c_stall}/${c_pr} action_required, 0 live)."
-            fail=1
+            echo "arm B cleared the gate: 0/${b_pr} pull_request runs action_required, pushed by ${b_who}."
           fi
 
           exit "${fail}"
-
