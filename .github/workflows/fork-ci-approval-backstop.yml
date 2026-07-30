@@ -61,10 +61,36 @@ name: Fork CI approval backstop
 # code compiled, not that anyone reviewed it. If you are removing that notice, you are
 # removing the half of this trade that we gave a maintainer's click away for.
 
+# TRIGGER GUARDRAIL, load-bearing (IRO-679). This workflow approves contributor-controlled
+# code, so it must stay `schedule`/`workflow_dispatch`-triggered ONLY. Never `pull_request`,
+# never `pull_request_target`: contributor-controlled content must not be able to influence
+# the thing that approves contributor-controlled content. The scanner below must likewise
+# keep reading the default-branch checkout, never the PR's copy of these files. Latency is
+# not a reason to trade this away -- if you are here because a cron was slow, read the note
+# on the `schedule:` block and price an event-driven trigger as the trust-model change it is.
 on:
   schedule:
-    # Every 30 minutes. A contributor should never wait longer than one cycle.
-    - cron: "*/30 * * * *"
+    # Asks for every 30 minutes. DO NOT restate that as a contributor-facing promise --
+    # this file used to say "a contributor should never wait longer than one cycle" and
+    # that was measurably false (IRO-679). Measured 2026-07-30 with
+    # `scripts/measure-cron-latency.py`: the two observed intervals of the `*/30` form of
+    # this cron were 66 and 159 minutes, i.e. 2.2x and 5.3x the requested period, and it
+    # was the only cron in the repo whose overshoot exceeded its own period. Over the same
+    # window 55 intervals of daily and weekly crons here came in at p50 -7 / p90 +36 /
+    # max +75 minutes against nominal, so the scheduler honours low-frequency cadence and
+    # was dropping this one -- consistent with GitHub's documented deprioritisation of
+    # high-frequency schedules. n=2 cannot prove that on its own; the useful independent
+    # observation is the 92-minute silence caught live with no run pending.
+    #
+    # The minutes are offset off :00/:30 as a cheap, strictly-dominating experiment: same
+    # 30-minute cadence and the same promise, but off the two most congested minutes of
+    # the hour. It costs nothing if it does not help. It is NOT yet known to help -- re-run
+    # the script before anyone writes a latency number based on it.
+    #
+    # If a real latency bound is ever needed here, it needs an event-driven trigger, and
+    # that is a trust-model decision (a run entering `action_required` is contributor-
+    # initiated), not a cron tweak. See the TRIGGER GUARDRAIL above before proposing one.
+    - cron: "13,43 * * * *"
   workflow_dispatch:
     inputs:
       dry_run:

@@ -37,10 +37,26 @@ name: Brew bump waiting
 
 on:
   schedule:
-    # Hourly, offset off the hour to dodge top-of-hour scheduler congestion. Detection
-    # latency is therefore <= 60 min, comfortably inside the 240 min staleness
-    # threshold, so a bump that crosses the threshold is reported well within one
-    # threshold window rather than at the far end of it.
+    # Hourly, offset off the hour to dodge top-of-hour scheduler congestion.
+    #
+    # Detection latency is NOT <= 60 min. That is what this comment used to claim and it
+    # rested on the cron expression rather than on the scheduler (IRO-679). Measured
+    # 2026-07-30 with `scripts/measure-cron-latency.py` over 55 intervals of this repo's
+    # daily and weekly crons, the gap GitHub actually delivers runs p50 -7 / p90 +36 /
+    # p95 +51 / max +75 minutes against the period the cron asked for. Carrying that
+    # overshoot onto a 60 min period gives a realistic worst case near 135 min, not 60.
+    #
+    # That still clears the 240 min staleness threshold with ~105 min of headroom, so the
+    # guard's design is unaffected and this is a correction to the claim, not to the cron.
+    # Two caveats worth keeping:
+    #   - The hourly cadence itself is UNMEASURED. The 55 intervals above are daily and
+    #     weekly. The one sub-hourly cron in the repo (`fork-ci-approval-backstop`) was
+    #     being dropped hard, so if hourly falls in GitHub's high-frequency bucket the
+    #     bound is worse than 135 min. This workflow is now the experiment that settles it
+    #     -- after a day of runs, re-run the script and replace this paragraph with data.
+    #   - Declared clock time is not honoured either: every daily/weekly cron in this repo
+    #     fires roughly 3h after its stated UTC time. Cadence survives that, phase does
+    #     not, so never write "runs at HH:MM" about this file.
     - cron: "23 * * * *"
   workflow_dispatch:
     inputs:
