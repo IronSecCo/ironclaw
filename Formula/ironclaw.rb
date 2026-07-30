@@ -22,7 +22,7 @@ class Ironclaw < Formula
   on_macos do
     on_arm do
       url "https://github.com/IronSecCo/ironclaw/releases/download/v0.1.428/ironclaw_0.1.428_darwin_arm64.tar.gz"
-      sha256 "1a946b684d6b573deb3f0f74e9b6667450b70e82046e6f2f5a25f5c834019424"
+      sha256 "1a946b694d6b573deb3f0f74e9b6667450b70e82046e6f2f5a25f5c834019424"
     end
     on_intel do
       url "https://github.com/IronSecCo/ironclaw/releases/download/v0.1.428/ironclaw_0.1.428_darwin_amd64.tar.gz"
