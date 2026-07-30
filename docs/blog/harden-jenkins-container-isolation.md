@@ -45,8 +45,9 @@ writable rootfs widen and entrench any foothold.
 `ironctl scan my-jenkins --fix` prints one remediation per failed dimension, then one hardened run.
 For `jenkins/jenkins:lts`:
 
-- **`--user 1000:1000`** (Non-root user, +15): pin the non-root `jenkins` uid so an escape does not
-  begin as host uid 0. Point `JENKINS_HOME` at a volume this uid owns.
+- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as
+  host uid 0. `--fix` emits 65532, the distroless nonroot uid. Point `JENKINS_HOME` at a volume uid
+  65532 owns.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; the Jenkins
   controller serves its UI and agent port on high ports and needs none of the default set.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and mount
@@ -65,7 +66,7 @@ docker run -d --name jenkins jenkins/jenkins:lts
 
 # After: 89/100, grade B (scoped private network for agents and proxy)
 docker run -d --name jenkins-hardened \
-  --user 1000:1000 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \

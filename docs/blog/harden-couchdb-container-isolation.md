@@ -43,8 +43,9 @@ that foothold.
 `ironctl scan my-couchdb --fix` prints one remediation per failed dimension, then one hardened run. For
 `couchdb:3.4`:
 
-- **`--user 5984:5984`** (Non-root user, +15): pin the non-root `couchdb` uid so an escape does not
-  begin as host uid 0. Point the data directory at a volume this uid owns.
+- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as
+  host uid 0. `--fix` emits 65532, the distroless nonroot uid. Point `/opt/couchdb/data` at a volume
+  uid 65532 owns.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; CouchDB needs none of
   the default set to serve its HTTP API on a high port.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and mount
@@ -71,7 +72,7 @@ docker run -d --name couchdb couchdb:3.4
 
 # After: 100/100, grade A (co-located store, no network needed)
 docker run -d --name couchdb-hardened \
-  --user 5984:5984 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \

@@ -43,8 +43,9 @@ execution. The default capability set and writable rootfs widen and entrench tha
 `ironctl scan my-valkey --fix` prints one remediation per failed dimension, then one hardened run. For
 `valkey/valkey:8`:
 
-- **`--user 999:999`** (Non-root user, +15): pin the non-root `valkey` uid so an escape does not begin
-  as host uid 0. Point `/data` at a volume this uid owns if you persist an RDB/AOF snapshot.
+- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as
+  host uid 0. `--fix` emits 65532, the distroless nonroot uid. Point `/data` at a volume uid 65532
+  owns if you persist an RDB/AOF snapshot.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; Valkey needs none of
   the default set to serve on its port.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and mount
@@ -70,7 +71,7 @@ docker run -d --name valkey valkey/valkey:8
 
 # After: 100/100, grade A (co-located app on loopback, no network needed)
 docker run -d --name valkey-hardened \
-  --user 999:999 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \

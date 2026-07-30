@@ -43,8 +43,9 @@ entrench that foothold.
 `ironctl scan my-neo4j --fix` prints one remediation per failed dimension, then one hardened run. For
 `neo4j:5`:
 
-- **`--user 7474:7474`** (Non-root user, +15): pin the non-root `neo4j` uid so an escape does not
-  begin as host uid 0. Point the data and logs directories at a volume this uid owns.
+- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as
+  host uid 0. `--fix` emits 65532, the distroless nonroot uid. Point the data and logs directories
+  at volumes uid 65532 owns.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; Neo4j needs none of
   the default set to serve Bolt and HTTP on high ports.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and mount
@@ -71,7 +72,7 @@ docker run -d --name neo4j neo4j:5
 
 # After: 100/100, grade A (co-located store, no network needed)
 docker run -d --name neo4j-hardened \
-  --user 7474:7474 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \

@@ -43,8 +43,9 @@ and entrench that foothold.
 `ironctl scan my-cockroach --fix` prints one remediation per failed dimension, then one hardened run.
 For `cockroachdb/cockroach:latest`:
 
-- **`--user 1000:1000`** (Non-root user, +15): pin a non-root uid so an escape does not begin as host
-  uid 0. Point `/cockroach/cockroach-data` at a volume this uid owns.
+- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as
+  host uid 0. `--fix` emits 65532, the distroless nonroot uid. Point `/cockroach/cockroach-data`
+  at a volume uid 65532 owns.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; CockroachDB needs
   none of the default set to serve SQL and its console on high ports.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and mount
@@ -71,7 +72,7 @@ docker run -d --name cockroach cockroachdb/cockroach:latest start-single-node --
 
 # After: 100/100, grade A (single node, co-located app, no network needed)
 docker run -d --name cockroach-hardened \
-  --user 1000:1000 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \

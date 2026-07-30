@@ -42,8 +42,9 @@ capability set widens that foothold and the writable rootfs makes it durable.
 `ironctl scan my-typesense --fix` prints one remediation per failed dimension, then one hardened run.
 For `typesense`:
 
-- **`--user 1000:1000`** (Non-root user, +15): run as a non-root uid so an escape does not begin as
-  host uid 0. Point `--data-dir` at a volume this uid owns.
+- **`--user 65532:65532`** (Non-root user, +15): run as a non-root uid so an escape does not begin as
+  host uid 0. `--fix` emits 65532, the distroless nonroot uid. Point `--data-dir` at a volume uid
+  65532 owns.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; Typesense serves its
   API on a high port and needs none of the default set.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and mount
@@ -63,7 +64,7 @@ docker run -d --name typesense \
 
 # After: 89/100, grade B (scoped private network for its clients)
 docker run -d --name typesense-hardened \
-  --user 1000:1000 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \
@@ -78,7 +79,7 @@ flags. Proven directly on the hardened config with `ironctl scan --compose`:
 
 ```
 score:   89/100  grade B  (solid, minor gaps)
-Non-root user (uid != 0)    [+] PASS  15/15  runs as 1000:1000 (uid != 0)
+Non-root user (uid != 0)    [+] PASS  15/15  runs as 65532:65532 (uid != 0)
 Dropped capabilities        [+] PASS  20/20  all capabilities dropped, none added back
 Read-only root filesystem   [+] PASS  10/10  root filesystem is read-only
 Network isolation / egress  [~] WARN  4/15   network=bridge: outbound egress is possible

@@ -44,8 +44,8 @@ server: the value of what it holds is what makes containing it non-negotiable.
 `ironctl scan my-keycloak --fix` prints one remediation per failed dimension, then one hardened run.
 For `quay.io/keycloak/keycloak`:
 
-- **`--user 1000:1000`** (Non-root user, +15): pin the non-root uid the image already ships with so an
-  escape does not begin as host uid 0.
+- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as
+  host uid 0. `--fix` emits 65532, the distroless nonroot uid.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; Keycloak serves its
   HTTP and management endpoints on high ports and needs none of the default set.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only. Build a
@@ -65,7 +65,7 @@ docker run -d --name keycloak quay.io/keycloak/keycloak:26.0 start
 
 # After: 89/100, grade B (scoped private network for its database and proxy)
 docker run -d --name keycloak-hardened \
-  --user 1000:1000 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \

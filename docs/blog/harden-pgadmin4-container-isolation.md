@@ -80,7 +80,7 @@ Proven directly on the hardened config with `ironctl scan --compose`:
 
 ```
 score:   89/100  grade B  (solid, minor gaps)
-Non-root user (uid != 0)    [+] PASS  15/15  runs as 1000:1000 (uid != 0)
+Non-root user (uid != 0)    [+] PASS  15/15  runs as pgadmin (uid != 0)
 Dropped capabilities        [+] PASS  20/20  all capabilities dropped, none added back
 Read-only root filesystem   [+] PASS  10/10  root filesystem is read-only
 Network isolation / egress  [~] WARN  4/15   network=bridge: outbound egress is possible
