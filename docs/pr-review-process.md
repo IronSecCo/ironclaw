@@ -329,7 +329,7 @@ makes it material** — not as a tidiness argument.
 Until then, and regardless of how tempting a green-but-blocked PR makes it: do
 not reach for `--admin`, and do not add a `bypass_actors` entry for the App.
 
-### A waiting bump PR announces itself (IRO-676)
+### A stale tap announces itself (IRO-676, IRO-690)
 
 Keeping the click has one cost the click itself does not name: the tap's freshness
 then depends on someone *noticing* the bump PR, and for a while nothing did.
@@ -340,30 +340,73 @@ while IRO-670 was being closed out. The README says the tap **can briefly trail*
 the newest release, and "briefly" needs an enforcer.
 
 [`brew-bump-waiting.yml`](https://github.com/IronSecCo/ironclaw/blob/main/.github/workflows/brew-bump-waiting.yml)
-runs hourly and goes **red** when an open `brew/track` PR is older than 240
-minutes. A red scheduled run *is* the notification: GitHub emails on
-scheduled-workflow failure and it is visible in the Actions tab. Notes that matter
-if you touch it:
+runs on a schedule and has **two independent arms**. A red scheduled run *is* the
+notification: GitHub emails on scheduled-workflow failure and it is visible in the
+Actions tab.
+
+| | Arm A — waiting bump PR | Arm B — stale tap |
+| --- | --- | --- |
+| Question | Is a bump blocked on a human click? | Is the tap serving an older release than the newest one? |
+| Measures | open `brew/track` PRs, age from creation | `version` in `Formula/ironclaw.rb` on `main` vs `releases/latest` |
+| Threshold | `THRESHOLD_MINUTES`, default 240 | `STALE_THRESHOLD_MINUTES`, defaults to arm A's |
+| Clock starts | PR creation | release publication |
+| Needs a PR to exist | yes | **no** |
+
+**Arm B exists because arm A was blind to the outage it claimed to prevent
+(IRO-690).** Arm A discovers work by listing open PRs, so with zero open bump PRs
+it exits 0 — while its own error text claimed to protect "the tap is serving an
+older release than the newest one", which it never measured. Those two come apart
+precisely when no bump PR exists, and that is what IRO-689 produced: GitHub
+auto-closed [#636](https://github.com/IronSecCo/ironclaw/pull/636) when its head
+became `==` its base, so the tap served v0.1.447 against a published v0.1.450 with
+**zero** open `brew/track` PRs. A scheduled run landing in that window would have
+said "not waiting on a click" and passed. Same blindness covers every other cause
+of a missing PR: a hand-closed bump PR, a `gh pr create` that fails after the
+branch is pushed, a skipped formula job, or a bump that merges carrying a formula
+which does not match the newest release.
+
+Notes that matter if you touch it:
 
 - **240 min is derived, not picked.** Real merge latency over the last 60
   `brew/track` PRs was p50 59m, p75 118m, p90 264m, max 8.2 days. The threshold
   sits above the routine path so an ordinary release never pages, and below every
   genuinely-late bump on record (#600 9h, #607 8.3h, #562 8.2d).
-- **It fires on age, not on "all required checks green."** Gating the alarm on
+- **Arm A fires on age, not on "all required checks green."** Gating the alarm on
   green builds in a silent-green hole: a required check that never *reports* — the
   IRO-670 and IRO-673 failure mode, twice — reads as "not green", so the alarm
   would go quiet on exactly the PRs that are most stuck. Check state is reported
   in the error message as the remediation hint instead.
+- **Arm B reads `main` over the API, never the local checkout.** The guard also
+  runs on `test/brew-bump-waiting-*` branches, and measuring whatever ref happens
+  to be checked out would report that branch's formula as "what users get". This
+  is also why a control-branch push cannot drive arm B red.
+- **Arm B has no grace window when the formula is *ahead* of `releases/latest`.**
+  Behind is ordinary staleness and gets the threshold. Ahead means the formula's
+  download URLs point at a release that was deleted, unpublished, or demoted to a
+  prerelease — that does not heal with time, so waiting out a threshold would only
+  delay the alarm.
+- **A trail inside the threshold is not a bug.** The README advertises that the tap
+  **can briefly trail**; arm B bounds that window rather than forbidding it. The
+  IRO-689 window as observed was ~40 min, which arm B would also have passed, and
+  correctly. What arm B changes is that the window can no longer persist
+  *unbounded and silently*.
 - **Scheduled-failure email goes to whoever last edited the `cron:` line**, not to
   the repo's watchers. If a bot identity ever rewrites that line the alarm
   silently redirects to an unread inbox. Keep it a human who can do the merge.
 - **It is notify-only and must stay that way.** Read-only scopes, no merge, no
   approve, and deliberately **not** in `required_status_checks` — it gates
   nothing, and requiring it would block unrelated PRs whenever the tap trailed.
-- **To re-prove it** (a guard that has never gone red is not evidence that it
-  can), push a branch named `test/brew-bump-waiting-<minutes>`. It runs against
-  the live API with that threshold, so a small number reports the currently-open
-  bump PR and a large one reports it as within the window.
+  Arm B added no new scope: `releases/latest` and the formula both read under the
+  `contents: read` the checkout already needed.
+- **To re-prove it** (a guard that has never gone red is not evidence that it can),
+  the two arms have different controls. Arm A: push a branch named
+  `test/brew-bump-waiting-<minutes>`, which runs against the live API with that
+  threshold, so a small number reports the currently-open bump PR and a large one
+  reports it as within the window. Arm B: `scripts/tests/test_check_brew_bump_waiting.py`
+  drives the script through a stubbed `gh` with the real IRO-689 pair (formula
+  0.1.447, release v0.1.450) and asserts non-zero, with the fresh pair asserted
+  green on the same code path. The pre-IRO-690 script is recorded green on that same
+  fixture, which is what makes the red assertion evidence rather than decoration.
 
 ### What the cron actually delivers (IRO-679)
 
@@ -373,36 +416,48 @@ version of this page put detection latency at **"≤ 60 min"** on the strength o
 the cron expression alone. That was not measured, and it is not true.
 
 [`scripts/measure-cron-latency.py`](https://github.com/IronSecCo/ironclaw/blob/main/scripts/measure-cron-latency.py)
-measures it. Run it before writing any latency number here. Measured
-2026-07-30 over **55 intervals** of this repo's daily and weekly crons:
+measures it. Run it before writing any latency number here. Re-measured
+2026-07-30 **11:47Z**, over **57 intervals** of this repo's daily and weekly crons:
 
 | quantity | measured |
 |---|---|
-| gap delivered vs period requested | p50 **-7 min**, p90 **+36**, p95 **+51**, max **+75** |
-| intervals overshooting nominal by >60 min | **2 / 55** |
+| gap delivered vs period requested (daily+weekly) | p50 **-8 min**, p90 **+36**, p95 **+51**, max **+75** |
+| intervals overshooting nominal by >60 min | **2 / 57** |
 | declared clock time vs actual fire time | daily/weekly crons fire **~3h late**, consistently |
 
 Two things follow, and they pull in opposite directions:
 
-- **Cadence is honoured.** A daily cron runs daily to within about an hour. So
-  the hourly guard's realistic worst case is roughly **135 min** (60 nominal +
-  75 measured overshoot), not 60. That still sits **~105 min inside** the 240
-  min threshold, so the 240 min number survives the correction untouched — the
-  claim was wrong, the design was not.
+- **Cadence is honoured at daily and weekly frequency.** A daily cron runs daily
+  to within about an hour. It does **not** follow that an hourly cron runs hourly
+  — see below.
 - **Phase is not honoured.** Every daily/weekly cron here fires about three
   hours after its declared UTC time. Cadence survives this; a sentence of the
   form *"runs at 03:17 UTC"* does not. Do not write one.
 
 Caveats, because this is the part that is easy to overstate:
 
-- **The hourly cadence is unmeasured.** Those 55 intervals are daily and weekly.
-  The repo's one sub-hourly cron — the fork-CI approval backstop at `*/30` — is
-  being dropped hard, and it is the only cron here whose overshoot exceeds its
-  own period (two observed intervals of 66 and 159 min, 2.2x and 5.3x). That
-  matches GitHub's documented deprioritisation of high-frequency schedules. If
-  hourly lands in that same bucket, 135 min is optimistic. The hourly guard is
-  now the experiment that settles it — after a day of runs, re-run the script
-  and update this table.
+- **Hourly is in the dropped bucket. There is no latency bound to quote.** This
+  used to read "the hourly cadence is unmeasured", with a projected worst case of
+  ~135 min (60 nominal + the 75 min daily/weekly overshoot) and ~105 min of
+  headroom against the 240 min threshold. The hourly guard was made the experiment
+  that settles it, and it has now returned data that kills the projection:
+
+  | cron | period asked | delivered gap | excess | live silence |
+  |---|---|---|---|---|
+  | `brew-bump-waiting` `23 * * * *` | 60 min | **181 min** | **+121** | 122 min = **2.0x**, nothing queued |
+  | `fork-ci-approval-backstop` `13,43 * * * *` | 30 min | 143 min | **+113** | 104 min = **3.5x**, nothing queued |
+
+  GitHub delivered **2 of the 7 slots due** to the brew guard and dropped five.
+  Both sub-hourly crons in the repo now exceed their own period, independently,
+  which matches GitHub's documented deprioritisation of high-frequency schedules.
+  One interval is not a distribution, so do not turn 181 min into a bound either —
+  it is a floor on what has been observed, not a ceiling. IRO-680 re-runs the
+  measurement once there are more intervals.
+- **The 240 min threshold survives, with less headroom than claimed.** 181 min
+  against 240 leaves ~59 min, not ~105. The design still holds for a reason
+  independent of the numbers: **both arms fire on a level, not an edge.** An open
+  bump PR stays open and a stale formula stays stale, so a dropped run delays
+  detection and never loses it. Only time-to-notice degrades.
 - **Quote the silence, not the gap count.** Two intervals cannot carry that
   conclusion on their own. What carries it is the script's second table: **live
   silence**, the still-open interval since the last scheduled run. Re-measured
@@ -413,11 +468,13 @@ Caveats, because this is the part that is easy to overstate:
   sample-size caveat attached. In the same table every daily/weekly cron in the
   repo sat at **0.0x–0.9x** of its period, so the metric is not merely flagging
   everything it looks at.
-- **The `13,43` offset is not known to help.** It was a free experiment — same
-  cadence, off the two most congested minutes of the hour — but in the 79 min
-  after it landed the scheduler delivered **0** runs where `13,43` predicts 2.
-  That is n=0, which is not evidence it failed either. Keep the offset, and keep
-  saying "not known to help" until the script has a real post-offset sample.
+- **The `13,43` offset did not help.** It was a free experiment — same cadence,
+  off the two most congested minutes of the hour. It now has a post-offset sample
+  and the answer is no: under `13,43`, the backstop delivered 2 runs with a 143 min
+  gap against a 30 min period, and sat at 3.5x live silence. Keep the offset (it
+  costs nothing and n=1 gap is thin), but stop treating minute-of-hour as the lever.
+  The brew guard's own `23 * * * *` is off-peak too and is dropped just as hard, so
+  the deprioritisation is about frequency, not about which minute you ask for.
 - **A cron is the wrong tool for a hard latency bound.** Getting a real one
   needs an event-driven trigger, and for the approval backstop that is a
   trust-model change, not a scheduling tweak: the safety net must stay
