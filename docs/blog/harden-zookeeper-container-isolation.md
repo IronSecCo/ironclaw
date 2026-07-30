@@ -43,7 +43,7 @@ If these paths are not explicitly provided as writable memory buffers (`tmpfs`) 
 
 `ironctl scan my-zookeeper --fix` prints one remediation per failed dimension, followed by a hardened run specification. For `zookeeper:latest`:
 
-- **`--user 1000:1000`** (Non-root user, +15): explicit user pinning forces the container away from `uid=0` root execution to an unprivileged account.
+- **`--user 65532:65532`** (Non-root user, +15): explicit user pinning forces the container away from `uid=0` root execution to an unprivileged account.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux kernel capability; ZooKeeper requires none of the defaults for standard operation.
 - **`--read-only` + `tmpfs` mounts** (Read-only rootfs, +10): lock the root filesystem as read-only. Supply `--tmpfs /tmp:rw,mode=1777`, `--tmpfs /conf:rw,mode=1777`, `--tmpfs /data:rw,mode=1777`, and `--tmpfs /datalog:rw,mode=1777` to satisfy startup generation and transaction logging.
 - **Scoped network** (Network isolation): `--network=none` scores the full 15 points but breaks distributed consensus and client access. Any bridge or custom network scores 4 of 15 (a WARN, not a fail). Attaching a user-defined network scoped solely to cluster peers and clients prevents a compromised instance from establishing arbitrary egress.
