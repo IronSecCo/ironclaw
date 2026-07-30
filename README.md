@@ -561,13 +561,18 @@ brew tap IronSecCo/ironclaw https://github.com/IronSecCo/ironclaw
 brew install ironsecco/ironclaw/ironclaw
 ```
 
-This installs `ironctl`, `ironclaw-controlplane`, and `ironclaw-sandbox` from the latest release. The
-formula pins each archive to the SHA-256 recorded in the release's signed `SHA256SUMS`, so Homebrew
-verifies the download before installing. Confirm it with `ironctl version`.
+This installs `ironctl`, `ironclaw-controlplane`, and `ironclaw-sandbox` from the release the
+formula currently pins. The formula pins each archive to the SHA-256 recorded in that release's
+signed `SHA256SUMS`, so Homebrew verifies the download before installing. Confirm it with
+`ironctl version`.
 
-Homebrew always installs the **latest** release. To pin an older version, use the installer
-script's `IRONCLAW_VERSION` ([below](#prebuilt-binaries-installer-script)) or grab the archive
-by hand — the tap carries only the current release.
+The tap carries exactly one version at a time. An automated pull request bumps the formula after
+every release, and it lands only once a required CI check has re-derived the formula from that
+release's cosign-verified `SHA256SUMS`, so the tap can briefly trail the newest release. Run
+`brew update` first, and see
+[Releases](https://github.com/IronSecCo/ironclaw/releases/latest) for the newest version. To
+install a specific version, including one the tap has not picked up yet, use the installer
+script's `IRONCLAW_VERSION` ([below](#prebuilt-binaries-installer-script)).
 
 > **Use the fully-qualified name.** homebrew-core ships an *unrelated* formula also called `ironclaw`,
 > and core wins the bare name — so install `ironsecco/ironclaw/ironclaw`, not bare `ironclaw`. The
