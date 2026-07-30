@@ -85,8 +85,6 @@ ironctl scan my-zookeeper --fix
 
 ```
 IronClaw containment scan
-  target:  zookeeper-hardened
-  runtime: crun
   score:   89/100  grade B  (solid, minor gaps)
 
 DIMENSION                    VERDICT   SCORE  DETAIL
