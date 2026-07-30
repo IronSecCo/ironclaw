@@ -11,6 +11,15 @@ The metric is EXCESS OVER NOMINAL PERIOD: for consecutive runs of one workflow, 
 observed gap minus the period the cron asks for. That is the quantity a "detection latency
 is <= N minutes" claim actually rests on.
 
+Also reported: LIVE SILENCE, the still-open interval between the last scheduled run and
+now. Gaps need two runs, so on a cron that is being dropped hard the gap sample is tiny
+and cannot carry a conclusion by itself -- whereas "it has been N minutes with nothing
+pending" is a single direct observation that does not depend on the sample size at all.
+That is the load-bearing evidence on IRO-679, so it is measured here rather than by hand.
+Silence is only reported for an ACTIVE workflow with no run in flight: a disabled or
+auto-disabled workflow is silent for a reason that has nothing to do with the scheduler,
+and reporting that as latency would be a false positive.
+
 Deliberately NOT measured: delay from the declared clock time. For a high-frequency cron
 every slot is close to every run, so nearest-slot matching cannot produce a delay larger
 than the period -- it reports a small number no matter how badly the cron is being dropped.
@@ -103,21 +112,44 @@ def _crons(path: pathlib.Path) -> list[str]:
     return out
 
 
-def _runs(repo: str, workflow: str) -> list[dt.datetime]:
-    """created_at of every scheduled run, oldest first. created_at is when GitHub created
-    the run, i.e. when the schedule actually fired -- not when a runner picked it up."""
+def _runs(repo: str, workflow: str) -> tuple[list[dt.datetime], bool]:
+    """(created_at of every scheduled run oldest-first, whether one is still in flight).
+
+    created_at is when GitHub created the run, i.e. when the schedule actually fired --
+    not when a runner picked it up. The in-flight flag matters for the silence column:
+    a queued run means the scheduler has already fired and we are merely waiting on a
+    runner, which is not the failure this script is looking for."""
     proc = subprocess.run(
         ["gh", "api", "--paginate",
          f"repos/{repo}/actions/workflows/{workflow}/runs?event=schedule&per_page=100",
-         "--jq", ".workflow_runs[].created_at"],
+         "--jq", r'.workflow_runs[] | "\(.created_at) \(.status)"'],
         capture_output=True, text=True,
     )
     if proc.returncode != 0:
-        return []
-    return sorted(
-        dt.datetime.fromisoformat(line.replace("Z", "+00:00"))
-        for line in proc.stdout.split() if line
+        return [], False
+    stamps: list[dt.datetime] = []
+    in_flight = False
+    for line in proc.stdout.splitlines():
+        if not line.strip():
+            continue
+        created, _, status = line.partition(" ")
+        stamps.append(dt.datetime.fromisoformat(created.replace("Z", "+00:00")))
+        if status.strip() != "completed":
+            in_flight = True
+    return sorted(stamps), in_flight
+
+
+def _state(repo: str, workflow: str) -> str:
+    """The workflow's `state` (active / disabled_manually / disabled_inactivity / ...).
+
+    Load-bearing negative control. GitHub auto-disables scheduled workflows in dormant
+    repos, and a disabled cron is perfectly silent -- scoring that as scheduler latency
+    would manufacture the exact finding this script exists to test."""
+    proc = subprocess.run(
+        ["gh", "api", f"repos/{repo}/actions/workflows/{workflow}", "--jq", ".state"],
+        capture_output=True, text=True,
     )
+    return proc.stdout.strip() if proc.returncode == 0 else "unknown"
 
 
 def main() -> int:
@@ -128,6 +160,7 @@ def main() -> int:
     args = ap.parse_args()
 
     wf_dir = pathlib.Path(__file__).resolve().parent.parent / ".github" / "workflows"
+    now = dt.datetime.now(dt.timezone.utc)
     pooled: list[tuple[str, float]] = []
     rows = []
 
@@ -138,19 +171,20 @@ def main() -> int:
             continue
         cron = crons[0]
         period = _period_minutes(cron)
-        runs = _runs(args.repo, path.name)
+        runs, in_flight = _runs(args.repo, path.name)
         gaps = [(b - a).total_seconds() / 60 for a, b in zip(runs, runs[1:])]
-        rows.append((path.name, cron, period, runs, gaps))
+        rows.append((path.name, cron, period, runs, gaps,
+                     _state(args.repo, path.name), in_flight))
         if period and gaps:
             # Pool only cadences we have enough of to say anything about, and keep the
             # sub-hourly arm out of the pool -- it is the hypothesis under test, not evidence.
             if period >= 1440:
                 pooled += [(path.name, g - period) for g in gaps]
 
-    print(f"repo: {args.repo}    measured: {dt.datetime.now(dt.timezone.utc):%Y-%m-%dT%H:%MZ}\n")
+    print(f"repo: {args.repo}    measured: {now:%Y-%m-%dT%H:%MZ}\n")
     print(f"{'workflow':<34}{'cron':<16}{'runs':>5}{'gaps':>5}   excess over nominal (min)")
     print("-" * 96)
-    for name, cron, period, runs, gaps in rows:
+    for name, cron, period, runs, gaps, state, in_flight in rows:
         if not period:
             print(f"{name:<34}{cron:<16}{len(runs):>5}{len(gaps):>5}   (no single nominal period)")
             continue
@@ -161,6 +195,30 @@ def main() -> int:
         flag = "  <-- exceeds its own period" if max(ex) > period else ""
         print(f"{name:<34}{cron:<16}{len(runs):>5}{len(gaps):>5}   "
               f"min {min(ex):+.0f}  p50 {statistics.median(ex):+.0f}  max {max(ex):+.0f}{flag}")
+
+    print(f"\n{'workflow':<34}{'cron':<16}   live silence since last run")
+    print("-" * 96)
+    for name, cron, period, runs, _gaps, state, in_flight in rows:
+        if not runs:
+            print(f"{name:<34}{cron:<16}   (never fired on a schedule)")
+            continue
+        silence = (now - runs[-1]).total_seconds() / 60
+        if state != "active":
+            # Never score a disabled workflow's silence. See _state().
+            print(f"{name:<34}{cron:<16}   {silence:.0f} min, NOT SCORED (state: {state})")
+            continue
+        if in_flight:
+            print(f"{name:<34}{cron:<16}   {silence:.0f} min, NOT SCORED (a run is in flight)")
+            continue
+        if not period:
+            print(f"{name:<34}{cron:<16}   {silence:.0f} min (no single nominal period)")
+            continue
+        flag = "  <-- over 2x its period, nothing pending" if silence > 2 * period else ""
+        print(f"{name:<34}{cron:<16}   {silence:.0f} min vs {period} min asked "
+              f"({silence / period:.1f}x){flag}")
+    print("\n  A flagged row is a single direct observation and does not need a sample of")
+    print("  gaps to stand up: the workflow is active, nothing is queued, and the schedule")
+    print("  has still not fired. Quote this, not the gap count, when the gap count is small.")
 
     if pooled:
         vals = sorted(v for _, v in pooled)
@@ -176,7 +234,7 @@ def main() -> int:
     if args.phase:
         print(f"\n{'workflow':<34}{'declared':>10}{'observed fire time (UTC)':>34}")
         print("-" * 80)
-        for name, cron, period, runs, _ in rows:
+        for name, cron, period, runs, _gaps, _state_, _in_flight in rows:
             if not runs or not period or period < 1440:
                 continue
             f = cron.split()
