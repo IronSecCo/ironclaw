@@ -304,6 +304,52 @@ if you touch it:
   the live API with that threshold, so a small number reports the currently-open
   bump PR and a large one reports it as within the window.
 
+### What the cron actually delivers (IRO-679)
+
+This guard, and the fork-CI approval backstop next to it, are both `schedule:`
+crons. A cron promise is worth what the scheduler delivers, and an earlier
+version of this page put detection latency at **"≤ 60 min"** on the strength of
+the cron expression alone. That was not measured, and it is not true.
+
+[`scripts/measure-cron-latency.py`](https://github.com/IronSecCo/ironclaw/blob/main/scripts/measure-cron-latency.py)
+measures it. Run it before writing any latency number here. Measured
+2026-07-30 over **55 intervals** of this repo's daily and weekly crons:
+
+| quantity | measured |
+|---|---|
+| gap delivered vs period requested | p50 **-7 min**, p90 **+36**, p95 **+51**, max **+75** |
+| intervals overshooting nominal by >60 min | **2 / 55** |
+| declared clock time vs actual fire time | daily/weekly crons fire **~3h late**, consistently |
+
+Two things follow, and they pull in opposite directions:
+
+- **Cadence is honoured.** A daily cron runs daily to within about an hour. So
+  the hourly guard's realistic worst case is roughly **135 min** (60 nominal +
+  75 measured overshoot), not 60. That still sits **~105 min inside** the 240
+  min threshold, so the 240 min number survives the correction untouched — the
+  claim was wrong, the design was not.
+- **Phase is not honoured.** Every daily/weekly cron here fires about three
+  hours after its declared UTC time. Cadence survives this; a sentence of the
+  form *"runs at 03:17 UTC"* does not. Do not write one.
+
+Caveats, because this is the part that is easy to overstate:
+
+- **The hourly cadence is unmeasured.** Those 55 intervals are daily and weekly.
+  The repo's one sub-hourly cron — the fork-CI approval backstop at `*/30` —
+  was being dropped hard (two observed intervals of 66 and 159 min, 2.2x and
+  5.3x its period; the only cron here whose overshoot exceeded its own period),
+  which matches GitHub's documented deprioritisation of high-frequency
+  schedules. **n=2 proves nothing on its own**; the load-bearing observation is
+  a 92-minute silence caught live with no run pending. If hourly lands in that
+  same bucket, 135 min is optimistic. This workflow is now the experiment that
+  settles it — after a day of runs, re-run the script and update this table.
+- **A cron is the wrong tool for a hard latency bound.** Getting a real one
+  needs an event-driven trigger, and for the approval backstop that is a
+  trust-model change, not a scheduling tweak: the safety net must stay
+  `schedule`/`workflow_dispatch`-only so contributor-controlled content cannot
+  influence the thing that approves contributor-controlled content. Latency is
+  not a reason to trade that away.
+
 ## Branch protection: the reviewer path needs no change
 
 The machine-reviewer path above needs **no edit** to
