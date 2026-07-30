@@ -1,9 +1,26 @@
-# Freshness guard for the Homebrew tap (IRO-676).
+# Freshness guard for the Homebrew tap (IRO-676, second arm added by IRO-690).
 #
-# Goes RED when a rolling `brew/track` bump PR has been sitting open past a threshold,
-# so a waiting bump ANNOUNCES ITSELF instead of being found by someone sweeping open
-# PRs by hand. A red scheduled run is a real notification path: GitHub emails on
+# Goes RED so a stale tap ANNOUNCES ITSELF instead of being found by someone sweeping
+# open PRs by hand. A red scheduled run is a real notification path: GitHub emails on
 # scheduled-workflow failure and it is visible in the Actions tab.
+#
+# Two arms, two failure modes:
+#   A. an open `brew/track` bump PR older than the threshold — a bump that IS trying to
+#      land but is stuck on a human click;
+#   B. Formula/ironclaw.rb's `version` on main against `releases/latest` — the tap
+#      actually serving an older release than the newest one.
+#
+# Arm A alone was the whole guard until IRO-690, and it discovers work by LISTING OPEN
+# PRs, so it exits 0 whenever there is no bump PR at all. That is exactly the state
+# IRO-689 produced (GitHub auto-closed #636 when its head became == its base, leaving
+# the tap on v0.1.447 against a published v0.1.450 with zero open bump PRs), and it is
+# why that outage had to be found by a human PR sweep. Arm B needs no PR to exist.
+#
+# Arm B's negative control is scripts/tests/test_check_brew_bump_waiting.py, NOT a
+# control-branch push: arm B reads main over the API on purpose, so a doctored branch
+# cannot drive it red (see TRACK_BRANCH in the script). The test drives it with the real
+# IRO-689 pair and asserts non-zero, and the pre-fix script is recorded green on the
+# same fixture — a guard only ever observed green is indistinguishable from `exit 0`.
 #
 # WHY A RED CRON AND NOT A PAPERCLIP ISSUE
 # ----------------------------------------
@@ -39,47 +56,69 @@ on:
   schedule:
     # Hourly, offset off the hour to dodge top-of-hour scheduler congestion.
     #
-    # Detection latency is NOT <= 60 min. That is what this comment used to claim and it
-    # rested on the cron expression rather than on the scheduler (IRO-679). Measured
-    # 2026-07-30 with `scripts/measure-cron-latency.py` over 55 intervals of this repo's
-    # daily and weekly crons, the gap GitHub actually delivers runs p50 -7 / p90 +36 /
-    # p95 +51 / max +75 minutes against the period the cron asked for. Carrying that
-    # overshoot onto a 60 min period gives a realistic worst case near 135 min, not 60.
+    # DO NOT write a detection-latency bound here. An earlier version claimed "<= 60 min"
+    # off the cron expression (IRO-679), a later one claimed "~135 min" by carrying the
+    # daily/weekly overshoot onto a 60 min period. The second is also wrong, and this
+    # workflow is the experiment that showed it. Measured 2026-07-30T11:47Z with
+    # `scripts/measure-cron-latency.py`:
     #
-    # That still clears the 240 min staleness threshold with ~105 min of headroom, so the
-    # guard's design is unaffected and this is a correction to the claim, not to the cron.
-    # Two caveats worth keeping:
-    #   - The hourly cadence itself is UNMEASURED. The 55 intervals above are daily and
-    #     weekly. The one sub-hourly cron in the repo (`fork-ci-approval-backstop`) was
-    #     being dropped hard, so if hourly falls in GitHub's high-frequency bucket the
-    #     bound is worse than 135 min. This workflow is now the experiment that settles it
-    #     -- after a day of runs, re-run the script and replace this paragraph with data.
-    #   - Declared clock time is not honoured either: every daily/weekly cron in this repo
-    #     fires roughly 3h after its stated UTC time. Cadence survives that, phase does
-    #     not, so never write "runs at HH:MM" about this file.
+    #   - Daily+weekly pooled, 57 intervals: p50 -8 / p90 +36 / p95 +51 / max +75 min
+    #     excess over the period asked for. Cadence roughly holds at those frequencies.
+    #   - THIS workflow, 1 interval: +121 min excess -- a 181 min gap against the 60 min
+    #     it asked for, i.e. GitHub delivered 2 of the 7 due slots and dropped 5. Live
+    #     silence hit 2.0x its period with nothing queued.
+    #   - `fork-ci-approval-backstop` (`13,43 * * * *`), the repo's other sub-hourly cron:
+    #     +113 min excess, live silence 3.5x. Same behaviour, independently.
+    #
+    # So hourly IS in GitHub's dropped bucket, which settles the open question this
+    # paragraph used to carry. One interval is not a distribution, so there is no bound to
+    # state -- and 181 min against a 240 min threshold leaves ~59 min of headroom, not the
+    # ~105 min previously claimed. IRO-680 re-runs the measurement with more intervals.
+    #
+    # Why the guard's design survives that anyway: BOTH arms fire on a LEVEL, not an edge.
+    # An open bump PR stays open and a stale formula stays stale, so a dropped run delays
+    # detection and never loses it. Only the time-to-notice degrades.
+    #
+    # Declared clock time is not honoured either: every daily/weekly cron in this repo
+    # fires roughly 3h after its stated UTC time. Cadence survives that, phase does not,
+    # so never write "runs at HH:MM" about this file.
     - cron: "23 * * * *"
   workflow_dispatch:
     inputs:
       threshold_minutes:
-        description: "Override the staleness threshold in minutes (blank = the script default, 240)"
+        description: "Arm A: how long an open brew/track PR may wait, in minutes (blank = the script default, 240). Also becomes arm B's default."
         required: false
         default: ""
-  # Negative-control path. The standing rule is that a guard which has never gone red
-  # is not evidence that it can, and this one cannot be proven from a schedule without
+      stale_threshold_minutes:
+        description: "Arm B: how long the tap may trail the newest release, in minutes (blank = whatever arm A resolved to)"
+        required: false
+        default: ""
+  # Live control path for ARM A. The standing rule is that a guard which has never gone
+  # red is not evidence that it can, and arm A cannot be proven from a schedule without
   # waiting hours for a real stall. Pushing a branch named
   # `test/brew-bump-waiting-<minutes>` runs the guard against the LIVE repo with that
-  # threshold, so both arms are demonstrable on demand: a small number reports the
+  # threshold, so both outcomes are demonstrable on demand: a small number reports the
   # currently-open bump PR (red), a large one reports it as within the window (green).
   # It reads the same live API as the scheduled run — nothing is stubbed.
+  #
+  # This path canNOT prove arm B, and that is by design: arm B reads Formula/ironclaw.rb
+  # from main over the API, so pushing a branch with a doctored formula does not move what
+  # it measures. Arm B's red path is proven in scripts/tests/test_check_brew_bump_waiting.py
+  # against pinned stale inputs. (The branch suffix does reach arm B, since its threshold
+  # defaults to arm A's — so right after a release a `-1` push can catch a real brief
+  # trail. Incidental, not a control: it depends on when you push.)
   push:
     branches:
       - "test/brew-bump-waiting-*"
 
-# Least privilege. Read the open PR list and its check rollup; nothing else. No
-# `pull-requests: write` (it does not comment), no `contents: write` (it does not
-# merge). Notify-only means read-only.
+# Least privilege. Read the open PR list, its check rollup, the newest release, and the
+# formula on main; nothing else. No `pull-requests: write` (it does not comment), no
+# `contents: write` (it does not merge). Notify-only means read-only.
 permissions:
-  contents: read # checkout the script + the ruleset spec it reads required contexts from
+  # Checkout the script + the ruleset spec it reads required contexts from, and — for arm
+  # B — read `releases/latest` and `contents/Formula/ironclaw.rb?ref=main` over the API.
+  # Arm B added no new scope: both of those are covered by this same read.
+  contents: read
   pull-requests: read # list open brew/track PRs
   checks: read # CheckRun conclusions in the status rollup
   statuses: read # legacy StatusContext states in the same rollup
@@ -96,7 +135,7 @@ jobs:
         with:
           persist-credentials: false # nothing here pushes; do not leave a token in .git/config
 
-      - name: Resolve the staleness threshold
+      - name: Resolve the thresholds
         id: threshold
         env:
           EVENT: ${{ github.event_name }}
@@ -105,20 +144,25 @@ jobs:
           # attacker-influenceable text and `${{ }}` inside `run:` is substituted
           # before bash ever sees it.
           INPUT_MINUTES: ${{ inputs.threshold_minutes }}
+          INPUT_STALE_MINUTES: ${{ inputs.stale_threshold_minutes }}
         run: |
           set -euo pipefail
-          # Emitted EMPTY when there is no override, so the 240 min default lives in
+          # Both emitted EMPTY when there is no override, so the 240 min default lives in
           # exactly one place (scripts/check-brew-bump-waiting.sh) and cannot drift
           # between the script and this workflow.
           minutes=""
+          stale_minutes=""
           case "${EVENT}" in
             workflow_dispatch)
               minutes="${INPUT_MINUTES}"
+              stale_minutes="${INPUT_STALE_MINUTES}"
               ;;
             push)
               # Suffix after the last '-' is the threshold. Validated here rather than
               # left to the script so a typo'd control branch fails on the typo instead
               # of silently exercising the default and looking like a clean pass.
+              # Left to drive BOTH arms (the script defaults arm B to arm A's value) —
+              # a control push is meant to exercise the whole guard at that threshold.
               minutes="${REF_NAME##*-}"
               case "${minutes}" in
                 ''|*[!0-9]*)
@@ -129,18 +173,22 @@ jobs:
               ;;
           esac
           echo "minutes=${minutes}" >> "$GITHUB_OUTPUT"
+          echo "stale_minutes=${stale_minutes}" >> "$GITHUB_OUTPUT"
 
-      - name: Report any rolling-bump PR waiting past the threshold
+      - name: Report a waiting rolling-bump PR (arm A) or a stale tap (arm B)
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           OVERRIDE: ${{ steps.threshold.outputs.minutes }}
+          STALE_OVERRIDE: ${{ steps.threshold.outputs.stale_minutes }}
         run: |
           set -euo pipefail
-          # Only export THRESHOLD_MINUTES when actually overriding: exporting an empty
-          # value would trip the script's numeric validation and go red for the wrong
-          # reason.
+          # Only export a threshold when actually overriding: exporting an empty value
+          # would trip the script's numeric validation and go red for the wrong reason.
           if [ -n "${OVERRIDE}" ]; then
             export THRESHOLD_MINUTES="${OVERRIDE}"
+          fi
+          if [ -n "${STALE_OVERRIDE}" ]; then
+            export STALE_THRESHOLD_MINUTES="${STALE_OVERRIDE}"
           fi
           exec scripts/check-brew-bump-waiting.sh
