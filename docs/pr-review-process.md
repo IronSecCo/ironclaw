@@ -136,6 +136,64 @@ legacy `brew/track-*`) **and** the diff is exactly `Formula/ironclaw.rb` — and
 exits cleanly with a pointer to this section instead of failing. **Every other
 self-authored PR still hard-fails:** the gate is unchanged for product code.
 
+### The bump branch is written by the App, not by `GITHUB_TOKEN` (IRO-677)
+
+The `formula` job used to open the PR with the App token but write the branch with
+the default `GITHUB_TOKEN`. That split cost a **second** human click on more than a
+third of bumps, and a worse one than the approving review: it stopped the required
+checks from *reporting* at all.
+
+GitHub arms the workflow-approval gate on the identity that **wrote the head ref**,
+not on the PR author. Opening the rolling PR pushes nothing, so the `opened` event's
+actor is the App — a real contributor here — and CI just runs. Force-pushing the
+*next* bump onto that still-open PR fires `synchronize` with actor
+`github-actions[bot]`, which has no merged PR in this repo and does not appear in
+`/contributors`, so every run lands in `action_required`. A parked run never
+reports, so `build`, `CodeQL` and `brew-formula-verify` were simply **missing** and
+the PR sat at "waiting for status" indefinitely (#614).
+
+Measured over every run ever on `brew/track`: **165 of 165** `action_required` runs
+were written by `github-actions[bot]`; **0 of 352** App-written runs stalled. A
+controlled two-arm probe (one virgin App-opened PR per arm, identical REST calls,
+identical pinned commit author, only the token differing) reproduced it on demand —
+`GITHUB_TOKEN` arm 3/3 `action_required`, App arm 0/3.
+
+So the job now mints the App token with `contents: write` and uses it for the ref
+force-reset and the Contents commit as well as for `gh pr create`. Things this
+deliberately does **not** do:
+
+- it does not touch `fork-pr-contributor-approval`, which stays
+  `first_time_contributors_new_to_github` and still gates every genuine fork PR;
+- it does not add a credential — the App and its two secrets already existed, and
+  this replaces `GITHUB_TOKEN`'s `contents: write` on the same two writes rather
+  than adding a writer;
+- it does not widen reach into `main`. The App is **not** in the ruleset's
+  `bypass_actors` (only the admin repository role is), so main still requires a
+  reviewed PR, passing required checks and signed commits;
+- it does not change the commit. The `author` pin is what makes the head commit
+  unsigned, and that is independent of the token, so `license/cla` still passes and
+  the squash still mints main's signature — see *Squash only* below.
+
+Two consequences worth knowing before you read a run list:
+
+- **`push`-triggered workflows now actually fire on `brew/track`.** They never did
+  before: GitHub suppresses workflow runs for `GITHUB_TOKEN` pushes entirely, so
+  `brew-formula-verify`'s `push: branches: [brew/**]` trigger was **vacuous** for
+  ~90 bumps. Expect one extra `CI` and one extra `brew-formula-verify` run per bump.
+  They do not fight the PR runs: `brew-formula-verify`'s concurrency group keys on
+  `pull_request.number || github.ref`, so push and PR land in different groups, and
+  `ci.yml` has no concurrency group at all.
+- **You cannot unstall a bump PR by closing and reopening it.** That fires a
+  `reopened` event and would work in general, but not here: the API refuses with
+  `422 state cannot be changed. The brew/track branch was force-pushed or
+  recreated.` The only remedies for an already-parked run are the maintainer's
+  approve click or `POST /actions/runs/{id}/approve`.
+
+If the App secret is missing or rotated, the job falls back to `GITHUB_TOKEN` and
+still pushes the branch — a stale `brew install` is worse than a click — but it
+emits a `::warning` saying the bump will park on approval, because a PR that
+silently sits at "waiting for status" reads as merely slow.
+
 ### The `brew-formula-verify` gate replaced the human eyeball (IRO-670)
 
 A maintainer reading a generated single-file diff cannot tell a correct `sha256`
