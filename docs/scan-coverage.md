@@ -32,6 +32,17 @@ Jump to your category, then copy one command.
 
           [:octicons-arrow-right-24: <deep-link label>](<deep doc>)
 
+  Everything in <angle brackets> above is a placeholder, including <deep doc>.
+  This block is an HTML comment, so none of it renders. Filled in, the last line
+  is a label plus a real page (and usually a real anchor) in this repo, e.g.
+
+      [:octicons-arrow-right-24: Grade a Terraform plan](scan.md#grade-a-terraform-plan)
+
+  Point <deep doc> at the section of scan.md that documents the mode. If the mode
+  has no section of its own yet, link scan.md bare rather than inventing an anchor:
+  mkdocs.yml sets validation.links.anchors to warn, so `mkdocs build --strict`
+  fails the build on an anchor that does not exist.
+
   To ship a new mode: paste ONE <li> into the grid under the RIGHT category H3
   (Containers & images / Compose & orchestrators / Cloud runtimes /
   Infrastructure-as-Code), and add one row to the "Every mode, one engine"

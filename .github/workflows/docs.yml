@@ -12,18 +12,22 @@ on:
     branches: [main]
     paths:
       - "docs/**"
+      - "*.md"
       - "mkdocs.yml"
       - "overrides/**"
       - "api/openapi.yaml"
       - "scripts/check-docs-meta.py"
+      - "scripts/check_links.py"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
       - "docs/**"
+      - "*.md"
       - "mkdocs.yml"
       - "overrides/**"
       - "api/openapi.yaml"
       - "scripts/check-docs-meta.py"
+      - "scripts/check_links.py"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -49,6 +53,24 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+
+      - name: Check root Markdown links and anchor fragments
+        # Root Markdown (README.md, CONTRIBUTING.md, SECURITY.md, ...) is not part
+        # of the MkDocs source tree, so `mkdocs build --strict` below cannot see a
+        # single one of its links. This is the only thing in CI that checks them.
+        # It also runs on docs/** changes, because renaming a heading under docs/
+        # silently breaks the root files that deep-link into it
+        # (SECURITY.md -> docs/threat-model.md#8-what-counts-as-a-vulnerability).
+        #
+        # A step in this job rather than a job of its own, deliberately: `build`
+        # is a required status check on ruleset 17917971 and a new job name would
+        # not be, so a red `links` job could be merged straight past. Same reason
+        # check-docs-meta.py lives here. Stdlib only, so it runs before the
+        # toolchain install and fails fast. Negative controls that prove it is not
+        # vacuous: scripts/tests/test_check_links.py (run by ci.yml script-tests).
+        # The other half of the gate is validation.links.anchors in mkdocs.yml,
+        # which covers docs/** against the real rendered heading tree.
+        run: python3 scripts/check_links.py
 
       - name: Install MkDocs toolchain (hash-pinned)
         # --require-hashes makes pip refuse any wheel whose SHA-256 isn't in the
