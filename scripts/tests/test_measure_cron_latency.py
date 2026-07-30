@@ -29,8 +29,10 @@ Manual reproduction of the same two cases against the live API, for the record:
 from __future__ import annotations
 
 import contextlib
+import datetime as dt
 import importlib.util
 import io
+import os
 import pathlib
 import subprocess
 import sys
@@ -251,6 +253,102 @@ class ArithmeticIsUnchanged(unittest.TestCase):
             bad.write_text("on:\n  schedule:\n    - notacron: x\n")
             with self.assertRaises(SystemExit):
                 mcl._crons(bad)
+
+
+def _wf(cron: str) -> str:
+    return f'name: w\non:\n  schedule:\n    - cron: "{cron}"\njobs: {{}}\n'
+
+
+class CronChangeBoundsTheMeasurementWindow(unittest.TestCase):
+    """IRO-680: runs delivered under a REPLACED cron were scored and then labelled with
+    the cron currently in the file.
+
+    This is not a fail-quiet defect like the two above -- it manufactures a finding
+    rather than erasing one, and it does so with a confident-looking sample. Live case:
+    `fork-ci-approval-backstop` moved `*/30` -> `13,43`, and the row reported
+    `4 runs / 3 gaps / p50 +129 / max +299` for `13,43` when every one of those gaps was
+    delivered by `*/30`. The offset under test had produced no complete interval at all."""
+
+    @staticmethod
+    def _repo(commits: list[tuple[str, str]]) -> tempfile.TemporaryDirectory:
+        """A git repo whose workflow file takes each (cron, ISO-8601 date) in turn."""
+        tmp = tempfile.TemporaryDirectory()
+        root = pathlib.Path(tmp.name)
+        wf = root / ".github" / "workflows"
+        wf.mkdir(parents=True)
+        env = {
+            **os.environ,
+            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e",
+            "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e",
+        }
+        subprocess.run(["git", "-C", str(root), "init", "-q"], check=True, env=env)
+        for cron, when in commits:
+            (wf / "w.yml").write_text(_wf(cron))
+            subprocess.run(["git", "-C", str(root), "add", "-A"], check=True, env=env)
+            subprocess.run(
+                # --allow-empty: an "unchanged cron" case commits an identical file, and
+                # that touching-but-not-changing commit is exactly what the walk must
+                # step over to find where the cron really landed.
+                ["git", "-C", str(root), "commit", "-q", "--allow-empty", "-m", cron],
+                check=True, env={**env, "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when},
+            )
+        return tmp
+
+    _REL = pathlib.Path(".github/workflows/w.yml")
+
+    def test_returns_when_the_current_cron_landed_not_the_first_commit(self):
+        with self._repo([("*/30 * * * *", "2026-07-29T00:00:00+00:00"),
+                         ("13,43 * * * *", "2026-07-30T04:49:11+00:00")]) as d:
+            landed = mcl._cron_landed_at(pathlib.Path(d), self._REL, ["13,43 * * * *"])
+        self.assertIsNotNone(landed, "a cron change in full history must be locatable")
+        # The replacement's landing time, NOT the file's first commit.
+        self.assertEqual(landed.astimezone(dt.timezone.utc).isoformat(),
+                         "2026-07-30T04:49:11+00:00")
+
+    def test_pre_change_runs_fall_outside_the_window(self):
+        # The actual regression: three runs under the old cron, one under the new. The
+        # window must admit only the last, leaving zero gaps -- not three.
+        with self._repo([("*/30 * * * *", "2026-07-29T00:00:00+00:00"),
+                         ("13,43 * * * *", "2026-07-30T04:49:11+00:00")]) as d:
+            landed = mcl._cron_landed_at(pathlib.Path(d), self._REL, ["13,43 * * * *"])
+        runs = [dt.datetime.fromisoformat(t) for t in (
+            "2026-07-29T22:28:16+00:00", "2026-07-29T23:33:53+00:00",
+            "2026-07-30T02:12:42+00:00", "2026-07-30T07:41:30+00:00")]
+        # The counterfactual, pinned so this test cannot go vacuous: unbounded, these
+        # same four timestamps yield the three gaps that were published as `13,43`.
+        self.assertEqual(len(list(zip(runs, runs[1:]))), 3)
+        kept = [r for r in runs if r >= landed]
+        self.assertEqual(len(kept), 1, "only the post-change run measures this cron")
+        self.assertEqual(len(list(zip(kept, kept[1:]))), 0,
+                         "one run is zero intervals; there is nothing to report yet")
+
+    def test_unchanged_cron_keeps_its_whole_history(self):
+        # No change means no exclusions: the bound must not quietly shrink a good sample.
+        with self._repo([("17 3 * * *", "2026-07-01T00:00:00+00:00"),
+                         ("17 3 * * *", "2026-07-20T00:00:00+00:00")]) as d:
+            landed = mcl._cron_landed_at(pathlib.Path(d), self._REL, ["17 3 * * *"])
+        self.assertEqual(landed.astimezone(dt.timezone.utc).isoformat(),
+                         "2026-07-01T00:00:00+00:00")
+
+    def test_no_git_history_does_not_bound_the_window(self):
+        # Fail open. An undeterminable window must not masquerade as a narrow one, which
+        # would silently discard every run and report a healthy cron as never firing.
+        with tempfile.TemporaryDirectory() as d:
+            root = pathlib.Path(d)
+            (root / ".github" / "workflows").mkdir(parents=True)
+            (root / ".github" / "workflows" / "w.yml").write_text(_wf("*/30 * * * *"))
+            self.assertIsNone(
+                mcl._cron_landed_at(root, self._REL, ["*/30 * * * *"]),
+                "outside a git repo the script must measure everything, not nothing")
+
+    def test_history_and_worktree_share_one_parser(self):
+        # A second parser for historical blobs could report a cron change that never
+        # happened, or miss one that did.
+        text = _wf("13,43 * * * *")
+        with tempfile.TemporaryDirectory() as d:
+            p = pathlib.Path(d) / "w.yml"
+            p.write_text(text)
+            self.assertEqual(mcl._crons(p), mcl._crons_from_text(text, "w.yml"))
 
 
 if __name__ == "__main__":

@@ -20,6 +20,17 @@ Silence is only reported for an ACTIVE workflow with no run in flight for the cu
 interval: a disabled or auto-disabled workflow is silent for a reason that has nothing to
 do with the scheduler, and reporting that as latency would be a false positive.
 
+RUNS ARE SCORED ONLY AGAINST THE CRON THEY WERE DELIVERED UNDER (IRO-680). A run is
+produced by whatever schedule was on the default branch at the time, but the cron this
+script prints is the one in the file today. Pooling across a cron change therefore labels
+the OLD schedule's gaps with the NEW expression -- and that inverts the one question a
+cron change is made to answer, because "did the new offset help?" gets computed from the
+offset it replaced. Each workflow's window is bounded at the commit where its current
+cron landed, older runs are excluded, and the exclusion is printed rather than applied
+silently. Where the window cannot be determined (no git history, shallow clone, `--repo`
+pointing at another repository) nothing is excluded: an unknown window must not
+masquerade as a narrow one.
+
 A FAILED MEASUREMENT IS NEVER RENDERED AS A HEALTHY CRON (IRO-685). Every `gh` call
 that returns non-zero produces a visible `MEASUREMENT FAILED: <reason>` row, is kept out
 of the pooled sample, and makes the whole script exit non-zero. The alternative -- the
@@ -79,6 +90,12 @@ class Row:
     state: str
     runs_error: str | None = None
     state_error: str | None = None
+    # When the cron currently in the file landed on the default branch, and how many
+    # older runs were dropped because they were delivered under a different schedule.
+    # See _cron_landed_at(): scoring across a cron change mislabels the old regime's
+    # gaps as evidence about the new one.
+    cron_since: dt.datetime | None = None
+    dropped: int = 0
 
 
 def _period_minutes(cron: str) -> int | None:
@@ -111,12 +128,21 @@ def _period_minutes(cron: str) -> int | None:
 
 
 def _crons(path: pathlib.Path) -> list[str]:
+    """Cron expressions under a `schedule:` block in the working-tree file."""
+    return _crons_from_text(path.read_text(), path.name)
+
+
+def _crons_from_text(text: str, name: str) -> list[str]:
     """Cron expressions under a `schedule:` block. Text-scanned on purpose: PyYAML is not a
-    dependency of this repo and a wrong answer here is visible, not silent."""
+    dependency of this repo and a wrong answer here is visible, not silent.
+
+    Takes text rather than a path so the same parser reads historical blobs out of git
+    (see _cron_landed_at()); a second, drifting parser for the history would be able to
+    report a cron change that never happened, or miss one that did."""
     out: list[str] = []
     in_schedule = False
     saw_schedule = False
-    for line in path.read_text().splitlines():
+    for line in text.splitlines():
         stripped = line.strip()
         if stripped.startswith("#"):
             continue
@@ -136,8 +162,70 @@ def _crons(path: pathlib.Path) -> list[str]:
     if saw_schedule and not out:
         # A parser that silently drops a scheduled workflow reports a smaller, healthier
         # looking sample than reality. Refuse to do that quietly.
-        raise SystemExit(f"{path.name}: has a `schedule:` block but no cron parsed out of it")
+        raise SystemExit(f"{name}: has a `schedule:` block but no cron parsed out of it")
     return out
+
+
+def _git(root: pathlib.Path, *argv: str) -> str | None:
+    """stdout of a read-only `git` call, or None if it failed. Never raises: this is a
+    refinement of the measurement window, and losing it must not lose the measurement."""
+    proc = subprocess.run(["git", "-C", str(root), *argv], capture_output=True, text=True)
+    return proc.stdout if proc.returncode == 0 else None
+
+
+def _local_repo(root: pathlib.Path) -> str | None:
+    """`Owner/Name` of the checkout's `origin`, or None. Used to refuse to apply this
+    checkout's git history to a `--repo` that is some other repository."""
+    url = _git(root, "remote", "get-url", "origin")
+    if not url:
+        return None
+    m = re.search(r"[:/]([^/:]+/[^/]+?)(?:\.git)?\s*$", url.strip())
+    return m.group(1) if m else None
+
+
+def _cron_landed_at(root: pathlib.Path, path: pathlib.Path,
+                    current: list[str]) -> dt.datetime | None:
+    """When the cron set now in `path` first landed, or None if it cannot be determined.
+
+    Runs are delivered under whatever schedule was on the default branch AT THE TIME.
+    `_crons()` reads the file at HEAD, so without this bound a cron change silently
+    pools the OLD regime's gaps into the new expression's row and labels them with the
+    new cron -- which is precisely the "did the new offset help?" question inverted:
+    the answer would be computed from the schedule the offset replaced. IRO-680 hit
+    this live. `fork-ci-approval-backstop` moved `*/30` -> `13,43`, and every scored
+    gap predated the change, so the row read as a measurement of an offset that had in
+    fact produced no complete interval at all.
+
+    Walks the file's history newest-first and returns the commit date of the OLDEST
+    consecutive commit whose cron set still equals `current` -- i.e. the commit that
+    introduced the schedule in force today. Committer date is deliberate: this repo
+    squash-merges, so it is when the change landed on main, not when it was authored.
+
+    Returns None (meaning "do not bound") when git is unavailable or the history is
+    truncated, because an unknown window must not masquerade as a narrow one."""
+    # git wants a repo-relative POSIX path on every platform, including Windows.
+    rel = path.as_posix()
+    log = _git(root, "log", "--format=%H %cI", "--", rel)
+    if not log:
+        return None
+    entries = [line.split(" ", 1) for line in log.splitlines() if line.strip()]
+    landed: str | None = None
+    for sha, when in entries:
+        blob = _git(root, "show", f"{sha}:{rel}")
+        if blob is None:
+            break
+        if _crons_from_text(blob, path.name) != current:
+            break
+        landed = when
+    else:
+        # Fell off the end of available history with every commit still matching. In a
+        # full clone that is the file's first commit and the bound is real; in a shallow
+        # one there may be older commits we cannot see. Only trust it if history is complete.
+        if (_git(root, "rev-parse", "--is-shallow-repository") or "").strip() == "true":
+            return None
+    if landed is None:
+        return None
+    return dt.datetime.fromisoformat(landed).astimezone(dt.timezone.utc)
 
 
 def _gh_failure(proc: subprocess.CompletedProcess[str]) -> str:
@@ -220,10 +308,15 @@ def main() -> int:
                     help="also report declared vs actual clock time (drift, not cadence)")
     args = ap.parse_args()
 
-    wf_dir = pathlib.Path(__file__).resolve().parent.parent / ".github" / "workflows"
+    root = pathlib.Path(__file__).resolve().parent.parent
+    wf_dir = root / ".github" / "workflows"
     now = dt.datetime.now(dt.timezone.utc)
     pooled: list[tuple[str, float]] = []
     rows: list[Row] = []
+
+    # This checkout's git history only describes this checkout's repo. Measuring some
+    # other repo with `--repo` must not inherit our cron-change dates.
+    same_repo = _local_repo(root) == args.repo
 
     for path in sorted(wf_dir.glob("*.yml")):
         crons = _crons(path)
@@ -233,13 +326,23 @@ def main() -> int:
         cron = crons[0]
         period = _period_minutes(cron)
         runs, in_flight, runs_error = _runs(args.repo, path.name)
+        cron_since = _cron_landed_at(root, path.relative_to(root), crons) if same_repo else None
+        dropped = 0
+        if cron_since and runs:
+            kept = [r for r in runs if r >= cron_since]
+            dropped = len(runs) - len(kept)
+            runs = kept
+            # in_flight is a fact about the newest run. Only OLD runs are ever dropped,
+            # so it survives -- unless the filter emptied the list, in which case there
+            # is no newest run for it to be a fact about.
+            in_flight = in_flight and bool(runs)
         # Don't ask for state when the history call already failed: same API, same
         # failure, and if the cause is a rate limit a second call only deepens it. The
         # row is already reported as a failed measurement on the strength of runs_error.
         state, state_error = ("unknown", None) if runs_error else _state(args.repo, path.name)
         gaps = [(b - a).total_seconds() / 60 for a, b in zip(runs, runs[1:])]
         rows.append(Row(path.name, cron, period, runs, gaps, in_flight, state,
-                        runs_error, state_error))
+                        runs_error, state_error, cron_since, dropped))
         if runs_error:
             # An unmeasured workflow contributes nothing -- not even zero rows. Folding a
             # failed call in as "no intervals" is how a 403 becomes a published figure.
@@ -265,19 +368,38 @@ def main() -> int:
                   f"(no single nominal period)")
             continue
         if not r.gaps:
-            print(f"{r.name:<34}{r.cron:<16}{len(r.runs):>5}{len(r.gaps):>5}   "
-                  f"(no interval yet)")
+            why = ("no interval yet under this cron" if r.dropped else "no interval yet")
+            print(f"{r.name:<34}{r.cron:<16}{len(r.runs):>5}{len(r.gaps):>5}   ({why})")
             continue
         ex = sorted(g - r.period for g in r.gaps)
         flag = "  <-- exceeds its own period" if max(ex) > r.period else ""
         print(f"{r.name:<34}{r.cron:<16}{len(r.runs):>5}{len(r.gaps):>5}   "
               f"min {min(ex):+.0f}  p50 {statistics.median(ex):+.0f}  max {max(ex):+.0f}{flag}")
 
+    changed = [r for r in rows if r.dropped]
+    if changed:
+        print("\n  Counts above are scoped to the cron now in the file. Runs delivered under a")
+        print("  previous schedule are excluded -- they measure the expression they ran under,")
+        print("  not this one, and pooling them answers 'did the new offset help?' with data")
+        print("  from the offset it replaced (IRO-680).")
+        for r in changed:
+            print(f"    {r.name:<32} cron in force since {r.cron_since:%Y-%m-%dT%H:%MZ}"
+                  f"  ({r.dropped} older run(s) excluded)")
+
     print(f"\n{'workflow':<34}{'cron':<16}   live silence since last run")
     print("-" * 96)
     for r in rows:
         if r.runs_error:
             print(f"{r.name:<34}{r.cron:<16}   MEASUREMENT FAILED: {r.runs_error}")
+            continue
+        if not r.runs and r.dropped:
+            # Not "never fired": it fired under the old cron. The honest observation is
+            # that the schedule now in force has not delivered once since it landed --
+            # and that is a direct observation, not a sample-size-limited one.
+            quiet = (now - r.cron_since).total_seconds() / 60
+            asked = f" vs {r.period} min asked" if r.period else ""
+            print(f"{r.name:<34}{r.cron:<16}   {quiet:.0f} min since this cron landed"
+                  f"{asked}, NOT ONE RUN under it")
             continue
         if not r.runs:
             print(f"{r.name:<34}{r.cron:<16}   (never fired on a schedule)")
