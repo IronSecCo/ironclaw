@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
 # Regenerate the Homebrew formula (Formula/ironclaw.rb) from a published release.
 #
-#   scripts/update-homebrew-formula.sh [TAG]
+#   scripts/update-homebrew-formula.sh [--out PATH] [TAG]
 #
-# With no argument it resolves the latest release; pass a tag (e.g. v0.1.80) to pin
-# a specific one. The SHA-256 of every binary archive is read from the release's
-# signed-over SHA256SUMS — the same trust anchor install.sh uses — so the formula
-# never carries a checksum that wasn't published with the release. Run it after a
-# release you want the `brew install` path to track, then commit the result.
+# With no TAG it resolves the latest release; pass a tag (e.g. v0.1.80) to pin a
+# specific one. `--out PATH` writes the generated formula somewhere other than
+# Formula/ironclaw.rb, which is how scripts/verify-homebrew-formula.sh re-derives
+# the expected formula into a temp file and byte-compares it against a PR head.
 #
-# Requires: gh (authenticated) OR a public release + curl, and shasum/sha256sum.
+# The SHA-256 of every binary archive is read from the release's SHA256SUMS — the
+# same trust anchor install.sh uses — so the formula never carries a checksum that
+# was not published with the release. Before any digest is read, SHA256SUMS is
+# cosign-verified against the release's detached signature + certificate, pinned to
+# the Release workflow's OIDC identity. A digest list whose signature nobody checked
+# is not a trust anchor: it is whatever the last person to touch the release assets
+# decided it should be. This verification is FAIL-CLOSED and has no opt-out.
+#
+# Requires: cosign (2.x), and gh (authenticated) OR a public release + curl.
 set -euo pipefail
 
 REPO="${IRONCLAW_REPO:-IronSecCo/ironclaw}"
@@ -19,7 +26,17 @@ OUT="${ROOT}/Formula/ironclaw.rb"
 say()  { printf '==> %s\n' "$*"; }
 die()  { printf 'error: %s\n' "$*" >&2; exit 1; }
 
-TAG="${1:-}"
+TAG=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --out) [ $# -ge 2 ] || die "--out needs a PATH"; OUT="$2"; shift 2 ;;
+    --out=*) OUT="${1#--out=}"; shift ;;
+    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    -*) die "unknown option: $1" ;;
+    *) [ -z "$TAG" ] || die "unexpected extra argument: $1"; TAG="$1"; shift ;;
+  esac
+done
+
 if [ -z "$TAG" ]; then
   say "Resolving latest release of ${REPO}"
   TAG="$(gh release view --repo "$REPO" --json tagName -q .tagName)" \
@@ -31,13 +48,53 @@ say "Pinning formula to ${TAG} (version ${VERSION})"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT INT TERM
 
-# Pull SHA256SUMS straight from the release — the trust anchor, not a recomputation.
-if gh release download "$TAG" --repo "$REPO" --pattern SHA256SUMS --dir "$tmp" 2>/dev/null; then
-  :
-else
-  curl -fsSL "https://github.com/${REPO}/releases/download/${TAG}/SHA256SUMS" -o "$tmp/SHA256SUMS" \
-    || die "could not fetch SHA256SUMS for ${TAG}"
-fi
+# fetch_asset <name> -> $tmp/<name>. gh first (works for private/draft releases and
+# reuses the caller's auth), plain curl as the anonymous fallback.
+fetch_asset() {
+  local name="$1"
+  if gh release download "$TAG" --repo "$REPO" --pattern "$name" --dir "$tmp" 2>/dev/null; then
+    return 0
+  fi
+  curl -fsSL "https://github.com/${REPO}/releases/download/${TAG}/${name}" -o "$tmp/${name}" \
+    || die "could not fetch ${name} for ${TAG} — is the release fully published?"
+}
+
+# Pull the trust anchor and the two artifacts that make it one.
+fetch_asset SHA256SUMS
+fetch_asset SHA256SUMS.sig
+fetch_asset SHA256SUMS.pem
+
+# The identity that signed the release. This is the FULL workflow identity, not a
+# repo-prefix regexp: only .github/workflows/release.yml running on refs/heads/main
+# is allowed to have produced this signature. Any other workflow in this repo — or
+# release.yml running off a branch or a fork — is rejected.
+COSIGN_IDENTITY="https://github.com/${REPO}/.github/workflows/release.yml@refs/heads/main"
+COSIGN_ISSUER="https://token.actions.githubusercontent.com"
+
+command -v cosign >/dev/null 2>&1 \
+  || die "cosign not found. SHA256SUMS cannot be verified, so the formula cannot be
+  derived from a trusted digest list. Install cosign 2.x (https://docs.sigstore.dev/
+  cosign/installation/) and re-run. This is deliberately fail-closed: generating the
+  formula from an unverified digest list is exactly the failure this script prevents."
+
+say "cosign-verifying SHA256SUMS for ${TAG}"
+say "  identity: ${COSIGN_IDENTITY}"
+say "  issuer:   ${COSIGN_ISSUER}"
+# NOTE: cosign's own --output-certificate writes the cert base64-ENCODED, so the
+# published SHA256SUMS.pem is a base64-wrapped PEM. cosign verify-blob accepts that
+# wrapper directly, so it is passed through as-is. If you ever hand this file to
+# openssl instead, `base64 -d` it first — otherwise openssl reports "could not find
+# certificate", which reads exactly like a forged signature (IRO-665).
+cosign verify-blob "$tmp/SHA256SUMS" \
+  --signature "$tmp/SHA256SUMS.sig" \
+  --certificate "$tmp/SHA256SUMS.pem" \
+  --certificate-identity "$COSIGN_IDENTITY" \
+  --certificate-oidc-issuer "$COSIGN_ISSUER" \
+  || die "cosign could NOT verify SHA256SUMS for ${TAG} against ${COSIGN_IDENTITY}.
+  Refusing to derive a formula from an unverified digest list. Either the release
+  signature is missing/untrusted, or the assets were replaced after publication —
+  treat ${TAG} as suspect and see the release runbook."
+say "cosign OK — SHA256SUMS for ${TAG} is signed by the Release workflow."
 
 # sum <archive-name> -> the sha256 recorded in SHA256SUMS (fail closed if absent).
 sum() {
@@ -54,7 +111,7 @@ LINUX_AMD64="$(sum "ironclaw_${VERSION}_linux_amd64.tar.gz")"
 
 base="https://github.com/${REPO}/releases/download/${TAG}"
 
-mkdir -p "${ROOT}/Formula"
+mkdir -p "$(dirname "$OUT")"
 # NOTE: this is an UNQUOTED heredoc so ${VERSION}/${TAG}/${base}/${sha} expand. Do
 # NOT put backticks or $(...) in the template below — the shell would execute them.
 # Ruby string interpolation (#{version}, #{bin}) is safe (no leading $).
