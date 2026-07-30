@@ -273,17 +273,32 @@ squash-merged:
 The `formula` job builds its commit through the Git Data API with an explicit
 `author`/`committer` (the CLA-signed maintainer, so `cla-assistant` passes —
 IRO-353/363). Neither that API nor the Contents API it replaced (IRO-689) signs
-such a commit — the Contents API only signed when `committer` defaulted to the
-authenticated identity, and the `author` pin made it mirror `committer=author`
-instead. So `brew/track`'s head commit is `verification.verified: false`,
-`reason: unsigned`, and main's `required_signatures` rule rejects it. A
+such a commit: the v0.1.445, v0.1.447 and v0.1.449 formula job logs all show
+`verification: {verified: false, reason: "unsigned"}` on the Contents API bump,
+so this is long-standing behaviour and not something the IRO-689 rewrite changed.
+Those same logs also correct a detail this document used to assert — the Contents
+API did **not** mirror `committer` onto the `author` we passed; it ignored our
+`committer` and stamped the authenticated identity, so the shipped bumps read
+`committer: ironclaw-reviewer[bot]`. Pinning both fields to the maintainer is
+therefore a real one-field change, with no reader: the CLA gate checks the
+**author**, `brew-formula-verify` re-derives file **content**, and the
+workflow-approval gate keys off who **pushed** the ref. So `brew/track`'s head
+commit is `verification.verified: false`, `reason: unsigned`, and main's
+`required_signatures` rule rejects it. A
 **squash** merge discards that commit and GitHub mints a fresh, GitHub-signed
 commit on main in its place. A **rebase** merge would replay the unsigned commit
 verbatim and be blocked.
 
 An earlier comment in `release.yml` claimed the Contents API signed that commit.
-It does not. That wrong comment sent an operator hunting a phantom signing bug
-when the real cause was the benign author pin (IRO-670).
+It does not, and that wrong comment sent an operator hunting a phantom signing
+bug (IRO-670). Do not replace it with a different guess: the *mechanism* GitHub
+uses to decide whether to web-flow-sign an API commit is **not** established
+here, and the obvious candidate is ruled out — the bumps were unsigned even
+though GitHub itself set `committer` to the authenticated App identity. What is
+established is the observable: these commits arrive unsigned, always have, and
+the squash is what satisfies `required_signatures`. Treat "why" as unknown rather
+than inventing a cause, and note that an unsigned bump head is **expected** here,
+not a symptom to chase.
 
 ### One ref write, then read the PR back (IRO-689)
 
