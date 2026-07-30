@@ -61,7 +61,7 @@ docker run -d --name nats nats:2.10-alpine
 
 # After: 89/100, grade B (scoped private network for clients and peers)
 docker run -d --name nats-hardened \
-  --user 1000:1000 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \
