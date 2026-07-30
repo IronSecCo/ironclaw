@@ -59,21 +59,45 @@ on:
     # DO NOT write a detection-latency bound here. An earlier version claimed "<= 60 min"
     # off the cron expression (IRO-679), a later one claimed "~135 min" by carrying the
     # daily/weekly overshoot onto a 60 min period. The second is also wrong, and this
-    # workflow is the experiment that showed it. Measured 2026-07-30T11:47Z with
-    # `scripts/measure-cron-latency.py`:
+    # workflow is the experiment that showed it. Measured 2026-07-30T20:57Z with
+    # `scripts/measure-cron-latency.py`, excess over the period each cron asked for:
     #
-    #   - Daily+weekly pooled, 57 intervals: p50 -8 / p90 +36 / p95 +51 / max +75 min
-    #     excess over the period asked for. Cadence roughly holds at those frequencies.
-    #   - THIS workflow, 1 interval: +121 min excess -- a 181 min gap against the 60 min
-    #     it asked for, i.e. GitHub delivered 2 of the 7 due slots and dropped 5. Live
-    #     silence hit 2.0x its period with nothing queued.
-    #   - `fork-ci-approval-backstop` (`13,43 * * * *`), the repo's other sub-hourly cron:
-    #     +113 min excess, live silence 3.5x. Same behaviour, independently.
+    #   - Daily+weekly pooled, 57 intervals: p50 -8 / p90 +36 / p95 +51 / max +75 min.
+    #     Cadence roughly holds at those frequencies.
+    #   - THIS workflow (`23 * * * *`, asks 60 min), n=6 intervals, every one of them
+    #     under the cron below: min +47 / p50 +79 / max +121 min. The worst gap was
+    #     180.8 min, 3.0x the period it asked for.
+    #   - `fork-ci-approval-backstop` (`13,43 * * * *`, asks 30 min), the repo's other
+    #     sub-hourly cron, n=6 intervals under THAT expression: min +74 / p50 +83 /
+    #     max +117 min. The worst gap was 146.6 min, 4.9x its period.
     #
-    # So hourly IS in GitHub's dropped bucket, which settles the open question this
-    # paragraph used to carry. One interval is not a distribution, so there is no bound to
-    # state -- and 181 min against a 240 min threshold leaves ~59 min of headroom, not the
-    # ~105 min previously claimed. IRO-680 re-runs the measurement with more intervals.
+    # So hourly IS in GitHub's dropped bucket, and the backstop says the same thing
+    # independently. It is a second witness for SUB-HOURLY crons being dropped, not a
+    # second witness for the hourly bound: "excess" and "Nx" are period-relative and the
+    # two crons ask for different periods, so their numbers are not poolable. n=6 each is
+    # a distribution and not a bound -- neither max is a ceiling on what the scheduler may
+    # deliver next, so still do not turn one into a promise. Against the 240 min staleness
+    # threshold the worst observed hourly gap of 180.8 min leaves 59.2 min of headroom.
+    #
+    # Those figures are a DATED SNAPSHOT, not a live mirror. The script queries recent runs
+    # over the API, so re-running it later legitimately reports a larger n and shifted
+    # min/p50 as new intervals land -- that is the measurement continuing, not a
+    # contradiction, and it is why the timestamp above is quoted with the numbers. Compare
+    # a re-run's CONCLUSIONS (every interval overshoots its period; the max; the headroom
+    # against 240), not its min/p50. Re-checked 2026-07-30T21:42Z: the backstop had gained
+    # a 7th interval (n=7, min +63 / p50 +78) with max +117 and every conclusion here
+    # unchanged. Only re-edit these numbers if a conclusion moves.
+    #
+    # An interval only counts against the cron that DELIVERED it. A change to the cron
+    # LINE invalidates every interval spanning it; a change to this comment block does
+    # not, and the file having a commit in it is not by itself grounds to exclude
+    # anything. Check the line: `git show <sha> -- <file> | grep -E '^[+-].*cron:'`.
+    # `scripts/measure-cron-latency.py` applies exactly this rule (`_cron_landed_at()`)
+    # and prints what it excluded. It is why the backstop's 328.8 min gap of
+    # 02:12Z -> 07:41Z is NOT in the numbers above and is NOT a 240 min breach: it
+    # straddles the 04:49Z `*/30` -> `13,43` change in f81aed31 and belongs to neither
+    # regime. Every interval of THIS workflow is in-regime -- `- cron: "23 * * * *"` has
+    # not been touched since the file was created at 2026-07-30T03:32:47Z (c669409e).
     #
     # Why the guard's design survives that anyway: BOTH arms fire on a LEVEL, not an edge.
     # An open bump PR stays open and a stale formula stays stale, so a dropped run delays

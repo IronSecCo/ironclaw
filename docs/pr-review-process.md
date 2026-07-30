@@ -472,7 +472,7 @@ the cron expression alone. That was not measured, and it is not true.
 
 [`scripts/measure-cron-latency.py`](https://github.com/IronSecCo/ironclaw/blob/main/scripts/measure-cron-latency.py)
 measures it. Run it before writing any latency number here. Re-measured
-2026-07-30 **11:47Z**, over **57 intervals** of this repo's daily and weekly crons:
+2026-07-30 **20:57Z**, over **57 intervals** of this repo's daily and weekly crons:
 
 | quantity | measured |
 |---|---|
@@ -495,41 +495,65 @@ Caveats, because this is the part that is easy to overstate:
   used to read "the hourly cadence is unmeasured", with a projected worst case of
   ~135 min (60 nominal + the 75 min daily/weekly overshoot) and ~105 min of
   headroom against the 240 min threshold. The hourly guard was made the experiment
-  that settles it, and it has now returned data that kills the projection:
+  that settles it, and each sub-hourly cron now has **n=6 intervals** behind it,
+  every one of them delivered under the expression it is scored against:
 
-  | cron | period asked | delivered gap | excess | live silence |
+  | cron | period asked | intervals | excess over period | worst gap |
   |---|---|---|---|---|
-  | `brew-bump-waiting` `23 * * * *` | 60 min | **181 min** | **+121** | 122 min = **2.0x**, nothing queued |
-  | `fork-ci-approval-backstop` `13,43 * * * *` | 30 min | 143 min | **+113** | 104 min = **3.5x**, nothing queued |
+  | `brew-bump-waiting` `23 * * * *` | 60 min | 6 | min **+47**, p50 **+79**, max **+121** | **180.8 min** = 3.0x the period |
+  | `fork-ci-approval-backstop` `13,43 * * * *` | 30 min | 6 | min **+74**, p50 **+83**, max **+117** | **146.6 min** = 4.9x the period |
 
-  GitHub delivered **2 of the 7 slots due** to the brew guard and dropped five.
-  Both sub-hourly crons in the repo now exceed their own period, independently,
-  which matches GitHub's documented deprioritisation of high-frequency schedules.
-  One interval is not a distribution, so do not turn 181 min into a bound either —
-  it is a floor on what has been observed, not a ceiling. IRO-680 re-runs the
-  measurement once there are more intervals.
-- **The 240 min threshold survives, with less headroom than claimed.** 181 min
-  against 240 leaves ~59 min, not ~105. The design still holds for a reason
-  independent of the numbers: **both arms fire on a level, not an edge.** An open
-  bump PR stays open and a stale formula stays stale, so a dropped run delays
-  detection and never loses it. Only time-to-notice degrades.
-- **Quote the silence, not the gap count.** Two intervals cannot carry that
-  conclusion on their own. What carries it is the script's second table: **live
-  silence**, the still-open interval since the last scheduled run. Re-measured
-  2026-07-30 06:08Z, the backstop had been silent **236 min against a 30 min
-  period (7.9x)** while `state: active` with nothing queued — and across the
-  7h40m since its first-ever scheduled run, a 30-min cron predicts ~15 runs
-  where the scheduler delivered **3**. That is one direct observation with no
-  sample-size caveat attached. In the same table every daily/weekly cron in the
-  repo sat at **0.0x–0.9x** of its period, so the metric is not merely flagging
-  everything it looks at.
+  Both sub-hourly crons in the repo exceed their own period on **every** interval
+  measured, independently of each other, which matches GitHub's documented
+  deprioritisation of high-frequency schedules. Read the second row as a second
+  witness that **sub-hourly** crons get dropped, and nothing more: "excess" and
+  "Nx" are period-relative, the two crons ask for different periods, and pooling
+  them would manufacture a number neither one measured. n=6 is a distribution, not
+  a ceiling — do not turn 180.8 min into a promise to a contributor.
+
+  The table is a **dated snapshot, not a live mirror**. The script queries recent
+  runs over the API, so re-running it later legitimately reports a larger `n` and
+  shifted min/p50 as new intervals land — that is the measurement continuing, not
+  a contradiction with this table, and it is why the 20:57Z timestamp is quoted
+  alongside the numbers. Compare a re-run's **conclusions** (every interval
+  overshoots its period; the worst gap; the headroom against 240), not its
+  min/p50. Re-checked 2026-07-30 **21:42Z**: the backstop had gained a 7th
+  interval (n=7, min +63, p50 +78) with max +117 and every conclusion below
+  unchanged. Only re-edit the table if a conclusion moves.
+- **The 240 min threshold survives, with less headroom than once claimed.** The
+  worst hourly gap measured, 180.8 min, leaves **59.2 min** against 240 — a real
+  margin, and not the ~105 min the projection claimed. Do not lower the threshold
+  to buy margin; it would only make the guard noisier. The design holds for a
+  reason independent of the numbers anyway: **both arms fire on a level, not an
+  edge.** An open bump PR stays open and a stale formula stays stale, so a dropped
+  run delays detection and never loses it. Only time-to-notice degrades.
+- **The silence column is the negative control.** The script's second table reports
+  **live silence**, the still-open interval since the last scheduled run, and it is
+  what keeps the gap tables from being a story about the measurement. In the same
+  20:57Z run the backstop sat at **2.3x** its period with `state: active` and
+  nothing queued, while every daily and weekly cron in the repo sat at **0.5x–0.6x**
+  of its own. The metric is not merely flagging everything it looks at.
+- **An interval belongs to the cron that delivered it.** Two different things can
+  happen to a workflow file and only one of them invalidates data. If the **cron
+  line** changed, every interval spanning the change is void — the old schedule's
+  gaps say nothing about the new expression. If the file changed but the cron line
+  did not (a comment edit, a step added), the interval is **valid and counts**.
+  Check the line, not the file: `git show <sha> -- <file> | grep -E '^[+-].*cron:'`.
+  `scripts/measure-cron-latency.py` implements exactly this (`_cron_landed_at()`)
+  and prints what it excluded rather than dropping it silently. This is load-bearing
+  in both directions here. The backstop's 02:12Z → 07:41Z gap of **328.8 min**
+  straddles the 04:49Z `*/30` → `13,43` change and is therefore **excluded** — it is
+  *not* a 240 min breach and must never be reported as one. In the other direction,
+  `b3a2d5b1` (13:09Z) edited this workflow's comments and left `- cron: "23 * * * *"`
+  alone, so the 12:07Z → 14:37Z interval it sits inside stays in the hourly sample.
 - **The `13,43` offset did not help.** It was a free experiment — same cadence,
-  off the two most congested minutes of the hour. It now has a post-offset sample
-  and the answer is no: under `13,43`, the backstop delivered 2 runs with a 143 min
-  gap against a 30 min period, and sat at 3.5x live silence. Keep the offset (it
-  costs nothing and n=1 gap is thin), but stop treating minute-of-hour as the lever.
-  The brew guard's own `23 * * * *` is off-peak too and is dropped just as hard, so
-  the deprioritisation is about frequency, not about which minute you ask for.
+  off the two most congested minutes of the hour. With n=6 under the new expression
+  the answer is no: the backstop's worst gap is 146.6 min against a 30 min period
+  and its *best* interval still overshoots by 74 min. Keep the offset (it costs
+  nothing), but stop treating minute-of-hour as the lever. The brew guard's own
+  `23 * * * *` is off-peak too and is dropped on every interval as well, so the
+  deprioritisation is about frequency, not about which minute you ask for. The
+  lever, if one is needed, is leaving the high-frequency bucket entirely.
 - **A cron is the wrong tool for a hard latency bound.** Getting a real one
   needs an event-driven trigger, and for the approval backstop that is a
   trust-model change, not a scheduling tweak: the safety net must stay
