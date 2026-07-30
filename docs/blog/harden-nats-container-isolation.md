@@ -42,7 +42,7 @@ dimension stays a WARN by design here, because a broker has to accept connection
 `ironctl scan my-nats --fix` prints one remediation per failed dimension, then one hardened run. For
 `nats:2.10-alpine`:
 
-- **`--user 1000:1000`** (Non-root user, +15): pin a non-root uid so an escape does not begin as host
+- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as host
   uid 0. Point any JetStream store directory at a volume this uid owns.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; NATS needs none of the
   default set to serve its client and monitoring ports.
