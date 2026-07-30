@@ -158,14 +158,14 @@ Every claim above maps to a versioned source in the repository. This post makes 
 claim that is not backed by shipped code or the versioned threat model, so you can
 check each one for yourself.
 
-[^assume]: Core assumption and trust asymmetry, [threat model §1](threat-model.md).
-[^b1]: Trust boundaries B1-B5 and data-flow diagram, [threat model §3](threat-model.md).
-[^netnone]: `network=none`, host model-proxy socket, egress broker, deny-by-default allowlist, [threat model §3, §5 (B1/B4), §7](threat-model.md); [security posture](security.md).
-[^sealed]: Read-only rootfs, dropped caps, `no_new_privs`, non-root user namespace, compiled binary / no interpreter, [threat model §5 (B1, rows T and E)](threat-model.md); [security posture](security.md).
-[^queues]: Per-session encrypted SQLite queues, read-only inbound / append-only outbound, cross-session isolation, [threat model §5 (B2)](threat-model.md).
-[^escape]: gVisor (`runsc`) as the sandbox-escape mitigation for boundary B1 (row E), [threat model §5 (B1)](threat-model.md).
+[^assume]: Core assumption and trust asymmetry, [threat model §1](threat-model.md#1-scope-and-core-assumption).
+[^b1]: Trust boundaries B1-B5 and data-flow diagram, [threat model §3](threat-model.md#3-trust-boundaries-and-data-flow).
+[^netnone]: `network=none`, host model-proxy socket, egress broker, deny-by-default allowlist, [threat model §3, §5 (B1/B4), §7](threat-model.md#3-trust-boundaries-and-data-flow); [security posture](security.md).
+[^sealed]: Read-only rootfs, dropped caps, `no_new_privs`, non-root user namespace, compiled binary / no interpreter, [threat model §5 (B1, rows T and E)](threat-model.md#b1-host-sandbox-the-gvisor-wall); [security posture](security.md).
+[^queues]: Per-session encrypted SQLite queues, read-only inbound / append-only outbound, cross-session isolation, [threat model §5 (B2)](threat-model.md#b2-control-plane-agent-the-encrypted-queues).
+[^escape]: gVisor (`runsc`) as the sandbox-escape mitigation for boundary B1 (row E), [threat model §5 (B1)](threat-model.md#b1-host-sandbox-the-gvisor-wall).
 [^platform]: gVisor is Linux-only; macOS falls back to runc-in-Docker, [README → Platform support](https://github.com/IronSecCo/ironclaw#platform-support); [quickstart security note](quickstart.md).
-[^gateway]: Mandatory human-approval gateway, `AlwaysRequireHuman` floor, agent cannot change its own config, [threat model §5-§6](threat-model.md); [security posture](security.md); [quickstart "Your first approved action"](quickstart.md).
-[^secrets]: Host-held secrets never enter the sandbox; model proxy injects the key host-side, [threat model §2, §5 (B1, row I), §6](threat-model.md).
-[^skills]: Skills are gateway-gated capability bundles, data-not-code, signature-verified, fail-closed, [threat model §12](threat-model.md); [skills](skills.md).
-[^mcp]: MCP servers are host-side, gateway-gated, deny-by-default, isolated, [threat model §13](threat-model.md).
+[^gateway]: Mandatory human-approval gateway, `AlwaysRequireHuman` floor, agent cannot change its own config, [threat model §5-§6](threat-model.md#5-stride-by-boundary); [security posture](security.md); [quickstart "Your first approved action"](quickstart.md).
+[^secrets]: Host-held secrets never enter the sandbox; model proxy injects the key host-side, [threat model §2, §5 (B1, row I), §6](threat-model.md#2-assets).
+[^skills]: Skills are gateway-gated capability bundles, data-not-code, signature-verified, fail-closed, [threat model §12](threat-model.md#12-skills-extension-system); [skills](skills.md).
+[^mcp]: MCP servers are host-side, gateway-gated, deny-by-default, isolated, [threat model §13](threat-model.md#13-mcp-servers).

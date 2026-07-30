@@ -65,4 +65,4 @@ Using IronClaw and want to share? The best place is
 on Show HN, or on Reddit are fair game for this wall, always with a link back to you.
 
 New to the project? Start with the [quickstart](quickstart.md) or the zero credential
-[demo](index.md#demo), and star the repo if it earns it.
+[demo](index.md), and star the repo if it earns it.
