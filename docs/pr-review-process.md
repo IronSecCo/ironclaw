@@ -510,6 +510,16 @@ Caveats, because this is the part that is easy to overstate:
   "Nx" are period-relative, the two crons ask for different periods, and pooling
   them would manufacture a number neither one measured. n=6 is a distribution, not
   a ceiling — do not turn 180.8 min into a promise to a contributor.
+
+  The table is a **dated snapshot, not a live mirror**. The script queries recent
+  runs over the API, so re-running it later legitimately reports a larger `n` and
+  shifted min/p50 as new intervals land — that is the measurement continuing, not
+  a contradiction with this table, and it is why the 20:57Z timestamp is quoted
+  alongside the numbers. Compare a re-run's **conclusions** (every interval
+  overshoots its period; the worst gap; the headroom against 240), not its
+  min/p50. Re-checked 2026-07-30 **21:42Z**: the backstop had gained a 7th
+  interval (n=7, min +63, p50 +78) with max +117 and every conclusion below
+  unchanged. Only re-edit the table if a conclusion moves.
 - **The 240 min threshold survives, with less headroom than once claimed.** The
   worst hourly gap measured, 180.8 min, leaves **59.2 min** against 240 — a real
   margin, and not the ~105 min the projection claimed. Do not lower the threshold
