@@ -393,14 +393,28 @@ Two things follow, and they pull in opposite directions:
 Caveats, because this is the part that is easy to overstate:
 
 - **The hourly cadence is unmeasured.** Those 55 intervals are daily and weekly.
-  The repo's one sub-hourly cron — the fork-CI approval backstop at `*/30` —
-  was being dropped hard (two observed intervals of 66 and 159 min, 2.2x and
-  5.3x its period; the only cron here whose overshoot exceeded its own period),
-  which matches GitHub's documented deprioritisation of high-frequency
-  schedules. **n=2 proves nothing on its own**; the load-bearing observation is
-  a 92-minute silence caught live with no run pending. If hourly lands in that
-  same bucket, 135 min is optimistic. This workflow is now the experiment that
-  settles it — after a day of runs, re-run the script and update this table.
+  The repo's one sub-hourly cron — the fork-CI approval backstop at `*/30` — is
+  being dropped hard, and it is the only cron here whose overshoot exceeds its
+  own period (two observed intervals of 66 and 159 min, 2.2x and 5.3x). That
+  matches GitHub's documented deprioritisation of high-frequency schedules. If
+  hourly lands in that same bucket, 135 min is optimistic. The hourly guard is
+  now the experiment that settles it — after a day of runs, re-run the script
+  and update this table.
+- **Quote the silence, not the gap count.** Two intervals cannot carry that
+  conclusion on their own. What carries it is the script's second table: **live
+  silence**, the still-open interval since the last scheduled run. Re-measured
+  2026-07-30 06:08Z, the backstop had been silent **236 min against a 30 min
+  period (7.9x)** while `state: active` with nothing queued — and across the
+  7h40m since its first-ever scheduled run, a 30-min cron predicts ~15 runs
+  where the scheduler delivered **3**. That is one direct observation with no
+  sample-size caveat attached. In the same table every daily/weekly cron in the
+  repo sat at **0.0x–0.9x** of its period, so the metric is not merely flagging
+  everything it looks at.
+- **The `13,43` offset is not known to help.** It was a free experiment — same
+  cadence, off the two most congested minutes of the hour — but in the 79 min
+  after it landed the scheduler delivered **0** runs where `13,43` predicts 2.
+  That is n=0, which is not evidence it failed either. Keep the offset, and keep
+  saying "not known to help" until the script has a real post-offset sample.
 - **A cron is the wrong tool for a hard latency bound.** Getting a real one
   needs an event-driven trigger, and for the approval backstop that is a
   trust-model change, not a scheduling tweak: the safety net must stay

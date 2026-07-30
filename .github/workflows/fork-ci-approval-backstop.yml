@@ -79,13 +79,23 @@ on:
     # window 55 intervals of daily and weekly crons here came in at p50 -7 / p90 +36 /
     # max +75 minutes against nominal, so the scheduler honours low-frequency cadence and
     # was dropping this one -- consistent with GitHub's documented deprioritisation of
-    # high-frequency schedules. n=2 cannot prove that on its own; the useful independent
-    # observation is the 92-minute silence caught live with no run pending.
+    # high-frequency schedules.
+    #
+    # n=2 cannot prove that on its own, so do not lean on those two gaps. The load-bearing
+    # number is the script's LIVE SILENCE column, which needs no sample at all: re-measured
+    # 2026-07-30 06:08Z, this cron had been silent 236 minutes against a 30-minute period
+    # (7.9x) while `state: active` with nothing queued, and over the 7h40m since its
+    # first-ever scheduled run the scheduler delivered 3 runs where a 30-minute cron
+    # predicts ~15. Every daily/weekly cron in the repo sat at 0.0x-0.9x of its period in
+    # that same table, so the metric is not just flagging everything it looks at.
     #
     # The minutes are offset off :00/:30 as a cheap, strictly-dominating experiment: same
     # 30-minute cadence and the same promise, but off the two most congested minutes of
-    # the hour. It costs nothing if it does not help. It is NOT yet known to help -- re-run
-    # the script before anyone writes a latency number based on it.
+    # the hour. It costs nothing if it does not help. It is still NOT known to help, and
+    # the early read is that it has not: in the 79 minutes after the offset landed on main
+    # the scheduler delivered 0 runs where `13,43` predicts 2. That is n=0 and settles
+    # nothing on its own -- do not write a latency number off it either way. Re-run the
+    # script before anyone does.
     #
     # If a real latency bound is ever needed here, it needs an event-driven trigger, and
     # that is a trust-model decision (a run entering `action_required` is contributor-
