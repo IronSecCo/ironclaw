@@ -9,7 +9,7 @@ Long-running agents often need credentials for the third-party APIs they call. I
 lets an agent reach a credential by **logical name** — `vault://<cred>/<path>` — while
 **never holding the key**. The secret is attached host-side by a *separate* principal,
 so neither the sandbox nor the egress broker ever becomes a secret sink (threat model
-[§11](threat-model.md)).
+[§11](threat-model.md#11-credential-vault-behind-the-broker)).
 
 ## How a vaulted request flows
 
