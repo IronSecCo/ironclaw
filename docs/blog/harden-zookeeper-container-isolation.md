@@ -83,6 +83,22 @@ ironctl scan my-zookeeper --fix
 ```
 `ironctl scan` also reads a `docker-compose.yml` service or a Kubernetes manifest, allowing you to grade the ZooKeeper instance within your orchestration stack.
 
+```
+IronClaw containment scan
+  target:  zookeeper-hardened
+  runtime: crun
+  score:   89/100  grade B  (solid, minor gaps)
+
+DIMENSION                    VERDICT   SCORE  DETAIL
+Non-root user (uid != 0)    [+] PASS  15/15  runs as 1000:1000 (uid != 0)
+Dropped capabilities        [+] PASS  20/20  all capabilities dropped, none added back
+Seccomp profile             [+] PASS  15/15  seccomp profile active (syscall surface filtered)
+Network isolation / egress  [~] WARN   4/15  network=bridge: outbound egress is possible; prefer network=none
+Read-only root filesystem   [+] PASS  10/10  root filesystem is read-only
+No docker.sock exposure     [+] PASS  15/15  no docker.sock / OCI control socket mounted
+No shared host namespaces   [+] PASS  10/10  no host PID/IPC/network namespace sharing
+```
+
 ## Keep going
 
 - [All hardening guides &rarr;](hardening-guides.md): every harden-a-container walkthrough, with grade deltas.
