@@ -9,9 +9,10 @@
 # the human/board decision). The GitHub approval mechanically reflects that
 # recorded decision. See docs/pr-review-process.md.
 #
-# Inert until the App is installed: without the REVIEWER_APP_* secrets a dispatch
-# fails fast with a clear message. It never runs on push/PR, so it adds no
-# required-check surface and changes no current behaviour.
+# Inert until the App is installed: without the REVIEWER_APP_CLIENT_ID variable and
+# the REVIEWER_APP_PRIVATE_KEY secret a dispatch fails fast with a clear message. It
+# never runs on push/PR, so it adds no required-check surface and changes no current
+# behaviour.
 
 name: Reviewer approval
 
@@ -43,7 +44,7 @@ jobs:
           ACTOR: ${{ github.actor }}
           PR: ${{ inputs.pr }}
           ROR: ${{ inputs.review_of_record }}
-          APP_ID: ${{ secrets.REVIEWER_APP_ID }}
+          APP_CLIENT_ID: ${{ vars.REVIEWER_APP_CLIENT_ID }}
           APP_KEY: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
         run: |
           set -euo pipefail
@@ -56,8 +57,8 @@ jobs:
             ''|*[!0-9]*) echo "::error::pr must be a numeric PR number." >&2; exit 1 ;;
           esac
 
-          if [ -z "${APP_ID:-}" ] || [ -z "${APP_KEY:-}" ]; then
-            echo "::error::Reviewer App not installed: set REVIEWER_APP_ID and REVIEWER_APP_PRIVATE_KEY secrets first (see docs/pr-review-process.md)." >&2
+          if [ -z "${APP_CLIENT_ID:-}" ] || [ -z "${APP_KEY:-}" ]; then
+            echo "::error::Reviewer App not installed: set the REVIEWER_APP_CLIENT_ID variable and the REVIEWER_APP_PRIVATE_KEY secret first (see docs/pr-review-process.md)." >&2
             exit 1
           fi
 
@@ -79,7 +80,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ secrets.REVIEWER_APP_ID }}
+          client-id: ${{ vars.REVIEWER_APP_CLIENT_ID }}
           private-key: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
 
       - name: Post approving review as the reviewer App

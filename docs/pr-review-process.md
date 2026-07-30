@@ -100,14 +100,17 @@ The mechanics live in
   `pull-requests: read`; the approving review is posted with the **App
   installation token** (`pull_requests: write`), minted at run time via
   [`actions/create-github-app-token`](https://github.com/actions/create-github-app-token)
-  (SHA-pinned). The App private key is read from `secrets.REVIEWER_APP_PRIVATE_KEY`
-  and masked by the action — it is never logged.
+  (SHA-pinned). The App is identified by `vars.REVIEWER_APP_CLIENT_ID` (the App's
+  Client ID — a non-secret identifier, useless without the key) and the App private
+  key is read from `secrets.REVIEWER_APP_PRIVATE_KEY` and masked by the action — it is
+  never logged.
 - **Safety:** the workflow refuses to approve if the App secret is absent, if
   the PR is not open, or if the PR author is the App itself — except the one
   recognised formula-bump case below, where it exits cleanly with an
   admin-merge runbook rather than a red run.
 
-Until the App is installed and the two secrets exist, the workflow is **inert**
+Until the App is installed and both the Client ID variable and the private-key
+secret exist, the workflow is **inert**
 (a manual dispatch fails fast with a clear message). Nothing in CI or the
 release path depends on it, so landing the scaffold changes no current behaviour.
 
@@ -452,18 +455,23 @@ Click-by-click (≈5 minutes, repo admin):
    - **Where can this App be installed?** *Only on this account.*
    - Click **Create GitHub App**.
    *(The values above match [`.github/reviewer-app-manifest.yml`](https://github.com/IronSecCo/ironclaw/blob/main/.github/reviewer-app-manifest.yml).)*
-2. **Note the App ID** shown on the App's settings page.
+2. **Note the Client ID** shown on the App's settings page (the `Iv23...` value, not
+   the numeric App ID — `actions/create-github-app-token` deprecated the `app-id`
+   input in favour of `client-id`). It is also readable with
+   `gh api /apps/ironclaw-reviewer --jq .client_id`.
 3. **Generate a private key:** on the App page → **Private keys** →
    **Generate a private key**. A `.pem` downloads. Treat it as a secret.
 4. **Install the App:** App page → **Install App** → install on **IronSecCo**,
    scoped to **only the `ironclaw` repository**.
-5. **Store the credentials as repo secrets** (Settings → Secrets and variables →
-   Actions → New repository secret), or via CLI:
+5. **Store the Client ID as a repo variable and the key as a repo secret**
+   (Settings → Secrets and variables → Actions), or via CLI:
    ```bash
-   gh secret set REVIEWER_APP_ID --repo IronSecCo/ironclaw --body "<the App ID>"
+   gh variable set REVIEWER_APP_CLIENT_ID --repo IronSecCo/ironclaw --body "<the Client ID>"
    gh secret set REVIEWER_APP_PRIVATE_KEY --repo IronSecCo/ironclaw < path/to/ironclaw-reviewer.*.private-key.pem
    ```
-   Then delete the local `.pem`.
+   Then delete the local `.pem`. The Client ID is a variable, not a secret: it is a
+   public identifier that grants nothing without the private key, and keeping it
+   readable makes a failed mint diagnosable from the run log.
 6. *(Optional, only if adopting Option B / CODEOWNERS enforcement)* create the
    `@IronSecCo/reviewers` team and add the reviewer as a member so the
    [CODEOWNERS](https://github.com/IronSecCo/ironclaw/blob/main/.github/CODEOWNERS)

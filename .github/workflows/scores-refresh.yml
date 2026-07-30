@@ -97,7 +97,7 @@ jobs:
         continue-on-error: true
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ secrets.REVIEWER_APP_ID }}
+          client-id: ${{ vars.REVIEWER_APP_CLIENT_ID }}
           private-key: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
           permission-pull-requests: write
           permission-contents: read
@@ -160,7 +160,7 @@ jobs:
               printf '%s\n' "${1}"
               echo '```'
               echo
-              echo "Usual cause: the scoped reviewer-App token could not be minted (check \`REVIEWER_APP_ID\` / \`REVIEWER_APP_PRIVATE_KEY\`). Open it manually from the already-pushed branch:"
+              echo "Usual cause: the scoped reviewer-App token could not be minted (check the \`REVIEWER_APP_CLIENT_ID\` variable / \`REVIEWER_APP_PRIVATE_KEY\` secret). Open it manually from the already-pushed branch:"
               echo
               echo '```'
               echo "gh pr create --repo ${REPO} --base main --head ${branch} \\"
