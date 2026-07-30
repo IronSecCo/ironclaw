@@ -43,8 +43,9 @@ rootfs widen and entrench that foothold.
 `ironctl scan my-questdb --fix` prints one remediation per failed dimension, then one hardened run. For
 `questdb:8.2.1`:
 
-- **`--user 10001:10001`** (Non-root user, +15): pin a non-root uid so an escape does not begin as host
-  uid 0. Point the data root at a volume this uid owns.
+- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as
+  host uid 0. `--fix` emits 65532, the distroless nonroot uid. Point the data root at a volume uid
+  65532 owns.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; QuestDB needs none of
   the default set to serve its HTTP, PostgreSQL-wire, and InfluxDB-line ports.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and mount
@@ -70,7 +71,7 @@ docker run -d --name questdb questdb/questdb:8.2.1
 
 # After: 100/100, grade A (co-located store, no network needed)
 docker run -d --name questdb-hardened \
-  --user 10001:10001 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \

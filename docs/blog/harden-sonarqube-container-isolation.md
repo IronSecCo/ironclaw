@@ -44,8 +44,9 @@ only SonarQube talks to it.
 `ironctl scan my-sonarqube --fix` prints one remediation per failed dimension, then one hardened run.
 For `sonarqube`:
 
-- **`--user 1000:1000`** (Non-root user, +15): pin the non-root `sonarqube` uid so an escape does not
-  begin as host uid 0. Point the data, logs, and extensions directories at volumes this uid owns.
+- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as
+  host uid 0. `--fix` emits 65532, the distroless nonroot uid. Point the data, logs, and extensions
+  directories at volumes uid 65532 owns.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; SonarQube serves its
   UI and API on a high port and needs none of the default set.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and mount
@@ -64,7 +65,7 @@ docker run -d --name sonarqube sonarqube:community
 
 # After: 89/100, grade B (scoped private network for CI and its database)
 docker run -d --name sonarqube-hardened \
-  --user 1000:1000 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \

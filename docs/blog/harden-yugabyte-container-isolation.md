@@ -42,8 +42,9 @@ durable.
 `ironctl scan my-yugabyte --fix` prints one remediation per failed dimension, then one hardened run.
 For `yugabyte`:
 
-- **`--user 1000:1000`** (Non-root user, +15): run as a non-root uid so an escape does not begin as
-  host uid 0. Point the data directory at a volume this uid owns.
+- **`--user 65532:65532`** (Non-root user, +15): run as a non-root uid so an escape does not begin as
+  host uid 0. `--fix` emits 65532, the distroless nonroot uid. Point the data directory at a volume
+  uid 65532 owns.
 - **`--cap-drop=ALL`** (Dropped capabilities, +20): drop every Linux capability; the SQL and RPC
   listeners bind high ports and need none of the default set.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and mount
@@ -64,7 +65,7 @@ docker run -d --name yugabyte \
 
 # After: 100/100, grade A (single node, only its app connects)
 docker run -d --name yugabyte-hardened \
-  --user 1000:1000 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \
@@ -79,7 +80,7 @@ flags. Proven directly on the hardened config with `ironctl scan --compose`:
 
 ```
 score:   100/100  grade A  (hardened)
-Non-root user (uid != 0)    [+] PASS  15/15  runs as 1000:1000 (uid != 0)
+Non-root user (uid != 0)    [+] PASS  15/15  runs as 65532:65532 (uid != 0)
 Dropped capabilities        [+] PASS  20/20  all capabilities dropped, none added back
 Read-only root filesystem   [+] PASS  10/10  root filesystem is read-only
 Network isolation / egress  [+] PASS  15/15  network=none: no NIC but loopback, no egress

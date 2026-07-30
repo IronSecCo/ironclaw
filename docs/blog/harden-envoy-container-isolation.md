@@ -41,8 +41,8 @@ rewrite to persist.
 `ironctl scan my-envoy --fix` prints one remediation per failed dimension, then one hardened run.
 For `envoyproxy/envoy:v1.32-latest`:
 
-- **`--user 1000:1000`** (Non-root, +15): run the process as an unprivileged uid. Envoy binds
-  unprivileged ports fine as a non-root user.
+- **`--user 65532:65532`** (Non-root, +15): run the process as an unprivileged uid; `--fix` emits
+  65532, the distroless nonroot uid. Envoy binds unprivileged ports fine as a non-root user.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; add back only what
   the workload provably needs. Envoy needs none of the defaults for a standard listen on an
   unprivileged port.
@@ -62,7 +62,7 @@ docker run -d --name envoy envoyproxy/envoy:v1.32-latest
 
 # After: 89/100, grade B (scoped private mesh network)
 docker run -d --name envoy-hardened \
-  --user 1000:1000 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \

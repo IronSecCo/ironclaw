@@ -40,8 +40,8 @@ friends, on a filesystem it can rewrite to persist.
 `ironctl scan my-dgraph --fix` prints one remediation per failed dimension, then one hardened run.
 For `dgraph/dgraph:v24.0.5`:
 
-- **`--user 1000:1000`** (Non-root, +15): run the process as an unprivileged uid. Point the data
-  directory at a volume that uid owns.
+- **`--user 65532:65532`** (Non-root, +15): run the process as an unprivileged uid. `--fix` emits
+  65532, the distroless nonroot uid. Point the data directory at a volume uid 65532 owns.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; add back only what
   the workload provably needs. Dgraph needs none of the defaults.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and
@@ -58,7 +58,7 @@ docker run -d --name dgraph dgraph/dgraph:v24.0.5
 
 # After: 100/100, grade A
 docker run -d --name dgraph-hardened \
-  --user 1000:1000 \
+  --user 65532:65532 \
   --cap-drop=ALL \
   --security-opt=no-new-privileges \
   --read-only --tmpfs /tmp \
