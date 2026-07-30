@@ -894,23 +894,32 @@ jobs:
           # leaves the PR stuck on "Contributor License Agreement is not signed yet"
           # forever, and each release had to be manually re-authored to land the bump
           # (IRO-353, IRO-363). Pinning the author to the maintainer who has signed the
-          # CLA makes the gate pass automatically. `committer` is pinned to the same
-          # identity, which is exactly what the Contents API did implicitly when it
-          # mirrored committer=author. The email here is already public in the
-          # verified-commit history; it is not a secret.
+          # CLA makes the gate pass automatically. The email here is already public in
+          # the verified-commit history; it is not a secret.
           #
-          # Signing note: this commit is NOT GitHub-signed — the Git Data API never signs
-          # (and the Contents API only signed when committer defaulted to the
-          # authenticated identity, which the `author` pin already prevented). That is
-          # fine because the rolling PR lands via SQUASH merge and GitHub signs the
-          # squashed commit it writes to main, so main's required_signatures rule is still
+          # `committer` is pinned to that same identity, and this DOES change one field
+          # versus the Contents API write it replaces: that endpoint ignored the committer
+          # we passed and stamped the authenticated identity instead, so every shipped
+          # bump commit reads `committer: ironclaw-reviewer[bot]` (verified in the
+          # v0.1.445, v0.1.447 and v0.1.449 formula job logs). Nothing reads that field —
+          # the CLA gate checks the AUTHOR, brew-formula-verify re-derives file CONTENT,
+          # and the workflow-approval gate keys off who PUSHED the ref (still the App, see
+          # above), not who committed. So pinning both to one human identity is cosmetic,
+          # not a behavioural risk. Do not "restore" the bot committer.
+          #
+          # Signing note: this commit is NOT GitHub-signed — and neither was the one it
+          # replaces. Those same logs show `verification: {verified: false, reason:
+          # "unsigned"}` on every Contents API bump, and the Git Data API never signs
+          # either, so the signing posture is UNCHANGED by this rewrite. That is fine
+          # because the rolling PR lands via SQUASH merge and GitHub signs the squashed
+          # commit it writes to main, so main's required_signatures rule is still
           # satisfied. A REBASE merge would replay this unsigned commit verbatim and be
           # blocked; do not switch this PR's merge method to rebase.
           #
-          # This is unchanged by WHICH token writes it (IRO-677 changed the token, not the
-          # authorship): `verified: false, reason: unsigned` under the App token exactly
-          # as under GITHUB_TOKEN, `license/cla` passing on the pinned author, and the
-          # squash minting main's signature.
+          # None of this depends on WHICH token writes it (IRO-677 changed the token, not
+          # the authorship): unsigned under the App token exactly as under GITHUB_TOKEN,
+          # `license/cla` passing on the pinned author, and the squash minting main's
+          # signature.
           new_sha="$(jq -nc \
             --arg msg "chore(brew): track ${TAG} in the Homebrew formula" \
             --arg tree "${new_tree}" --arg parent "${base_sha}" \
@@ -1016,6 +1025,7 @@ jobs:
               echo "::warning title=Rolling bump PR not refreshed::could not update PR #${existing} metadata (non-fatal; its diff already tracks ${TAG})."
             fi
           else
+            created=""
             # No open rolling PR — create one. Creation needs the scoped reviewer-App
             # token (PR_TOKEN); the default GITHUB_TOKEN cannot create PRs while the
             # repo setting "Allow GitHub Actions to create and approve pull requests"
@@ -1030,6 +1040,19 @@ jobs:
               --title "${title}" \
               --body "${body}" 2>&1)"; then
               echo "Opened rolling tracking PR: ${out}"
+              # KEEP the number gh just handed us; do not re-derive it. `gh pr create`
+              # prints the new PR's URL, which is authoritative — whereas resolving the
+              # number again with `gh pr list` is both a second chance to read a DIFFERENT
+              # PR than the one we created and a dependency on the list endpoint already
+              # reflecting a write from a moment ago. This is the same reasoning the
+              # mergeability guard below applies when it reuses ${pr_num} instead of
+              # re-listing; the assertion deserves it too, and the create path is the
+              # COMMON one (every release whose predecessor bump already merged).
+              #
+              # stderr is folded into ${out}, so gh's warnings can precede the URL: take
+              # the LAST /pull/<n> match. `tail -1` not `head -1` — head closes the pipe
+              # early and can make a good parse exit 141 under `set -o pipefail`.
+              created="$(printf '%s\n' "${out}" | sed -n 's#.*/pull/\([0-9][0-9]*\).*#\1#p' | tail -1)"
             elif printf '%s' "$out" | grep -qi 'already exists'; then
               echo "A rolling tracking PR for ${branch} already exists — left it in place."
             else
@@ -1080,10 +1103,27 @@ jobs:
             exit 1
           }
 
-          pr_num="${existing:-}"
+          # Prefer the number we already know: ${existing} (refreshed or reopened) or
+          # ${created} (parsed from gh's own create output). Both name the exact PR this
+          # job acted on. The list query is only a FALLBACK for the "already exists" race,
+          # where gh refused to create because a PR appeared between our list and our
+          # create, so we never learned its number.
+          pr_num="${existing:-${created:-}}"
           if [ -z "${pr_num}" ]; then
-            pr_num="$(gh pr list --repo "${REPO}" --head "${branch}" --state open \
-              --json number -q '.[0].number' 2>/dev/null || true)"
+            # Poll: this is a read-after-write against the list endpoint, so an empty
+            # first answer means "not indexed yet" at least as often as "absent". Failing
+            # a published release on the first empty read would teach the next operator to
+            # ignore a red formula job — the same reason the state/head assertion below
+            # polls. A genuinely missing PR stays missing and still reds the run.
+            for _i in 1 2 3 4 5; do
+              pr_num="$(gh pr list --repo "${REPO}" --head "${branch}" --state open \
+                --json number -q '.[0].number' 2>/dev/null || true)"
+              if [ -n "${pr_num}" ]; then
+                break
+              fi
+              echo "No open PR listed for ${branch} yet — re-reading in 3s"
+              sleep 3
+            done
           fi
           if [ -z "${pr_num}" ]; then
             fail_pr_not_live "No pull request exists for \`${branch}\` after the refresh, even though the branch was updated to \`${new_sha}\`."
