@@ -1,0 +1,107 @@
+# Compensating check for the machine-merged Homebrew bump (IRO-670).
+#
+# The rolling `brew/track` bump PR is auto-merged with no human click. This is the
+# gate that replaced that click: it re-derives Formula/ironclaw.rb from the release's
+# cosign-VERIFIED SHA256SUMS and fails on any byte difference, and it asserts the
+# diff is formula-only. See scripts/verify-homebrew-formula.sh for the assertions and
+# docs/pr-review-process.md for why a human eyeball on a generated diff was not
+# buying us anything a script cannot buy more reliably.
+#
+# WHY THIS RUNS ON EVERY PR, NOT JUST FORMULA ONES
+# ------------------------------------------------
+# This job is in `required_status_checks` on the main-protection ruleset. A required
+# check that does not REPORT on a PR blocks that PR forever — "waiting for status"
+# never resolves. GitHub treats a skipped JOB as no status at all, so this must not
+# be gated with a job-level `if:` or a `paths:` filter. It always runs and always
+# reports; the script itself short-circuits to a pass when the PR does not touch the
+# formula. That is a cheap checkout, not wasted CI.
+#
+# Consequence for PRs opened BEFORE this landed: they have no run of this check and
+# so cannot merge until one exists. Close+reopen (a `reopened` event) or push to the
+# branch to backfill it — do NOT reach for admin bypass.
+
+name: Brew formula verify
+
+on:
+  pull_request:
+    branches: [main]
+  # Push coverage for the rolling bump branch, and for scratch branches used to prove
+  # the check actually fails (acceptance criterion 5 — a gate that has never gone red
+  # is not evidence that it can).
+  push:
+    branches:
+      - "brew/**"
+      - "test/brew-formula-verify-**"
+
+# Least privilege: reading a public release's assets needs no token scope beyond
+# repo read. This job never writes anything, and never merges anything.
+permissions:
+  contents: read
+
+concurrency:
+  group: brew-formula-verify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Job id is the status-check CONTEXT recorded in .github/rulesets/main.json. Renaming
+  # this job (or adding a job-level `name:`) silently orphans the required check and the
+  # gate stops gating — keep the two in sync.
+  brew-formula-verify:
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 so the base commit is present locally; the script diffs the
+      # head against it to decide which paths changed.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # Same 2.x cosign the Release workflow signs SHA256SUMS with. cosign 3.x
+      # deprecates the detached --output-signature/--output-certificate pair this
+      # release line publishes, so verify-blob must stay on the matching major
+      # (IRO-195). Pinned by commit SHA like every other third-party action here.
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.6.3
+
+      - name: Resolve the base commit to diff against
+        id: base
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EVENT: ${{ github.event_name }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          case "$EVENT:$GITHUB_REF_NAME" in
+            pull_request:*)
+              # The real merge base GitHub computed for this PR.
+              base="$PR_BASE_SHA"
+              ;;
+            push:test/brew-formula-verify-*)
+              # Negative-control branches (acceptance criterion 5). Diff against the
+              # tip's PARENT, not the merge base with main, so the branch's LAST
+              # commit is the entire diff under test. That is what lets a scratch
+              # branch carry exactly one crafted commit — a single flipped sha256 —
+              # and drive it to the byte-comparison step. Against merge-base the diff
+              # would also contain whatever gate/plumbing commits the branch is built
+              # on, and the run would go red at the earlier formula-only assertion
+              # instead: still red, but red for the wrong reason, which proves nothing
+              # about digest detection.
+              #
+              # Scoped to this branch prefix on purpose. The gating paths above and
+              # below (pull_request, and pushes to brew/**) never take it.
+              base="$(git rev-parse HEAD^)"
+              ;;
+            *)
+              # Push to brew/**: compare against where this branch left main.
+              git fetch --no-tags --depth=0 origin main >/dev/null 2>&1 || true
+              base="$(git merge-base origin/main HEAD)"
+              ;;
+          esac
+          [ -n "$base" ] || { echo "::error::could not resolve a base commit to diff against." >&2; exit 1; }
+          echo "Base commit: ${base}"
+          echo "base=${base}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Formula/ironclaw.rb against the signed SHA256SUMS
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/verify-homebrew-formula.sh "${{ steps.base.outputs.base }}"

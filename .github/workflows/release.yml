@@ -682,21 +682,43 @@ jobs:
   #
   # It does NOT push to main directly: main requires a reviewed PR, passing checks,
   # and signed commits (.github/rulesets/main.json), and weakening that is off the
-  # table for a security product. Instead it opens a PR whose single commit is
-  # created through the GitHub Contents API — which signs the commit with GitHub's
-  # key, satisfying required_signatures — for a maintainer to merge. The push
-  # trigger ignores Formula/ironclaw.rb so merging that PR never loops back into
-  # another release.
+  # table for a security product. Instead it opens a PR for the merge automation (or
+  # a maintainer) to land. The push trigger ignores Formula/ironclaw.rb so merging
+  # that PR never loops back into another release.
+  #
+  # SQUASH-ONLY IS A LOAD-BEARING INVARIANT — DO NOT "FIX" THIS TO REBASE.
+  # This job's commit is deliberately NOT signed. It is written through the Contents
+  # API with an explicit `author` (the CLA-signed maintainer, so cla-assistant passes
+  # — IRO-353/363), and passing `author` makes the API set committer=author too,
+  # which turns OFF GitHub's web-flow signing. So `brew/track`'s head commit is
+  # `verification.verified: false, reason: unsigned`, and main's required_signatures
+  # rule would reject it. What rescues it is that a SQUASH merge discards this commit
+  # and GitHub mints a fresh, GitHub-signed commit on main in its place. A REBASE
+  # merge would replay the unsigned commit verbatim and be blocked — which is why
+  # `allowed_merge_methods` lists rebase but this PR must never use it.
+  #
+  # An earlier version of this comment claimed the Contents API signed the commit.
+  # It does not, and believing it sent an operator hunting for a phantom signing bug
+  # while the real, benign cause was the author pin (IRO-670). See
+  # docs/pr-review-process.md → "Homebrew formula bump PRs".
   # ---------------------------------------------------------------------------
   formula:
     needs: [version, release, smoke, smoke_windows]
     if: needs.version.outputs.exists == 'false'
     runs-on: ubuntu-latest
     permissions:
-      contents: write # create the formula-update branch + its signed commit
+      contents: write # create the formula-update branch + its (unsigned; see above) commit
       pull-requests: write # open the tracking PR
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # update-homebrew-formula.sh cosign-verifies SHA256SUMS before it reads a digest
+      # out of it, and that verification is fail-closed with no opt-out — so this job
+      # needs cosign on PATH or it dies. Same pinned 2.x as the job that produced the
+      # signature; 3.x dropped the detached .sig/.pem pair we publish (IRO-195).
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.6.3
 
       - name: Regenerate the formula from the published release
         env:
@@ -704,8 +726,10 @@ jobs:
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           set -euo pipefail
-          # Reads the release's SHA256SUMS (the trust anchor) and rewrites
-          # Formula/ironclaw.rb in place. Pinned to the exact tag we just cut.
+          # Reads the release's cosign-verified SHA256SUMS (the trust anchor) and
+          # rewrites Formula/ironclaw.rb in place. Pinned to the tag we just cut.
+          # The same script re-derives the formula in the brew-formula-verify gate, so
+          # the bump PR is checked against the exact generator that produced it.
           scripts/update-homebrew-formula.sh "${TAG}"
 
       # Mint a short-lived, least-privilege token for the existing reviewer App so

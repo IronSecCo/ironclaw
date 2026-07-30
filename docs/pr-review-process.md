@@ -130,36 +130,102 @@ approve its own bump PR — and it should not need to. The bump PR is:
 - **pinned to the release's signed `SHA256SUMS`** — the cosign-signed checksum
   set IS the review of record; the formula merely transcribes those hashes.
 
-The board therefore accepts **admin-merge** for these bumps (IRO-206). To avoid
-a misleading red `reviewer-approve` run, the workflow recognises this narrow
-case — PR author == reviewer App **and** head branch `brew/track` (or a legacy
-`brew/track-*`) **and** the diff is exactly `Formula/ironclaw.rb` — and exits
-cleanly with the admin-merge
-runbook in its job summary instead of failing. **Every other self-authored PR
-still hard-fails:** the gate is unchanged for product code.
+To avoid a misleading red `reviewer-approve` run, that workflow recognises this
+narrow case — PR author == reviewer App **and** head branch `brew/track` (or a
+legacy `brew/track-*`) **and** the diff is exactly `Formula/ironclaw.rb` — and
+exits cleanly with a pointer to this section instead of failing. **Every other
+self-authored PR still hard-fails:** the gate is unchanged for product code.
 
-Merge a bump PR with:
+### The `brew-formula-verify` gate replaced the human eyeball (IRO-670)
 
+A maintainer reading a generated single-file diff cannot tell a correct `sha256`
+from a plausible one, so that click was latency, not review. It is now a required
+status check, [`brew-formula-verify`](https://github.com/IronSecCo/ironclaw/blob/main/.github/workflows/brew-formula-verify.yml),
+running [`scripts/verify-homebrew-formula.sh`](https://github.com/IronSecCo/ironclaw/blob/main/scripts/verify-homebrew-formula.sh).
+It fails closed on each of:
+
+1. the diff touching anything besides `Formula/ironclaw.rb`;
+2. `SHA256SUMS` for the claimed tag not cosign-verifying against
+   `release.yml@refs/heads/main` and the GitHub Actions OIDC issuer — **the
+   signature, not just the digest list**. A digest list nobody verified the
+   signature of is not a trust anchor, it is whatever the last writer chose;
+3. the re-derived formula differing from the PR head **by any byte**;
+4. the generator not reporting a successful cosign verification (so the gate
+   cannot silently degrade into comparing against an unsigned list); and
+5. its own **non-vacuity self-test** — every run flips one hex digit of one
+   `sha256` in a scratch copy and asserts the comparison rejects it. A gate only
+   ever observed green is indistinguishable from `exit 0`.
+
+Because it is a *required* check it must report on **every** PR, not just formula
+ones: a required check that never reports leaves a PR stuck on "waiting for
+status" forever. So it has no `paths:` filter and no job-level `if:` — it always
+runs and short-circuits to a pass when the diff has no formula change.
+
+> The job id `brew-formula-verify` **is** the required-check context recorded in
+> `.github/rulesets/main.json`. Renaming the job (or giving it a `name:`) orphans
+> the required check and the gate silently stops gating.
+
+### Squash only. This is load-bearing, not a style preference
+
+`allowed_merge_methods` is `["squash", "rebase"]`, but a bump PR **must** be
+squash-merged:
+
+The `formula` job writes its commit through the Contents API with an explicit
+`author` (the CLA-signed maintainer, so `cla-assistant` passes — IRO-353/363).
+Passing `author` makes the API set `committer` to the author too, which turns
+**off** GitHub's web-flow signing. So `brew/track`'s head commit is
+`verification.verified: false`, `reason: unsigned`, and main's
+`required_signatures` rule rejects it. A **squash** merge discards that commit
+and GitHub mints a fresh, GitHub-signed commit on main in its place. A **rebase**
+merge would replay the unsigned commit verbatim and be blocked.
+
+An earlier comment in `release.yml` claimed the Contents API signed that commit.
+It does not. That wrong comment sent an operator hunting a phantom signing bug
+when the real cause was the benign author pin (IRO-670).
+
+### Trap: `gh pr merge` refuses a PR the REST API merges cleanly
+
+`gh` reads the **precomputed** `mergeable_state`, which is stale — it still
+reflects the unsigned head — so it refuses and then recommends `--admin`:
+
+```console
+$ gh pr merge 610 --squash
+X ... is not mergeable: the base branch policy prohibits the merge.
+  ... To use administrator privileges to immediately merge ... add the `--admin` flag.
+
+$ gh api -X PUT repos/IronSecCo/ironclaw/pulls/610/merge -f merge_method=squash
+{"sha":"51bd5bb…","merged":true,"message":"Pull Request successfully merged"}
 ```
-gh pr merge <pr> --repo IronSecCo/ironclaw --squash --admin
-```
 
-> **Fully hands-off is a separate decision.** Removing this last admin click
-> needs either a *second* identity (a distinct bot App / fine-grained PAT to
-> author the PR so the reviewer App can approve it) or adding an App to the
-> ruleset `bypass_actors` so the workflow can self-merge. Both widen the trust
-> model (a new long-lived credential, or a bypass that applies to more than
-> bump PRs), so they are a board/CEO call — tracked on IRO-206, not shipped
-> here.
+**`--admin` is NOT authorized for this PR.** A plain squash satisfies every rule
+in the ruleset, so `--admin` would bypass the *entire* ruleset — required checks,
+signatures, linear history — to work around a stale cache. Taking the flag `gh`
+suggests here trades the whole gate for a cosmetic convenience. Use the REST API
+form above.
 
-## Branch protection: no change required
+> **Still one human action: the approving review.** `brew-formula-verify` removes
+> the *review value* of the click but cannot remove the click itself, because
+> `pull_request.required_approving_review_count: 1` needs an approval from an
+> actor that is not the PR author, and the reviewer App **is** the author. Closing
+> that last gap needs a second identity; the ask and its trade-offs are on
+> IRO-670. Until then: dispatch `reviewer-approve.yml`, then merge with the REST
+> API form above. Do not reach for `--admin`, and do not add a `bypass_actors`
+> entry for the App.
 
-The recommended path needs **no edit** to
+## Branch protection: the reviewer path needs no change
+
+The machine-reviewer path above needs **no edit** to
 [`.github/rulesets/main.json`](https://github.com/IronSecCo/ironclaw/blob/main/.github/rulesets/main.json).
 The App's approving review satisfies the existing
 `pull_request.required_approving_review_count: 1`. The admin `bypass_actors`
 entry stays as the break-glass path of last resort, but with a working machine
 reviewer it should no longer be the *routine* way security PRs merge.
+
+The one ruleset change made since is a **ratchet up**, not a relaxation:
+`brew-formula-verify` was added to `required_status_checks` (IRO-670) so the
+formula gate actually gates. Protection on `main` only ever moves in that
+direction — if a required check is wrong, fix the check on its own ticket rather
+than removing it to unblock a merge.
 
 If we ever adopt Option B instead, the only ruleset change would be flipping
 `require_code_owner_review` to `true` after the reviewer account/team is a
