@@ -288,4 +288,4 @@ Scores are fail-closed: any posture the scanner cannot determine is graded as in
 
 ---
 
-*These pages are generated from a reproducible survey, `examples/isolation-survey/survey.sh` scans every image, `gen_scorecards.py` renders the pages. Grades reflect the image's default configuration, not a limit of the image itself: every one can reach grade A with the right `docker run` flags.*
+*These pages are generated from a reproducible survey, `examples/isolation-survey/survey.sh` scans every image, `gen_scorecards.py` renders the pages. Grades reflect the image's default configuration, not a limit of the image itself: the `docker run` flags on each page close the gaps that grade found.*

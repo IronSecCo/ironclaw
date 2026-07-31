@@ -32,7 +32,7 @@ Applying these to your `docker run graylog` closes the biggest gaps first (most 
 - **Read-only root filesystem**, `--read-only --tmpfs /tmp`  
   Make the root filesystem read-only to remove the tamper/persistence surface.
 
-A fully hardened run scores **100/100 (grade A)**:
+Together they close every gap the table above lists:
 
 ```bash
 docker run -d --name graylog-hardened \
@@ -43,6 +43,8 @@ docker run -d --name graylog-hardened \
   --network=none \
   graylog/graylog:6.1
 ```
+
+This image has not been re-scanned under those flags, so this page states no hardened score for it. The one hardened run this survey measures is `nginx:1.27-alpine`, which reaches 100/100 (grade A) on exactly this flag set. Expect to adjust: a container that writes outside `/tmp` will not boot read-only until you add a `--tmpfs` for each path it needs (some want a writable mode, e.g. `--tmpfs /data:rw,mode=1777`). Re-run `ironctl scan` on the result to see where yours actually lands.
 
 ## Scan your own container
 

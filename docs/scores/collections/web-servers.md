@@ -7,7 +7,7 @@ description: "Ranked isolation scores for 16 web server and proxy container imag
 
 How isolated are the most-pulled **web server and proxy** container images when you `docker run` them with plain defaults, no hardening flags? This page ranks **16 web servers, reverse proxies, and load balancers (nginx, Apache, Caddy, HAProxy, Traefik)** on IronClaw's seven-dimension container containment scale (0-100), best-isolated first. Scores run **48/100 to 63/100** (average **53/100**). Higher is safer. Every score comes from `ironctl scan`, a credential-free audit you can run on your own containers in ten seconds.
 
-> No web server and proxy image ships fully isolated by default: the leaders still leave capabilities, egress, or a writable root filesystem open. The gap between any image here and a clean **100/100 grade A** is a handful of `docker run` flags, shown on every scorecard.
+> No web server and proxy image ships fully isolated by default: the leaders still leave capabilities, egress, or a writable root filesystem open. Every one of those gaps closes with a handful of `docker run` flags, listed on every scorecard.
 
 ## Ranked best to worst
 
@@ -50,4 +50,4 @@ ironctl scan my-container
 
 ---
 
-*Part of the [Container Isolation Scores](../index.md) directory. Generated from a reproducible survey by `examples/isolation-survey/gen_scorecards.py` and refreshed weekly, so this ranking never goes stale. Grades reflect each image's default configuration, not a limit of the image itself: every one reaches grade A with the right `docker run` flags.*
+*Part of the [Container Isolation Scores](../index.md) directory. Generated from a reproducible survey by `examples/isolation-survey/gen_scorecards.py` and refreshed weekly, so this ranking never goes stale. Grades reflect each image's default configuration, not a limit of the image itself: the `docker run` flags on each page close the gaps that grade found.*
