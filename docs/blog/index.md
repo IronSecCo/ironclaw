@@ -9,6 +9,15 @@ Long-form writing on running autonomous AI agents safely. Every post links its c
 shipped code, a versioned threat model, or a benchmark you can re-run yourself. No
 adjectives standing in for numbers.
 
+<!--
+  This page is CURATED, not exhaustive. Adding a hardening guide does NOT require
+  an entry here: the exhaustive, CI-enforced surfaces are docs/blog/.nav.yml and
+  docs/blog/hardening-guides.md (see scripts/check-guide-index.py). Entries below
+  carry hand-written summaries quoting real scores, so they are added editorially
+  by a maintainer, not backfilled. See CONTRIBUTING.md, "Adding a hardening
+  guide: which indexes are exhaustive".
+-->
+
 ## Posts
 
 - [One of our container images carries two green provenance statements. Only one of them is true.](two-green-provenance-statements.md) -
