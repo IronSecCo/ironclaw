@@ -11,8 +11,10 @@ scale, the default configuration scores **48 of 100, grade D (porous)**. Higher 
 runtime flags take the same image to **100 of 100, grade A**. This guide shows the exact gaps and
 the exact fixes, straight from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `scylladb/scylla:6.2`, the same
-> data behind its [isolation scorecard](../scores/scylla.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `scylladb/scylla:6.2` with
+> plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The
+> scan itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/scylla.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

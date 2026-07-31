@@ -9,7 +9,11 @@ A distributed coordination service sits at the absolute core of your infrastruct
 
 A handful of runtime flags takes the exact same image to **89 of 100, grade B**, two full letter grades higher. The single dimension it cannot max out is the one a coordination service requires by definition: client and quorum nodes must be able to communicate across the network. Here are the exact gaps, operational requirements, and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `zookeeper:latest` (`sha256:4c6f15fbd5491a3e01b0108c046891125553329a4956848ba3014cedff5386ee`), the same data behind its [isolation scorecard](../scores/zookeeper.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `zookeeper:latest` at
+> digest `sha256:4c6f15fbd5491a3e01b0108c046891125553329a4956848ba3014cedff5386ee` with plain
+> `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan
+> itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/zookeeper.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

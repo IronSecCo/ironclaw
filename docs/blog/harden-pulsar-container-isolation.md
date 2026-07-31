@@ -13,8 +13,10 @@ flags take the same image to **89 of 100, grade B**, one point off an A, and the
 cannot reach is the one a broker needs by definition (producers and consumers must connect to it).
 Here are the exact gaps and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `apachepulsar/pulsar:3.3.2`, the same
-> data behind its [isolation scorecard](../scores/pulsar.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from
+> `apachepulsar/pulsar:3.3.2` with plain `docker run` defaults, its entrypoint overridden with
+> `sleep` purely to keep it alive. The scan itself executes nothing inside the container. It is the
+> same data behind its [isolation scorecard](../scores/pulsar.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

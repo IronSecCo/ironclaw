@@ -14,8 +14,10 @@ The image already runs non-root, which is why it starts at C not D; a few more r
 console needs by definition: your browser must reach its UI. Here are the exact gaps and fixes from the
 scan data.
 
-> Every number here comes from a read-only `docker inspect` of `dpage/pgadmin4:8`, the same data
-> behind its [isolation scorecard](../scores/pgadmin4.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `dpage/pgadmin4:8` with
+> plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The
+> scan itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/pgadmin4.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

@@ -14,9 +14,10 @@ IronClaw's seven-dimension containment scale, the default configuration scores
 server needs by definition: your browser and mobile apps must reach its API. Here are the exact gaps
 and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of
-> `ghcr.io/immich-app/immich-server:v1.123.0`, the same data behind its
-> [isolation scorecard](../scores/immich-server.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from
+> `ghcr.io/immich-app/immich-server:v1.123.0` with plain `docker run` defaults, its entrypoint
+> overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the
+> container. It is the same data behind its [isolation scorecard](../scores/immich-server.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

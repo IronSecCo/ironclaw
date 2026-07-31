@@ -12,8 +12,10 @@ A few runtime flags take the same image to an honest **89 of 100, grade B** ceil
 can reach without breaking the thing it exists to do: accept connections. This guide shows the exact
 gaps, the exact fixes, and why 89 is the honest number.
 
-> Every number here comes from a read-only `docker inspect` of `emqx:5`, the same data behind its
-> [isolation scorecard](../scores/emqx.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `emqx:5` with plain
+> `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan
+> itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/emqx.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

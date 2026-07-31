@@ -12,8 +12,10 @@ not: graded on IronClaw's seven-dimension containment scale it scores **48 of 10
 grade A**, because a single-node RethinkDB that only its co-located app queries can drop its network
 entirely. Here are the exact gaps and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `rethinkdb:2.4`, the same data behind
-> its [isolation scorecard](../scores/rethinkdb.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `rethinkdb:2.4` with plain
+> `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan
+> itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/rethinkdb.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks
