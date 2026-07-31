@@ -71,7 +71,7 @@ advisory while `require_code_owner_review` is `false`.
 
 ## How the gate is satisfied (Option A flow)
 
-```
+```text
 agent opens PR as omerzamir ──► CI: build + CodeQL go green
                                       │
                   human/board review of record recorded in Paperclip
