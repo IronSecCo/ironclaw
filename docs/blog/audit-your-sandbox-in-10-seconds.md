@@ -34,7 +34,7 @@ Here is a container started the way a lot of quickstart guides tell you to: as
 root, with the default capability set, on a bridge network, with `docker.sock`
 mounted in for convenience.
 
-```
+```text
 $ ironctl scan my-container
 IronClaw containment scan
   target:  my-container (docker)
@@ -61,7 +61,7 @@ not a lecture, it is a checklist with the boxes already ticked for you.
 Now the same scan against an IronClaw session sandbox, one of the `ic-sbx-*`
 containers IronClaw hands every agent by default:
 
-```
+```text
 $ ironctl scan ic-sbx-mg-abc123
   score:   100/100  grade A  (hardened)
 ```
@@ -135,7 +135,7 @@ Prefer a table? `--md` prints a shareable markdown block:
 ironctl scan my-sandbox --md
 ```
 
-```
+
 ### IronClaw containment scan: `my-sandbox` scored **100/100 (grade A)**
 
 | Dimension | Verdict | Score |
@@ -147,7 +147,7 @@ ironctl scan my-sandbox --md
 | Read-only root filesystem | PASS | 10/10 |
 | No docker.sock exposure | PASS | 15/15 |
 | No shared host namespaces | PASS | 10/10 |
-```
+
 
 ## Wire it into CI
 
