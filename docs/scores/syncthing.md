@@ -7,7 +7,7 @@ description: "How isolated is syncthing:1.28.1 by default? IronClaw scores its s
 
 Run with plain `docker run lscr.io/linuxserver/syncthing:1.28.1` defaults, no hardening flags, the **syncthing** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `lscr.io/linuxserver/syncthing:1.28.1` at digest `sha256:1f55fa811ad3903c4b421129966e0eea4b21d53d2471158288dc4a353e273a0a`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `lscr.io/linuxserver/syncthing:1.28.1` at digest `sha256:1f55fa811ad3903c4b421129966e0eea4b21d53d2471158288dc4a353e273a0a` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

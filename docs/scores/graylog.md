@@ -7,7 +7,7 @@ description: "How isolated is graylog:6.1 by default? IronClaw scores its sandbo
 
 Run with plain `docker run graylog/graylog:6.1` defaults, no hardening flags, the **graylog** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `graylog/graylog:6.1` at digest `sha256:c43d68d0af1d4decc7fa63effe0a065d04f1eca4b7b13d160ac8c501452cf3fe`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `graylog/graylog:6.1` at digest `sha256:c43d68d0af1d4decc7fa63effe0a065d04f1eca4b7b13d160ac8c501452cf3fe` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

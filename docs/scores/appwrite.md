@@ -7,7 +7,7 @@ description: "How isolated is appwrite:1.6.0 by default? IronClaw scores its san
 
 Run with plain `docker run appwrite/appwrite:1.6.0` defaults, no hardening flags, the **appwrite** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `appwrite/appwrite:1.6.0` at digest `sha256:269f8953594890a62f015e29c6343f7f2119468180d0dcecdfdc331bcbadf845`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `appwrite/appwrite:1.6.0` at digest `sha256:269f8953594890a62f015e29c6343f7f2119468180d0dcecdfdc331bcbadf845` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

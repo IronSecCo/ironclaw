@@ -7,7 +7,7 @@ description: "How isolated is golang:1.23-alpine by default? IronClaw scores its
 
 Run with plain `docker run golang:1.23-alpine` defaults, no hardening flags, the **golang** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `golang:1.23-alpine` at digest `sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `golang:1.23-alpine` at digest `sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

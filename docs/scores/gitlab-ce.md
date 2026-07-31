@@ -7,7 +7,7 @@ description: "How isolated is gitlab-ce:17.7.0-ce.0 by default? IronClaw scores 
 
 Run with plain `docker run gitlab/gitlab-ce:17.7.0-ce.0` defaults, no hardening flags, the **gitlab ce** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `gitlab/gitlab-ce:17.7.0-ce.0` at digest `sha256:8a464787956c4b9c13f33b69f9db9b928aa354770f6d2b5dd1dbe5040dc3c076`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `gitlab/gitlab-ce:17.7.0-ce.0` at digest `sha256:8a464787956c4b9c13f33b69f9db9b928aa354770f6d2b5dd1dbe5040dc3c076` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

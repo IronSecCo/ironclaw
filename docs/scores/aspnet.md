@@ -7,7 +7,7 @@ description: "How isolated is aspnet:9.0 by default? IronClaw scores its sandbox
 
 Run with plain `docker run mcr.microsoft.com/dotnet/aspnet:9.0` defaults, no hardening flags, the **aspnet** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `mcr.microsoft.com/dotnet/aspnet:9.0` at digest `sha256:86085bc68dde4a8cdfd8c2342acc3bf843eade855092879a85e3f3adb56e55c7`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `mcr.microsoft.com/dotnet/aspnet:9.0` at digest `sha256:86085bc68dde4a8cdfd8c2342acc3bf843eade855092879a85e3f3adb56e55c7` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

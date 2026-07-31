@@ -7,7 +7,7 @@ description: "How isolated is kapacitor:1.7 by default? IronClaw scores its sand
 
 Run with plain `docker run kapacitor:1.7` defaults, no hardening flags, the **kapacitor** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `kapacitor:1.7` at digest `sha256:3bf563d0e64ca7180b8dbc49c8036e9a27da10507ad0bfe275475249136874de`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `kapacitor:1.7` at digest `sha256:3bf563d0e64ca7180b8dbc49c8036e9a27da10507ad0bfe275475249136874de` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

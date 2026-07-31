@@ -7,7 +7,7 @@ description: "How isolated is cp-kafka:7.8.0 by default? IronClaw scores its san
 
 Run with plain `docker run confluentinc/cp-kafka:7.8.0` defaults, no hardening flags, the **cp kafka** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `confluentinc/cp-kafka:7.8.0` at digest `sha256:adc392d28a1e99e8c9a1ec7f087e9e91041837b35b8b7cc8b8a691b82dd581b0`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `confluentinc/cp-kafka:7.8.0` at digest `sha256:adc392d28a1e99e8c9a1ec7f087e9e91041837b35b8b7cc8b8a691b82dd581b0` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is perl:5.40-slim by default? IronClaw scores its san
 
 Run with plain `docker run perl:5.40-slim` defaults, no hardening flags, the **perl** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `perl:5.40-slim` at digest `sha256:8d1836c24ebf3ad6523064b20e42878f065fdfbc6ed4fe5861d09aa862889360`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `perl:5.40-slim` at digest `sha256:8d1836c24ebf3ad6523064b20e42878f065fdfbc6ed4fe5861d09aa862889360` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

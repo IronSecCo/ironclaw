@@ -7,7 +7,7 @@ description: "How isolated is leap:15.6 by default? IronClaw scores its sandbox 
 
 Run with plain `docker run opensuse/leap:15.6` defaults, no hardening flags, the **leap** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `opensuse/leap:15.6` at digest `sha256:79be7751205ea84559990fb76b1bec71e38d6fad41c70a4f6c921b803b58f421`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `opensuse/leap:15.6` at digest `sha256:79be7751205ea84559990fb76b1bec71e38d6fad41c70a4f6c921b803b58f421` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is swag:4.1.0 by default? IronClaw scores its sandbox
 
 Run with plain `docker run lscr.io/linuxserver/swag:4.1.0` defaults, no hardening flags, the **swag** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `lscr.io/linuxserver/swag:4.1.0` at digest `sha256:29957b056c5670801b6131d77ec4188dfb6d06a0a8c49cba0e944c88d98abe74`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `lscr.io/linuxserver/swag:4.1.0` at digest `sha256:29957b056c5670801b6131d77ec4188dfb6d06a0a8c49cba0e944c88d98abe74` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

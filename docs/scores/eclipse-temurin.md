@@ -7,7 +7,7 @@ description: "How isolated is eclipse-temurin:21-jre-alpine by default? IronClaw
 
 Run with plain `docker run eclipse-temurin:21-jre-alpine` defaults, no hardening flags, the **eclipse temurin** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `eclipse-temurin:21-jre-alpine` at digest `sha256:3f08b13888f595cc49edabea7250ba69499ba25602b267da591720769400e08c`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `eclipse-temurin:21-jre-alpine` at digest `sha256:3f08b13888f595cc49edabea7250ba69499ba25602b267da591720769400e08c` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

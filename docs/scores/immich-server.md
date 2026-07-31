@@ -7,7 +7,7 @@ description: "How isolated is immich-server:v1.123.0 by default? IronClaw scores
 
 Run with plain `docker run ghcr.io/immich-app/immich-server:v1.123.0` defaults, no hardening flags, the **immich server** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `ghcr.io/immich-app/immich-server:v1.123.0` at digest `sha256:666ce77995230ff7327da5d285c861895576977237de08564e3c3ddf842877eb`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `ghcr.io/immich-app/immich-server:v1.123.0` at digest `sha256:666ce77995230ff7327da5d285c861895576977237de08564e3c3ddf842877eb` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is cadvisor:v0.52.1 by default? IronClaw scores its s
 
 Run with plain `docker run gcr.io/cadvisor/cadvisor:v0.52.1` defaults, no hardening flags, the **cadvisor** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `gcr.io/cadvisor/cadvisor:v0.52.1` at digest `sha256:f40e65878e25c2e78ea037f73a449527a0fb994e303dc3e34cb6b187b4b91435`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `gcr.io/cadvisor/cadvisor:v0.52.1` at digest `sha256:f40e65878e25c2e78ea037f73a449527a0fb994e303dc3e34cb6b187b4b91435` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

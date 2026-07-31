@@ -7,7 +7,7 @@ description: "How isolated is anaconda3:2024.10-1 by default? IronClaw scores it
 
 Run with plain `docker run continuumio/anaconda3:2024.10-1` defaults, no hardening flags, the **anaconda3** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `continuumio/anaconda3:2024.10-1` at digest `sha256:b2c5350cc4e2338a1705c15dcca4fff520b1728f49752d390d92aaec02cf8c3a`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `continuumio/anaconda3:2024.10-1` at digest `sha256:b2c5350cc4e2338a1705c15dcca4fff520b1728f49752d390d92aaec02cf8c3a` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

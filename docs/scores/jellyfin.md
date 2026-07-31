@@ -7,7 +7,7 @@ description: "How isolated is jellyfin:10.10.3 by default? IronClaw scores its s
 
 Run with plain `docker run jellyfin/jellyfin:10.10.3` defaults, no hardening flags, the **jellyfin** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `jellyfin/jellyfin:10.10.3` at digest `sha256:17c3a8d9dddb97789b5f37112840ebf96566442c14d4754193a6c2eb154bc221`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `jellyfin/jellyfin:10.10.3` at digest `sha256:17c3a8d9dddb97789b5f37112840ebf96566442c14d4754193a6c2eb154bc221` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

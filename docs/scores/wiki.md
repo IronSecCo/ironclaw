@@ -7,7 +7,7 @@ description: "How isolated is wiki:2 by default? IronClaw scores its sandbox pos
 
 Run with plain `docker run requarks/wiki:2` defaults, no hardening flags, the **wiki** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `requarks/wiki:2` at digest `sha256:68f0d1848261ae76492ba358e30a96a76fed5d97a3fff381656082bf90f70d7e`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `requarks/wiki:2` at digest `sha256:68f0d1848261ae76492ba358e30a96a76fed5d97a3fff381656082bf90f70d7e` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is matomo:5 by default? IronClaw scores its sandbox p
 
 Run with plain `docker run matomo:5` defaults, no hardening flags, the **matomo** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `matomo:5` at digest `sha256:650f4f205b0b8968f430b0fc924e8b37e8ff023948c4db08ea300d154054b257`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `matomo:5` at digest `sha256:650f4f205b0b8968f430b0fc924e8b37e8ff023948c4db08ea300d154054b257` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is gitlab-runner:v17.7.0 by default? IronClaw scores 
 
 Run with plain `docker run gitlab/gitlab-runner:v17.7.0` defaults, no hardening flags, the **gitlab runner** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `gitlab/gitlab-runner:v17.7.0` at digest `sha256:11e3a44e7df21a32691a6975c7824c682787f742776d705ce89a74a780e3809f`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `gitlab/gitlab-runner:v17.7.0` at digest `sha256:11e3a44e7df21a32691a6975c7824c682787f742776d705ce89a74a780e3809f` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is umami:postgresql-v2.14.0 by default? IronClaw scor
 
 Run with plain `docker run ghcr.io/umami-software/umami:postgresql-v2.14.0` defaults, no hardening flags, the **umami** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `ghcr.io/umami-software/umami:postgresql-v2.14.0` at digest `sha256:54ccf9903edf09791889504360e776b52c358ebddf5a5e8662257b2555608f27`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `ghcr.io/umami-software/umami:postgresql-v2.14.0` at digest `sha256:54ccf9903edf09791889504360e776b52c358ebddf5a5e8662257b2555608f27` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

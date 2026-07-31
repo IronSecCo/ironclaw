@@ -7,7 +7,7 @@ description: "How isolated is almalinux:9 by default? IronClaw scores its sandbo
 
 Run with plain `docker run almalinux:9` defaults, no hardening flags, the **almalinux** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `almalinux:9` at digest `sha256:d2515c769e7b73f95c4fde38c0a505336ff38f14990c0b7253b77060a049a743`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `almalinux:9` at digest `sha256:d2515c769e7b73f95c4fde38c0a505336ff38f14990c0b7253b77060a049a743` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

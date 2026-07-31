@@ -7,7 +7,7 @@ description: "How isolated is aerospike-server:7.2.0.1 by default? IronClaw scor
 
 Run with plain `docker run aerospike/aerospike-server:7.2.0.1` defaults, no hardening flags, the **aerospike server** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `aerospike/aerospike-server:7.2.0.1` at digest `sha256:200067011b2c73ce2809d93e16de2f2581333a0109303dcbc1b9534c1875b483`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `aerospike/aerospike-server:7.2.0.1` at digest `sha256:200067011b2c73ce2809d93e16de2f2581333a0109303dcbc1b9534c1875b483` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

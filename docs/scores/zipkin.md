@@ -7,7 +7,7 @@ description: "How isolated is zipkin:3.4.4 by default? IronClaw scores its sandb
 
 Run with plain `docker run openzipkin/zipkin:3.4.4` defaults, no hardening flags, the **zipkin** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `openzipkin/zipkin:3.4.4` at digest `sha256:966cf6ba77938e3f40922964b47513bec7d10b617f96aea4921e1a887989c6f9`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `openzipkin/zipkin:3.4.4` at digest `sha256:966cf6ba77938e3f40922964b47513bec7d10b617f96aea4921e1a887989c6f9` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

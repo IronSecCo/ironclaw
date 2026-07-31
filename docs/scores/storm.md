@@ -7,7 +7,7 @@ description: "How isolated is storm:2.7.1 by default? IronClaw scores its sandbo
 
 Run with plain `docker run storm:2.7.1` defaults, no hardening flags, the **storm** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `storm:2.7.1` at digest `sha256:aaef90ab49ac3615e8c79c87d59ec3c77413a9d331f211d65487fcd3c7471cb7`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `storm:2.7.1` at digest `sha256:aaef90ab49ac3615e8c79c87d59ec3c77413a9d331f211d65487fcd3c7471cb7` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

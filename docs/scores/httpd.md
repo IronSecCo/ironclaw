@@ -7,7 +7,7 @@ description: "How isolated is httpd:2.4-alpine by default? IronClaw scores its s
 
 Run with plain `docker run httpd:2.4-alpine` defaults, no hardening flags, the **httpd** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `httpd:2.4-alpine` at digest `sha256:1b766f17b84026429b7cb243317b142921b24432336e798bc881c43f45ed9567`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `httpd:2.4-alpine` at digest `sha256:1b766f17b84026429b7cb243317b142921b24432336e798bc881c43f45ed9567` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

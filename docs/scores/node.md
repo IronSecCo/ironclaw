@@ -7,7 +7,7 @@ description: "How isolated is node:22-alpine by default? IronClaw scores its san
 
 Run with plain `docker run node:22-alpine` defaults, no hardening flags, the **node** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `node:22-alpine` at digest `sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `node:22-alpine` at digest `sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

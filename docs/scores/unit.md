@@ -7,7 +7,7 @@ description: "How isolated is unit:1.34.1-minimal by default? IronClaw scores it
 
 Run with plain `docker run unit:1.34.1-minimal` defaults, no hardening flags, the **unit** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `unit:1.34.1-minimal` at digest `sha256:65727e45ecc51f85b81aacf6621b7362f639419fc1d73541244a6745680a94c1`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `unit:1.34.1-minimal` at digest `sha256:65727e45ecc51f85b81aacf6621b7362f639419fc1d73541244a6745680a94c1` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

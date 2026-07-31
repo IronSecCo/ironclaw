@@ -7,7 +7,7 @@ description: "How isolated is outline:0.82.0 by default? IronClaw scores its san
 
 Run with plain `docker run outlinewiki/outline:0.82.0` defaults, no hardening flags, the **outline** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `outlinewiki/outline:0.82.0` at digest `sha256:494dfb9249a6799ca3d38e2bb1bdf3c9f63632634737bd996ce0b3509fe93499`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `outlinewiki/outline:0.82.0` at digest `sha256:494dfb9249a6799ca3d38e2bb1bdf3c9f63632634737bd996ce0b3509fe93499` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
