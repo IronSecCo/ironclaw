@@ -5,7 +5,7 @@ description: "How isolated is tomcat:10.1-jre21-temurin by default? IronClaw sco
 
 # tomcat:10.1-jre21-temurin container isolation score: 48/100 (grade D)
 
-Run with plain `docker run tomcat:10.1-jre21-temurin` defaults, no hardening flags, the **tomcat** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
+Run with plain `docker run tomcat:10.1-jre21-temurin` defaults, no hardening flags, the **tomcat** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
 > Graded from a read-only inspect of a **running container** started from `tomcat:10.1-jre21-temurin` at digest `sha256:f6e69a64d90e3b71b22e77fdfa87b3df9fa86be393cd01912e9bf34d0076b335` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
@@ -23,7 +23,7 @@ Run with plain `docker run tomcat:10.1-jre21-temurin` defaults, no hardening fla
 
 ## Harden it: the highest-value fixes
 
-Applying these to your `docker run tomcat` closes the biggest gaps first (most points recovered first):
+Applying these to your `docker run tomcat` targets the biggest gaps first (most points at stake first):
 
 - **Dropped capabilities**, `--cap-drop=ALL`  
   Drop every Linux capability; add back only what the workload provably needs.
@@ -34,7 +34,7 @@ Applying these to your `docker run tomcat` closes the biggest gaps first (most p
 - **Read-only root filesystem**, `--read-only --tmpfs /tmp`  
   Make the root filesystem read-only to remove the tamper/persistence surface.
 
-Together they close every gap the table above lists:
+The fixes above, plus the rest of IronClaw's recommended flag set, as one command:
 
 ```bash
 docker run -d --name tomcat-hardened \
@@ -46,7 +46,7 @@ docker run -d --name tomcat-hardened \
   tomcat:10.1-jre21-temurin
 ```
 
-This image has not been re-scanned under those flags, so this page states no hardened score for it. The one hardened run this survey measures is `nginx:1.27-alpine`, which reaches 100/100 (grade A) on exactly this flag set. Expect to adjust: a container that writes outside `/tmp` will not boot read-only until you add a `--tmpfs` for each path it needs (some want a writable mode, e.g. `--tmpfs /data:rw,mode=1777`). Re-run `ironctl scan` on the result to see where yours actually lands.
+This image has not been re-scanned under those flags, so this page states no hardened score for it. The one hardened run this survey measures is `nginx:1.27-alpine`, which reaches 100/100 (grade A) on exactly this flag set. Expect to adjust, and expect a ceiling: `--network=none` is not an option for a service that has to accept connections, and dropping it leaves the network-isolation dimension exactly where the table above has it. A container that writes outside `/tmp` will not boot read-only until you add a `--tmpfs` for each path it needs (some want a writable mode, e.g. `--tmpfs /data:rw,mode=1777`). Re-run `ironctl scan` on the result to see where yours actually lands.
 
 ## Scan your own container
 

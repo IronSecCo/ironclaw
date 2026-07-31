@@ -5,7 +5,7 @@ description: "How isolated is thanos:v0.37.2 by default? IronClaw scores its san
 
 # thanos:v0.37.2 container isolation score: 63/100 (grade C)
 
-Run with plain `docker run quay.io/thanos/thanos:v0.37.2` defaults, no hardening flags, the **thanos** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
+Run with plain `docker run quay.io/thanos/thanos:v0.37.2` defaults, no hardening flags, the **thanos** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
 > Graded from a read-only inspect of a **running container** started from `quay.io/thanos/thanos:v0.37.2` at digest `sha256:4ec6df40fdb921de162677b321057caa8fb8324c65f4cfae9568ed55c4469e2c` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
@@ -23,7 +23,7 @@ Run with plain `docker run quay.io/thanos/thanos:v0.37.2` defaults, no hardening
 
 ## Harden it: the highest-value fixes
 
-Applying these to your `docker run thanos` closes the biggest gaps first (most points recovered first):
+Applying these to your `docker run thanos` targets the biggest gaps first (most points at stake first):
 
 - **Dropped capabilities**, `--cap-drop=ALL`  
   Drop every Linux capability; add back only what the workload provably needs.
@@ -32,7 +32,7 @@ Applying these to your `docker run thanos` closes the biggest gaps first (most p
 - **Read-only root filesystem**, `--read-only --tmpfs /tmp`  
   Make the root filesystem read-only to remove the tamper/persistence surface.
 
-Together they close every gap the table above lists:
+The fixes above, plus the rest of IronClaw's recommended flag set, as one command:
 
 ```bash
 docker run -d --name thanos-hardened \
@@ -44,7 +44,7 @@ docker run -d --name thanos-hardened \
   quay.io/thanos/thanos:v0.37.2
 ```
 
-This image has not been re-scanned under those flags, so this page states no hardened score for it. The one hardened run this survey measures is `nginx:1.27-alpine`, which reaches 100/100 (grade A) on exactly this flag set. Expect to adjust: a container that writes outside `/tmp` will not boot read-only until you add a `--tmpfs` for each path it needs (some want a writable mode, e.g. `--tmpfs /data:rw,mode=1777`). Re-run `ironctl scan` on the result to see where yours actually lands.
+This image has not been re-scanned under those flags, so this page states no hardened score for it. The one hardened run this survey measures is `nginx:1.27-alpine`, which reaches 100/100 (grade A) on exactly this flag set. Expect to adjust, and expect a ceiling: `--network=none` is not an option for a service that has to accept connections, and dropping it leaves the network-isolation dimension exactly where the table above has it. A container that writes outside `/tmp` will not boot read-only until you add a `--tmpfs` for each path it needs (some want a writable mode, e.g. `--tmpfs /data:rw,mode=1777`). Re-run `ironctl scan` on the result to see where yours actually lands.
 
 ## Scan your own container
 

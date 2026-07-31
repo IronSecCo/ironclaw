@@ -7,7 +7,7 @@ description: The default-configuration container isolation score for 252+ of the
 
 How isolated is the container you just `docker run`? This directory grades **252 of the most-pulled public images** as they ship, run with plain `docker run <image>` defaults, no hardening flags, on IronClaw's seven-dimension containment scale (0-100). Every score comes from `ironctl scan`, a credential-free audit you can run on your own containers in ten seconds.
 
-**The headline:** the average default image scores **52/100**. Grade distribution: 69×C, 183×D. Almost nothing you pull is isolated out of the box, it runs as root, keeps the full capability set, and has a writable root filesystem. The good news: every gap on these pages closes with a handful of `docker run` flags.
+**The headline:** the average default image scores **52/100**. Grade distribution: 69×C, 183×D. Almost nothing you pull is isolated out of the box, it runs as root, keeps the full capability set, and has a writable root filesystem. The good news: every one of those gaps has a `docker run` flag that targets it, listed on the scorecard.
 
 > **Scan your own container:** `brew install ironsecco/ironclaw/ironclaw && ironctl scan my-container`. See [Scan any container](../scan.md).
 
@@ -288,4 +288,4 @@ Scores are fail-closed: any posture the scanner cannot determine is graded as in
 
 ---
 
-*These pages are generated from a reproducible survey, `examples/isolation-survey/survey.sh` scans every image, `gen_scorecards.py` renders the pages. Grades reflect the image's default configuration, not a limit of the image itself: the `docker run` flags on each page close the gaps that grade found.*
+*These pages are generated from a reproducible survey, `examples/isolation-survey/survey.sh` scans every image, `gen_scorecards.py` renders the pages. Grades reflect the image's default configuration, not a limit of the image itself: the `docker run` flags on each page target the gaps that grade found.*

@@ -7,7 +7,7 @@ description: "Ranked isolation scores for 14 data engineering and ML container i
 
 How isolated are the most-pulled **data engineering and ML** container images when you `docker run` them with plain defaults, no hardening flags? This page ranks **14 data pipelines, analytics, and ML platforms (Airflow, Spark, Flink, MLflow, Jupyter)** on IronClaw's seven-dimension container containment scale (0-100), best-isolated first. Scores run **48/100 to 63/100** (average **54/100**). Higher is safer. Every score comes from `ironctl scan`, a credential-free audit you can run on your own containers in ten seconds.
 
-> No data engineering and ML image ships fully isolated by default: the leaders still leave capabilities, egress, or a writable root filesystem open. Every one of those gaps closes with a handful of `docker run` flags, listed on every scorecard.
+> No data engineering and ML image ships fully isolated by default: the leaders still leave capabilities, egress, or a writable root filesystem open. Every one of those gaps has a `docker run` flag that targets it, listed on every scorecard.
 
 ## Ranked best to worst
 
@@ -48,4 +48,4 @@ ironctl scan my-container
 
 ---
 
-*Part of the [Container Isolation Scores](../index.md) directory. Generated from a reproducible survey by `examples/isolation-survey/gen_scorecards.py` and refreshed weekly, so this ranking never goes stale. Grades reflect each image's default configuration, not a limit of the image itself: the `docker run` flags on each page close the gaps that grade found.*
+*Part of the [Container Isolation Scores](../index.md) directory. Generated from a reproducible survey by `examples/isolation-survey/gen_scorecards.py` and refreshed weekly, so this ranking never goes stale. Grades reflect each image's default configuration, not a limit of the image itself: the `docker run` flags on each page target the gaps that grade found.*
