@@ -116,7 +116,7 @@ func TestCmdScan_DockerfileNoPath(t *testing.T) {
 func TestRejectScoreBearingOutputs_ImageMode(t *testing.T) {
 	const ref = "docker.io/library/haproxy:latest"
 	for _, flag := range scoreBearingFlags {
-		err := rejectScoreBearingOutputs(ref, map[string]bool{flag: true})
+		err := rejectScoreBearingOutputs(ref, map[string]string{flag: flag})
 		if err == nil {
 			t.Errorf("%s was allowed on an image reference; it needs a composite score", flag)
 			continue
@@ -135,25 +135,8 @@ func TestRejectScoreBearingOutputs_ImageMode(t *testing.T) {
 	}
 }
 
-// scoreBearingFlags must stay in sync with the flags runScan actually feeds it;
-// a flag that emits a grade but is missing from the list is a silent hole.
-func TestScoreBearingFlagsCoverGradeEmittingOutputs(t *testing.T) {
-	want := map[string]bool{
-		"--badge": true, "--badge-json": true, "--badge-md": true, "--md": true,
-		"--share": true, "--sarif": true, "--min-score": true, "--fix": true,
-	}
-	got := map[string]bool{}
-	for _, f := range scoreBearingFlags {
-		got[f] = true
-	}
-	for f := range want {
-		if !got[f] {
-			t.Errorf("%s emits or gates on a score but is not in scoreBearingFlags", f)
-		}
-	}
-	for f := range got {
-		if !want[f] {
-			t.Errorf("scoreBearingFlags has an unexpected entry %q", f)
-		}
-	}
-}
+// scoreBearingFlags must stay in sync with the flags cmdScan actually feeds the
+// gate, and every registered flag must be classified one way or the other. Both
+// invariants are derived from scan.go's own source in scan_flags_test.go; a
+// hand-copied expectation here could only ever catch someone editing one of two
+// identical lists.
