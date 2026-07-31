@@ -72,9 +72,9 @@ func cmdScan(args []string) error {
 	openshift := fs.String("openshift", "", "grade OpenShift workloads (DeploymentConfig, Deployment, Pod) in a manifest file (`oc get -o yaml`) or a directory of them")
 	dockerfile := fs.Bool("dockerfile", false, "statically grade the positional Dockerfile(s) authoring-time posture (daemon-free)")
 	runtime := fs.String("runtime", envOrDefault("IRONCTL_SCAN_RUNTIME", "auto"), "container runtime: auto|docker|podman|nerdctl")
-	dockerBin := fs.String("docker-bin", envOrDefault("DOCKER", "docker"), "docker binary used for `docker inspect`")
-	podmanBin := fs.String("podman-bin", envOrDefault("PODMAN", "podman"), "podman binary used for `podman inspect`")
-	nerdctlBin := fs.String("nerdctl-bin", envOrDefault("NERDCTL", "nerdctl"), "nerdctl binary used for `nerdctl inspect`")
+	dockerBin := fs.String("docker-bin", envOrDefault("DOCKER", "docker"), "docker binary used for `docker container inspect` and `docker image inspect`")
+	podmanBin := fs.String("podman-bin", envOrDefault("PODMAN", "podman"), "podman binary used for `podman container inspect` and `podman image inspect`")
+	nerdctlBin := fs.String("nerdctl-bin", envOrDefault("NERDCTL", "nerdctl"), "nerdctl binary used for `nerdctl container inspect` and `nerdctl image inspect`")
 	minScore := fs.Int("min-score", 0, "exit non-zero if the score is below this threshold (CI gate)")
 	fs.Usage = func() { scanUsage(os.Stdout) }
 	// Go's flag package stops at the first positional, so `scan <target> --json`
@@ -520,7 +520,8 @@ func cmdScan(args []string) error {
 			"--share":      *share,
 			"--sarif":      *sarif != "",
 			"--min-score":  *minScore > 0,
-			"--fix":        *fix || *remediate,
+			"--fix":        *fix,
+			"--remediate":  *remediate,
 		}); err != nil {
 			return err
 		}
@@ -3008,8 +3009,11 @@ type runtimeBins struct{ docker, podman, nerdctl string }
 
 // scoreBearingFlags is the ordered list of flags whose output is a composite
 // score or a gate on one. Ordered so the error names the same flag every run.
+// --remediate is an alias for --fix and is listed after it, so a run that passes
+// both is still named --fix; a run that passes only --remediate is told about the
+// flag it actually typed rather than about an alias it never used.
 var scoreBearingFlags = []string{
-	"--badge", "--badge-json", "--badge-md", "--md", "--share", "--sarif", "--min-score", "--fix",
+	"--badge", "--badge-json", "--badge-md", "--md", "--share", "--sarif", "--min-score", "--fix", "--remediate",
 }
 
 // rejectScoreBearingOutputs fails the run when any score-bearing output was
@@ -3189,9 +3193,9 @@ FLAGS:
   --nomad-bin BIN     nomad binary for `+"`nomad job run -output`"+` (HCL->JSON; default: nomad)
   --kustomize-bin BIN kustomize binary for `+"`kustomize build`"+` (default: kustomize)
   --kubectl-bin BIN   kubectl binary for `+"`kubectl kustomize`"+` fallback (default: kubectl)
-  --docker-bin BIN    docker binary for `+"`docker inspect`"+` (default: docker)
-  --podman-bin BIN    podman binary for `+"`podman inspect`"+` (default: podman)
-  --nerdctl-bin BIN   nerdctl binary for `+"`nerdctl inspect`"+` (default: nerdctl)
+  --docker-bin BIN    docker binary for `+"`container inspect`/`image inspect`"+` (default: docker)
+  --podman-bin BIN    podman binary for `+"`container inspect`/`image inspect`"+` (default: podman)
+  --nerdctl-bin BIN   nerdctl binary for `+"`container inspect`/`image inspect`"+` (default: nerdctl)
 
 Runtime is auto-detected (docker, then podman, then nerdctl on PATH); override
 with --runtime. Rootless podman is credited: a userns remap of container-uid 0
