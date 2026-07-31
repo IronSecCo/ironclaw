@@ -21,7 +21,7 @@ sandbox can never reach one.
 
 ## The security model in one picture
 
-```
+```text
    AGENT SANDBOX (network=none, no runtime, read-only rootfs)
         │  only endpoint: a per-session unix socket
         │  GET /tools        POST /call            ← a plain HTTP shim, never MCP
@@ -70,7 +70,7 @@ Properties:
 
 Start the control plane with a catalog path (and, in production, container isolation):
 
-```
+```bash
 ic-controlplane \
   --mcp-catalog   /var/lib/ironclaw/mcp-catalog.json \
   --mcp-isolation container \
@@ -147,7 +147,7 @@ approval surface.
 `cmd/mcp-sample` is a tiny, credential‑free MCP server (tools `echo` and `add`) that
 runs over stdio or HTTP:
 
-```
+```bash
 mcp-sample                 # stdio  → configure as a local server (command = its path)
 mcp-sample --http :9000    # HTTP   → configure as a remote server (url = http://127.0.0.1:9000)
 ```

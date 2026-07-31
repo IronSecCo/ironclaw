@@ -78,7 +78,7 @@ docker run -d --name pgadmin-hardened \
 Rescan reports `89/100 grade B`, a **26-point swing** with no custom image build, just the right flags.
 Proven directly on the hardened config with `ironctl scan --compose`:
 
-```
+```text
 score:   89/100  grade B  (solid, minor gaps)
 Non-root user (uid != 0)    [+] PASS  15/15  runs as pgadmin (uid != 0)
 Dropped capabilities        [+] PASS  20/20  all capabilities dropped, none added back

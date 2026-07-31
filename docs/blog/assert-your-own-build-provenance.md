@@ -82,7 +82,7 @@ The rule is **one distinct run, and it is mine**, not one statement. Our own gat
 exactly one statement, which is correct for our pipeline's shape and wrong in general. Two
 counter examples, both re-verified live on 2026-07-29:
 
-```
+```text
 ghcr.io/goreleaser/goreleaser:latest   4 provenance statements, 1 distinct run
 ghcr.io/astral-sh/uv:latest            2 provenance statements, 1 distinct run
 ```

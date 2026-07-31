@@ -73,7 +73,7 @@ docker run -d --name zookeeper-hardened \
 ## Verify it on your own Zookeeper
 
 To audit and confirm the containment posture of a target workload, execute `ironctl scan` against the active container instance, Docker Compose service, or Kubernetes manifest:
-```
+```sh
 # install (Homebrew)
 brew install ironsecco/ironclaw/ironclaw
 
@@ -83,7 +83,7 @@ ironctl scan my-zookeeper --fix
 ```
 `ironctl scan` also reads a `docker-compose.yml` service or a Kubernetes manifest, allowing you to grade the ZooKeeper instance within your orchestration stack.
 
-```
+```text
 IronClaw containment scan
   score:   89/100  grade B  (solid, minor gaps)
 

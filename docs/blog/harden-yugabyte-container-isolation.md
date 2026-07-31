@@ -78,7 +78,7 @@ docker run -d --name yugabyte-hardened \
 Rescan reports `100/100 grade A`, a **52-point swing** with no custom image build, just the right
 flags. Proven directly on the hardened config with `ironctl scan --compose`:
 
-```
+```text
 score:   100/100  grade A  (hardened)
 Non-root user (uid != 0)    [+] PASS  15/15  runs as 65532:65532 (uid != 0)
 Dropped capabilities        [+] PASS  20/20  all capabilities dropped, none added back

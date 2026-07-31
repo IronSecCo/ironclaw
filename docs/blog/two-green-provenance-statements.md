@@ -13,7 +13,7 @@ with producing an image that build never touched.
 Here is the digest, so you can check the whole story yourself without taking our word for
 any of it:
 
-```
+```text
 ghcr.io/ironsecco/ironclaw-controlplane@sha256:be66da22455e11b8625693a29535f599500c126165eeabb34775492a962ce5b7
 ```
 

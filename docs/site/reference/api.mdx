@@ -19,7 +19,7 @@ alongside the prose reference at `api/control-plane.md`.
 The tailnet boundary is the primary control. As defense-in-depth, start the control-plane with
 `IRONCLAW_API_TOKEN` set and every request (except `GET /healthz`) must carry:
 
-```
+```http
 Authorization: Bearer <token>
 ```
 

@@ -51,7 +51,7 @@ export SLACK_BOT_TOKEN=xoxb-your-bot-token   # held host-side; never enters a sa
 
 On boot the daemon logs:
 
-```
+```text
 channel adapter registered  adapter=slack
 ```
 

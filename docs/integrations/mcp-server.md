@@ -179,7 +179,7 @@ directly) to run an escape attempt and watch it fail closed.
 
 **Network escape is blocked** (no NIC):
 
-```
+```text
 sandbox_exec { "command": "wget -T3 -qO- http://example.com || echo BLOCKED" }
 -> stdout: BLOCKED
    stderr: wget: bad address 'example.com'
@@ -187,7 +187,7 @@ sandbox_exec { "command": "wget -T3 -qO- http://example.com || echo BLOCKED" }
 
 **Host filesystem write is blocked** (read-only rootfs):
 
-```
+```text
 sandbox_exec { "command": "touch /etc/pwned || echo BLOCKED" }
 -> stdout: touch: /etc/pwned: Read-only file system
            BLOCKED
@@ -195,14 +195,14 @@ sandbox_exec { "command": "touch /etc/pwned || echo BLOCKED" }
 
 **The process is non-root:**
 
-```
+```text
 sandbox_exec { "command": "id" }
 -> stdout: uid=65532 gid=65532 groups=65532
 ```
 
 Meanwhile ordinary work runs normally, including writes to the scratch `/tmp`:
 
-```
+```text
 sandbox_exec { "command": "echo hello && python3 -c 'print(2+2)'", "image": "python:3.12-slim" }
 -> stdout: hello
            4

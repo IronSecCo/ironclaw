@@ -118,7 +118,7 @@ mounted secret, never in the Dockerfile. Rescan:
 ironctl scan --dockerfile Dockerfile
 ```
 
-```
+```text
 IronClaw containment scan
   target:  Dockerfile (dockerfile)
   score:   100/100  grade A  (hardened)

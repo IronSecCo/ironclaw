@@ -36,7 +36,7 @@ GitHub Actions workflows are involved:
 
 The **Release** workflow runs as a chain of jobs, each gated on the previous:
 
-```
+```text
 version ──> build (5-target matrix) ──> release ──> [smoke]
    │             │                          │           │
  derive tag   CGO build per OS/arch    checksums,    install via install.sh
