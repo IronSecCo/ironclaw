@@ -72,7 +72,7 @@ def main():
                  "network isolation, read-only rootfs, no docker.sock, no host "
                  "namespaces). Higher is safer. See "
                  "[README.md](./README.md) for the exact method and "
-                 "[images.txt](./images.txt) for the pinned manifest.")
+                 "[images.txt](./images.txt) for the scenario manifest.")
     lines.append("")
     lines.append("| Scenario | Image | Score | Grade | Top failed dimensions |")
     lines.append("|----------|-------|------:|:-----:|-----------------------|")

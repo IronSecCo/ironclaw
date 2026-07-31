@@ -52,13 +52,17 @@ The scenarios are captured in a versioned manifest,
    `--user 65532 --cap-drop ALL --security-opt no-new-privileges --read-only
    --tmpfs /tmp --network none`.
 
-The original core set is pinned by its **multi-arch manifest-list digest**, so
-`docker pull` resolves byte-identical bits on amd64 and arm64 (digests captured
-with `docker buildx imagetools inspect <tag> --format '{{.Manifest.Digest}}'`).
-The expanded long tail is referenced by tag; `survey.sh` **records the manifest
-digest it actually scanned** into `results.json` (`.scenarios[].resolvedDigest`),
-so every scorecard names the exact bits it graded while re-runs pick up the
-current published tag.
+Most rows are referenced **by tag** and resolve to whatever that tag publishes at
+the moment the survey runs; only the original core set (16 of the 295 rows) is
+additionally pinned by its **multi-arch manifest-list digest**, so those rows
+resolve to the same image index on amd64 and arm64 (digests captured with
+`docker buildx imagetools inspect <tag> --format '{{.Manifest.Digest}}'`).
+Whichever the row uses, `survey.sh` **records the manifest digest it actually
+scanned** into `results.json` (`.scenarios[].resolvedDigest`), so every scorecard
+names the exact bits it graded. That is per-run provenance, not a guarantee that
+a later re-run reproduces the published scores: re-runs deliberately pick up the
+current published tags, because the dataset is about what the ecosystem ships
+today.
 
 **Mirror-first pulls.** By default every image is resolved through
 `mirror.gcr.io` (Google's pull-through cache for Docker Hub), which is not
@@ -85,9 +89,11 @@ never fatal, so one unavailable image never aborts the survey.
   the host runtime under it. Running the same config under gVisor (`runsc`) or
   Kata adds real defense-in-depth but does not change these numbers — the survey
   measures the posture the workload declares for itself.
-* **Deterministic output.** Rows in `results.md` are sorted by score, so a re-run
-  over the same pinned manifest produces a byte-identical table apart from the
-  tool-version / timestamp stamp recorded once at the top.
+* **Stable output ordering.** Rows in `results.md` are sorted by score, so two
+  runs diff as score movement rather than row churn. The rendering step is
+  deterministic — re-rendering the same `results.json` is byte-identical apart
+  from the tool-version / timestamp stamp recorded once at the top — but the
+  *scan* step is not pinned: see "The curated set" above.
 
 ## Reproducing it
 

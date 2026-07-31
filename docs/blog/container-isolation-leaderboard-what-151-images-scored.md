@@ -38,7 +38,7 @@ docker run -d --name nginx-scan nginx:latest
 ironctl scan nginx-scan
 ```
 
-Every number below comes from that scan, run over the pinned image manifest in
+Every number below comes from that scan, run over the versioned image manifest in
 [`examples/isolation-survey`](https://github.com/IronSecCo/ironclaw/tree/main/examples/isolation-survey).
 If you disagree with a grade, re-run it yourself.
 
