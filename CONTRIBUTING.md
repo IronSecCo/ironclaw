@@ -205,14 +205,21 @@ into the nav and the hub, and CI is satisfied — `check-guide-index.py` fails t
 build if either is missing, and that is the whole contract.
 
 **Do not add your guide to `docs/blog/index.md` or `README.md`, and do not treat
-its absence there as a bug to fix.** Both are curated prose: each entry carries a
-hand-written summary quoting that guide's real before/after scores. Neither page
-claims to list every guide — both link the hub, which does. Making them
-exhaustive would mean inventing a summary and a score line per guide, and a rule
-that pressures an author into fabricating numbers is worse than no rule. Most
-guides are intentionally absent from both. Whether a particular guide earns a
-spot on the landing page is an editorial call a maintainer makes case by case, so
-please leave it to review rather than backfilling it in a PR.
+its absence there as a bug to fix.** Neither page claims to list every guide, and
+most guides are deliberately absent from both — both link the hub, which is the
+exhaustive one. They are curated for different reasons:
+
+- `docs/blog/index.md` gives every entry a hand-written summary quoting that
+  guide's real before/after scores ("scores 48 of 100 (D) … the honest hardened
+  ceiling is 89 of 100 (B)"). Making it exhaustive would mean inventing a summary
+  and a score line per guide, and a rule that pressures an author into
+  fabricating numbers is worse than no rule.
+- `README.md` carries a short, representative selection of guides as a link list.
+  It is the project's front door, not a catalog, and it stays short on purpose.
+
+Whether a particular guide earns a spot on either is an editorial call a
+maintainer makes case by case, so please leave it to review rather than
+backfilling it in a PR.
 
 The same reasoning, from the enforcing side, is in the module docstring of
 [`scripts/check-guide-index.py`](scripts/check-guide-index.py).
