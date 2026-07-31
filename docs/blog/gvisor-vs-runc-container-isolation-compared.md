@@ -94,7 +94,8 @@ and check the block rates against this post. And whatever runtime you land on, s
 your container's configuration so the flags you *do* control are not the weak link:
 
 ```bash
-ironctl scan your-image:tag
+docker run -d --name my-app your-image:tag
+ironctl scan my-app
 ```
 
 Browse the full 151-image isolation ranking and grab a score badge for your repo at

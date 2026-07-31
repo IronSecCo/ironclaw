@@ -36,8 +36,13 @@ func TestRenderJSON(t *testing.T) {
 	if err := json.Unmarshal(b.Bytes(), &m); err != nil {
 		t.Fatalf("invalid JSON: %v", err)
 	}
-	if m["schemaVersion"] != "1.0" {
+	if m["schemaVersion"] != "1.1" {
 		t.Errorf("schemaVersion=%v", m["schemaVersion"])
+	}
+	// mode is a POSITIVE assertion present in EVERY mode (IRO-712): a consumer
+	// must never have to detect image mode by an absent key.
+	if m["mode"] != "container" {
+		t.Errorf("mode=%v, want container", m["mode"])
 	}
 	if m["score"].(float64) != 100 {
 		t.Errorf("score=%v", m["score"])

@@ -109,3 +109,51 @@ func TestCmdScan_DockerfileNoPath(t *testing.T) {
 		t.Error("expected an error when --dockerfile is given no path")
 	}
 }
+
+// Every score-bearing output must fail LOUDLY on an image reference rather than
+// emit a grade or a placeholder (IRO-712). This exercises the gate directly, so
+// it runs with no container runtime present.
+func TestRejectScoreBearingOutputs_ImageMode(t *testing.T) {
+	const ref = "docker.io/library/haproxy:latest"
+	for _, flag := range scoreBearingFlags {
+		err := rejectScoreBearingOutputs(ref, map[string]bool{flag: true})
+		if err == nil {
+			t.Errorf("%s was allowed on an image reference; it needs a composite score", flag)
+			continue
+		}
+		msg := err.Error()
+		for _, want := range []string{flag, ref, "--dockerfile", "image reference"} {
+			if !strings.Contains(msg, want) {
+				t.Errorf("%s error missing %q: %v", flag, want, msg)
+			}
+		}
+	}
+	// The default table and --json request none of these, so they stay allowed:
+	// image mode still reports the USER finding and the N/A dimensions.
+	if err := rejectScoreBearingOutputs(ref, nil); err != nil {
+		t.Errorf("a plain image scan must be allowed: %v", err)
+	}
+}
+
+// scoreBearingFlags must stay in sync with the flags runScan actually feeds it;
+// a flag that emits a grade but is missing from the list is a silent hole.
+func TestScoreBearingFlagsCoverGradeEmittingOutputs(t *testing.T) {
+	want := map[string]bool{
+		"--badge": true, "--badge-json": true, "--badge-md": true, "--md": true,
+		"--share": true, "--sarif": true, "--min-score": true, "--fix": true,
+	}
+	got := map[string]bool{}
+	for _, f := range scoreBearingFlags {
+		got[f] = true
+	}
+	for f := range want {
+		if !got[f] {
+			t.Errorf("%s emits or gates on a score but is not in scoreBearingFlags", f)
+		}
+	}
+	for f := range got {
+		if !want[f] {
+			t.Errorf("scoreBearingFlags has an unexpected entry %q", f)
+		}
+	}
+}

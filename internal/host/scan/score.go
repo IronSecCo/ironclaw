@@ -14,6 +14,14 @@ const (
 	VerdictUnknown Verdict = "UNKNOWN" // could not determine — scored as FAIL (fail-closed)
 	VerdictWarn    Verdict = "WARN"    // partial / weakened posture
 	VerdictPass    Verdict = "PASS"    // hardened posture observed
+	// VerdictNA means the dimension is NOT OBSERVABLE from the artifact that was
+	// scanned, so it is not graded at all and carries no points in either
+	// direction. It is categorically different from UNKNOWN: UNKNOWN says "this
+	// container has a posture and we could not read it", so it is scored
+	// fail-closed as insecure; N/A says "the artifact has no such posture to
+	// read". Grading a run-time control on an image would be a claim about a
+	// container that does not exist (IRO-712), in either direction.
+	VerdictNA Verdict = "N/A"
 )
 
 // Dimension is one graded containment axis.
@@ -27,10 +35,18 @@ type Dimension struct {
 }
 
 // Report is the full scorecard for one Spec.
+//
+// Score/Grade/Max are meaningful only when Scored() is true. In ModeImage there
+// is no composite at all and the JSON renderer omits those keys outright rather
+// than emitting a zero that reads as "failed" (IRO-712). Mode is the positive
+// assertion a consumer switches on; never infer the mode from an absent key.
 type Report struct {
-	Source  string `json:"source"`
-	Target  string `json:"target"`
-	Runtime string `json:"runtime,omitempty"`
+	// Mode says what was inspected: "container" | "image" | "dockerfile".
+	// ALWAYS present in the JSON, in every mode.
+	Mode    ScanMode `json:"mode"`
+	Source  string   `json:"source"`
+	Target  string   `json:"target"`
+	Runtime string   `json:"runtime,omitempty"`
 	// HardenedRuntime names a recognized strong-isolation runtime (gVisor, Kata,
 	// Firecracker) when one is detected. Informational ONLY: scoring stays
 	// runtime-agnostic (IRO-429), so this awards no points; it surfaces the fact
@@ -73,10 +89,24 @@ var scorers = []scorer{
 // TotalWeight is the maximum achievable score (100 by construction).
 const TotalWeight = 100
 
+// Scored reports whether the report carries a meaningful composite score and
+// grade. It is false in ModeImage, where six of the seven dimensions are not
+// observable and no composite is emitted. Check this before reading Score/Grade
+// or rendering a badge: a zero Score in image mode is the ABSENCE of a score,
+// not an F.
+func (r Report) Scored() bool { return r.Mode != ModeImage }
+
 // Score grades a Spec across every dimension and returns the full Report. It is
 // pure: no I/O, no clock, deterministic for a given Spec.
+//
+// An image-mode Spec is routed to scoreImage, which grades ONLY the dimension an
+// image can actually answer and reports the rest as N/A with no composite.
 func Score(s Spec) Report {
+	if s.Mode == ModeImage {
+		return scoreImage(s)
+	}
 	r := Report{
+		Mode:    s.Mode,
 		Source:  s.Source,
 		Target:  s.Target,
 		Runtime: s.Runtime,
@@ -111,6 +141,71 @@ func Score(s Spec) Report {
 			name))
 	}
 	return r
+}
+
+// --------------------------------------------------------------------------- //
+// Image mode (IRO-712).
+// --------------------------------------------------------------------------- //
+
+// imageObservableDim is the only graded dimension an image reference can answer:
+// the OCI image config's USER. Everything else in the dimension set is decided by
+// the `docker run` invocation.
+const imageObservableDim = "user.nonroot"
+
+// naFromImage is the detail every unobservable dimension carries in image mode.
+const naFromImage = "not observable from an image reference: this is run-time configuration and no container exists"
+
+// scoreImage builds the report for an IMAGE reference. It emits NO composite
+// score and NO grade, on purpose:
+//
+//   - Only user.nonroot (15 of 100 points) is observable from an image config, so
+//     any composite would be a number computed almost entirely from things that
+//     were not looked at.
+//   - Scoring out of the observable total is worse, not better: with one
+//     observable dimension it collapses to two values and renders `USER nobody`
+//     on an otherwise unhardened image as 15/15, which every badge normalizes to
+//     100% / grade A.
+//   - The image number is not a bound in either direction. The same image scanned
+//     as a container ranges from 15/100 (hostile flags) to 100/100 (hardened),
+//     so no wording may call image mode a floor or a ceiling.
+//
+// The one real finding is kept, and the six run-time dimensions report N/A with
+// zero points available so a consumer that sums the dimensions gets 0/0 rather
+// than a plausible-looking total.
+func scoreImage(s Spec) Report {
+	r := Report{
+		Mode:   ModeImage,
+		Source: s.Source,
+		Target: s.Target,
+		Notes:  append([]string(nil), s.Notes...),
+	}
+	for _, sc := range scorers {
+		d := Dimension{Key: sc.key, Title: sc.title, Verdict: VerdictNA, Detail: naFromImage}
+		if sc.key == imageObservableDim {
+			d.Verdict, d.Detail = gradeImageUser(s)
+		}
+		r.Dimensions = append(r.Dimensions, d)
+	}
+	r.Notes = append(r.Notes,
+		"image mode: no containment score or grade is reported. Six of the seven graded dimensions (capabilities, seccomp, network, read-only rootfs, control-socket exposure, host namespaces) are run-time configuration that an image does not carry, so grading them either way would be a claim about a container that does not exist.",
+		"to grade a workload's containment, scan the RUNNING container: `docker run -d --name app <image>` then `ironctl scan app`.",
+		"to grade the image build itself (base pinning, USER, baked secrets, ADD, world-writable paths), use the purpose-built static scorer: `ironctl scan --dockerfile Dockerfile`.",
+	)
+	return r
+}
+
+// gradeImageUser grades the image config's USER. It is the image-mode dual of
+// gradeNonRoot and awards no points: image mode has no composite. Fail-closed is
+// preserved (an unreadable user is UNKNOWN, never a pass).
+func gradeImageUser(s Spec) (Verdict, string) {
+	switch s.RunAsNonRoot {
+	case Yes:
+		return VerdictPass, fmt.Sprintf("image config sets USER %s (uid != 0); a container started from it defaults to a non-root uid", nz(s.User, "non-root"))
+	case No:
+		return VerdictFail, fmt.Sprintf("image config runs as root (USER %s); a container started from it is uid 0 unless the run command overrides it", nz(s.User, "0"))
+	default:
+		return VerdictUnknown, "image config user not reported; assuming root (fail-closed)"
+	}
 }
 
 // StrongIsolationRuntime classifies an OCI runtime identifier (a docker

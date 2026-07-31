@@ -98,8 +98,10 @@ category, and grab a copy-paste score badge for your own repo at the
 **[Container Isolation Scores explorer](https://nivardsec.com/scores)**. The
 [leaderboard](../scores/leaderboard.md) refreshes weekly.
 
-Scan the image you actually run in about ten seconds:
+Scan the container you actually run in about ten seconds, with the flags you
+actually pass, because those flags are most of the score:
 
 ```bash
-ironctl scan your-image:tag
+docker run -d --name my-app your-image:tag
+ironctl scan my-app
 ```
