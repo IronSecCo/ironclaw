@@ -13,7 +13,6 @@ IronClaw speaks the OpenAI-compatible API shape, so the model is a config choice
 
 > IronClaw ships more backends than the three below. Eleven are registered today: Anthropic, OpenAI, OpenRouter, Codex, Gemini, Vertex AI, AWS Bedrock, Azure OpenAI, Ollama, a generic OpenAI-compatible `local` endpoint, and a credential-free `mock` provider. For the full list with an auth-and-streaming comparison and a short decision guide, see [Choose your model provider](providers/index.md).
 
-
 And because of how the runtime is built, **your model key never enters the agent sandbox**. Model calls are
 brokered host-side. Bringing your own model doesn't mean trusting the box with your credential.
 
