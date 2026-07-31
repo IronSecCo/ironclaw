@@ -135,9 +135,9 @@ Prefer a table? `--md` prints a shareable markdown block:
 ironctl scan my-sandbox --md
 ```
 
-
-### IronClaw containment scan: `my-sandbox` scored **100/100 (grade A)**
 ```text
+### IronClaw containment scan: `my-sandbox` scored **100/100 (grade A)**
+
 | Dimension | Verdict | Score |
 |---|---|---|
 | Non-root user (uid != 0) | PASS | 15/15 |
