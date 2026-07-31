@@ -118,15 +118,13 @@ on:
         type: boolean
         default: false
 
-# Least-privilege (Scorecard Token-Permissions). `actions: write` is required by the
-# "Approve a workflow run for a fork pull request" endpoint and is the only elevated
-# scope here.
+# Least-privilege (Scorecard Token-Permissions). Nothing elevated at workflow scope: the
+# one elevated scope this workflow needs is declared on the one job that uses it, below.
+# Scorecard scores ANY top-level write as a hard zero on Token-Permissions no matter how
+# narrow it is, while the same write at job scope only reduces the check -- so keep this
+# block read-only and grant downward. IRO-704.
 permissions:
   contents: read
-  actions: write
-  pull-requests: read
-  # Read-only, and only so the CLA gate can read the `license/cla` commit status.
-  statuses: read
 
 concurrency:
   group: fork-ci-approval-backstop
@@ -135,6 +133,24 @@ concurrency:
 jobs:
   approve-stalled-fork-runs:
     runs-on: ubuntu-latest
+    # A job-level `permissions:` REPLACES the top-level set outright, it does not merge
+    # with it, so every scope this job touches has to be listed here -- dropping one that
+    # only appears above would fail the job, not inherit.
+    #
+    # This workflow has exactly ONE job, so the effective privilege of the run is entirely
+    # determined by this block and is identical to the top-level block it replaced. That is
+    # deliberate: a scoping change for Scorecard, not a capability change. If a second job
+    # is ever added here, it gets its OWN block -- do not promote this one back up.
+    permissions:
+      # `actions/checkout`, so the invariant scanner below reads the default-branch tree.
+      contents: read
+      # The only elevated scope. Required by the "Approve a workflow run for a fork pull
+      # request" endpoint, and it also covers listing a head SHA's `action_required` runs.
+      actions: write
+      # Read-only, to drive the loop from the open pull requests via `gh pr list`.
+      pull-requests: read
+      # Read-only, and only so the CLA gate can read the `license/cla` commit status.
+      statuses: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
