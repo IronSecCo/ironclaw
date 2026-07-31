@@ -24,15 +24,18 @@ handful of `docker run` flags.
 
 ## How the grade works
 
-`ironctl scan` inspects a container or image and scores seven containment
+`ironctl scan` inspects a running container and scores seven containment
 dimensions: dropped capabilities, non-root user, read-only root filesystem,
 network isolation and egress, seccomp profile, no privileged mode, and no
 dangerous host mounts. Each failing dimension names the exact hole and the flag
-that closes it. No account, no cloud, no agent to install. You can run the same
-scan on your own images in about ten seconds:
+that closes it. No account, no cloud, no agent to install. Six of the seven
+dimensions are set by the `docker run` invocation rather than baked into the
+image, so the scan grades a container, not an image reference. You can run the
+same scan on your own images in about ten seconds:
 
 ```bash
-ironctl scan nginx:latest
+docker run -d --name nginx-scan nginx:latest
+ironctl scan nginx-scan
 ```
 
 Every number below comes from that scan, run over the pinned image manifest in
@@ -102,8 +105,10 @@ image links to a per-dimension scorecard with the precise hardening flags. The
 [scores directory](../scores/index.md) live in the docs and refresh weekly.
 
 If the image you run is not in the survey yet, scan it in ten seconds and see
-your own number:
+your own number. Start the container the way you actually run it, because the
+flags you pass are most of the score:
 
 ```bash
-ironctl scan your-image:tag
+docker run -d --name my-app your-image:tag
+ironctl scan my-app
 ```
