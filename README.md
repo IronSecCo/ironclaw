@@ -652,7 +652,7 @@ asdf-style plugin under [`packaging/asdf-ironclaw/`](packaging/asdf-ironclaw/). 
 release tarball, verifies it against the published `SHA256SUMS`, and drops both binaries on the
 managed PATH:
 
-```
+```text
 ironclaw 0.1.217
 ```
 
@@ -1091,7 +1091,7 @@ build error — which is why the freeze is strict. See [`CONTRIBUTING.md`](CONTR
 
 ## Repository layout
 
-```
+```text
 ironclaw/
   cmd/
     controlplane/   # host daemon entrypoint
