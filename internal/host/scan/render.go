@@ -25,11 +25,25 @@ func RenderTable(w io.Writer, r Report) {
 	if r.HardenedRuntime != "" {
 		fmt.Fprintf(w, "  isolation: %s (hardened runtime; informational, no score bonus)\n", r.HardenedRuntime)
 	}
-	fmt.Fprintf(w, "  score:   %d/%d  grade %s  %s\n\n", r.Score, r.Max, r.Grade, gradeBanner(r.Grade))
+	// Image mode has no composite (IRO-712). Say so where the score would be,
+	// rather than printing a zero or a placeholder grade.
+	if !r.Scored() {
+		fmt.Fprintf(w, "  mode:    image reference (static image config; no container is running)\n")
+		fmt.Fprintf(w, "  score:   not reported for an image reference. See the notes below.\n\n")
+	} else {
+		fmt.Fprintf(w, "  score:   %d/%d  grade %s  %s\n\n", r.Score, r.Max, r.Grade, gradeBanner(r.Grade))
+	}
 
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, "DIMENSION\tVERDICT\tSCORE\tDETAIL")
 	for _, d := range r.Dimensions {
+		if !r.Scored() {
+			// No points are available in either direction; "0/15" would read as a
+			// failed dimension and "15/15" as a passed one, and neither was graded.
+			fmt.Fprintf(tw, "%s\t%s %s\t%s\t%s\n",
+				d.Title, verdictGlyph(d.Verdict), d.Verdict, "-", d.Detail)
+			continue
+		}
 		fmt.Fprintf(tw, "%s\t%s %s\t%d/%d\t%s\n",
 			d.Title, verdictGlyph(d.Verdict), d.Verdict, d.Score, d.Max, d.Detail)
 	}
@@ -65,15 +79,31 @@ func verdictGlyph(v Verdict) string {
 		return "[+]"
 	case VerdictWarn:
 		return "[~]"
+	case VerdictNA:
+		// Not graded, so neither a tick nor a cross: both would be a claim.
+		return "[-]"
 	default: // FAIL / UNKNOWN
 		return "[x]"
 	}
 }
 
-// RenderJSON writes the machine-readable report (schemaVersion 1.0). When a
+// RenderJSON writes the machine-readable report (schemaVersion 1.1). When a
 // non-nil RemediationPlan is passed (from `--fix`), it is spliced in under the
 // "remediation" key so the JSON carries the prescriptive fixes too — fail-closed
 // parity with the human output.
+//
+// SCHEMA 1.1 (IRO-712) moved the contract in two ways:
+//
+//   - "mode" is a new, ALWAYS-PRESENT string: "container" | "image" |
+//     "dockerfile". Switch on it. Never detect the mode from an absent key.
+//   - When mode is "image", the top-level "score", "grade" and "max" keys are
+//     ABSENT, because an image reference has no composite (see scoreImage). Every
+//     dimension then carries score 0 / max 0, so a consumer that sums the
+//     dimensions gets 0/0 rather than a plausible-looking total, and the six
+//     run-time dimensions carry verdict "N/A".
+//
+// The version bump is what lets a consumer pinned to "1.0" notice that the
+// contract moved instead of discovering it as a missing key at runtime.
 func RenderJSON(w io.Writer, r Report, plan ...*RemediationPlan) error {
 	// json does not honour ",inline"; marshal the report and splice fields in.
 	b, err := json.Marshal(r)
@@ -84,8 +114,14 @@ func RenderJSON(w io.Writer, r Report, plan ...*RemediationPlan) error {
 	if err := json.Unmarshal(b, &m); err != nil {
 		return err
 	}
-	m["schemaVersion"] = "1.0"
+	m["schemaVersion"] = "1.1"
 	m["report"] = "ironclaw-containment-scan"
+	if !r.Scored() {
+		// Emit no composite at all rather than a zero that reads as an F.
+		delete(m, "score")
+		delete(m, "grade")
+		delete(m, "max")
+	}
 	if len(plan) > 0 && plan[0] != nil {
 		m["remediation"] = plan[0]
 	}
@@ -117,6 +153,8 @@ func mdGlyph(v Verdict) string {
 		return "✅"
 	case VerdictWarn:
 		return "⚠️"
+	case VerdictNA:
+		return "—"
 	default:
 		return "❌"
 	}

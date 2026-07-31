@@ -18,6 +18,78 @@
 // boundary holds.
 package scan
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
+// ScanMode names WHAT the report actually inspected. It exists because the
+// docker-family CLIs resolve containers and images out of a SINGLE namespace, so
+// `docker inspect <ref>` silently answers for either one (IRO-711): an image ref
+// landed in the container adapter and was graded as if a container existed. The
+// mode is therefore decided by which explicit inspect subcommand succeeded, never
+// inferred from which fields came back.
+//
+// It is a POSITIVE assertion, always emitted. A consumer must never have to
+// detect image mode by an absent key: an absent key and a zero value are
+// indistinguishable at the call site, which is the exact failure this field
+// exists to close.
+type ScanMode int
+
+const (
+	// ModeContainer is the zero value: the report grades the run-time
+	// configuration of a container, either a live one (docker/podman/nerdctl
+	// `container inspect`) or one declared by a manifest (compose, k8s, ECS,
+	// Terraform, …). Every dimension is observable, so the report carries a
+	// composite score and grade.
+	ModeContainer ScanMode = iota
+	// ModeImage means only an IMAGE was inspected. An image manifest carries no
+	// run-time configuration, so six of the seven graded dimensions are not
+	// observable at all and the report deliberately carries NO composite score
+	// and NO grade. Scoring them either way would be a claim about a container
+	// that does not exist.
+	ModeImage
+	// ModeDockerfile means a Dockerfile was graded statically against the
+	// build-time dimension set (dockerfile_score.go). It has its own composite
+	// over its own dimensions.
+	ModeDockerfile
+)
+
+func (m ScanMode) String() string {
+	switch m {
+	case ModeImage:
+		return "image"
+	case ModeDockerfile:
+		return "dockerfile"
+	default:
+		return "container"
+	}
+}
+
+// MarshalJSON emits the mode as its stable string name.
+func (m ScanMode) MarshalJSON() ([]byte, error) { return json.Marshal(m.String()) }
+
+// UnmarshalJSON accepts the stable string names. An unrecognized mode is an
+// error rather than a silent fallback to "container", which would re-create the
+// fail-open the mode field exists to prevent.
+func (m *ScanMode) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	switch s {
+	case "container":
+		*m = ModeContainer
+	case "image":
+		*m = ModeImage
+	case "dockerfile":
+		*m = ModeDockerfile
+	default:
+		return fmt.Errorf("unknown scan mode %q", s)
+	}
+	return nil
+}
+
 // Tristate is a three-valued boolean used for every security posture that a
 // source may or may not report. Unlike a plain bool (or *bool), it makes the
 // "we could not determine this" case a first-class, non-optional value so the
@@ -60,6 +132,11 @@ func boolTri(b bool) Tristate {
 // Fields left at their zero value (Unknown / "" / nil) are treated as unknown
 // and graded fail-closed.
 type Spec struct {
+	// Mode records what was inspected. It is set by the ADAPTER, which is the
+	// only layer that knows: the container adapters leave it at ModeContainer,
+	// SpecFromImageInspect sets ModeImage. The scorers read it and refuse to
+	// grade run-time dimensions that the inspected artifact cannot carry.
+	Mode ScanMode
 	// Source identity (informational; shown in the report header).
 	Source string // "docker" | "compose" | "k8s"
 	Target string // container name/id, compose service, or pod name

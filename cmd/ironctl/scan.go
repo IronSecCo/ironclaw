@@ -502,10 +502,28 @@ func cmdScan(args []string) error {
 			return fmt.Errorf("scan grades one target at a time; got %d: %s", len(positional), strings.Join(positional, " "))
 		}
 		bins := runtimeBins{docker: *dockerBin, podman: *podmanBin, nerdctl: *nerdctlBin}
-		spec, err = containerSpec(*runtime, bins, positional[0])
+		spec, err = targetSpec(*runtime, bins, positional[0])
 	}
 	if err != nil {
 		return err
+	}
+
+	// An image reference has no composite score (IRO-712), so every output that
+	// presupposes one is rejected BEFORE anything is emitted: a non-zero exit and
+	// an explanation, never a grade or a placeholder.
+	if spec.Mode == scan.ModeImage {
+		if err := rejectScoreBearingOutputs(spec.Target, map[string]bool{
+			"--badge":      *badge != "",
+			"--badge-json": *badgeJSON != "",
+			"--badge-md":   *badgeMd != "",
+			"--md":         *md,
+			"--share":      *share,
+			"--sarif":      *sarif != "",
+			"--min-score":  *minScore > 0,
+			"--fix":        *fix || *remediate,
+		}); err != nil {
+			return err
+		}
 	}
 
 	report := scan.Score(spec)
@@ -595,10 +613,11 @@ type compareArgs struct {
 }
 
 // runCompare grades exactly two live containers and prints a side-by-side diff.
-// It reuses containerSpec (the same docker/podman/nerdctl adapters as a single
+// It reuses targetSpec (the same docker/podman/nerdctl adapters as a single
 // scan) and scan.Score, then defers to the comparison renderers. It fails closed:
 // if either target cannot be inspected, the whole compare errors rather than
-// printing a half diff.
+// printing a half diff, and an image reference on either side is rejected because
+// a comparison is a score delta and an image has no score (IRO-712).
 func runCompare(a compareArgs) error {
 	if len(a.targets) != 2 {
 		scanUsage(os.Stderr)
@@ -610,9 +629,12 @@ func runCompare(a compareArgs) error {
 
 	reports := make([]scan.Report, 2)
 	for i, target := range a.targets {
-		spec, err := containerSpec(a.runtime, a.bins, target)
+		spec, err := targetSpec(a.runtime, a.bins, target)
 		if err != nil {
 			return fmt.Errorf("scan target %q: %w", target, err)
+		}
+		if spec.Mode == scan.ModeImage {
+			return scan.UnsupportedForImageRef("--compare", target)
 		}
 		r := scan.Score(spec)
 		r.Version = version.String()
@@ -2984,10 +3006,44 @@ func writeSARIF(path string, r scan.Report, s scan.Spec, opts scan.SARIFOptions)
 // runtimeBins carries the resolved binary name for each supported runtime.
 type runtimeBins struct{ docker, podman, nerdctl string }
 
-// containerSpec inspects a running container with the selected (or auto-detected)
-// OCI runtime and parses the result into a Spec. It fails closed: an unknown or
-// unreachable runtime returns a clear error rather than a silent empty scan.
-func containerSpec(runtime string, bins runtimeBins, target string) (scan.Spec, error) {
+// scoreBearingFlags is the ordered list of flags whose output is a composite
+// score or a gate on one. Ordered so the error names the same flag every run.
+var scoreBearingFlags = []string{
+	"--badge", "--badge-json", "--badge-md", "--md", "--share", "--sarif", "--min-score", "--fix",
+}
+
+// rejectScoreBearingOutputs fails the run when any score-bearing output was
+// requested for an image-mode target. Image mode supports the default table and
+// --json only; everything else here would have to invent a number.
+func rejectScoreBearingOutputs(target string, requested map[string]bool) error {
+	for _, f := range scoreBearingFlags {
+		if requested[f] {
+			return scan.UnsupportedForImageRef(f, target)
+		}
+	}
+	return nil
+}
+
+// targetSpec resolves a positional scan target with the selected (or
+// auto-detected) OCI runtime and parses the result into a Spec.
+//
+// MODE DETECTION IS EXPLICIT (IRO-712). docker/podman/nerdctl resolve containers
+// AND images out of a single namespace, so a bare `<bin> inspect <ref>` answers
+// for either one and the caller cannot tell which it got. That is how an image
+// reference used to land in the CONTAINER adapter and get graded as if a
+// container existed, awarding 40 points of PASS on postures nothing had observed
+// (IRO-711). So we ask two separate, unambiguous questions:
+//
+//	<bin> container inspect <target>   -> container mode
+//	<bin> image inspect <target>       -> image mode
+//
+// Containers win a name collision, matching the bare `inspect` precedence. There
+// is no ref heuristic and no inference from which fields came back: the mode is
+// whichever explicit subcommand answered, and it is stamped onto the Spec.
+//
+// It fails closed: an unknown or unreachable runtime, or a target that is neither
+// a container nor an image, returns a clear error rather than a silent empty scan.
+func targetSpec(runtime string, bins runtimeBins, target string) (scan.Spec, error) {
 	rt := strings.ToLower(strings.TrimSpace(runtime))
 	if rt == "" || rt == "auto" {
 		detected, err := detectRuntime(bins)
@@ -2997,28 +3053,38 @@ func containerSpec(runtime string, bins runtimeBins, target string) (scan.Spec, 
 		rt = detected
 	}
 
+	var bin string
 	switch rt {
 	case "docker":
-		out, err := runInspect(bins.docker, "docker", target)
-		if err != nil {
-			return scan.Spec{}, err
-		}
-		return scan.SpecFromDockerInspect(out)
+		bin = bins.docker
 	case "podman":
-		out, err := runInspect(bins.podman, "podman", target)
-		if err != nil {
-			return scan.Spec{}, err
-		}
-		return scan.SpecFromPodmanInspect(out, podmanRootless(bins.podman))
+		bin = bins.podman
 	case "nerdctl":
-		out, err := runInspect(bins.nerdctl, "nerdctl", target)
-		if err != nil {
-			return scan.Spec{}, err
-		}
-		return scan.SpecFromNerdctlInspect(out)
+		bin = bins.nerdctl
 	default:
 		return scan.Spec{}, fmt.Errorf("unknown --runtime %q: expected auto|docker|podman|nerdctl", runtime)
 	}
+
+	out, cerr := runInspect(bin, rt, "container", target)
+	if cerr == nil {
+		switch rt {
+		case "docker":
+			return scan.SpecFromDockerInspect(out)
+		case "podman":
+			return scan.SpecFromPodmanInspect(out, podmanRootless(bins.podman))
+		default:
+			return scan.SpecFromNerdctlInspect(out)
+		}
+	}
+
+	// Not a container. Ask the image question separately, so a hit here is a
+	// POSITIVE image-mode determination rather than a guess.
+	iout, ierr := runInspect(bin, rt, "image", target)
+	if ierr == nil {
+		return scan.SpecFromImageInspect(iout, rt, target)
+	}
+
+	return scan.Spec{}, fmt.Errorf("%q is neither a container nor an image known to %s:\n  %v\n  %v", target, rt, cerr, ierr)
 }
 
 // detectRuntime picks the first runtime whose CLI is on PATH, preferring docker,
@@ -3037,22 +3103,25 @@ func detectRuntime(bins runtimeBins) (string, error) {
 	return "", fmt.Errorf("no container runtime found (looked for docker, podman, nerdctl on PATH); install one or pass --runtime and the matching --<runtime>-bin")
 }
 
-// runInspect runs `<bin> inspect <target>` and returns its stdout, surfacing the
-// runtime's own stderr on failure.
-func runInspect(bin, runtime, target string) ([]byte, error) {
+// runInspect runs `<bin> <kind> inspect <target>` (kind is "container" or
+// "image") and returns its stdout, surfacing the runtime's own stderr on failure.
+//
+// The kind subcommand is NOT optional: a bare `<bin> inspect` resolves both
+// namespaces and is exactly the ambiguity IRO-712 removes.
+func runInspect(bin, runtime, kind, target string) ([]byte, error) {
 	if _, err := exec.LookPath(bin); err != nil {
 		return nil, fmt.Errorf("%s runtime selected but %q is not on PATH: %w", runtime, bin, err)
 	}
-	out, err := exec.Command(bin, "inspect", target).Output()
+	out, err := exec.Command(bin, kind, "inspect", target).Output()
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
 			msg := strings.TrimSpace(string(ee.Stderr))
 			if msg == "" {
 				msg = err.Error()
 			}
-			return nil, fmt.Errorf("%s inspect %s: %s", runtime, target, msg)
+			return nil, fmt.Errorf("%s %s inspect %s: %s", runtime, kind, target, msg)
 		}
-		return nil, fmt.Errorf("run %s inspect: %w (is %s running and the container up?)", bin, err, runtime)
+		return nil, fmt.Errorf("run %s %s inspect: %w (is %s running?)", bin, kind, err, runtime)
 	}
 	return out, nil
 }
@@ -3080,6 +3149,7 @@ func scanUsage(w *os.File) {
 
 USAGE:
   ironctl scan <container>                    grade a running container (docker|podman|nerdctl)
+  ironctl scan <image-ref>                    report the image USER finding only; NO score (see IMAGE REFERENCES)
   ironctl scan --compose FILE [--service N]   grade a docker-compose service
   ironctl scan --k8s FILE                     grade a Kubernetes pod/workload manifest
   ironctl scan --k8s-admission FILE            grade the workload in a Kubernetes AdmissionReview JSON (webhook backend; '-' = stdin)
@@ -3132,6 +3202,18 @@ IRO-429 scoring stays runtime-agnostic (no points for a runtime name).
 Dimensions graded: non-root user, dropped capabilities, seccomp, network
 isolation, read-only rootfs, docker.sock exposure, shared host namespaces.
 Unknown postures are graded fail-closed (as insecure).
+
+IMAGE REFERENCES:
+A positional target is resolved with an explicit `+"`<runtime> container inspect`"+`
+first, then `+"`<runtime> image inspect`"+`; containers win a name collision. An IMAGE
+gets NO containment score and NO grade. Six of the seven dimensions (capabilities,
+seccomp, network, read-only rootfs, control-socket exposure, host namespaces) are
+set at `+"`docker run`"+` time and simply do not exist in an image, so they report
+N/A rather than a graded verdict. Only the image USER finding is real. Image mode
+supports the default table and --json; --badge, --badge-json, --badge-md, --md,
+--share, --sarif, --min-score, --fix and --compare all need a composite score and
+exit non-zero instead of inventing one. To grade a workload, run it and scan the
+container; to grade the image build, use --dockerfile.
 
 --helm renders a chart locally with `+"`helm template`"+` (no cluster, daemon-free) and
 grades the rendered workloads with the same k8s dimension set. The chart grade is
