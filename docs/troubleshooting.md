@@ -22,7 +22,7 @@ ironctl --addr http://127.0.0.1:8787 doctor --runtime runsc \
 
 Example output from a fresh, not-yet-started checkout:
 
-```
+```text
 ironctl doctor — diagnostics
   [FAIL] control-plane API: dial tcp 127.0.0.1:8787: connect: connection refused
          fix: is the daemon running? check --addr and that the port is reachable
@@ -64,7 +64,7 @@ The fixes for the most common errors people hit going from "found the repo" to
 
 ### Build fails with a SQLite / cgo error
 
-```
+```text
 # undefined: sqlite3 …  /  cgo: C compiler "cc" not found  /  exec: "gcc": not found
 ```
 
@@ -86,7 +86,7 @@ CI, unset it. See [Building from source](building.md).
 
 ### Daemon unreachable (`connection refused`)
 
-```
+```text
 [FAIL] control-plane API: dial tcp 127.0.0.1:8787: connect: connection refused
 ```
 
@@ -101,7 +101,7 @@ is normal — give dependencies a moment, then check the daemon logs if it persi
 
 ### Port 8787 already in use
 
-```
+```text
 listen tcp 127.0.0.1:8787: bind: address already in use
 ```
 
@@ -136,7 +136,7 @@ sealed production seal. Tear it down with
 
 ### Sandbox exits on startup (macOS Docker file sharing)
 
-```
+```text
 host/session: sandbox for ses_… exited early with code 1; first log line: ironclaw sandbox: read session key ".../keys/ses_…/session.key": … no such file or directory
 ```
 
@@ -164,7 +164,7 @@ default state dir under `~/Library/Caches` is normally covered — this bites cu
 
 ### Sandbox runtime: `runsc` not found (gVisor)
 
-```
+```text
 [FAIL] sandbox runtime (runsc): runsc not found on PATH
 ```
 
@@ -181,7 +181,7 @@ Production sandboxes run on the **Linux control-plane host** behind gVisor.
 
 ### Permission / user-namespace (userns) errors
 
-```
+```text
 # operation not permitted  /  newuidmap: …  /  failed to create user namespace
 ```
 
@@ -199,7 +199,7 @@ the Linux host:
 
 ### No model credentials (and the zero-credential `mock` path)
 
-```
+```text
 [WARN] model credential: none set — the zero-credential `mock` provider works, but no real model is reachable
 ```
 
@@ -218,7 +218,7 @@ Restart the daemon and re-run `ironctl doctor` — the check flips to green. See
 
 ### Channel adapter not arming (env mismatch)
 
-```
+```text
 [WARN] channel adapters: no channel armed from the environment
 ```
 
@@ -232,7 +232,7 @@ every built-in channel and the variable it reads; or wire one explicitly with
 
 ### API token missing or rejected (401)
 
-```
+```text
 [FAIL] API auth / token: token rejected (401)
 ```
 
@@ -250,7 +250,7 @@ mesh. The zero-credential demo uses the fixed loopback token `ironclaw-demo`.
 
 ### onboard config missing or too permissive
 
-```
+```text
 [WARN] onboard config: not present   (or)   readable beyond the owner
 ```
 
