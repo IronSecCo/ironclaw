@@ -14,12 +14,17 @@ Two surfaces are required to be exhaustive, and this asserts both:
 * ``docs/blog/hardening-guides.md`` -- the hub page, which opens with the words
   "Every guide below", so an omission there makes the page's own claim false.
 
-``docs/blog/index.md`` and ``README.md`` are deliberately *not* checked. Both are
-curated prose with a hand-written, per-guide summary quoting real before/after
-scores, so "every guide appears" is not a property either one claims or should
-claim; both instead link the hub, which is exhaustive. Enforcing presence there
-would demand a fabricated summary per guide, and a check that pressures an
-author into inventing scores is worse than no check.
+``docs/blog/index.md`` and ``README.md`` are deliberately *not* checked. Neither
+claims, or should claim, that every guide appears; both instead link the hub,
+which is exhaustive. ``index.md`` gives each entry a hand-written summary quoting
+real before/after scores, so enforcing presence there would demand a fabricated
+summary per guide, and a check that pressures an author into inventing scores is
+worse than no check. ``README.md`` carries a short, representative link list: it
+is the front door, not a catalog, and it stays short on purpose.
+
+The contributor-facing statement of this rule is in CONTRIBUTING.md, under
+"Adding a hardening guide: which indexes are exhaustive" (IRO-711). Keep the two
+in sync.
 
 Usage:
 

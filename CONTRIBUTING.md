@@ -187,6 +187,43 @@ then `mkdocs build --strict`). The assembler fails the build loudly if a
 fragment points at a missing page, so a typo can never silently drop a page.
 See the top of [`docs/hooks.py`](docs/hooks.py) for the fragment format.
 
+### Adding a hardening guide: which indexes are exhaustive
+
+Hardening guides (`docs/blog/harden-*.md`) are listed on four surfaces, and only
+two of them are meant to list *every* guide. The split is deliberate, so knowing
+which is which saves you a round of review:
+
+| Surface | Exhaustive? | Enforced by |
+|---------|-------------|-------------|
+| [`docs/blog/.nav.yml`](docs/blog/.nav.yml) — the blog nav | **Yes, every guide** | `scripts/check-guide-index.py` in CI |
+| [`docs/blog/hardening-guides.md`](docs/blog/hardening-guides.md) — the hub | **Yes, every guide** | `scripts/check-guide-index.py` in CI |
+| [`docs/blog/index.md`](docs/blog/index.md) — the blog landing page | No, curated | maintainer, case by case |
+| [`README.md`](README.md) | No, curated | maintainer, case by case |
+
+**Adding a guide requires the first two and nothing else.** Wire your new guide
+into the nav and the hub, and CI is satisfied — `check-guide-index.py` fails the
+build if either is missing, and that is the whole contract.
+
+**Do not add your guide to `docs/blog/index.md` or `README.md`, and do not treat
+its absence there as a bug to fix.** Neither page claims to list every guide, and
+most guides are deliberately absent from both — both link the hub, which is the
+exhaustive one. They are curated for different reasons:
+
+- `docs/blog/index.md` gives every entry a hand-written summary quoting that
+  guide's real before/after scores ("scores 48 of 100 (D) … the honest hardened
+  ceiling is 89 of 100 (B)"). Making it exhaustive would mean inventing a summary
+  and a score line per guide, and a rule that pressures an author into
+  fabricating numbers is worse than no rule.
+- `README.md` carries a short, representative selection of guides as a link list.
+  It is the project's front door, not a catalog, and it stays short on purpose.
+
+Whether a particular guide earns a spot on either is an editorial call a
+maintainer makes case by case, so please leave it to review rather than
+backfilling it in a PR.
+
+The same reasoning, from the enforcing side, is in the module docstring of
+[`scripts/check-guide-index.py`](scripts/check-guide-index.py).
+
 ## Pull requests
 
 - Branch from `main`, make your change, and open a PR against `main`.
