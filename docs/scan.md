@@ -30,7 +30,7 @@ grade for 150+ of the most-pulled public images, then scan your own in 10 second
 See the full ranking, best to worst, on the
 [Container Isolation Leaderboard](scores/leaderboard.md).
 
-```
+```text
 $ ironctl scan my-container
 IronClaw containment scan
   target:  my-container (docker)
@@ -800,7 +800,7 @@ comparison page.
 ironctl scan --compare my-hardened-ctr my-default-ctr
 ```
 
-```
+```text
 IronClaw containment scan: comparison
 
   A: my-hardened-ctr (docker)  90/100 grade A
@@ -915,7 +915,7 @@ one copy-pasteable hardened artifact that scores A when applied. It is
 fail-closed and deterministic, and `--json` carries the same remediation under a
 `remediation` key.
 
-```
+```text
 $ ironctl scan my-container --fix
   score:   23/100  grade F  (wide open)
   ... scorecard table ...
@@ -998,7 +998,7 @@ the scorecard as a sticky pull-request comment and fails the check below your
 
 An IronClaw `ic-sbx-*` sandbox scores a clean 100:
 
-```
+```text
 $ ironctl scan ic-sbx-mg-abc123
   score:   100/100  grade A  (hardened)
 ```
