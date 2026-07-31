@@ -14,7 +14,7 @@ the sandbox. It is the **only** package both sides import, and it is
 Once the skeleton lands, neither agent may edit `internal/contract/**`
 unilaterally. Every file there carries the banner:
 
-```
+```text
 // FROZEN CONTRACT — do not edit without a joint RFC (see docs/contract.md).
 ```
 
