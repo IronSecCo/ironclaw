@@ -7,7 +7,7 @@ description: "How isolated is nexus3:3.75.0 by default? IronClaw scores its sand
 
 Run with plain `docker run sonatype/nexus3:3.75.0` defaults, no hardening flags, the **nexus3** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `sonatype/nexus3:3.75.0` at digest `sha256:cdf8d3b1d7251183dfe43e208a87060a8b410e0e1b25254ac40a1391caf19c5b`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `sonatype/nexus3:3.75.0` at digest `sha256:cdf8d3b1d7251183dfe43e208a87060a8b410e0e1b25254ac40a1391caf19c5b` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

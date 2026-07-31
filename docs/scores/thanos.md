@@ -7,7 +7,7 @@ description: "How isolated is thanos:v0.37.2 by default? IronClaw scores its san
 
 Run with plain `docker run quay.io/thanos/thanos:v0.37.2` defaults, no hardening flags, the **thanos** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `quay.io/thanos/thanos:v0.37.2` at digest `sha256:4ec6df40fdb921de162677b321057caa8fb8324c65f4cfae9568ed55c4469e2c`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `quay.io/thanos/thanos:v0.37.2` at digest `sha256:4ec6df40fdb921de162677b321057caa8fb8324c65f4cfae9568ed55c4469e2c` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

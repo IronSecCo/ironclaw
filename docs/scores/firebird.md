@@ -7,7 +7,7 @@ description: "How isolated is firebird:5.0.1 by default? IronClaw scores its san
 
 Run with plain `docker run firebirdsql/firebird:5.0.1` defaults, no hardening flags, the **firebird** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `firebirdsql/firebird:5.0.1` at digest `sha256:b89818b7017398ac1808ede3985685b95f936a8d884a786425faa774505d5a03`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `firebirdsql/firebird:5.0.1` at digest `sha256:b89818b7017398ac1808ede3985685b95f936a8d884a786425faa774505d5a03` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

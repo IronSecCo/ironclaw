@@ -7,7 +7,7 @@ description: "How isolated is teamcity-server:2024.12 by default? IronClaw score
 
 Run with plain `docker run jetbrains/teamcity-server:2024.12` defaults, no hardening flags, the **teamcity server** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `jetbrains/teamcity-server:2024.12` at digest `sha256:2defd16d7b690268483b81df01c6d0cef2ff22eff2258873422e66107af41dfa`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `jetbrains/teamcity-server:2024.12` at digest `sha256:2defd16d7b690268483b81df01c6d0cef2ff22eff2258873422e66107af41dfa` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
