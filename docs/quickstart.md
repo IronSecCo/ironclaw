@@ -193,7 +193,7 @@ human decision. That's the whole point.
 `change pending` prints a table; pass `--json` to any read command (`change pending`, `change history`,
 `audit`) for machine-readable output:
 
-```
+```text
 ID                            KIND     GROUP      REQUESTED-BY  AGE
 chg_20260617135058.557304000  persona  dev-agent  cli:dev       2m
 
@@ -216,7 +216,7 @@ decision the gateway made.
 
 ## What just happened
 
-```
+```text
 ironctl change submit ─▶ gateway (HELD) ─▶ ironctl change approve ─▶ applied ─▶ audit log
                           ▲ no bypass: persona, tools, packages, wiring,
                             permissions, mounts ALL flow through here
