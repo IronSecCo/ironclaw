@@ -137,7 +137,7 @@ ironctl scan my-sandbox --md
 
 
 ### IronClaw containment scan: `my-sandbox` scored **100/100 (grade A)**
-
+```text
 | Dimension | Verdict | Score |
 |---|---|---|
 | Non-root user (uid != 0) | PASS | 15/15 |
@@ -147,7 +147,7 @@ ironctl scan my-sandbox --md
 | Read-only root filesystem | PASS | 10/10 |
 | No docker.sock exposure | PASS | 15/15 |
 | No shared host namespaces | PASS | 10/10 |
-
+```
 
 ## Wire it into CI
 
