@@ -13,8 +13,10 @@ same image to **89 of 100, grade B**, one point off an A, and the one dimension 
 one a code-quality server needs by definition: scanners and browsers must reach its API and UI. Here
 are the exact gaps and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `sonarqube`, the same data behind its
-> [isolation scorecard](../scores/sonarqube.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `sonarqube` with plain
+> `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan
+> itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/sonarqube.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

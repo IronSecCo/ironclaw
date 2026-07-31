@@ -13,8 +13,10 @@ Higher is safer. A few runtime flags take the same image to **89 of 100, grade B
 A, and the one dimension it cannot reach is the one a search server needs by definition: your app must
 reach its API to run queries. Here are the exact gaps and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `typesense/typesense:27.1`, the same
-> data behind its [isolation scorecard](../scores/typesense.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `typesense/typesense:27.1`
+> with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive.
+> The scan itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/typesense.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

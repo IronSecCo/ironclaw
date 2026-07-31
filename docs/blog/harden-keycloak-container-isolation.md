@@ -13,8 +13,10 @@ Higher is safer. A few runtime flags take the same image to **89 of 100, grade B
 A, and the one dimension it cannot reach is the one an identity provider needs by definition: every
 app and browser must reach its endpoints. Here are the exact gaps and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `quay.io/keycloak/keycloak`, the same
-> data behind its [isolation scorecard](../scores/keycloak.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from
+> `quay.io/keycloak/keycloak` with plain `docker run` defaults, its entrypoint overridden with
+> `sleep` purely to keep it alive. The scan itself executes nothing inside the container. It is the
+> same data behind its [isolation scorecard](../scores/keycloak.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

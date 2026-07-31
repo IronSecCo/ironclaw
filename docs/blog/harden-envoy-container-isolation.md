@@ -12,8 +12,10 @@ safer. A short list of runtime flags takes the same image to **89 of 100, grade 
 A, and the one dimension it cannot reach is the one a proxy needs by definition (it exists to accept
 and forward traffic). Here are the exact gaps and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `envoyproxy/envoy:v1.32-latest`, the
-> same data behind its [isolation scorecard](../scores/envoy.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from
+> `envoyproxy/envoy:v1.32-latest` with plain `docker run` defaults, its entrypoint overridden with
+> `sleep` purely to keep it alive. The scan itself executes nothing inside the container. It is the
+> same data behind its [isolation scorecard](../scores/envoy.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

@@ -7,9 +7,10 @@ description: "Every IronClaw harden-a-container walkthrough in one place. Real i
 
 Every guide below takes one popular Docker image, grades its **default** `docker run` on IronClaw's
 seven-dimension containment scale, and shows the exact `ironctl scan --fix` flags that close the gap.
-The numbers are not hand-waved: each comes from a read-only `docker inspect` of the real image, the
-same data behind that image's [isolation scorecard](../scores/index.md). No workload is executed to
-produce them.
+The grades are not hand-waved: each default grade comes from a read-only inspect of a **running
+container** started from the real image with plain `docker run` defaults, its entrypoint overridden
+with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. It is
+the same data behind that image's [isolation scorecard](../scores/index.md).
 
 Two patterns show up across the set:
 

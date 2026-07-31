@@ -12,8 +12,10 @@ IronClaw's seven-dimension containment scale it scores **48 of 100, grade D (por
 is safer. Six runtime flags take it to **100 of 100, grade A**. This guide shows the exact gaps
 and fixes from the scan data, tuned for the untrusted-code case.
 
-> Every number here comes from a read-only `docker inspect` of `node:22-alpine`, the same data
-> behind its [isolation scorecard](../scores/node.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `node:22-alpine` with
+> plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The
+> scan itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/node.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Why the default is not a sandbox
