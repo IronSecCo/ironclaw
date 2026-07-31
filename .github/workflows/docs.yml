@@ -21,11 +21,17 @@ on:
       - "scripts/check-guide-index.py"
       - "scripts/check-guide-uid.py"
       - "scripts/check-md-fences.py"
+      - "scripts/check-scores-drift.py"
       # check-guide-uid.py reads `hardenedUID` out of this file, so a change to
       # the constant has to trigger this workflow too. Without it, moving the
       # constant would leave 56 guides quoting the old uid and nothing in CI
       # would ever look: the paths filter, not the check, would be the hole.
       - "internal/host/scan/remediate.go"
+      # Every page under docs/scores/ is emitted from this directory
+      # (gen_scorecards.py + results.json), so a change here changes published
+      # docs without touching docs/**. Omitting it meant a generator-only PR ran
+      # no Docs build at all -- see IRO-715 and check-scores-drift.py below.
+      - "examples/isolation-survey/**"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
@@ -39,11 +45,17 @@ on:
       - "scripts/check-guide-index.py"
       - "scripts/check-guide-uid.py"
       - "scripts/check-md-fences.py"
+      - "scripts/check-scores-drift.py"
       # check-guide-uid.py reads `hardenedUID` out of this file, so a change to
       # the constant has to trigger this workflow too. Without it, moving the
       # constant would leave 56 guides quoting the old uid and nothing in CI
       # would ever look: the paths filter, not the check, would be the hole.
       - "internal/host/scan/remediate.go"
+      # Every page under docs/scores/ is emitted from this directory
+      # (gen_scorecards.py + results.json), so a change here changes published
+      # docs without touching docs/**. Omitting it meant a generator-only PR ran
+      # no Docs build at all -- see IRO-715 and check-scores-drift.py below.
+      - "examples/isolation-survey/**"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -145,6 +157,28 @@ jobs:
         # silent on haproxy/grafana/prometheus, where the uid is the image's own
         # and rewriting it would break the container.
         run: python3 scripts/check-guide-uid.py
+
+      - name: Check docs/scores/ still matches its generator
+        # docs/scores/ is not hand-written: all 270 files under it are emitted by
+        # examples/isolation-survey/gen_scorecards.py from results.json, and
+        # committed so the site builds without re-running the survey. Committed
+        # bytes and generator can therefore disagree, and nothing else here would
+        # see it -- the pages build fine, link fine and carry front-matter fine
+        # whether or not they match what the generator would emit today.
+        #
+        # The damage is deferred, which is why it needs a gate: scores-refresh.yml
+        # re-runs the generator weekly and force-opens a rolling PR, so a template
+        # change that landed without re-emitting gets rewritten across all 252
+        # published scorecards inside a diff already full of legitimate score
+        # movement. Catch it on the PR that changed the generator instead.
+        # A step in `build` for the same reason as the checks around it: `build`
+        # is the required check on ruleset 17917971 and a new job name would not
+        # be. Stdlib only, so it runs before the toolchain install and fails fast
+        # (~1s). Negative controls: scripts/tests/test_check_scores_drift.py (run
+        # by ci.yml script-tests), including the two carve-outs a naive `diff -r`
+        # gets wrong -- hand-maintained .nav.yml files, and the generator's
+        # routine stderr warnings. See IRO-715.
+        run: python3 scripts/check-scores-drift.py
 
       - name: Install MkDocs toolchain (hash-pinned)
         # --require-hashes makes pip refuse any wheel whose SHA-256 isn't in the
