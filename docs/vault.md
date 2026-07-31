@@ -13,7 +13,7 @@ so neither the sandbox nor the egress broker ever becomes a secret sink (threat 
 
 ## How a vaulted request flows
 
-```
+```text
 sandbox ──vault://github/repos/acme──▶ egress broker ──▶ vault injector ──▶ api.github.com
   (no key)                              (per-session     (holds the key,      (sees the
                                          socket, policy    attaches it)         real token)
