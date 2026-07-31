@@ -48,7 +48,7 @@ Scan it:
 ironctl scan --dockerfile Dockerfile
 ```
 
-```
+```text
 IronClaw containment scan
   target:  Dockerfile (dockerfile)
   score:   5/100  grade F  (wide open)

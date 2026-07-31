@@ -10,7 +10,7 @@ sandbox-containment -- while the page silently started rendering the literal
 sample text as a real ``###`` heading (which entered the page nav) and a real
 table. A human reading the diff caught it. See IRO-707.
 
-Two rules, and the second one is the interesting one:
+Three rules, and the second one is the interesting one:
 
 ``unclosed fence``
     An opening fence with no matching close before EOF. The textbook breakage,
@@ -28,18 +28,40 @@ Two rules, and the second one is the interesting one:
     repo. It is deliberately a whitespace rule in service of a structural one:
     a deleted line leaves no other trace to assert on.
 
-Known limitation: a fence indented inside a list item is often written with no
-blank line around it, so deleting *that* kind of fence leaves no double-blank
-and this check cannot see it. Requiring blank lines around every fence would
-flag six legitimate list-embedded fences in docs/providers/ollama.md and
-docs/pr-review-process.md, and a check that pressures authors into breaking
-valid list markup is worse than a documented gap.
+``bare opening fence``
+    An opening fence with an empty info string. Untagged blocks lose syntax
+    highlighting, and they are also what a careless "standardize the fences"
+    sweep leaves behind, so the corpus staying tagged is what keeps the two
+    rules above reading a consistent shape.
 
-Not asserted here, on purpose: *bare* (untagged) opening fences. That is a good
-invariant and would be a third rule, but ``main`` carries 48 of them today; #656
-is the PR that tags 45. Turning it on now would mean either failing on main or
-shipping a suppression list. It becomes enforceable in a follow-up once #656
-lands and the last three sites are tagged. See IRO-707.
+    This rule is live, on by default, with no suppression list -- but it could
+    not ship with IRO-707. Immediately before #656 (``8c384e5``) the in-scope
+    corpus carried 48 bare openers, so turning it on then would have meant
+    either failing on main or shipping exactly the suppression list this rule
+    now does without. #656 tagged 45 of them across 22 files; the last three
+    (docs/assets/live-containment-social/STORYBOARD.md,
+    docs/blog/scan-a-dockerfile-for-security-issues.md, docs/site/quickstart.mdx)
+    were tagged in the commit that enabled this rule. See IRO-709 / IRO-710.
+
+    Only *opening* fences are checked. A bare ``` inside a longer ```` block is
+    block content, and the closing fence of any block is required to be bare --
+    both fall out of the parser below rather than needing a special case.
+
+Known limitation of the stray-blank-line rule: a fence indented inside a list
+item is often written with no blank line around it, so deleting *that* kind of
+fence leaves no double-blank and this check cannot see it. Requiring blank lines
+around every fence would flag six legitimate list-embedded fences in
+docs/providers/ollama.md and docs/pr-review-process.md, and a check that
+pressures authors into breaking valid list markup is worse than a documented
+gap.
+
+``PATTERNS`` is deliberately narrower than the repo. 540 markdown files exist;
+471 are in scope. The other 69 carry 33 bare openers of their own (20 under
+examples/integrations, 9 under community/, plus api/, packaging/, runbooks/).
+Widening the scope is a real proposal with a real diff attached, not a drive-by
+edit to the tuple below -- the rules here are only as trustworthy as the
+green they produce, and quietly growing the corpus is how a check starts
+getting suppressed.
 
 ``CODE_OF_CONDUCT.md`` is excluded: it is a verbatim copy of the Contributor
 Covenant, third-party licensed text we do not get to reformat, and it carries
@@ -81,7 +103,7 @@ class Finding:
 
 
 def check_text(rel: Path, text: str) -> tuple[list[Finding], int]:
-    """Apply both rules to one file, returning findings and the fences seen."""
+    """Apply all three rules to one file, returning findings and fences seen."""
     lines = text.split("\n")
     # split() on a trailing newline yields a phantom final "" that is EOF, not a
     # line. Dropping it keeps line numbers honest and stops every well-formed
@@ -109,6 +131,18 @@ def check_text(rel: Path, text: str) -> tuple[list[Finding], int]:
                 open_delim, open_line = delim, lineno
                 fences += 1
                 prev_blank = False
+                if not info:
+                    findings.append(
+                        Finding(
+                            rel,
+                            lineno,
+                            "bare opening code fence: this block opens with no "
+                            "language tag. Add one so the block is highlighted "
+                            "and reads as deliberate -- ```text for literal "
+                            "command output, ```bash for commands to run. The "
+                            "closing fence stays bare",
+                        )
+                    )
                 continue
             # A closing fence matches the opening delimiter, is at least as
             # long, and carries no info string. Anything else is block content.
@@ -211,7 +245,7 @@ def main(argv: list[str]) -> int:
     # have to be distinguishable in the log.
     print(
         f"ok: {len(paths)} markdown files, {fences} fenced blocks, "
-        "every block closed and no stray blank lines"
+        "every block opened with a language tag, closed, and no stray blank lines"
     )
     return 0
 

@@ -15,6 +15,10 @@ heading and a real table. All 17 checks passed. The exact pre-fix byte pattern
 is reproduced in test_deleted_fence_pair_is_caught -- a balance-only guard
 passes on it, which is why the stray-blank-line rule exists.
 
+The bare-opening-fence rule (IRO-709) landed later, once #656 had tagged the
+corpus it would otherwise have failed on. Its controls are in
+BareOpeningFenceTest.
+
 Run:
     python3 -m unittest discover -s scripts/tests -v
 """
@@ -183,18 +187,6 @@ class FalsePositiveTest(unittest.TestCase):
             code, output = run(root)
         self.assertEqual(code, 0, output)
 
-    def test_bare_opening_fence_is_not_flagged_yet(self):
-        """Rule 3 is deliberately not shipped; main carries 48 bare fences.
-
-        This pins the decision so that turning it on is a visible change to this
-        test rather than a silent one. See the module docstring of the checker.
-        """
-        with tempfile.TemporaryDirectory() as tmp:
-            root = pathlib.Path(tmp)
-            build_tree(root, '# t\n\n```\nsome output\n```\n')
-            code, output = run(root)
-        self.assertEqual(code, 0, output)
-
     def test_single_trailing_newline_is_not_a_stray_blank(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
@@ -210,6 +202,65 @@ class FalsePositiveTest(unittest.TestCase):
             write(root, 'CODE_OF_CONDUCT.md', '# CoC\n\n\n## Scope\n\n\ntext.\n')
             code, output = run(root)
         self.assertEqual(code, 0, output)
+
+
+class BareOpeningFenceTest(unittest.TestCase):
+    """Rule 3 (IRO-709). Held back from IRO-707 until #656 tagged the corpus.
+
+    The negative control and its inverse are deliberately adjacent: the rule is
+    only worth anything if it fires on an untagged block *and* stays quiet on a
+    tagged one. The remaining cases pin the two shapes a naive version of this
+    rule gets wrong -- a bare closing fence, which is required to be bare, and a
+    bare fence quoted inside a longer block, which is content.
+    """
+
+    def test_bare_opening_fence_is_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            build_tree(root, '# t\n\n```\nsome output\n```\n')
+            code, output = run(root)
+        self.assertEqual(code, 1, output)
+        self.assertIn('docs/page.md:3:', output)
+        self.assertIn('bare opening code fence', output)
+
+    def test_tagged_opening_fence_is_green(self):
+        """The inverse control: the rule must not fire on the fixed shape."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            build_tree(root, '# t\n\n```text\nsome output\n```\n')
+            code, output = run(root)
+        self.assertEqual(code, 0, output)
+
+    def test_closing_fence_is_not_reported_as_bare(self):
+        """A closing fence takes no info string, so it must never be a finding.
+
+        Asserts the count, not just the exit code: a rule that fired on both
+        ends of every block would still exit 1 on the test above.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            build_tree(root, '# t\n\n```\nout\n```\n\n```\nmore\n```\n')
+            code, output = run(root)
+        self.assertEqual(code, 1, output)
+        self.assertEqual(output.count('bare opening code fence'), 2, output)
+        self.assertIn('docs/page.md:3:', output)
+        self.assertIn('docs/page.md:7:', output)
+
+    def test_bare_fence_quoted_inside_a_longer_block_is_content(self):
+        """A ``` inside a ````markdown block is sample text, not an opening."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            build_tree(root, '# t\n\n````markdown\n```\nls\n```\n````\n')
+            code, output = run(root)
+        self.assertEqual(code, 0, output)
+
+    def test_bare_tilde_fence_is_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            build_tree(root, '# t\n\n~~~\nout\n~~~\n')
+            code, output = run(root)
+        self.assertEqual(code, 1, output)
+        self.assertIn('bare opening code fence', output)
 
 
 class ScopeTest(unittest.TestCase):

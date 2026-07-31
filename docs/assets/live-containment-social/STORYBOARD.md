@@ -47,7 +47,7 @@ Six beats, roughly 82 seconds, inside the 60 to 90 second window.
 
 ## End card copy (beat 6)
 
-```
+```text
 Isolation you can prove.
 
 github.com/IronSecCo/ironclaw          (star the repo)
