@@ -20,6 +20,7 @@ on:
       - "scripts/check_links.py"
       - "scripts/check-guide-index.py"
       - "scripts/check-guide-uid.py"
+      - "scripts/check-md-fences.py"
       # check-guide-uid.py reads `hardenedUID` out of this file, so a change to
       # the constant has to trigger this workflow too. Without it, moving the
       # constant would leave 56 guides quoting the old uid and nothing in CI
@@ -37,6 +38,7 @@ on:
       - "scripts/check_links.py"
       - "scripts/check-guide-index.py"
       - "scripts/check-guide-uid.py"
+      - "scripts/check-md-fences.py"
       # check-guide-uid.py reads `hardenedUID` out of this file, so a change to
       # the constant has to trigger this workflow too. Without it, moving the
       # constant would leave 56 guides quoting the old uid and nothing in CI
@@ -67,6 +69,25 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+
+      - name: Check markdown code fences are intact
+        # Nothing else in CI reads markdown *structure*. PR #656 proved the cost:
+        # it deleted the two fences wrapping the sample `ironctl scan --md`
+        # output in docs/blog/audit-your-sandbox-in-10-seconds.md, and all 17
+        # checks went green while the page started rendering that literal sample
+        # as a real `###` heading (which entered the nav) and a real table.
+        # `mkdocs build --strict` does not care, and neither does anything below.
+        #
+        # Two rules: an unclosed fence, and -- the one that actually catches
+        # #656, which left the file perfectly balanced -- a two-blank run outside
+        # a fenced block, which is the trace a *deleted* fence leaves behind.
+        # A step in `build` for the same reason as the checks around it: `build`
+        # is the required check on ruleset 17917971 and a new job name would not
+        # be. Stdlib only, so it runs before the toolchain install and fails
+        # fast. Negative controls: scripts/tests/test_check_md_fences.py (run by
+        # ci.yml script-tests), including a fixture of #656's exact pre-fix bytes
+        # and an assertion that a balance-only guard is green on it. See IRO-707.
+        run: python3 scripts/check-md-fences.py
 
       - name: Check root Markdown links and anchor fragments
         # Root Markdown (README.md, CONTRIBUTING.md, SECURITY.md, ...) is not part
