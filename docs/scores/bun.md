@@ -7,7 +7,7 @@ description: "How isolated is bun:1.1 by default? IronClaw scores its sandbox po
 
 Run with plain `docker run oven/bun:1.1` defaults, no hardening flags, the **bun** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `oven/bun:1.1` at digest `sha256:d6ad4d3280d3e7e92b793a924105d68766d60b1f36709f4cee11bc8737782621`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `oven/bun:1.1` at digest `sha256:d6ad4d3280d3e7e92b793a924105d68766d60b1f36709f4cee11bc8737782621` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

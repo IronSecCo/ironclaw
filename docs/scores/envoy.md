@@ -7,7 +7,7 @@ description: "How isolated is envoy:v1.32-latest by default? IronClaw scores its
 
 Run with plain `docker run envoyproxy/envoy:v1.32-latest` defaults, no hardening flags, the **envoy** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `envoyproxy/envoy:v1.32-latest` at digest `sha256:6bf0d37dd5e8eac4b37effe89a1aec4760f7f2ce860d1fd6af22147eb87a5058`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `envoyproxy/envoy:v1.32-latest` at digest `sha256:6bf0d37dd5e8eac4b37effe89a1aec4760f7f2ce860d1fd6af22147eb87a5058` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

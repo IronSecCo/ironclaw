@@ -7,7 +7,7 @@ description: "How isolated is zeppelin:0.11.2 by default? IronClaw scores its sa
 
 Run with plain `docker run apache/zeppelin:0.11.2` defaults, no hardening flags, the **zeppelin** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `apache/zeppelin:0.11.2` at digest `sha256:42abb8a82ca074c5a419beb69b4f714dc15dfefedb4c4f2a9fa5eb26377a1c30`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `apache/zeppelin:0.11.2` at digest `sha256:42abb8a82ca074c5a419beb69b4f714dc15dfefedb4c4f2a9fa5eb26377a1c30` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is scala-sbt:eclipse-temurin-21.0.5_11_1.10.7_3.6.2 b
 
 Run with plain `docker run sbtscala/scala-sbt:eclipse-temurin-21.0.5_11_1.10.7_3.6.2` defaults, no hardening flags, the **scala sbt** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `sbtscala/scala-sbt:eclipse-temurin-21.0.5_11_1.10.7_3.6.2` at digest `sha256:23d41e6f000835e317e33ab2f44e4aedc0bfb23e96bd1046fbafd21406755496`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `sbtscala/scala-sbt:eclipse-temurin-21.0.5_11_1.10.7_3.6.2` at digest `sha256:23d41e6f000835e317e33ab2f44e4aedc0bfb23e96bd1046fbafd21406755496` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

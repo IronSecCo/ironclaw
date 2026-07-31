@@ -7,7 +7,7 @@ description: "How isolated is activemq-artemis:2.38.0 by default? IronClaw score
 
 Run with plain `docker run apache/activemq-artemis:2.38.0` defaults, no hardening flags, the **activemq artemis** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `apache/activemq-artemis:2.38.0` at digest `sha256:fc17d2b82112d87c0a17a38874f3464eb162249f1e289ca25386b7b900047bd0`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `apache/activemq-artemis:2.38.0` at digest `sha256:fc17d2b82112d87c0a17a38874f3464eb162249f1e289ca25386b7b900047bd0` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

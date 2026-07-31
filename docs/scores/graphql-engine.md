@@ -7,7 +7,7 @@ description: "How isolated is graphql-engine:v2.44.0 by default? IronClaw scores
 
 Run with plain `docker run hasura/graphql-engine:v2.44.0` defaults, no hardening flags, the **graphql engine** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `hasura/graphql-engine:v2.44.0` at digest `sha256:4d34476840601fa0c372bce9b1ed15aac6ffc3f0a0db677e81062764c08e1dc5`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `hasura/graphql-engine:v2.44.0` at digest `sha256:4d34476840601fa0c372bce9b1ed15aac6ffc3f0a0db677e81062764c08e1dc5` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

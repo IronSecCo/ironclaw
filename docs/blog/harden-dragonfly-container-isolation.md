@@ -14,9 +14,12 @@ its co-located application talks to over the loopback can close every dimension,
 network. A few runtime flags take the same image to a full **100 of 100, grade A**. Here are the
 exact gaps and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of
-> `docker.dragonflydb.io/dragonflydb/dragonfly:latest`, the same data behind its [isolation
-> scorecard](../scores/dragonfly.md). No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from
+> `docker.dragonflydb.io/dragonflydb/dragonfly:latest` with plain `docker run` defaults, its
+> entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing
+> inside the container. It is the same data behind its
+> [isolation scorecard](../scores/dragonfly.md).
+> [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks
 

@@ -13,8 +13,10 @@ on IronClaw's seven-dimension containment scale, the default configuration score
 **89 of 100, grade B** for a multi-node cluster where peers must reach each other. Here are the exact
 gaps and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `yugabytedb/yugabyte:2.23.0.0-b710`,
-> the same data behind its [isolation scorecard](../scores/yugabyte.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from
+> `yugabytedb/yugabyte:2.23.0.0-b710` with plain `docker run` defaults, its entrypoint overridden
+> with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. It is
+> the same data behind its [isolation scorecard](../scores/yugabyte.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

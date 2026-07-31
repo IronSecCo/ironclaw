@@ -7,7 +7,7 @@ description: "How isolated is authelia:4.38 by default? IronClaw scores its sand
 
 Run with plain `docker run authelia/authelia:4.38` defaults, no hardening flags, the **authelia** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `authelia/authelia:4.38` at digest `sha256:46021dc20efdcc5cdc38a29e3050b8835429a155ae6215388ed3b793a02eb0ab`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `authelia/authelia:4.38` at digest `sha256:46021dc20efdcc5cdc38a29e3050b8835429a155ae6215388ed3b793a02eb0ab` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

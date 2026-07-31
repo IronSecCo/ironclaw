@@ -12,8 +12,10 @@ seven-dimension containment scale, the default configuration scores **48 of 100,
 one point off an A, and the one dimension it cannot reach is the one a broker needs by
 definition (clients must connect to it). Here are the exact gaps and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `rabbitmq:4-alpine`, the same
-> data behind its [isolation scorecard](../scores/rabbitmq.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `rabbitmq:4-alpine` with
+> plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The
+> scan itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/rabbitmq.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

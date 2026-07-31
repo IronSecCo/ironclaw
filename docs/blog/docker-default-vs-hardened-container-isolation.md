@@ -99,6 +99,7 @@ score badge for your repo at the
 **[Container Isolation Scores explorer](https://nivardsec.com/scores)**.
 
 ```bash
-ironctl scan your-image:tag        # see your default score
-ironctl scan your-image:tag --fix  # get the hardened command
+docker run -d --name my-app your-image:tag  # run it the way you actually run it
+ironctl scan my-app                         # see your default score
+ironctl scan my-app --fix                   # get the hardened command
 ```

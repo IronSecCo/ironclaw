@@ -7,7 +7,7 @@ description: "How isolated is argocd:v2.13.2 by default? IronClaw scores its san
 
 Run with plain `docker run quay.io/argoproj/argocd:v2.13.2` defaults, no hardening flags, the **argocd** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `quay.io/argoproj/argocd:v2.13.2` at digest `sha256:1322e91b758b9d44db3af44f457c298831c57a8e1d635118910d35e71f822646`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `quay.io/argoproj/argocd:v2.13.2` at digest `sha256:1322e91b758b9d44db3af44f457c298831c57a8e1d635118910d35e71f822646` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

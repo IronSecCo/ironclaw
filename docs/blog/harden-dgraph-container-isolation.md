@@ -12,8 +12,10 @@ safer. A short list of runtime flags takes the same image to **100 of 100, grade
 graph database that only its co-located services query can drop its network entirely. Here are the
 exact gaps and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `dgraph/dgraph:v24.0.5`, the same data
-> behind its [isolation scorecard](../scores/dgraph.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `dgraph/dgraph:v24.0.5`
+> with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive.
+> The scan itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/dgraph.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

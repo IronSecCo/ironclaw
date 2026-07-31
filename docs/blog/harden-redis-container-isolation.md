@@ -12,8 +12,10 @@ default configuration scores **48 of 100, grade D (porous)**. Higher is safer. S
 flags take the same image to **100 of 100, grade A**. Here are the exact gaps and fixes, from
 the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `redis:7-alpine`, the same data
-> behind its [isolation scorecard](../scores/redis.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `redis:7-alpine` with
+> plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The
+> scan itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/redis.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

@@ -7,7 +7,7 @@ description: "How isolated is drone:2 by default? IronClaw scores its sandbox po
 
 Run with plain `docker run drone/drone:2` defaults, no hardening flags, the **drone** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `drone/drone:2` at digest `sha256:55897c8fb22ddc5dff6be4c85b7fbc3ce07c34fe1f03d7cf2cbbfd095833fca6`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `drone/drone:2` at digest `sha256:55897c8fb22ddc5dff6be4c85b7fbc3ce07c34fe1f03d7cf2cbbfd095833fca6` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

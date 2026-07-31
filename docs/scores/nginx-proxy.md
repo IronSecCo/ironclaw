@@ -7,7 +7,7 @@ description: "How isolated is nginx-proxy:1.6.4 by default? IronClaw scores its 
 
 Run with plain `docker run nginxproxy/nginx-proxy:1.6.4` defaults, no hardening flags, the **nginx proxy** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `nginxproxy/nginx-proxy:1.6.4` at digest `sha256:5dd14e68ea81f33692b810d096ac8ebe7aa789d75ce91e05f09d56d044ed8ee3`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `nginxproxy/nginx-proxy:1.6.4` at digest `sha256:5dd14e68ea81f33692b810d096ac8ebe7aa789d75ce91e05f09d56d044ed8ee3` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is orientdb:3.2.35 by default? IronClaw scores its sa
 
 Run with plain `docker run orientdb:3.2.35` defaults, no hardening flags, the **orientdb** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `orientdb:3.2.35` at digest `sha256:c7978496bc63a08b36f65c7c763bfbd1938134dac009fa03fec35ac144e9b431`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `orientdb:3.2.35` at digest `sha256:c7978496bc63a08b36f65c7c763bfbd1938134dac009fa03fec35ac144e9b431` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

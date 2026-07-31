@@ -7,7 +7,7 @@ description: "How isolated is tempo:2.6.1 by default? IronClaw scores its sandbo
 
 Run with plain `docker run grafana/tempo:2.6.1` defaults, no hardening flags, the **tempo** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `grafana/tempo:2.6.1` at digest `sha256:ef4384fce6e8ad22b95b243d8fc165628cda655376fd50e7850536ad89d71d50`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `grafana/tempo:2.6.1` at digest `sha256:ef4384fce6e8ad22b95b243d8fc165628cda655376fd50e7850536ad89d71d50` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

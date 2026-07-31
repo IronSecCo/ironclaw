@@ -7,7 +7,7 @@ description: "How isolated is baserow:1.30.1 by default? IronClaw scores its san
 
 Run with plain `docker run baserow/baserow:1.30.1` defaults, no hardening flags, the **baserow** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `baserow/baserow:1.30.1` at digest `sha256:df0c42eb67e86a5b3f3e608e904f18db98650aaa701098d1d437ef5170979a8e`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `baserow/baserow:1.30.1` at digest `sha256:df0c42eb67e86a5b3f3e608e904f18db98650aaa701098d1d437ef5170979a8e` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is tensorflow:2.18.0 by default? IronClaw scores its 
 
 Run with plain `docker run tensorflow/tensorflow:2.18.0` defaults, no hardening flags, the **tensorflow** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `tensorflow/tensorflow:2.18.0` at digest `sha256:f3be5db24f080b3b228a23eb24f586058b3bec445d81500f95167c70e5473d4e`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `tensorflow/tensorflow:2.18.0` at digest `sha256:f3be5db24f080b3b228a23eb24f586058b3bec445d81500f95167c70e5473d4e` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

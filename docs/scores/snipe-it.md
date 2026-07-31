@@ -7,7 +7,7 @@ description: "How isolated is snipe-it:v7.0.13 by default? IronClaw scores its s
 
 Run with plain `docker run snipe/snipe-it:v7.0.13` defaults, no hardening flags, the **snipe it** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `snipe/snipe-it:v7.0.13` at digest `sha256:076e98033e0beb4dfad6c3d8eef0f5b5f73c1be86ccb0f64e5752c1ebec4fd2a`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `snipe/snipe-it:v7.0.13` at digest `sha256:076e98033e0beb4dfad6c3d8eef0f5b5f73c1be86ccb0f64e5752c1ebec4fd2a` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

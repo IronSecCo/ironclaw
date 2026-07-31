@@ -75,9 +75,9 @@ inspect data, so probe-masking from inside the container cannot change the score
 
 | Runtime | How it is graded | Notes |
 |---|---|---|
-| `docker` | `docker inspect` | the default; also covers Docker-compatible engines |
-| `podman` | `podman inspect` | rootless is detected and credited (see below) |
-| `nerdctl` / containerd | `nerdctl inspect` | Docker-compatible schema; containerd runtime handlers (for example `io.containerd.runsc.v1`) are recognized |
+| `docker` | `docker container inspect` | the default; also covers Docker-compatible engines |
+| `podman` | `podman container inspect` | rootless is detected and credited (see below) |
+| `nerdctl` / containerd | `nerdctl container inspect` | Docker-compatible schema; containerd runtime handlers (for example `io.containerd.runsc.v1`) are recognized |
 | compose | `--compose FILE` | grades a service from the file, no runtime needed |
 | Kubernetes | `--k8s FILE` | grades a pod or workload manifest, no runtime needed |
 | Helm | `--helm CHART` | renders a chart with `helm template` and grades its workloads, no cluster needed |
@@ -101,6 +101,55 @@ is not on your PATH or cannot reach a running container, the scan errors with a
 clear message instead of returning a misleadingly clean report. `--docker-bin`,
 `--podman-bin`, and `--nerdctl-bin` (or the `DOCKER`, `PODMAN`, `NERDCTL`
 environment variables) point at a non-default binary.
+
+### An image reference is not a container
+
+A positional target is resolved with an explicit `container inspect` first and
+then `image inspect`, two separate questions. A container wins a name collision.
+
+**An image reference gets no containment score and no grade.** Six of the seven
+graded dimensions (dropped capabilities, seccomp, network isolation, read-only
+rootfs, control-socket exposure, shared host namespaces) are set by the
+`docker run` invocation and are simply not present in an image, so they report
+`N/A` rather than a verdict. Only the image `USER` finding is real:
+
+```bash
+ironctl scan haproxy:latest
+```
+
+```text
+IronClaw containment scan
+  target:  haproxy:latest (docker)
+  mode:    image reference (static image config; no container is running)
+  score:   not reported for an image reference. See the notes below.
+
+DIMENSION                   VERDICT   SCORE  DETAIL
+Non-root user (uid != 0)    [+] PASS  -      image config sets USER haproxy (uid != 0); ...
+Dropped capabilities        [-] N/A   -      not observable from an image reference: ...
+...
+```
+
+Scoring an image out of the observable total would be worse, not better: with one
+observable dimension, an image that sets `USER` scores 15 out of 15 and every
+badge renderer normalizes that to 100 percent, grade A, on an otherwise
+unhardened image. Nor is the image result a bound in either direction. The same
+image run as a container ranges from 15/100 with hostile flags to 100/100
+hardened, so an image number would predict neither.
+
+Image mode supports the default table and `--json`. Everything that needs a
+composite score (`--badge`, `--badge-json`, `--badge-md`, `--md`, `--share`,
+`--sarif`, `--min-score`, `--fix`, `--compare`) exits non-zero with an
+explanation rather than inventing a number. Scan a workload or a Dockerfile
+instead:
+
+```bash
+# grade the workload you actually run
+docker run -d --name app haproxy:latest
+ironctl scan app
+
+# grade the image build itself
+ironctl scan --dockerfile Dockerfile
+```
 
 ### Rootless Podman is credited
 
@@ -750,7 +799,7 @@ which gates the three container images it ships at `--min-score=80`.
 | Flag | What you get |
 |---|---|
 | (default) | a human-readable scorecard table |
-| `--json` | the full report as JSON (schemaVersion 1.0), for pipelines and dashboards |
+| `--json` | the full report as JSON (schemaVersion 1.1), for pipelines and dashboards |
 | `--fix` | print the concrete remediation for every failed dimension, plus a copy-pasteable hardened config (`--remediate` is an alias) |
 | `--badge scan.svg` | a self-contained SVG badge you can drop into a README |
 | `--badge-json badge.json` | a [shields.io endpoint](https://shields.io/badges/endpoint-badge) JSON file for a live, self-updating README badge |
@@ -760,6 +809,24 @@ which gates the three container images it ships at `--min-score=80`.
 | `--share` | a shareable scan receipt: a grade badge, the per-dimension breakdown, a link to a hosted receipt page, and an install CTA (offline; no network) |
 | `--compare A B` | grade two containers and print a side-by-side isolation-posture diff |
 | `--min-score N` | exit non-zero when the score is below N (a CI gate) |
+
+### JSON schema 1.1
+
+`--json` carries `"schemaVersion": "1.1"`. Two things changed from `1.0`:
+
+- **`mode` is new and always present**, one of `"container"`, `"image"`, or
+  `"dockerfile"`. Switch on it. Never detect the mode from a missing key: before
+  1.1 the only machine-readable tell that a scan had hit an image was that
+  `runtime` was absent, and an absent key is indistinguishable from a zero at the
+  call site.
+- **In `"image"` mode the top-level `score`, `grade` and `max` keys are absent**,
+  because an image reference has no composite. Every dimension then carries
+  `"score": 0, "max": 0`, so summing the dimensions yields 0 out of 0 rather than
+  a plausible-looking total, and the six unobservable dimensions carry
+  `"verdict": "N/A"`.
+
+Container-mode reports are otherwise unchanged from `1.0`: same dimensions, same
+scores, same grade bands.
 
 ## Share a scan receipt
 

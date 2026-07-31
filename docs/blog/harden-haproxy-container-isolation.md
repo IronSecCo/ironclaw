@@ -7,7 +7,11 @@ description: "haproxy:3.1-alpine defaults score 63/100 (grade C): default capabi
 
 HAProxy sits in the request path: it terminates TLS, load-balances every inbound connection, and is the first thing an attacker reaches. A stock `docker run haproxy:3.1-alpine` is better than most edge images out of the box because it runs non-root, but it is not yet the boundary that role deserves. Graded on IronClaw's seven-dimension containment scale, the default configuration scores **63 of 100, grade C (weak)**. Higher is safer. A few runtime flags take the same image to **89 of 100, grade B**, and the one dimension it cannot reach (`network=none`) is the one a load balancer needs by definition: it exists to accept and forward traffic. Here are the exact gaps and fixes from the scan data.
 
-> Every number here comes from a running container scan of `haproxy:3.1-alpine`, the same data behind its [isolation scorecard](../scores/haproxy.md). No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `haproxy:3.1-alpine` with
+> plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The
+> scan itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/haproxy.md).
+> [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks
 

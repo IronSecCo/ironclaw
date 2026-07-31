@@ -7,7 +7,7 @@ description: "How isolated is groovy:4 by default? IronClaw scores its sandbox p
 
 Run with plain `docker run groovy:4` defaults, no hardening flags, the **groovy** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `groovy:4` at digest `sha256:ae895be0ed7584713f2316a5b619dc14477c61f5509117bf01bcffa4b718adfb`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `groovy:4` at digest `sha256:ae895be0ed7584713f2316a5b619dc14477c61f5509117bf01bcffa4b718adfb` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

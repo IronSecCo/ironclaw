@@ -12,8 +12,10 @@ pingcap/tidb:v8.5.0` is not: graded on IronClaw's seven-dimension containment sc
 of 100, grade A** on a single-instance deployment whose components share one private network. Here
 are the exact gaps and fixes from the scan data.
 
-> Every number here comes from a read-only `docker inspect` of `pingcap/tidb:v8.5.0`, the same data
-> behind its [isolation scorecard](../scores/tidb.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `pingcap/tidb:v8.5.0` with
+> plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The
+> scan itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/tidb.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

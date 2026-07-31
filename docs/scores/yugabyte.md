@@ -7,7 +7,7 @@ description: "How isolated is yugabyte:2.23.0.0-b710 by default? IronClaw scores
 
 Run with plain `docker run yugabytedb/yugabyte:2.23.0.0-b710` defaults, no hardening flags, the **yugabyte** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `yugabytedb/yugabyte:2.23.0.0-b710` at digest `sha256:1d743191e0ab021b4d955b882bce18df4758b621d44e72bd3d0d35e2d4327564`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `yugabytedb/yugabyte:2.23.0.0-b710` at digest `sha256:1d743191e0ab021b4d955b882bce18df4758b621d44e72bd3d0d35e2d4327564` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

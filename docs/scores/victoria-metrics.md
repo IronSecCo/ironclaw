@@ -7,7 +7,7 @@ description: "How isolated is victoria-metrics:v1.107.0 by default? IronClaw sco
 
 Run with plain `docker run victoriametrics/victoria-metrics:v1.107.0` defaults, no hardening flags, the **victoria metrics** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `victoriametrics/victoria-metrics:v1.107.0` at digest `sha256:b6ea7d78fb46986533439d6131b0ef3f0ddaec39270bb58c6cc2b74b3d9195d0`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `victoriametrics/victoria-metrics:v1.107.0` at digest `sha256:b6ea7d78fb46986533439d6131b0ef3f0ddaec39270bb58c6cc2b74b3d9195d0` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -52,6 +52,9 @@ const staticCeilingNote = "static Dockerfile scan grades AUTHORING-TIME posture 
 // (table/json/md/badge/sarif) works unchanged.
 func ScoreDockerfile(s DockerfileSpec) Report {
 	r := Report{
+		// Its own mode: this composite is over the BUILD-time dimension set, not
+		// the run-time one, so a consumer must not compare it to a container score.
+		Mode:   ModeDockerfile,
 		Source: s.Source,
 		Target: s.Target,
 		Max:    TotalWeight,

@@ -16,8 +16,10 @@ B**, one point off an A. The one dimension it cannot reach is the one a metrics 
 definition: it has to scrape targets and serve its API. Here are the exact gaps and fixes from the
 scan data.
 
-> Every number here comes from a read-only `docker inspect` of `prom/prometheus:v3.1.0`, the same data
-> behind its [isolation scorecard](../scores/prometheus.md). No workload is executed.
+> Graded from a read-only inspect of a **running container** started from `prom/prometheus:v3.1.0`
+> with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive.
+> The scan itself executes nothing inside the container. It is the same data behind its
+> [isolation scorecard](../scores/prometheus.md).
 > [How scoring works &rarr;](../scan.md)
 
 ## Where the default configuration leaks

@@ -7,7 +7,7 @@ description: "How isolated is postgres:17-alpine by default? IronClaw scores its
 
 Run with plain `docker run postgres:17-alpine` defaults, no hardening flags, the **postgres** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `postgres:17-alpine` at digest `sha256:67f624a4ad70edba8d65c82341124fab7054b277b4f7dea4b04be6f939ce2314`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `postgres:17-alpine` at digest `sha256:67f624a4ad70edba8d65c82341124fab7054b277b4f7dea4b04be6f939ce2314` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

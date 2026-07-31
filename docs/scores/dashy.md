@@ -7,7 +7,7 @@ description: "How isolated is dashy:3.1.0 by default? IronClaw scores its sandbo
 
 Run with plain `docker run lissy93/dashy:3.1.0` defaults, no hardening flags, the **dashy** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `lissy93/dashy:3.1.0` at digest `sha256:e0e4d344f9be6d6f0061bb4f5368efd5034e8f2cec886d8afefc89a76be830d4`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `lissy93/dashy:3.1.0` at digest `sha256:e0e4d344f9be6d6f0061bb4f5368efd5034e8f2cec886d8afefc89a76be830d4` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

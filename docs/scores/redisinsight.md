@@ -7,7 +7,7 @@ description: "How isolated is redisinsight:latest by default? IronClaw scores it
 
 Run with plain `docker run redis/redisinsight:latest` defaults, no hardening flags, the **redisinsight** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
 
-> Graded from a read-only `docker inspect` of `redis/redisinsight:latest` at digest `sha256:b5e19ee240abef6edb435871b90ff8a210995422e8e018ab61c0339d318a1f84`. No workload is executed. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `redis/redisinsight:latest` at digest `sha256:b5e19ee240abef6edb435871b90ff8a210995422e8e018ab61c0339d318a1f84` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

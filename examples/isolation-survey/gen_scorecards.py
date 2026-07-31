@@ -271,9 +271,18 @@ def render_page(scn: dict) -> str:
              f"straight out of a copy-pasted `docker run`; the fixes below close the gap.")
     L.append("")
     if digest:
-        L.append(f"> Graded from a read-only `docker inspect` of "
-                 f"`{image.split('@')[0]}` at digest `{digest}`. No workload is "
-                 f"executed. [How scoring works &rarr;](../scan.md)")
+        # The grading procedure starts a container and inspects it; only the
+        # *scan* is read-only. Saying "docker inspect of <image>" described the
+        # image-ref path, which scores differently (IRO-711) and had readers
+        # reproducing a number this page never showed (IRO-713).
+        L.append(f"> Graded from a read-only inspect of a **running container** "
+                 f"started from `{image.split('@')[0]}` at digest `{digest}` "
+                 f"with plain `docker run` defaults, its entrypoint overridden "
+                 f"with `sleep` purely to keep it alive. The scan itself "
+                 f"executes nothing inside the container. Scoring an image "
+                 f"reference instead of a running container yields a different, "
+                 f"non-comparable result. "
+                 f"[How scoring works &rarr;](../scan.md)")
         L.append("")
 
     # Per-dimension table.
