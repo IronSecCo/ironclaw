@@ -14,15 +14,22 @@
 #   IRONCTL=/path/to/ironctl examples/isolation-survey/survey.sh   # use a prebuilt binary
 #
 # What a re-run does and does not reproduce:
-#   * Image refs are NOT uniformly pinned. A minority of rows in images.txt carry
-#     an explicit @sha256 manifest-list digest; the rest name a tag and resolve to
-#     whatever that tag points at when the survey runs. A re-run therefore tracks
-#     the current published tags and is NOT guaranteed to reproduce the previously
+#   * Image refs are mostly NOT pinned: only 16 of the 295 scenario rows in
+#     images.txt carry an explicit @sha256 digest (12 of the 252 images that
+#     become scorecards). The other 279 name a tag and resolve to whatever that
+#     tag points at when the survey runs, so a fresh run tracks the tags as they
+#     are published that day and is NOT guaranteed to reproduce the previously
 #     published scores — by design, since the dataset is about what the ecosystem
 #     ships today.
-#   * What IS pinned is the provenance: for every scenario the manifest digest
-#     actually scanned is recorded as `.scenarios[].resolvedDigest` in
-#     results.json, so each published score names the exact bits it graded.
+#   * What IS pinned is each published run's own provenance: for every scenario
+#     results.json records, `.scenarios[].resolvedDigest` holds the registry
+#     manifest digest actually scanned (non-empty on all 256 recorded
+#     scenarios; it is an image-index digest for a multi-arch repo). So a
+#     published score can be re-checked by pulling that digest and re-running the
+#     row's flags — a manual re-scan from the recorded digests, which is a weaker
+#     guarantee than a fresh run reproducing the scores, and not the same thing.
+#     Rows whose pull, run or scan fails are skipped and absent from results.json
+#     altogether; that is why 295 rows yielded 256 scenarios.
 #   * The scan is read-only config inspection (docker inspect); it never runs the
 #     image's real workload — the entrypoint is overridden with `sleep` purely to
 #     keep the container alive for inspection.
