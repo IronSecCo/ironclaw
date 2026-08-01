@@ -28,8 +28,10 @@ These constrain every entry on this page.
   therefore recorded here in prose; it never involves editing a ruleset, relaxing
   a required check, or bypassing branch protection.
 - **A real signature always beats an exception.** Before acting on any exception,
-  re-check the live status. A late signature retires the exception rather than
-  running alongside it.
+  re-check the live status. A late signature retires an unexercised exception
+  rather than running alongside it. Once an exception has been exercised it cannot
+  be retired: a later signature is welcome, but the merges already made stay on the
+  record here.
 - **No entry is a precedent and no entry is a waiver.** An exception applies only
   to the specific pull requests it names. It does not waive the CLA for the named
   contributor's future contributions, does not create a standing rule, and does
@@ -41,8 +43,8 @@ These constrain every entry on this page.
 
 ## Exception 001: syf2211, pull requests #568, #569, #574
 
-**Status:** authorised, bounded, and as of 2026-07-30 **not yet exercised**. No
-pull request has been merged under this exception.
+**Status:** authorised, bounded, and **exercised on 2026-08-01**. All three pull
+requests named below were merged under this exception. It is now spent.
 
 **Scope:** exactly three pull requests, and no others:
 
@@ -103,8 +105,9 @@ complete count, not a sample.
 
 ### Authorisation and preconditions
 
-Authorised by the CEO as a bounded exception. It may be exercised only when all of
-the following hold.
+Authorised by the CEO as a bounded exception, exercisable only when all of the
+following held. Each was re-checked live immediately before the merges recorded
+below, and all four held.
 
 1. **Not before 2026-07-31 24:00Z.** The contributor was given until 2026-08-01 to
    click the link, and that time is theirs. Merging on the exception before then
@@ -121,13 +124,38 @@ the following hold.
    replay the unverified commits and be rejected, and a merge commit is barred by
    `required_linear_history`.
 
+### How it was exercised
+
+On **2026-08-01** the CEO exercised the exception on all three pull requests. Each
+was approved by the CEO as a non-author reviewer and then squash-merged through the
+REST merge endpoint. The head commit merged in every case was byte-identical to the
+one pinned in the scope table above, so nothing was merged outside the authorised
+scope.
+
+| PR | Head commit merged | Squash commit on `main` | Merged at |
+| --- | --- | --- | --- |
+| [#568](https://github.com/IronSecCo/ironclaw/pull/568) | `fcad8db` | `6a70c4d0fb491b82b9c272c3a8afa1b6388442c1` | 2026-08-01 01:02:59Z |
+| [#569](https://github.com/IronSecCo/ironclaw/pull/569) | `7bc7820` | `a71522329b356e53013efaf738840cbabc37c9cc` | 2026-08-01 01:03:01Z |
+| [#574](https://github.com/IronSecCo/ironclaw/pull/574) | `4c79c8b` | `b17df1fe939f38b6b8aeaffdb8165587ddd0be91` | 2026-08-01 01:03:04Z |
+
+**`license/cla` never went green.** It was `pending` on all three head commits when
+they were merged and it is `pending` on them still. The merges relied on the five
+assent comments recorded above, and on nothing else. `build` and `CodeQL`, the two
+checks the ruleset actually requires, were green on all three heads.
+
+No ruleset was edited, no branch protection was bypassed, no administrator override
+was used, and cla-assistant was not touched. The exception was exercised exactly as
+this page describes it: in prose, against a policy gate, on three named pull
+requests.
+
 ### What this entry does not do
 
 It does not waive the CLA for `syf2211`. Their next contribution needs a signature
 like anyone else's, and the one-click link now works and has been given to them.
 It does not establish that public comments substitute for signatures in general;
-they do not, and the tooling cannot read them. It applies to the three pull
-requests named above and to nothing else.
+they do not, and the tooling cannot read them. It applied to the three pull
+requests named above and to nothing else, and now that all three are merged it is
+spent: there is no remaining pull request it can be exercised on.
 
 ### The durable fix, already landed
 

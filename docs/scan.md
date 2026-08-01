@@ -1092,14 +1092,12 @@ grade this page describes:
 ## Harden a specific image
 
 `ironctl scan` grades where you stand; the hardening guides show how to close the
-gap for the image you actually run. Browse every walkthrough on the
-[container hardening guides hub](blog/hardening-guides.md), or start with three
-of the most common targets:
+gap for the image you actually run. Each walkthrough goes from the default grade to
+hardened with the exact `--fix` flags. Browse them all on the
+[container hardening guides hub](blog/hardening-guides.md), or start with the most
+common targets:
 
 - [Harden Postgres](blog/harden-postgres-container-isolation.md): `postgres:17-alpine`, 48 to 100.
 - [Harden Redis](blog/harden-redis-container-isolation.md): `redis:7-alpine`, 48 to 100.
 - [Harden nginx](blog/harden-nginx-container-isolation.md): `nginx:1.27-alpine`, 48 to 89 (the honest proxy ceiling).
-
-Per-image hardening walkthroughs, default grade to hardened, with the exact `--fix` flags:
-
 - [Run untrusted Node.js code safely](blog/run-untrusted-nodejs-code-safely.md): `node:22-alpine`, 48 to 100.
