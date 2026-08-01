@@ -23,12 +23,14 @@ Today every IronClaw agent (Forge, Relay, QA, …) drives Git/GitHub under the
 its own pull request. So when an agent opens a PR as `omerzamir`, *no agent* can
 post the approving review the ruleset requires — the author and every available
 reviewer are the same actor. Security-critical PRs that have a recorded
-Paperclip review of record still cannot satisfy the GitHub gate, and the only
-escape valve is an admin bypass (the repo-admin `bypass_actors` entry).
+Paperclip review of record still cannot satisfy the GitHub gate, and until this
+document's reviewer existed the only escape valve was an admin bypass (a
+repo-admin `bypass_actors` entry, since removed by IRO-731).
 
-Admin bypass is a band-aid: it lets a green PR merge **without any second-actor
+Admin bypass was a band-aid: it let a green PR merge **without any second-actor
 approval being recorded on GitHub at all**, which is exactly the property the
-gate exists to guarantee. This document is the durable fix: a **distinct,
+gate exists to guarantee. Two commits reached `main` that way before it was
+removed, recorded in [Merge exceptions](merge-exceptions.md). This document is the durable fix: a **distinct,
 trusted reviewer actor** that is not the PR author, so the required-review gate
 is satisfied honestly — no bypass.
 
@@ -173,8 +175,8 @@ deliberately does **not** do:
   this replaces `GITHUB_TOKEN`'s `contents: write` on the same writes rather
   than adding a writer;
 - it does not widen reach into `main`. The App is **not** in the ruleset's
-  `bypass_actors` (only the admin repository role is), so main still requires a
-  reviewed PR, passing required checks and signed commits;
+  `bypass_actors` — since IRO-731 nothing is, that list is empty — so main still
+  requires a reviewed PR, passing required checks and signed commits;
 - it does not change the commit. The `author` pin is what makes the head commit
   unsigned, and that is independent of the token, so `license/cla` still passes and
   the squash still mints main's signature — see *Squash only* below.

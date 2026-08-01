@@ -136,6 +136,18 @@ on live traffic before the actor was removed: pull request #668 received a real
 `ironclaw-reviewer` **APPROVED** review, its merge state went `CLEAN`, and it
 squash-merged through the plain REST endpoint with no admin flag anywhere.
 
+The one flow that looks like a counter-example is the rolling **Homebrew formula
+bump**, which the reviewer App authors and therefore cannot approve, and whose
+head commit is unsigned. It does not need the bypass either: PR #669 merged on
+2026-07-31 with an approving review from `omerzamir`, who is allowed to give one
+because the App, not `omerzamir`, is the author. GitHub logged that push as
+`"result": "pass"`, not `"bypass"`. The recipe is an approving review plus
+`gh api -X PUT repos/IronSecCo/ironclaw/pulls/<N>/merge -f merge_method=squash`;
+the squash is what mints a signed commit on `main`. Note that `gh pr merge`
+computes mergeability against the unsigned head, refuses, and recommends
+`--admin`; that recommendation is wrong and taking it bypasses every rule to work
+around a cache.
+
 **The intended consequence.** A required check that is stuck, or missing
 entirely, now blocks every merge to `main` until it clears. That is not a
 side effect to be worked around; it is the point. A gate that any of us can step
