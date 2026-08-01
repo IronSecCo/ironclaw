@@ -15,7 +15,7 @@ on a 0 to 100 containment scale, and looked at the distribution. The short
 version: the default posture of the container ecosystem in 2026 is weak, and it
 is weak in the same three ways almost every time.
 
-Everything below is reproducible. The dataset, the pinned image manifest, and
+You can check all of it yourself. The dataset, the versioned image manifest, and
 the one-command harness live in
 [`examples/isolation-survey`](https://github.com/IronSecCo/ironclaw/tree/main/examples/isolation-survey).
 No credentials, no cloud, no account. If you disagree with a number, re-run it.
@@ -116,10 +116,12 @@ configuration and grades seven containment dimensions:
 | No shared host namespaces | 10 | `--pid host`, `--network host`, or `--ipc host` |
 
 Grading is **fail-closed**: any dimension the scanner cannot determine is scored
-as insecure, never silently passed. Grades map A (>=90) down to F (<50). Every
-image in the survey is pinned by its multi-arch manifest-list digest, so a
-`docker pull` resolves byte-identical bits on amd64 and arm64. The survey was
-generated on 2026-07-08 with `ironctl` at dev.
+as insecure, never silently passed. Grades map A (>=90) down to F (<50). Most
+images are referenced by tag and were resolved at the moment the survey ran, so a
+re-run today grades whatever those tags publish now rather than reproducing these
+exact numbers. What is fixed is the provenance: the survey records the manifest
+digest it actually scanned for every scenario, so each score names the precise
+bits behind it. The survey was generated on 2026-07-08 with `ironctl` at dev.
 
 Want the per-image breakdown? See the
 [Container Isolation Scores directory](../scores/index.md) for one scorecard page

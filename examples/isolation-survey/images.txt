@@ -1,14 +1,20 @@
-# isolation-survey manifest — the curated, pinned dataset for `survey.sh`.
+# isolation-survey manifest — the curated dataset for `survey.sh`.
 #
 # Each non-comment line is ONE survey scenario:
 #
-#     label | image:tag@sha256:<digest> | run-flags...
+#     label | image:tag[@sha256:<digest>] | run-flags...
 #
 #   label       stable, filesystem-safe id; the container is named ic-survey-<label>.
-#   image       a PUBLIC Docker Hub image pinned by its multi-arch MANIFEST-LIST
-#               digest, so `docker pull` resolves the identical bits on amd64 and
-#               arm64. Digests were captured with:
-#                   docker buildx imagetools inspect <tag> --format '{{.Manifest.Digest}}'
+#   image       a PUBLIC Docker Hub image. The digest suffix is OPTIONAL and most
+#               rows do NOT carry one:
+#                 * with @sha256 — the ref is pinned to that MANIFEST-LIST digest,
+#                   so every run resolves the same image index on amd64 and arm64.
+#                   Captured with:
+#                     docker buildx imagetools inspect <tag> --format '{{.Manifest.Digest}}'
+#                 * without — the tag resolves at run time, so the scenario tracks
+#                   whatever that tag currently publishes.
+#               Either way `survey.sh` records the digest it actually scanned as
+#               `.scenarios[].resolvedDigest` in results.json.
 #   run-flags   the `docker run` security flags that define this scenario's
 #               posture (may be empty = a plain `docker run` with all defaults).
 #

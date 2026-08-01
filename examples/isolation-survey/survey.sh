@@ -13,14 +13,21 @@
 #   examples/isolation-survey/survey.sh --keep       # leave containers running afterwards
 #   IRONCTL=/path/to/ironctl examples/isolation-survey/survey.sh   # use a prebuilt binary
 #
-# Determinism / reproducibility:
-#   * Every image is pinned by its multi-arch manifest-list digest in images.txt,
-#     so `docker pull` resolves identical bits on amd64 and arm64.
+# What a re-run does and does not reproduce:
+#   * Image refs are NOT uniformly pinned. A minority of rows in images.txt carry
+#     an explicit @sha256 manifest-list digest; the rest name a tag and resolve to
+#     whatever that tag points at when the survey runs. A re-run therefore tracks
+#     the current published tags and is NOT guaranteed to reproduce the previously
+#     published scores — by design, since the dataset is about what the ecosystem
+#     ships today.
+#   * What IS pinned is the provenance: for every scenario the manifest digest
+#     actually scanned is recorded as `.scenarios[].resolvedDigest` in
+#     results.json, so each published score names the exact bits it graded.
 #   * The scan is read-only config inspection (docker inspect); it never runs the
 #     image's real workload — the entrypoint is overridden with `sleep` purely to
 #     keep the container alive for inspection.
-#   * Rows in results.md are sorted by score, so a re-run is byte-identical modulo
-#     the tool-version / timestamp stamp.
+#   * Rows in results.md are sorted by score, so a re-run diffs as score movement
+#     rather than row churn (modulo the tool-version / timestamp stamp).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

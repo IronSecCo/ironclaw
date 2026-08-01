@@ -2,7 +2,7 @@
 
 Scanned **256 scenarios** with `ironctl scan` dev+11b86e785ff3 on 2026-07-27T09:42:34Z.
 
-Each row is one popular public image run with a specific configuration, graded 0-100 across seven containment dimensions (non-root user, dropped capabilities, seccomp, network isolation, read-only rootfs, no docker.sock, no host namespaces). Higher is safer. See [README.md](./README.md) for the exact method and [images.txt](./images.txt) for the pinned manifest.
+Each row is one popular public image run with a specific configuration, graded 0-100 across seven containment dimensions (non-root user, dropped capabilities, seccomp, network isolation, read-only rootfs, no docker.sock, no host namespaces). Higher is safer. See [README.md](./README.md) for the exact method and [images.txt](./images.txt) for the scenario manifest.
 
 | Scenario | Image | Score | Grade | Top failed dimensions |
 |----------|-------|------:|:-----:|-----------------------|
