@@ -57,4 +57,5 @@ nav:
       - Release runbook: release-runbook.md
       - PR review & reviewer identity: pr-review-process.md
       - CLA exceptions: cla-exceptions.md
+      - Merge exceptions: merge-exceptions.md
       - Roadmap: roadmap.md

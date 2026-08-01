@@ -24,9 +24,11 @@ These constrain every entry on this page.
 
 - **`license/cla` is a policy gate, not a technical one.** It is deliberately not
   one of the required status checks in the `main-protection` ruleset (those are
-  exactly `build` and `CodeQL`). Honouring it is a choice we make. An exception is
-  therefore recorded here in prose; it never involves editing a ruleset, relaxing
-  a required check, or bypassing branch protection.
+  exactly `build`, `CodeQL` and `brew-formula-verify`). Honouring it is a choice
+  we make. An exception is therefore recorded here in prose; it never involves
+  editing a ruleset, relaxing a required check, or bypassing branch protection.
+  Where branch protection *was* bypassed, the record is its companion page,
+  [Merge exceptions](merge-exceptions.md).
 - **A real signature always beats an exception.** Before acting on any exception,
   re-check the live status. A late signature retires the exception rather than
   running alongside it.
