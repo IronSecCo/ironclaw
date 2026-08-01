@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
 
 	"github.com/IronSecCo/ironclaw/internal/host/catalog"
@@ -11,9 +13,37 @@ import (
 // names. It reads the catalog package directly, so it works offline and always
 // matches what the sandbox actually implements.
 func cmdTools(_ string, args []string) error {
-	if len(args) > 0 && args[0] != "list" && args[0] != "ls" {
+	fs := flag.NewFlagSet("tools", flag.ContinueOnError)
+	asJSON := fs.Bool("json", false, "emit the tool catalog as indented JSON")
+	// Go's flag package stops at the first positional, so `tools list --json`
+	// would silently drop the flag. Re-parse around each positional so flags may
+	// appear anywhere, matching ironctl scan.
+	var remaining []string
+	rest := args
+	for len(rest) > 0 {
+		if err := fs.Parse(rest); err != nil {
+			return err
+		}
+		rest = fs.Args()
+		if len(rest) == 0 {
+			break
+		}
+		remaining = append(remaining, rest[0])
+		rest = rest[1:]
+	}
+	if len(remaining) > 0 && remaining[0] != "list" && remaining[0] != "ls" {
 		return fmt.Errorf("usage: tools [list]")
 	}
+
+	if *asJSON {
+		b, err := json.MarshalIndent(catalog.Tools(), "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(b))
+		return nil
+	}
+
 	byCat := map[catalog.Category][]catalog.ToolInfo{}
 	for _, t := range catalog.Tools() {
 		byCat[t.Category] = append(byCat[t.Category], t)
