@@ -18,7 +18,8 @@ results.json and in a "Not scanned" section of results.md, so a reader can tell
 measured-and-passed from never-measured without opening an Actions log that
 expires. `--manifest-rows` records how many rows the manifest actually had, so
 `scenarioCount + skippedCount == manifestRowCount` is checkable from the
-artifact alone.
+artifact alone — and coverage_guard.py, which survey.sh runs immediately after
+this, checks it rather than leaving it to the reader.
 """
 import argparse
 import json
@@ -124,21 +125,40 @@ def main():
     lines = []
     lines.append("# State of Container Isolation — survey results")
     lines.append("")
-    lines.append(f"Scanned **{len(rows)} scenarios** with "
-                 f"`ironctl scan` {dataset['ironctlVersion']} "
-                 f"on {dataset['generatedAt']}.")
-    lines.append("")
-    if skips:
-        breakdown = ", ".join(f"{stage} {n}"
-                              for stage, n in skip_counts(skips).items())
-        lines.append(f"**Coverage: {len(rows)} of {manifest_rows} manifest "
-                     f"rows.** {len(skips)} scenario(s) were dropped before "
-                     f"they could be graded ({breakdown}) and are listed under "
-                     "[Not scanned](#not-scanned) below — they are absent from "
-                     "the table, not scored zero.")
+    if rows:
+        lines.append(f"Scanned **{len(rows)} scenarios** with "
+                     f"`ironctl scan` {dataset['ironctlVersion']} "
+                     f"on {dataset['generatedAt']}.")
     else:
+        lines.append("**No scenario produced a scorecard in this run.** Every "
+                     "manifest row is accounted for below.")
+    lines.append("")
+
+    # "Every row was scanned" is derived from the arithmetic, never from an
+    # empty skip list. Those are not the same claim: a run can drop a row
+    # without recording a skip, and reading the sentence off `if skips:` printed
+    # "Coverage: 2 of 3 manifest rows — every row was scanned" at exit 0
+    # (IRO-727). coverage_guard.py fails a run where they diverge; this file
+    # still has to describe what it actually has.
+    unaccounted = manifest_rows - len(rows) - len(skips)
+    if len(rows) == manifest_rows and not skips:
         lines.append(f"**Coverage: {len(rows)} of {manifest_rows} manifest "
                      "rows — every row was scanned.**")
+    else:
+        note = f"**Coverage: {len(rows)} of {manifest_rows} manifest rows.**"
+        if skips:
+            breakdown = ", ".join(f"{stage} {n}"
+                                  for stage, n in skip_counts(skips).items())
+            note += (f" {len(skips)} scenario(s) were dropped before they could "
+                     f"be graded ({breakdown}) and are listed under "
+                     "[Not scanned](#not-scanned) below — they are absent from "
+                     "the table, not scored zero.")
+        if unaccounted:
+            note += (f" {abs(unaccounted)} row(s) are **unaccounted for**: "
+                     f"{len(rows)} scored + {len(skips)} recorded as skipped "
+                     f"does not equal {manifest_rows}. That gap is a bug in the "
+                     "harness, not a property of the images.")
+        lines.append(note)
     lines.append("")
     lines.append("Each row is one popular public image run with a specific "
                  "configuration, graded 0-100 across seven containment "
@@ -158,12 +178,13 @@ def main():
     lines.append("")
 
     # A compact grade-distribution summary.
-    dist = {}
-    for r in rows:
-        dist[r["grade"]] = dist.get(r["grade"], 0) + 1
-    summary = ", ".join(f"{dist[g]}×{g}" for g in sorted(dist))
-    lines.append(f"**Grade distribution:** {summary}.")
-    lines.append("")
+    if rows:
+        dist = {}
+        for r in rows:
+            dist[r["grade"]] = dist.get(r["grade"], 0) + 1
+        summary = ", ".join(f"{dist[g]}×{g}" for g in sorted(dist))
+        lines.append(f"**Grade distribution:** {summary}.")
+        lines.append("")
 
     # Every dropped scenario, by name. A count alone still leaves the reader
     # guessing which images the dataset does not cover (IRO-727).

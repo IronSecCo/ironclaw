@@ -32,9 +32,12 @@
 #     unavailable image must not wedge a 295-row sweep), but they are no longer
 #     invisible: each is recorded with its stage and reason in `.skipped[]` of
 #     results.json and listed in results.md, and coverage_guard.py fails the run
-#     when a row that scored in the previous results.json stops producing output
-#     (IRO-727). Before that, the same 39 rows failed every weekly refresh and
-#     the run still exited green.
+#     both when a row that scored in the last COMMITTED results.json stops
+#     producing output and when the artifact's own arithmetic does not close
+#     (scenarioCount + skippedCount == manifestRowCount). Baselining off the
+#     committed copy rather than the working tree is what stops a plain re-run
+#     from clearing a real regression (IRO-727). Before all this, the same 39
+#     rows failed every weekly refresh and the run still exited green.
 #   * The scan is read-only config inspection (docker inspect); it never runs the
 #     image's real workload — the entrypoint is overridden with `sleep` purely to
 #     keep the container alive for inspection.
@@ -136,13 +139,28 @@ echo "[]" > "$RECORDS"
 SKIPS="$(mktemp)"
 echo "[]" > "$SKIPS"
 
-# The previous results.json, snapshotted BEFORE this run overwrites it — the
-# baseline coverage_guard.py compares against at the end.
+# The baseline coverage_guard.py compares against: the last COMMITTED
+# results.json, read out of git — NOT the working-tree copy this run is about to
+# overwrite. Snapshotting the working tree lets a plain re-run launder a
+# regression green: run N writes the degraded results.json, run N+1 reads it
+# back as its own baseline and sees no loss. Only a run whose guard passed ever
+# gets committed, so HEAD is by construction a coverage level we actually held,
+# and re-running a broken sweep fails again with the same message.
+#
+# No committed copy (a first run, a checkout without one, an export with no
+# .git) means no baseline at all rather than a fallback to disk — the guard says
+# the regression check was skipped instead of pretending it ran.
 BASELINE=""
-if [ -f "$RESULTS_JSON" ]; then
+if git_prefix="$(git -C "$SCRIPT_DIR" rev-parse --show-prefix 2>/dev/null)"; then
   BASELINE="$(mktemp)"
-  cp "$RESULTS_JSON" "$BASELINE"
+  if git -C "$SCRIPT_DIR" show "HEAD:${git_prefix}results.json" > "$BASELINE" 2>/dev/null; then
+    log "baseline: git HEAD:${git_prefix}results.json"
+  else
+    rm -f "$BASELINE"
+    BASELINE=""
+  fi
 fi
+[ -n "$BASELINE" ] || log "baseline: none committed — the coverage regression check will be skipped"
 
 
 # label image stage reason -> one entry in $SKIPS, plus the same line on stderr
@@ -180,7 +198,11 @@ PY
 
 n=0
 scanned=0
-while IFS= read -r line; do
+# `|| [ -n "$line" ]` so a manifest whose last line has no trailing newline is
+# still swept. Without it the final row is silently dropped, and a silently
+# dropped row is the whole bug (IRO-727) — coverage_guard.py parses the manifest
+# independently and fails the run if its row count ever disagrees with $n.
+while IFS= read -r line || [ -n "$line" ]; do
   # strip comments / blanks
   line="${line%%$'\r'}"
   case "$line" in ''|'#'*) continue;; esac
@@ -257,8 +279,19 @@ while IFS= read -r line; do
     continue
   fi
   rm -f scan.err
-  score="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["score"])' "$scanfile")"
-  grade="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["grade"])' "$scanfile")"
+  # A report we cannot parse is a SKIP, not a `set -e` abort. An abort here kills
+  # the run before render.py writes anything, and cleanup() then deletes $SKIPS,
+  # so every skip recorded up to that point is destroyed — the artifact has to
+  # outlive the run for any of this to be worth anything (IRO-727).
+  if ! summary="$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d["score"],d["grade"])' "$scanfile" 2>parse.err)"; then
+    record_skip "$label" "$image" "scan" "unreadable scan report: $(head -1 parse.err)"
+    rm -f parse.err "$scanfile"
+    "$DOCKER" rm -f "$cname" >/dev/null 2>&1 || true
+    continue
+  fi
+  rm -f parse.err
+  score="${summary%% *}"
+  grade="${summary##* }"
   log "[$n] $label — ${score}/100 grade ${grade}"
   append_record "$label" "$image" "$flags" "$digest" "$scanfile"
   rm -f "$scanfile"
@@ -275,19 +308,25 @@ while IFS= read -r line; do
   fi
 done < "$MANIFEST"
 
-[ "${scanned:-0}" -gt 0 ] || die "no scenarios scanned from $MANIFEST"
 log "scanned ${scanned}/${n} scenarios"
 
-# Render BEFORE the coverage guard runs, deliberately. If coverage regressed we
-# still want the artifact that names every dropped scenario and why — the whole
-# point of IRO-727 is that the evidence must outlive the run log. The guard then
-# fails the run, so a degraded sweep can never quietly open a refresh PR.
+# Render FIRST — before the `scanned > 0` check and before the coverage guard,
+# both deliberately. Whatever the sweep found is the evidence, and the whole
+# point of IRO-727 is that it must outlive an Actions log that expires. The
+# worst runs are the ones that most need explaining: a dead daemon, a mirror
+# outage or a full disk under PRUNE=1 fails every row, and the old ordering
+# died right here without writing anything, leaving the previous healthy
+# results.json byte-identical on disk and cleanup() deleting $SKIPS on the way
+# out. Now even an all-rows-failed run leaves a results.json naming all $n rows
+# and why each one dropped.
 log "rendering results.json + results.md (${scanned} scenarios)…"
 python3 "$SCRIPT_DIR/render.py" "$RESULTS_JSON" "$RESULTS_MD" \
   --skips "$SKIPS" --manifest-rows "$n" < "$RECORDS"
 
 log "done: $RESULTS_JSON"
 log "done: $RESULTS_MD"
+
+[ "${scanned:-0}" -gt 0 ] || die "no scenarios scanned from $MANIFEST — results.* were still written and list every dropped row"
 
 # Coverage regression check: a scenario that scored last run and is still in the
 # manifest must score again. Transient registry weather is absent from the

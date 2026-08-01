@@ -81,16 +81,33 @@ because it was previously invisible: the same 39 of 295 rows failed on every
 weekly refresh, the only trace was an Actions log that expires, and the run
 exited green (IRO-727).
 
+**Every row is accounted for.** `scenarioCount + skippedCount ==
+manifestRowCount` is not just readable from the artifact, it is enforced:
+[`coverage_guard.py`](./coverage_guard.py) fails the run when the three counts
+do not add up, when a count is missing, or when its own parse of `images.txt`
+disagrees with the row count the sweep recorded. `results.md` derives its
+"every row was scanned" line from that same comparison rather than from the skip
+list being empty, so the sentence cannot contradict the numbers next to it.
+
 **Losing coverage fails the run.** [`coverage_guard.py`](./coverage_guard.py)
-compares the finished run against the previous `results.json` and exits non-zero
-if a scenario that scored last time — and is still listed in `images.txt` —
+compares the finished run against the last **committed** `results.json` — read
+from `git`, not from the working tree the run is about to overwrite — and exits
+non-zero if a scenario that scored there, and is still listed in `images.txt`,
 produced nothing now. Deliberately a *regression* check rather than "any skip is
 fatal": a transient registry failure is absent from the baseline too, so it
 cannot wedge the weekly refresh, while a row that rots for good is caught the
 first week it stops scoring. If a row can never be scanned again, the fix is to
 delete it from `images.txt` — a label that leaves the manifest is not a
-regression. Results are written *before* the guard runs, so a failed run still
-leaves the artifact that explains itself.
+regression. **Re-running does not clear it.** The baseline comes from `HEAD`,
+and only a run that passed the guard is ever committed, so a second run over the
+same broken sweep fails with the same message. Fix the rows or retire them.
+
+**A failed run still leaves its evidence.** `results.json` and `results.md` are
+written as soon as the sweep finishes — before the `scanned > 0` check and
+before the guard — so a run that fails on coverage, *including one where every
+single row failed*, still leaves an artifact naming each dropped row and its
+stage. A run killed mid-sweep (Ctrl-C, the harness itself crashing) writes
+nothing; there the run log is still the only record.
 
 ## Methodology (so the numbers are defensible)
 
