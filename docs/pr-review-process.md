@@ -13,9 +13,10 @@ description: How IronClaw records pull-request review decisions with a GitHub Ap
 
 `main` is protected by a branch ruleset
 ([`.github/rulesets/main.json`](https://github.com/IronSecCo/ironclaw/blob/main/.github/rulesets/main.json))
-that requires **one approving review** plus the `build` and `CodeQL` status
-checks before any PR can merge. That is the gate that keeps unreviewed code off
-`main`.
+that requires **one approving review** plus the `build`, `CodeQL` and
+`brew-formula-verify` status checks before any PR can merge. That is the gate
+that keeps unreviewed code off `main`, and since 2026-08-01 it has **no bypass
+actors**, so it applies to maintainers exactly as it applies to everyone else.
 
 Today every IronClaw agent (Forge, Relay, QA, …) drives Git/GitHub under the
 **single `omerzamir` GitHub identity**. GitHub will not let an identity approve
@@ -566,15 +567,26 @@ Caveats, because this is the part that is easy to overstate:
 The machine-reviewer path above needs **no edit** to
 [`.github/rulesets/main.json`](https://github.com/IronSecCo/ironclaw/blob/main/.github/rulesets/main.json).
 The App's approving review satisfies the existing
-`pull_request.required_approving_review_count: 1`. The admin `bypass_actors`
-entry stays as the break-glass path of last resort, but with a working machine
-reviewer it should no longer be the *routine* way security PRs merge.
+`pull_request.required_approving_review_count: 1` on its own, with no bypass.
 
-The one ruleset change made since is a **ratchet up**, not a relaxation:
+Both ruleset changes made since are **ratchets up**, not relaxations.
 `brew-formula-verify` was added to `required_status_checks` (IRO-670) so the
-formula gate actually gates. Protection on `main` only ever moves in that
-direction — if a required check is wrong, fix the check on its own ticket rather
-than removing it to unblock a merge.
+formula gate actually gates. Then, on 2026-08-01, `bypass_actors` was emptied
+(IRO-731): it had carried the repo **admin** role with `bypass_mode: always`, and
+since every agent drives GitHub as `omerzamir`, an admin, the required review was
+advisory for us and mandatory for everyone else. Two commits reached `main`
+unreviewed through that hole before it was closed, both recorded in
+[Merge exceptions](merge-exceptions.md). Removing it cost nothing precisely
+because this reviewer path works: PR #668 took a real `ironclaw-reviewer`
+approval and squash-merged through the plain REST endpoint, no `--admin`
+anywhere.
+
+The consequence is intended: **a stuck or missing required check now blocks
+everyone.** Protection on `main` only ever moves in that direction — if a
+required check is wrong, fix the check on its own ticket rather than removing it,
+or bypassing it, to unblock a merge. The authorised way to restore the bypass, if
+it ever truly has to come back, is written down at the bottom of
+[Merge exceptions](merge-exceptions.md).
 
 If we ever adopt Option B instead, the only ruleset change would be flipping
 `require_code_owner_review` to `true` after the reviewer account/team is a
