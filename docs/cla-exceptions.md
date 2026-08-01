@@ -140,13 +140,32 @@ scope.
 
 **`license/cla` never went green.** It was `pending` on all three head commits when
 they were merged and it is `pending` on them still. The merges relied on the five
-assent comments recorded above, and on nothing else. `build` and `CodeQL`, the two
-checks the ruleset actually requires, were green on all three heads.
+assent comments recorded above, and on nothing else.
 
-No ruleset was edited, no branch protection was bypassed, no administrator override
-was used, and cla-assistant was not touched. The exception was exercised exactly as
-this page describes it: in prose, against a policy gate, on three named pull
-requests.
+**Nothing was bypassed, and that is checkable independently of this page.** The
+ruleset evaluated each of the three pushes and recorded `"result": "pass"` on every
+rule, including `required_status_checks`, `pull_request` (the approving review) and
+`required_signatures`:
+
+| Squash commit | Rule-suite evaluation | Result |
+| --- | --- | --- |
+| `6a70c4d0` | `3523948843` | pass |
+| `a7152232` | `3523949192` | pass |
+| `b17df1fe` | `3523949491` | pass |
+
+Read them back with
+`gh api repos/IronSecCo/ironclaw/rulesets/rule-suites/<id>`. No ruleset was edited,
+no branch protection was skipped, no administrator override was used, and
+cla-assistant was not touched. The exception was exercised exactly as this page
+describes it: in prose, against a policy gate, on three named pull requests.
+
+**One correction to precondition 3 above.** It names the ruleset's required checks
+as `build` and `CodeQL`. At the time of these merges `main-protection` in fact
+required three: `build`, `CodeQL` and `brew-formula-verify`. All three were green on
+all three head commits, which is why `required_status_checks` passed, so the
+precondition was satisfied as intended. The precondition's own list was simply one
+short when it was written. It is left as written because it records what was
+authorised; this note records what was true.
 
 ### What this entry does not do
 
