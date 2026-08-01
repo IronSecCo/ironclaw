@@ -22,11 +22,17 @@ on:
       - "scripts/check-guide-uid.py"
       - "scripts/check-md-fences.py"
       - "scripts/check-scores-drift.py"
+      - "scripts/check-guide-scores.py"
       # check-guide-uid.py reads `hardenedUID` out of this file, so a change to
       # the constant has to trigger this workflow too. Without it, moving the
       # constant would leave 56 guides quoting the old uid and nothing in CI
       # would ever look: the paths filter, not the check, would be the hole.
       - "internal/host/scan/remediate.go"
+      # check-guide-scores.py derives the canonical dimension set, its weights
+      # and each dimension's reachable (score, verdict) pairs from this file.
+      # Same reason as remediate.go above: add a dimension or reweight one and
+      # 56 guides publish the old table, with nothing in CI looking.
+      - "internal/host/scan/score.go"
       # Every page under docs/scores/ is emitted from this directory
       # (gen_scorecards.py + results.json), so a change here changes published
       # docs without touching docs/**. Omitting it meant a generator-only PR ran
@@ -46,11 +52,17 @@ on:
       - "scripts/check-guide-uid.py"
       - "scripts/check-md-fences.py"
       - "scripts/check-scores-drift.py"
+      - "scripts/check-guide-scores.py"
       # check-guide-uid.py reads `hardenedUID` out of this file, so a change to
       # the constant has to trigger this workflow too. Without it, moving the
       # constant would leave 56 guides quoting the old uid and nothing in CI
       # would ever look: the paths filter, not the check, would be the hole.
       - "internal/host/scan/remediate.go"
+      # check-guide-scores.py derives the canonical dimension set, its weights
+      # and each dimension's reachable (score, verdict) pairs from this file.
+      # Same reason as remediate.go above: add a dimension or reweight one and
+      # 56 guides publish the old table, with nothing in CI looking.
+      - "internal/host/scan/score.go"
       # Every page under docs/scores/ is emitted from this directory
       # (gen_scorecards.py + results.json), so a change here changes published
       # docs without touching docs/**. Omitting it meant a generator-only PR ran
@@ -179,6 +191,41 @@ jobs:
         # gets wrong -- hand-maintained .nav.yml files, and the generator's
         # routine stderr warnings. See IRO-715.
         run: python3 scripts/check-scores-drift.py
+
+      - name: Check every hardening guide's score table adds up
+        # check-scores-drift.py above owns docs/scores/, which is generated. The
+        # 56 hand-written guides under docs/blog/ are not generated and nothing
+        # in this pipeline read them at all, so the numbers in them were only
+        # ever checked by a human remembering to.
+        #
+        # PR #661 is what that costs. It rewrote the HAProxy guide so the scores
+        # column summed to 58 while the page claimed 63/100 in four places, and
+        # all 17 checks went green -- build, CodeQL, brew-formula-verify, and the
+        # three checkers above included. The camouflage was that the max column
+        # still totalled 100 (rootfs +5, docker.sock 15 -> an invented
+        # `Privilege escalation` 10), so only the scores were short, by 5. It
+        # also deleted a canonical dimension and gave rootfs a 5/15 WARN the
+        # scorer cannot emit. Four rounds of manual review found it; this is
+        # that review, mechanised.
+        #
+        # Every canonical number is derived from source, never copied here: the
+        # dimension set and weights from the `scorers` slice in score.go, each
+        # dimension's reachable (score, verdict) pairs from its grade* function,
+        # the letter bands from grade(), the measured values from results.json.
+        # A copy would rot silently the moment a dimension is added, which is the
+        # failure mode this exists to close, so score.go is in the paths filter
+        # above for the same reason remediate.go is.
+        #
+        # A step in `build` for the same reason as the checks around it: `build`
+        # is the required check on ruleset 17917971 and a new job name would not
+        # be. Stdlib only, so it runs before the toolchain install and fails
+        # fast. It asserts it parsed at least 56 guides and exits 2 if not: a
+        # guard that is green because it read nothing is the exact shape of the
+        # bug it is here to catch. Negative controls:
+        # scripts/tests/test_check_guide_scores.py (run by ci.yml script-tests),
+        # including a fixture of #661's five defects and an assertion that a
+        # max-column-only check is green on it. See IRO-734.
+        run: python3 scripts/check-guide-scores.py
 
       - name: Install MkDocs toolchain (hash-pinned)
         # --require-hashes makes pip refuse any wheel whose SHA-256 isn't in the

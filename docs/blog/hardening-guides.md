@@ -75,14 +75,14 @@ These services must accept client connections, so the network dimension holds at
 | [nginx](harden-nginx-container-isolation.md) | 48/100 D | **89/100 B** | proxy: it exists to forward traffic |
 | [Vault](harden-vault-container-isolation.md) | 48/100 D | **89/100 B** | secrets server: apps must reach the API |
 | [Consul](harden-consul-container-isolation.md) | 48/100 D | **89/100 B** | service mesh: peers and clients must connect |
-| [ZooKeeper](harden-zookeeper-container-isolation.md) | 55/100 C | **89/100 B** | coordination server: peers and clients must connect |
+| [ZooKeeper](harden-zookeeper-container-isolation.md) | 48/100 D | **89/100 B** | coordination server: peers and clients must connect |
 | [MinIO](harden-minio-container-isolation.md) | 48/100 D | **89/100 B** | object store: S3 clients must reach the API |
 | [Grafana](harden-grafana-container-isolation.md) | 63/100 C | **89/100 B** | dashboard: browsers must reach the UI |
 | [Prometheus](harden-prometheus-container-isolation.md) | 63/100 C | **89/100 B** | metrics: it scrapes targets and serves its API |
 | [Traefik](harden-traefik-container-isolation.md) | 48/100 D | **89/100 B** | proxy: it exists to accept and forward traffic |
-| [Jenkins](harden-jenkins-container-isolation.md) | 48/100 D | **89/100 B** | CI server: agents and browsers must reach it |
-| [SonarQube](harden-sonarqube-container-isolation.md) | 48/100 D | **89/100 B** | code-quality server: scanners and browsers must reach it |
-| [Keycloak](harden-keycloak-container-isolation.md) | 48/100 D | **89/100 B** | identity provider: every app must reach its endpoints |
+| [Jenkins](harden-jenkins-container-isolation.md) | 63/100 C | **89/100 B** | CI server: agents and browsers must reach it |
+| [SonarQube](harden-sonarqube-container-isolation.md) | 63/100 C | **89/100 B** | code-quality server: scanners and browsers must reach it |
+| [Keycloak](harden-keycloak-container-isolation.md) | 63/100 C | **89/100 B** | identity provider: every app must reach its endpoints |
 | [NATS](harden-nats-container-isolation.md) | 48/100 D | **89/100 B** | broker: publishers and subscribers must connect |
 | [Gitea](harden-gitea-container-isolation.md) | 48/100 D | **89/100 B** | git server: developers and CI must reach it |
 | [HAProxy](harden-haproxy-container-isolation.md) | 63/100 C | **89/100 B** | load balancer: it exists to accept and forward traffic |

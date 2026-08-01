@@ -1,6 +1,6 @@
 ---
-title: "How to harden a Keycloak container: keycloak scores 48/100 by default"
-description: "keycloak defaults score 48/100 (grade D): root, full caps, writable rootfs. The exact ironctl scan --fix flags that take an identity server to its honest 89/100 grade B."
+title: "How to harden a Keycloak container: keycloak scores 63/100 by default"
+description: "keycloak defaults score 63/100 (grade C): full caps, writable rootfs. The exact ironctl scan --fix flags that take an identity server to its honest 89/100 grade B."
 ---
 
 # How to harden a Keycloak container (and is quay.io/keycloak/keycloak safe as your IdP?)
@@ -8,7 +8,7 @@ description: "keycloak defaults score 48/100 (grade D): root, full caps, writabl
 Keycloak is the front door to every app behind it: it mints the tokens, holds the signing keys, and
 stores the user directory that authenticates your whole stack. A stock `docker run
 quay.io/keycloak/keycloak` is not the boundary that role deserves. Graded on IronClaw's
-seven-dimension containment scale, the default configuration scores **48 of 100, grade D (porous)**.
+seven-dimension containment scale, the default configuration scores **63 of 100, grade C (partial)**.
 Higher is safer. A few runtime flags take the same image to **89 of 100, grade B**, one point off an
 A, and the one dimension it cannot reach is the one an identity provider needs by definition: every
 app and browser must reach its endpoints. Here are the exact gaps and fixes from the scan data.
@@ -22,11 +22,11 @@ app and browser must reach its endpoints. Here are the exact gaps and fixes from
 ## Where the default configuration leaks
 
 `ironctl scan` grades seven independent containment boundaries. On a default `docker run
-quay.io/keycloak/keycloak`, three fail and one warns:
+quay.io/keycloak/keycloak`, two fail and one warns:
 
 | Dimension | Verdict | Score | What the scan found |
 |-----------|:-------:|------:|---------------------|
-| Non-root user (uid != 0) | ❌ FAIL | 0/15 | runs as root (uid 0); a container escape starts with host-uid 0 |
+| Non-root user (uid != 0) | ✅ PASS | 15/15 | runs as 1000 (uid != 0) |
 | Dropped capabilities | ❌ FAIL | 4/20 | default capability set retained (CAP_NET_RAW, CAP_MKNOD, and more) |
 | Seccomp profile | ✅ PASS | 15/15 | seccomp profile active |
 | Network isolation / egress | ⚠️ WARN | 4/15 | network=bridge: outbound egress is possible |
@@ -34,20 +34,23 @@ quay.io/keycloak/keycloak`, three fail and one warns:
 | No docker.sock exposure | ✅ PASS | 15/15 | no control socket mounted |
 | No shared host namespaces | ✅ PASS | 10/10 | no host PID/IPC/network sharing |
 
-The one that should worry you most is **root**, and for an identity provider the stakes are the whole
-trust chain. A protocol-parsing or provider CVE that lands code execution in a root container escapes
-as root on the host, next to the realm signing keys and the user store Keycloak guards. Whoever holds
-those keys can mint a valid token for any user of any app behind Keycloak. The full capability set
-widens that foothold and the writable rootfs makes it durable. This is the same shape as a secrets
-server: the value of what it holds is what makes containing it non-negotiable.
+Keycloak already gets the hardest dimension right by dropping to uid 1000, which is why it starts a
+full grade above most identity images. The two that remain are the **full capability set** and the
+**writable rootfs**, and for an identity provider the stakes are the whole trust chain. A
+protocol-parsing or provider CVE that lands code execution keeps CAP_NET_RAW to craft raw packets and
+a writable rootfs to persist, next to the realm signing keys and the user store Keycloak guards.
+Whoever holds those keys can mint a valid token for any user of any app behind Keycloak. This is the
+same shape as a secrets server: the value of what it holds is what makes containing it
+non-negotiable.
 
 ## Harden it: the exact `--fix` remediation
 
 `ironctl scan my-keycloak --fix` prints one remediation per failed dimension, then one hardened run.
 For `quay.io/keycloak/keycloak`:
 
-- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as
-  host uid 0. `--fix` emits 65532, the distroless nonroot uid.
+- **`--user 65532:65532`** (Non-root user, already +15): the image already drops to uid 1000, so this
+  dimension is closed by default. Keep a non-root uid pinned if you override the entrypoint; `--fix`
+  emits 65532, the distroless nonroot uid.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; Keycloak serves its
   HTTP and management endpoints on high ports and needs none of the default set.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only. Build a
@@ -62,7 +65,7 @@ For `quay.io/keycloak/keycloak`:
 ## Before and after
 
 ```bash
-# Before: 48/100, grade D
+# Before: 63/100, grade C
 docker run -d --name keycloak quay.io/keycloak/keycloak:26.0 start
 
 # After: 89/100, grade B (scoped private network for its database and proxy)
@@ -75,11 +78,11 @@ docker run -d --name keycloak-hardened \
   quay.io/keycloak/keycloak:26.0 start
 ```
 
-Rescan: `ironctl scan keycloak-hardened` reports `89/100 grade B`. A **41-point swing** with no custom
+Rescan: `ironctl scan keycloak-hardened` reports `89/100 grade B`. A **26-point swing** with no custom
 image build, just the right flags. The only dimension still short of full marks is the network (4 of
 15), because an identity provider exists to be reached by every app it authenticates; `network=none`
 would score the last points but leave nothing able to connect. That is the honest ceiling for this
-role, and it is a long way from the default D.
+role, and it is a long way from the default C.
 
 ## Verify it on your own Keycloak
 
