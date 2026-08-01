@@ -28,8 +28,13 @@
 #     published score can be re-checked by pulling that digest and re-running the
 #     row's flags — a manual re-scan from the recorded digests, which is a weaker
 #     guarantee than a fresh run reproducing the scores, and not the same thing.
-#     Rows whose pull, run or scan fails are skipped and absent from results.json
-#     altogether; that is why 295 rows yielded 256 scenarios.
+#   * Rows whose pull, run or scan fails are still SKIPPED rather than fatal (one
+#     unavailable image must not wedge a 295-row sweep), but they are no longer
+#     invisible: each is recorded with its stage and reason in `.skipped[]` of
+#     results.json and listed in results.md, and coverage_guard.py fails the run
+#     when a row that scored in the previous results.json stops producing output
+#     (IRO-727). Before that, the same 39 rows failed every weekly refresh and
+#     the run still exited green.
 #   * The scan is read-only config inspection (docker inspect); it never runs the
 #     image's real workload — the entrypoint is overridden with `sleep` purely to
 #     keep the container alive for inspection.
@@ -111,6 +116,7 @@ log "ironctl: $IRONCTL ($("$IRONCTL" scan --help >/dev/null 2>&1 && echo ok))"
 # Track containers we create so we can always tear them down.
 CREATED=()
 cleanup() {
+  rm -f "${SKIPS:-}" "${BASELINE:-}" 2>/dev/null || true
   [ "$KEEP" -eq 1 ] && { log "--keep: leaving ${#CREATED[@]} container(s) running"; return; }
   for c in "${CREATED[@]:-}"; do
     [ -n "$c" ] && "$DOCKER" rm -f "$c" >/dev/null 2>&1 || true
@@ -122,6 +128,39 @@ trap cleanup EXIT
 RECORDS="$(mktemp)"
 trap 'rm -f "$RECORDS"' RETURN 2>/dev/null || true
 echo "[]" > "$RECORDS"
+
+# …and every scenario we DROP, the same way: {label, image, stage, reason}. A
+# skip used to be a log line in an Actions run that expires after 90 days, which
+# is why 39 rows could fail every week without leaving a trace in the artifact
+# (IRO-727). render.py folds this into results.json/.md.
+SKIPS="$(mktemp)"
+echo "[]" > "$SKIPS"
+
+# The previous results.json, snapshotted BEFORE this run overwrites it — the
+# baseline coverage_guard.py compares against at the end.
+BASELINE=""
+if [ -f "$RESULTS_JSON" ]; then
+  BASELINE="$(mktemp)"
+  cp "$RESULTS_JSON" "$BASELINE"
+fi
+
+
+# label image stage reason -> one entry in $SKIPS, plus the same line on stderr
+# the script always logged. `stage` is one of pull|run|scan.
+record_skip() {
+  local label="$1" image="$2" stage="$3" reason="$4"
+  log "[$n] $label — SKIP: $stage failed ($reason)"
+  python3 - "$SKIPS" "$label" "$image" "$stage" "$reason" <<'PY'
+import json, sys
+skipfile, label, image, stage, reason = sys.argv[1:6]
+with open(skipfile) as f:
+    skips = json.load(f)
+skips.append({"label": label, "image": image, "stage": stage,
+              "reason": reason.strip()})
+with open(skipfile, "w") as f:
+    json.dump(skips, f)
+PY
+}
 
 append_record() { # label image runFlags resolvedDigest scanjson-file
   local label="$1" image="$2" flags="$3" digest="$4" scanfile="$5"
@@ -186,7 +225,7 @@ while IFS= read -r line; do
         runref="$image"
         continue
       fi
-      log "[$n] $label — SKIP: pull failed ($(head -1 pull.err))"
+      record_skip "$label" "$image" "pull" "$(head -1 pull.err)"
       rm -f pull.err
       runref=""
       break
@@ -199,7 +238,7 @@ while IFS= read -r line; do
   log "[$n] $label — docker run $flags --entrypoint sleep <image>"
   # shellcheck disable=SC2086
   if ! "$DOCKER" run -d --name "$cname" $flags --entrypoint sleep "$runref" 86400 >/dev/null 2>run.err; then
-    log "[$n] $label — SKIP: docker run failed ($(head -1 run.err))"; rm -f run.err
+    record_skip "$label" "$image" "run" "$(head -1 run.err)"; rm -f run.err
     continue
   fi
   rm -f run.err
@@ -213,7 +252,7 @@ while IFS= read -r line; do
 
   scanfile="$(mktemp)"
   if ! "$IRONCTL" scan "$cname" --json > "$scanfile" 2>scan.err; then
-    log "[$n] $label — SKIP: scan failed ($(head -1 scan.err))"; rm -f scan.err "$scanfile"
+    record_skip "$label" "$image" "scan" "$(head -1 scan.err)"; rm -f scan.err "$scanfile"
     "$DOCKER" rm -f "$cname" >/dev/null 2>&1 || true
     continue
   fi
@@ -239,8 +278,21 @@ done < "$MANIFEST"
 [ "${scanned:-0}" -gt 0 ] || die "no scenarios scanned from $MANIFEST"
 log "scanned ${scanned}/${n} scenarios"
 
+# Render BEFORE the coverage guard runs, deliberately. If coverage regressed we
+# still want the artifact that names every dropped scenario and why — the whole
+# point of IRO-727 is that the evidence must outlive the run log. The guard then
+# fails the run, so a degraded sweep can never quietly open a refresh PR.
 log "rendering results.json + results.md (${scanned} scenarios)…"
-python3 "$SCRIPT_DIR/render.py" "$RESULTS_JSON" "$RESULTS_MD" < "$RECORDS"
+python3 "$SCRIPT_DIR/render.py" "$RESULTS_JSON" "$RESULTS_MD" \
+  --skips "$SKIPS" --manifest-rows "$n" < "$RECORDS"
 
 log "done: $RESULTS_JSON"
 log "done: $RESULTS_MD"
+
+# Coverage regression check: a scenario that scored last run and is still in the
+# manifest must score again. Transient registry weather is absent from the
+# baseline too, so it cannot trip this; a row rotting for good does.
+guard_args=(--manifest "$MANIFEST" --results "$RESULTS_JSON")
+[ -n "$BASELINE" ] && guard_args+=(--baseline "$BASELINE")
+python3 "$SCRIPT_DIR/coverage_guard.py" "${guard_args[@]}" \
+  || die "coverage regressed — results.* were still written, see .skipped[]"

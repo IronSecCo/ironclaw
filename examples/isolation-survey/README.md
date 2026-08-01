@@ -71,6 +71,27 @@ set grows past a couple dozen images. Set `MIRROR=0` to pull straight from the
 original registry. A scenario whose image cannot be pulled or run is **skipped**,
 never fatal, so one unavailable image never aborts the survey.
 
+**Coverage is part of the output.** A skip is recorded, not just logged: every
+dropped scenario lands in `.skipped[]` of `results.json` as
+`{label, image, stage, reason}` — `stage` being `pull`, `run` or `scan` — and is
+listed in the "Not scanned" table of [`results.md`](./results.md), alongside
+`manifestRowCount` / `scenarioCount` / `skippedCount`. A skipped row is **not
+measured**; it is not a low score, and it is not in the table. This exists
+because it was previously invisible: the same 39 of 295 rows failed on every
+weekly refresh, the only trace was an Actions log that expires, and the run
+exited green (IRO-727).
+
+**Losing coverage fails the run.** [`coverage_guard.py`](./coverage_guard.py)
+compares the finished run against the previous `results.json` and exits non-zero
+if a scenario that scored last time — and is still listed in `images.txt` —
+produced nothing now. Deliberately a *regression* check rather than "any skip is
+fatal": a transient registry failure is absent from the baseline too, so it
+cannot wedge the weekly refresh, while a row that rots for good is caught the
+first week it stops scoring. If a row can never be scanned again, the fix is to
+delete it from `images.txt` — a label that leaves the manifest is not a
+regression. Results are written *before* the guard runs, so a failed run still
+leaves the artifact that explains itself.
+
 ## Methodology (so the numbers are defensible)
 
 * **Read-only, config-based.** `ironctl scan` inspects a container's declared
@@ -141,6 +162,7 @@ new page — no manual nav edit.
 | [`images.txt`](./images.txt) | the versioned manifest of scenarios |
 | [`survey.sh`](./survey.sh) | the harness: pull -> run -> `ironctl scan --json` -> aggregate |
 | [`render.py`](./render.py) | stdlib aggregation of scan JSON into `results.{json,md}` |
+| [`coverage_guard.py`](./coverage_guard.py) | fails a run that lost a scenario the previous run scored |
 | [`gen_scorecards.py`](./gen_scorecards.py) | renders `results.json` into `docs/scores/` scorecard pages |
 | [`results.json`](./results.json) | the committed machine-readable dataset |
 | [`results.md`](./results.md) | the committed rendered table |
