@@ -1,6 +1,6 @@
 ---
-title: "How to harden a SonarQube container: sonarqube scores 48/100 by default"
-description: "sonarqube defaults score 48/100 (grade D): root, full caps, writable rootfs. The exact ironctl scan --fix flags that take a code-quality server to its honest 89/100 grade B."
+title: "How to harden a SonarQube container: sonarqube scores 63/100 by default"
+description: "sonarqube defaults score 63/100 (grade C): full caps, writable rootfs. The exact ironctl scan --fix flags that take a code-quality server to its honest 89/100 grade B."
 ---
 
 # How to harden a SonarQube container (and is sonarqube safe in your CI stack?)
@@ -8,7 +8,7 @@ description: "sonarqube defaults score 48/100 (grade D): root, full caps, writab
 SonarQube reads every line of your source on every scan and stores the findings, the tokens CI uses to
 push results, and often a copy of your code smells and secrets. A stock `docker run sonarqube` is not
 the boundary that role deserves. Graded on IronClaw's seven-dimension containment scale, the default
-configuration scores **48 of 100, grade D (porous)**. Higher is safer. A few runtime flags take the
+configuration scores **63 of 100, grade C (partial)**. Higher is safer. A few runtime flags take the
 same image to **89 of 100, grade B**, one point off an A, and the one dimension it cannot reach is the
 one a code-quality server needs by definition: scanners and browsers must reach its API and UI. Here
 are the exact gaps and fixes from the scan data.
@@ -22,11 +22,11 @@ are the exact gaps and fixes from the scan data.
 ## Where the default configuration leaks
 
 `ironctl scan` grades seven independent containment boundaries. On a default `docker run sonarqube`,
-three fail and one warns:
+two fail and one warns:
 
 | Dimension | Verdict | Score | What the scan found |
 |-----------|:-------:|------:|---------------------|
-| Non-root user (uid != 0) | ❌ FAIL | 0/15 | runs as root (uid 0); a container escape starts with host-uid 0 |
+| Non-root user (uid != 0) | ✅ PASS | 15/15 | runs as sonarqube (uid != 0) |
 | Dropped capabilities | ❌ FAIL | 4/20 | default capability set retained (CAP_NET_RAW, CAP_MKNOD, and more) |
 | Seccomp profile | ✅ PASS | 15/15 | seccomp profile active |
 | Network isolation / egress | ⚠️ WARN | 4/15 | network=bridge: outbound egress is possible |
@@ -34,21 +34,23 @@ three fail and one warns:
 | No docker.sock exposure | ✅ PASS | 15/15 | no control socket mounted |
 | No shared host namespaces | ✅ PASS | 10/10 | no host PID/IPC/network sharing |
 
-The one that should worry you most is **root**. SonarQube parses attacker-adjacent input, the source
-under analysis, on every scan; a parser or plugin CVE that lands code execution in a root container
-escapes as root on the host, next to the analysis tokens and the database credentials it holds. The
-full capability set widens that foothold and the writable rootfs makes it durable. SonarQube also
-needs a co-located database (Postgres); harden that too, and it can reach grade A on its own page since
-only SonarQube talks to it.
+SonarQube already gets the hardest dimension right by dropping to the `sonarqube` uid, which is why it
+starts a full grade above most CI images. The two that remain are the **full capability set** and the
+**writable rootfs**. SonarQube parses attacker-adjacent input, the source under analysis, on every
+scan; a parser or plugin CVE that lands code execution keeps CAP_NET_RAW to craft raw packets and a
+writable rootfs to persist, next to the analysis tokens and the database credentials it holds.
+SonarQube also needs a co-located database (Postgres); harden that too, and it can reach grade A on its
+own page since only SonarQube talks to it.
 
 ## Harden it: the exact `--fix` remediation
 
 `ironctl scan my-sonarqube --fix` prints one remediation per failed dimension, then one hardened run.
 For `sonarqube`:
 
-- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as
-  host uid 0. `--fix` emits 65532, the distroless nonroot uid. Point the data, logs, and extensions
-  directories at volumes uid 65532 owns.
+- **`--user 65532:65532`** (Non-root user, already +15): the image already drops to the `sonarqube`
+  uid, so this dimension is closed by default. Keep a non-root uid pinned if you override the
+  entrypoint; `--fix` emits 65532, the distroless nonroot uid. Point the data, logs, and extensions
+  directories at volumes that uid owns.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; SonarQube serves its
   UI and API on a high port and needs none of the default set.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and mount
@@ -62,7 +64,7 @@ For `sonarqube`:
 ## Before and after
 
 ```bash
-# Before: 48/100, grade D
+# Before: 63/100, grade C
 docker run -d --name sonarqube sonarqube:community
 
 # After: 89/100, grade B (scoped private network for CI and its database)
@@ -77,11 +79,11 @@ docker run -d --name sonarqube-hardened \
   sonarqube:community
 ```
 
-Rescan: `ironctl scan sonarqube-hardened` reports `89/100 grade B`. A **41-point swing** with no
+Rescan: `ironctl scan sonarqube-hardened` reports `89/100 grade B`. A **26-point swing** with no
 custom image build, just the right flags. The only dimension still short of full marks is the network
 (4 of 15), because a code-quality server exists to be reached by its scanners and users;
 `network=none` would score the last points but leave nothing able to connect. That is the honest
-ceiling for this role, and it is a long way from the default D.
+ceiling for this role, and it is a long way from the default C.
 
 > SonarQube also needs `vm.max_map_count` raised on the host for its embedded search engine. That is a
 > host sysctl, not a container capability, and it does not affect the containment grade.

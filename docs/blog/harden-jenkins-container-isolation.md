@@ -1,6 +1,6 @@
 ---
-title: "How to harden a Jenkins container: jenkins/jenkins scores 48/100 by default"
-description: "jenkins/jenkins:lts defaults score 48/100 (grade D): root, full caps, writable rootfs. The exact ironctl scan --fix flags that take a CI server to its honest 89/100 grade B."
+title: "How to harden a Jenkins container: jenkins/jenkins scores 63/100 by default"
+description: "jenkins/jenkins:lts defaults score 63/100 (grade C): full caps, writable rootfs. The exact ironctl scan --fix flags that take a CI server to its honest 89/100 grade B."
 ---
 
 # How to harden a Jenkins container (and is jenkins/jenkins:lts safe to run builds?)
@@ -8,7 +8,7 @@ description: "jenkins/jenkins:lts defaults score 48/100 (grade D): root, full ca
 Jenkins is one of the most attacked services in a stack: it holds deploy credentials, cloud keys, and
 source, and it runs arbitrary build steps by design. A stock `docker run jenkins/jenkins:lts` is not
 the boundary that role deserves. Graded on IronClaw's seven-dimension containment scale, the default
-configuration scores **48 of 100, grade D (porous)**. Higher is safer. A few runtime flags take the
+configuration scores **63 of 100, grade C (partial)**. Higher is safer. A few runtime flags take the
 same image to **89 of 100, grade B**, one point off an A, and the one dimension it cannot reach is the
 one a CI server needs by definition: agents and browsers must reach it. Here are the exact gaps and
 fixes from the scan data.
@@ -22,11 +22,11 @@ fixes from the scan data.
 ## Where the default configuration leaks
 
 `ironctl scan` grades seven independent containment boundaries. On a default `docker run
-jenkins/jenkins:lts`, three fail and one warns:
+jenkins/jenkins:lts`, two fail and one warns:
 
 | Dimension | Verdict | Score | What the scan found |
 |-----------|:-------:|------:|---------------------|
-| Non-root user (uid != 0) | ❌ FAIL | 0/15 | runs as root (uid 0); a container escape starts with host-uid 0 |
+| Non-root user (uid != 0) | ✅ PASS | 15/15 | runs as jenkins (uid != 0) |
 | Dropped capabilities | ❌ FAIL | 4/20 | default capability set retained (CAP_NET_RAW, CAP_MKNOD, and more) |
 | Seccomp profile | ✅ PASS | 15/15 | seccomp profile active |
 | Network isolation / egress | ⚠️ WARN | 4/15 | network=bridge: outbound egress is possible |
@@ -34,22 +34,23 @@ jenkins/jenkins:lts`, three fail and one warns:
 | No docker.sock exposure | ✅ PASS | 15/15 | no control socket mounted |
 | No shared host namespaces | ✅ PASS | 10/10 | no host PID/IPC/network sharing |
 
-The one that should worry you most is **root**, and Jenkins makes it worse than most. A plugin CVE, a
-malicious pipeline, or a poisoned dependency that lands code execution in a root container escapes as
-root on the host, next to the credentials store Jenkins guards. A very common Jenkins pattern is
-mounting `docker.sock` so pipelines can build images; do not, and note that this scan would fail the
-docker.sock dimension if you did. Mounting the host Docker socket hands a build step full control of
-the host. Use a rootless builder or a scoped socket-proxy instead. The full capability set and
-writable rootfs widen and entrench any foothold.
+Jenkins already gets the hardest dimension right by dropping to the `jenkins` uid, which is why it
+starts a full grade above most CI images. The two that remain are the **full capability set** and the
+**writable rootfs**. A plugin CVE, a malicious pipeline, or a poisoned dependency that lands code
+execution keeps CAP_NET_RAW to craft raw packets and a writable rootfs to persist, next to the
+credentials store Jenkins guards. A very common Jenkins pattern is mounting `docker.sock` so pipelines
+can build images; do not, and note that this scan would fail the docker.sock dimension if you did.
+Mounting the host Docker socket hands a build step full control of the host whatever uid it started
+as. Use a rootless builder or a scoped socket-proxy instead.
 
 ## Harden it: the exact `--fix` remediation
 
 `ironctl scan my-jenkins --fix` prints one remediation per failed dimension, then one hardened run.
 For `jenkins/jenkins:lts`:
 
-- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as
-  host uid 0. `--fix` emits 65532, the distroless nonroot uid. Point `JENKINS_HOME` at a volume uid
-  65532 owns.
+- **`--user 65532:65532`** (Non-root user, already +15): the image already drops to the `jenkins` uid,
+  so this dimension is closed by default. Keep a non-root uid pinned if you override the entrypoint;
+  `--fix` emits 65532, the distroless nonroot uid. Point `JENKINS_HOME` at a volume that uid owns.
 - **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; the Jenkins
   controller serves its UI and agent port on high ports and needs none of the default set.
 - **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and mount
@@ -63,7 +64,7 @@ For `jenkins/jenkins:lts`:
 ## Before and after
 
 ```bash
-# Before: 48/100, grade D
+# Before: 63/100, grade C
 docker run -d --name jenkins jenkins/jenkins:lts
 
 # After: 89/100, grade B (scoped private network for agents and proxy)
@@ -77,11 +78,11 @@ docker run -d --name jenkins-hardened \
   jenkins/jenkins:lts
 ```
 
-Rescan: `ironctl scan jenkins-hardened` reports `89/100 grade B`. A **41-point swing** with no custom
+Rescan: `ironctl scan jenkins-hardened` reports `89/100 grade B`. A **26-point swing** with no custom
 image build, just the right flags. The only dimension still short of full marks is the network (4 of
 15), because a CI server exists to be reached by its agents and users; `network=none` would score the
 last points but leave nothing able to connect. That is the honest ceiling for this role, and it is a
-long way from the default D.
+long way from the default C.
 
 ## Verify it on your own Jenkins
 
