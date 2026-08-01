@@ -91,9 +91,12 @@ class ManifestParsing(unittest.TestCase):
     `expected` over a different row set than the sweep swept."""
 
     def labels(self, text):
+        return self.labels_bytes(text.encode())
+
+    def labels_bytes(self, data):
         with tempfile.TemporaryDirectory() as d:
             p = pathlib.Path(d) / 'images.txt'
-            p.write_text(text)
+            p.write_bytes(data)
             return guard.manifest_labels(p)
 
     def test_column_zero_comments_and_blanks_are_skipped(self):
@@ -128,6 +131,54 @@ class ManifestParsing(unittest.TestCase):
 
     def test_a_last_line_without_a_newline_still_counts(self):
         self.assertEqual(self.labels("a | x:1 |\nb | y:1 |"), ['a', 'b'])
+
+    # The cases below are the residual divergences from survey.sh. Each one
+    # changes label IDENTITY at an unchanged row COUNT, which is why counting
+    # rows could never have caught them: the guard matches the baseline by
+    # label, so a label only it spells that way drops out of the expected set
+    # permanently and silently -- IRO-727, reproduced by its own guard.
+
+    def test_a_bare_cr_is_not_a_line_break(self):
+        """`IFS= read -r line` splits on \\n only. Python text mode is
+        universal-newline mode, where a bare CR ends a line, so the guard used
+        to see two rows ('a', 'b') where the sweep sees the single label
+        'a\\rb'. Stripping a trailing CR per line cannot help: the file was
+        already re-split before any per-line fix-up could run."""
+        self.assertEqual(self.labels_bytes(b"a\rb | busybox:1 |\n"), ['a\rb'])
+
+    def test_a_non_ascii_space_is_not_a_separator(self):
+        """bash's default IFS is space/tab/newline. `str.split()` also splits on
+        every Unicode space, so U+00A0 made the guard read 'a b' where the sweep
+        reads 'a\\xa0b'."""
+        nbsp = "\u00a0"  # explicit: an invisible literal here is unreviewable
+        self.assertEqual(self.labels(f"a{nbsp}b | busybox:1 |\n"),
+                         [f"a{nbsp}b"])
+
+    def test_vertical_tab_and_form_feed_are_not_separators(self):
+        """Same class as the NBSP case, and reachable in bytes mode too:
+        `bytes.split()` with no argument splits on \\x0b and \\x0c, which bash
+        does not."""
+        self.assertEqual(self.labels("a\x0bb\x0cc | busybox:1 |\n"),
+                         ['a\x0bb\x0cc'])
+
+    def test_double_quotes_are_data_not_quoting(self):
+        """`echo "$label" | xargs` applied shell quote processing, so the sweep
+        recorded `say "hi"` as `say hi` while the guard kept the quotes. Neither
+        side does quote processing now."""
+        self.assertEqual(self.labels('say "hi" | busybox:1 |\n'), ['say "hi"'])
+
+    def test_a_backslash_is_data_not_an_escape(self):
+        self.assertEqual(self.labels(r'a\b | busybox:1 |' + "\n"), [r'a\b'])
+
+    def test_a_label_starting_with_a_dash_n_is_kept(self):
+        """`echo "$label" | xargs` runs xargs with no utility, which defaults to
+        /bin/echo, so a label beginning `-n ` was eaten as an option and the
+        sweep recorded 'foo'."""
+        self.assertEqual(self.labels("-n foo | busybox:1 |\n"), ['-n foo'])
+
+    def test_a_tab_run_collapses_like_a_space_run(self):
+        self.assertEqual(self.labels("\ttwo\t \twords\t| busybox:1 |\n"),
+                         ['two words'])
 
 
 class Accounting(unittest.TestCase):
@@ -185,6 +236,52 @@ class Accounting(unittest.TestCase):
         problems = self.check(doc, ['a', 'b'])
         self.assertTrue(any('exceeds manifestRowCount' in p for p in problems),
                         problems)
+
+    def test_ghost_labels_at_matching_counts_are_caught(self):
+        """Every sum closes and the artifact covers none of the rows asked for.
+        Counting rows is structurally blind to this; comparing the label
+        multisets is not."""
+        doc = results_doc(['x', 'y'], skipped=[('z', 'pull', 'nope')])
+        problems = self.check(doc, ['a', 'b', 'c'])
+        self.assertTrue(any('do not name the same rows' in p
+                            for p in problems), problems)
+        joined = ' '.join(problems)
+        for lab in ('a', 'b', 'c', 'x', 'y', 'z'):
+            self.assertIn(repr(lab), joined)
+
+    def test_one_label_spelled_two_ways_is_caught(self):
+        """The residual parse-drift shape, and the reason counts are not enough:
+        3 rows in, 3 rows out, one of them a different string. Under the old
+        count-only check this was silent, and `evaluate()` would then never
+        match that row against the baseline again."""
+        doc = results_doc(['a', 'say hi'], skipped=[('c', 'pull', 'nope')])
+        problems = self.check(doc, ['a', 'say "hi"', 'c'])
+        self.assertTrue(any('do not name the same rows' in p
+                            for p in problems), problems)
+
+    def test_a_duplicate_walked_once_is_caught(self):
+        """A multiset, not a set: the manifest asks for `dup` twice and the
+        artifact reports it once. Set comparison would call this equal."""
+        doc = results_doc(['a', 'dup'], manifest_rows=3)
+        problems = self.check(doc, ['a', 'dup', 'dup'])
+        self.assertTrue(any('do not name the same rows' in p
+                            for p in problems), problems)
+
+    def test_matching_labels_produce_no_identity_problem(self):
+        """Two-sided: the check must be quiet when the two sides do agree,
+        including on a repeated label."""
+        doc = results_doc(['a', 'dup', 'dup'], skipped=[('c', 'pull', 'x')])
+        self.assertEqual(self.check(doc, ['a', 'dup', 'dup', 'c']), [])
+
+    def test_a_boolean_is_not_a_recorded_count(self):
+        """`bool` is a subclass of `int`, so `isinstance(v, int)` read
+        `manifestRowCount: true` as a recorded count and then did arithmetic on
+        it as 1."""
+        doc = results_doc(['a'])
+        doc['manifestRowCount'] = True
+        problems = self.check(doc, ['a'])
+        self.assertTrue(any('does not record' in p and 'manifestRowCount' in p
+                            for p in problems), problems)
 
 
 class RegressionDetection(unittest.TestCase):

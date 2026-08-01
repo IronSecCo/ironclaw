@@ -25,10 +25,19 @@ red is not a guard. So this checks two things instead:
    from disk lets a plain re-run launder a regression green.
 
 2. **The accounting adds up.** `scenarioCount + skippedCount == manifestRowCount
-   == the rows this guard parses out of images.txt`. That is the invariant the
-   artifact advertises, and it is what makes "256 scenarios" readable as
-   coverage rather than as a number with no denominator. A count the artifact
-   does not record is reported as unverifiable, never defaulted to zero.
+   == the rows this guard parses out of images.txt`, AND the labels match as a
+   multiset, not just as totals. That is the invariant the artifact advertises,
+   and it is what makes "256 scenarios" readable as coverage rather than as a
+   number with no denominator. A count the artifact does not record is reported
+   as unverifiable, never defaulted to zero.
+
+   The multiset half is what makes check 1 sound. Counts are blind to label
+   IDENTITY, and every way this file's parse could still disagree with
+   `survey.sh` changes WHICH label a row carries at an unchanged count. Since
+   check 1 matches the baseline by label, one mis-spelled label leaves
+   `expected` permanently and silently — IRO-727 reproduced by the guard written
+   to prevent it. Comparing multisets turns that whole class loud, including the
+   divergences nobody has thought of yet.
 
 There is no implicit floor. With a baseline, `regressed == []` already implies
 `len(scanned) >= len(expected)`, so an implicit `len(scanned) >= len(expected)`
@@ -51,71 +60,100 @@ Negative controls: scripts/tests/test_coverage_guard.py.
 from __future__ import annotations
 
 import argparse
+import collections
 import json
+import re
 import sys
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 # The coverage block render.py writes at schemaVersion 1.1. Absent in 1.0, which
 # had nowhere to record any of it.
 REQUIRED_COUNTS = ("manifestRowCount", "scenarioCount", "skippedCount")
 
+# Runs of the ONLY two blanks bash's default IFS splits on. Not `bytes.split()`
+# with no argument, and not `str.split()`: both also split on \x0b, \x0c and (in
+# text mode) every Unicode space, none of which bash treats as a separator. A
+# label containing U+00A0 parsed one way here and another way in the sweep.
+_BLANKS = re.compile(rb"[ \t]+")
 
-def manifest_labels(path):
+
+def manifest_labels(path: str) -> List[str]:
     r"""Scenario labels in images.txt, in file order, INCLUDING duplicates.
 
     Mirrors survey.sh's own parse, because the guard's arithmetic only means
     anything if it measures the row set the sweep actually walked:
 
+    * the file is split on b"\n" and nothing else, as `IFS= read -r line` does.
+      Text mode is universal-newline mode, where a BARE CR is a line terminator
+      to Python and an ordinary character to `read` — the file was already
+      re-split before any per-line fix-up could help;
     * a trailing CR is stripped, as `line="${line%%$'\r'}"` does;
     * a line is a comment only when `#` is at column 0, as
       `case "$line" in ''|'#'*)` does. An INDENTED `#` is a scenario row to the
       sweep, so it is one here too — this function used to `.strip()` first and
       silently disagreed with the sweep about it;
-    * the label is field 1 of a `|` split, whitespace-collapsed the way
-      `echo "$label" | xargs` collapses it: leading/trailing dropped, internal
-      runs squeezed to a single space;
+    * the label is field 1 of a `|` split, with runs of space/tab collapsed to
+      one space and leading/trailing dropped — exactly what survey.sh's
+      `collapse()` does with `read -r -a` under the default IFS;
     * a row whose label is empty after that is dropped, as `[ -z "$label" ]`
       does;
     * duplicates are KEPT, because the sweep walks and counts them twice. This
       function used to deduplicate.
 
-    Not mirrored, deliberately: `xargs` also applies shell quote/backslash
-    processing, which nothing in images.txt uses. If a label ever needs it, the
-    accounting check below is what catches the disagreement — it compares this
-    row count against the count survey.sh recorded, so a drift fails the run
-    instead of quietly shifting the denominator.
+    survey.sh used to pipe the field through `echo "$label" | xargs`, which is
+    NOT this: xargs applies shell quote and backslash processing, and with no
+    utility argument it defaults to `/bin/echo`, so a label beginning `-n ` was
+    eaten as an option. Both sides now do the same blank-collapse and nothing
+    else, so the classes exist on neither. `check_accounting` compares the two
+    LABEL SETS, not just their sizes, so a residual disagreement fails the run
+    loudly instead of quietly dropping a row out of the baseline comparison.
     """
-    labels = []
-    with open(path) as f:
-        for raw in f:
-            line = raw.rstrip("\n")
-            if line.endswith("\r"):
-                line = line[:-1]
-            if not line or line.startswith("#"):
-                continue
-            label = " ".join(line.split("|")[0].split())
-            if not label:
-                continue
-            labels.append(label)
+    labels: List[str] = []
+    with open(path, "rb") as f:
+        data = f.read()
+    for raw in data.split(b"\n"):
+        line = raw[:-1] if raw.endswith(b"\r") else raw
+        if not line or line.startswith(b"#"):
+            continue
+        field = line.split(b"|")[0]
+        label = b" ".join(p for p in _BLANKS.split(field) if p)
+        if not label:
+            continue
+        # surrogateescape so a non-UTF-8 byte round-trips into a string that
+        # simply will not equal any label the artifact recorded, rather than
+        # raising and taking the guard's exit code to 2.
+        labels.append(label.decode("utf-8", "surrogateescape"))
     return labels
 
 
-def load_results(path):
+def load_results(path: str) -> Dict[str, Any]:
     """Parse a results.json."""
     with open(path) as f:
         return json.load(f)
 
 
-def scenario_labels_of(doc):
+def scenario_labels_of(doc: Dict[str, Any]) -> Set[str]:
     """Labels that produced a scorecard in a parsed results.json."""
     return {s.get("label", "") for s in doc.get("scenarios", [])}
 
 
-def scenario_labels(results_path):
+def scenario_labels(results_path: str) -> Set[str]:
     """Labels that produced a scorecard in a results.json on disk."""
     return scenario_labels_of(load_results(results_path))
 
 
-def skip_index_of(doc):
+def recorded_labels(doc: Dict[str, Any]) -> List[str]:
+    """Every label the run reported, once per row: scored, then skipped.
+
+    A list rather than a set: the manifest may repeat a label, the sweep walks
+    it once per row, and an accounting check that collapsed duplicates could not
+    tell "walked twice" from "walked once and lost one".
+    """
+    return ([s.get("label", "") for s in doc.get("scenarios", [])]
+            + [s.get("label", "") for s in doc.get("skipped", [])])
+
+
+def skip_index_of(doc: Dict[str, Any]) -> Dict[str, Any]:
     """label -> {stage, reason} for the scenarios this run recorded as skipped.
 
     Empty for a schema-1.0 results.json, which had nowhere to record them; the
@@ -124,8 +162,17 @@ def skip_index_of(doc):
     return {s.get("label", ""): s for s in doc.get("skipped", [])}
 
 
-def check_accounting(doc, manifest):
-    """Verify `scenarioCount + skippedCount == manifestRowCount == len(manifest)`.
+def _is_count(value: Any) -> bool:
+    """True for a JSON integer. `bool` is a subclass of `int` in Python, so a
+    bare isinstance check reads `manifestRowCount: true` as a recorded count and
+    then does arithmetic on it as 1."""
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def check_accounting(doc: Dict[str, Any],
+                     manifest: Sequence[str]) -> List[str]:
+    """Verify `scenarioCount + skippedCount == manifestRowCount == len(manifest)`
+    and that the two sides name the SAME rows.
 
     Returns a list of problems; empty means the invariant holds. The PR that
     introduced the coverage block advertised this invariant as checkable from
@@ -136,10 +183,17 @@ def check_accounting(doc, manifest):
     `doc.get("skippedCount", 0)` here would turn "schema 1.0 could not record
     this" into "the invariant holds", which is the exact fail-quiet shape this
     guard exists to kill.
-    """
-    problems = []
 
-    missing = [k for k in REQUIRED_COUNTS if not isinstance(doc.get(k), int)]
+    Counts alone are not enough, for the same reason. Three ghost labels against
+    a three-row manifest satisfies every sum above while covering none of the
+    rows asked for, and any residual parse disagreement with survey.sh moves
+    label identity at a constant count — invisible to arithmetic, fatal to
+    `evaluate()`, which matches the baseline by label. So the last check is a
+    multiset comparison of the labels themselves.
+    """
+    problems: List[str] = []
+
+    missing = [k for k in REQUIRED_COUNTS if not _is_count(doc.get(k))]
     if missing:
         problems.append(
             f"results.json does not record {', '.join(missing)} "
@@ -185,10 +239,43 @@ def check_accounting(doc, manifest):
             "guard disagree about what images.txt asks for, so every coverage "
             "number here is measured against the wrong denominator")
 
+    # The identity check the sums cannot do. `evaluate()` matches the baseline
+    # by label, so a row the two sides spell differently silently leaves the
+    # expected set forever; the totals stay equal the whole time.
+    asked = collections.Counter(manifest)
+    reported = collections.Counter(recorded_labels(doc))
+    unreported = sorted((asked - reported).elements())
+    unrequested = sorted((reported - asked).elements())
+    if unreported or unrequested:
+        detail = []
+        if unreported:
+            detail.append(
+                f"{len(unreported)} manifest row(s) the artifact never names: "
+                + ", ".join(repr(lab) for lab in unreported[:5])
+                + (", …" if len(unreported) > 5 else ""))
+        if unrequested:
+            detail.append(
+                f"{len(unrequested)} label(s) in the artifact that no manifest "
+                "row asks for: "
+                + ", ".join(repr(lab) for lab in unrequested[:5])
+                + (", …" if len(unrequested) > 5 else ""))
+        problems.append(
+            "the artifact and the manifest do not name the same rows — "
+            + "; ".join(detail)
+            + ". The counts can match while the labels do not, and the "
+            "regression check compares labels, so a row spelled two ways here "
+            "would drop out of the baseline comparison permanently and without "
+            "a word")
+
     return problems
 
 
-def evaluate(manifest, scanned, baseline, min_scanned=None):
+def evaluate(
+    manifest: Sequence[str],
+    scanned: Set[str],
+    baseline: Optional[Set[str]],
+    min_scanned: Optional[int] = None,
+) -> Tuple[bool, Optional[int], List[str], List[str]]:
     """Decide whether coverage held.
 
     manifest -- labels the manifest asked for (list, file order, may repeat)
@@ -198,8 +285,8 @@ def evaluate(manifest, scanned, baseline, min_scanned=None):
     Returns (ok, floor, regressed, messages). `floor` is None when no absolute
     floor applies, which is the normal case once a baseline exists.
     """
-    messages = []
-    regressed = []
+    messages: List[str] = []
+    regressed: List[str] = []
 
     if baseline is None:
         floor = 1 if min_scanned is None else min_scanned
@@ -210,8 +297,8 @@ def evaluate(manifest, scanned, baseline, min_scanned=None):
         # Only rows the manifest still asks for, once each. Deleting a dead row
         # is the intended fix for a permanently failing scenario, not a
         # regression.
-        seen = set()
-        expected = []
+        seen: Set[str] = set()
+        expected: List[str] = []
         for lab in manifest:
             if lab in baseline and lab not in seen:
                 seen.add(lab)
@@ -225,7 +312,7 @@ def evaluate(manifest, scanned, baseline, min_scanned=None):
     return ok, floor, regressed, messages
 
 
-def main(argv=None):
+def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--manifest", required=True)
     ap.add_argument("--results", required=True,

@@ -85,9 +85,16 @@ exited green (IRO-727).
 manifestRowCount` is not just readable from the artifact, it is enforced:
 [`coverage_guard.py`](./coverage_guard.py) fails the run when the three counts
 do not add up, when a count is missing, or when its own parse of `images.txt`
-disagrees with the row count the sweep recorded. `results.md` derives its
-"every row was scanned" line from that same comparison rather than from the skip
-list being empty, so the sentence cannot contradict the numbers next to it.
+disagrees with the row count the sweep recorded. It also compares the two sides
+**by label, not only by total** — the scored and skipped labels against the rows
+it parses out of `images.txt`, as multisets. Counts alone cannot see a row
+spelled one way by the sweep and another way by the guard, and since the
+regression check below matches the baseline by label, such a row would leave the
+expected set permanently and without a word. `results.md` states "every row was
+scanned" only when all three counts say so, and `manifestRowCount` comes from
+the sweep rather than being derived from the rows that happened to come back —
+deriving it made the invariant true by construction, and was how a single scored
+row could report full coverage of a 295-row manifest.
 
 **Losing coverage fails the run.** [`coverage_guard.py`](./coverage_guard.py)
 compares the finished run against the last **committed** `results.json` — read
@@ -106,8 +113,20 @@ same broken sweep fails with the same message. Fix the rows or retire them.
 written as soon as the sweep finishes — before the `scanned > 0` check and
 before the guard — so a run that fails on coverage, *including one where every
 single row failed*, still leaves an artifact naming each dropped row and its
-stage. A run killed mid-sweep (Ctrl-C, the harness itself crashing) writes
-nothing; there the run log is still the only record.
+stage. In CI the weekly refresh uploads both files as a run artifact with
+`if: always()`, because on a failing run nothing downstream commits them and
+they would otherwise die with the runner.
+
+What that does **not** cover, stated plainly because a false durability claim is
+the same class of bug as the one this fixes: anything that aborts the sweep
+*before* the render step still writes nothing and still destroys the skips
+collected so far. The foreseeable internal aborts are gone — a failed skip write
+on a full temp filesystem, a manifest row that blows up the field parse, and a
+temp file that cannot be created are each recorded and stepped over instead of
+fatal, which is what makes this hold under `PRUNE=1` on a nearly-full runner
+disk. What remains is the process being killed (Ctrl-C, OOM, a job timeout), a
+manifest that cannot be read at all, and `render.py` itself failing. There the
+run log is still the only record.
 
 ## Methodology (so the numbers are defensible)
 
@@ -178,7 +197,7 @@ new page — no manual nav edit.
 |------|-----------|
 | [`images.txt`](./images.txt) | the versioned manifest of scenarios |
 | [`survey.sh`](./survey.sh) | the harness: pull -> run -> `ironctl scan --json` -> aggregate |
-| [`render.py`](./render.py) | stdlib aggregation of scan JSON into `results.{json,md}` |
+| [`render.py`](./render.py) | stdlib aggregation of scan JSON into `results.{json,md}`; driven by `survey.sh`, and `--manifest-rows N` is required so the coverage denominator comes from the sweep |
 | [`coverage_guard.py`](./coverage_guard.py) | fails a run that lost a scenario the previous run scored |
 | [`gen_scorecards.py`](./gen_scorecards.py) | renders `results.json` into `docs/scores/` scorecard pages |
 | [`results.json`](./results.json) | the committed machine-readable dataset |

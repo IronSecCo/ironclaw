@@ -71,6 +71,24 @@ jobs:
           PRUNE: "1"
         run: bash examples/isolation-survey/survey.sh
 
+      # survey.sh writes results.* BEFORE the coverage guard runs, precisely so a
+      # failing run leaves the artifact naming which rows dropped and why
+      # (IRO-727). But on a red run nothing downstream commits or pushes, so
+      # without this step that artifact dies with the runner and the expiring
+      # Actions log is once again the only record — the exact defect being fixed.
+      # `if: always()` is the whole point: the run this matters on is the one
+      # that failed.
+      - name: Upload the survey artifact (including on a failed run)
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: isolation-survey-results
+          path: |
+            examples/isolation-survey/results.json
+            examples/isolation-survey/results.md
+          if-no-files-found: warn
+          retention-days: 90
+
       - name: Regenerate the scorecard directory
         run: |
           python3 examples/isolation-survey/gen_scorecards.py \

@@ -20,6 +20,17 @@ expires. `--manifest-rows` records how many rows the manifest actually had, so
 `scenarioCount + skippedCount == manifestRowCount` is checkable from the
 artifact alone — and coverage_guard.py, which survey.sh runs immediately after
 this, checks it rather than leaving it to the reader.
+
+`--manifest-rows` is REQUIRED, and that is load-bearing rather than pedantic.
+It used to default to `len(rows) + len(skips)`, i.e. the denominator was
+synthesized from the numerator, so the invariant held by construction and one
+scored row with no skips wrote `manifestRowCount: 1` and printed "Coverage: 1 of
+1 manifest rows, every row was scanned" against a 295-row manifest. A count
+nobody measured is not a count; the number has to come from the sweep.
+
+Usage:
+
+    render.py <out.json> <out.md> --manifest-rows N [--skips skips.json]
 """
 import argparse
 import json
@@ -76,8 +87,11 @@ def main():
     ap.add_argument("--skips", default="",
                     help="JSON array of {label,image,stage,reason} scenarios "
                          "the survey dropped")
-    ap.add_argument("--manifest-rows", type=int, default=None,
-                    help="number of scenario rows in images.txt")
+    ap.add_argument("--manifest-rows", type=int, required=True,
+                    help="number of scenario rows the sweep walked in "
+                         "images.txt. Required: deriving it from the rows that "
+                         "happen to be present makes the coverage invariant "
+                         "hold by construction and hides the whole defect")
     args = ap.parse_args()
 
     out_json, out_md = args.out_json, args.out_md
@@ -103,8 +117,6 @@ def main():
     # report (they are identical across a single run).
     stamp = records[0]["report"] if records else {}
     manifest_rows = args.manifest_rows
-    if manifest_rows is None:
-        manifest_rows = len(rows) + len(skips)
     dataset = {
         "report": "ironclaw-isolation-survey",
         # 1.1 adds the coverage block: manifestRowCount, skippedCount, skipped[].
@@ -134,14 +146,19 @@ def main():
                      "manifest row is accounted for below.")
     lines.append("")
 
-    # "Every row was scanned" is derived from the arithmetic, never from an
-    # empty skip list. Those are not the same claim: a run can drop a row
-    # without recording a skip, and reading the sentence off `if skips:` printed
-    # "Coverage: 2 of 3 manifest rows — every row was scanned" at exit 0
-    # (IRO-727). coverage_guard.py fails a run where they diverge; this file
-    # still has to describe what it actually has.
-    unaccounted = manifest_rows - len(rows) - len(skips)
-    if len(rows) == manifest_rows and not skips:
+    # "Every row was scanned" is one statement about the three counts: the
+    # scored rows are the whole manifest, nothing was dropped, and nothing is
+    # missing. All three are read off the same arithmetic, and `manifest_rows`
+    # now comes from the sweep rather than from `len(rows) + len(skips)`, so the
+    # first term can actually be false. Both of the ways this line used to be
+    # produced — reading it off `if skips:`, and synthesizing the denominator
+    # from the numerator — printed "Coverage: 2 of 3 manifest rows — every row
+    # was scanned" at exit 0 (IRO-727). Anything short of all three goes to the
+    # else branch and reports what the run actually has, including the
+    # over-accounted case where more rows came back than were asked for.
+    scored, dropped = len(rows), len(skips)
+    unaccounted = manifest_rows - scored - dropped
+    if scored == manifest_rows and dropped == 0 and unaccounted == 0:
         lines.append(f"**Coverage: {len(rows)} of {manifest_rows} manifest "
                      "rows — every row was scanned.**")
     else:
