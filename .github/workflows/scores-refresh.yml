@@ -39,8 +39,9 @@ jobs:
     # meaningless off the canonical repo.
     if: github.repository == 'IronSecCo/ironclaw'
     runs-on: ubuntu-latest
-    # The survey pulls + scans ~150 images through mirror.gcr.io; give it room but
-    # cap it so a hung pull can never burn a full 6h of runner time.
+    # The survey pulls + scans the 295 scenario rows in images.txt through
+    # mirror.gcr.io; give it room but cap it so a hung pull can never burn a full
+    # 6h of runner time.
     timeout-minutes: 120
     permissions:
       contents: write # push the rolling refresh branch
@@ -63,8 +64,13 @@ jobs:
         run: CGO_ENABLED=1 go build -o bin/ironctl ./cmd/ironctl
 
       # Run the full survey. PRUNE=1 removes each image right after it is scanned so
-      # the ~150-image sweep never exceeds the runner's free disk. Mirror-first
-      # (the default) dodges Docker Hub's anonymous pull-rate limit.
+      # the sweep never exceeds the runner's free disk. Mirror-first (the default)
+      # dodges Docker Hub's anonymous pull-rate limit.
+      #
+      # survey.sh exits non-zero when a scenario that scored in the committed
+      # results.json stops producing output (IRO-727), which fails this job before
+      # a degraded sweep can open a refresh PR. It still writes results.* first, so
+      # the run's artifacts name what was dropped even when it fails.
       - name: Run the isolation survey
         env:
           IRONCTL: ${{ github.workspace }}/bin/ironctl
@@ -146,8 +152,42 @@ jobs:
           # main, so main's required_signatures rule is still satisfied.
           git push --force origin "$branch"
 
+          # Coverage, in the PR body itself. A refresh that measured fewer images
+          # than the manifest lists used to look identical to one that measured
+          # them all: the only trace was this run's log, which expires (IRO-727).
+          # A results.json written before schemaVersion 1.1 has no coverage block.
+          # That case says "not recorded" rather than defaulting the missing fields
+          # to zero -- defaulting them would print "nothing was skipped" for the
+          # exact artifact shape whose 39 silent drops started this.
+          coverage="$(python3 - <<'PY'
+          import collections, json
+          d = json.load(open("examples/isolation-survey/results.json"))
+          scanned = len(d.get("scenarios", []))
+          skips = d.get("skipped", [])
+          rows = d.get("manifestRowCount")
+          if rows is None or "skipped" not in d:
+              print(f"Coverage this run: {scanned} scenarios scanned. This "
+                    "`results.json` predates schemaVersion 1.1, so how many "
+                    "manifest rows were dropped is **not recorded**.")
+              raise SystemExit(0)
+          line = f"Coverage this run: **{scanned} of {rows}** scenario rows scanned."
+          if skips:
+              stages = collections.Counter(s.get("stage", "?") for s in skips)
+              breakdown = ", ".join(f"{k} {v}" for k, v in sorted(stages.items()))
+              line += (f" **{len(skips)} skipped** ({breakdown}) -- each one is named"
+                       " with its reason in the `skipped` array of `results.json` and"
+                       ' in the "Not scanned" table of `results.md`. A skipped row is'
+                       " not measured; it is not a low score.")
+          else:
+              line += " Nothing was skipped."
+          print(line)
+          PY
+          )" || coverage="Coverage: could not be read from results.json."
+
           title="chore(scores): weekly refresh of the container isolation scores directory"
-          body="Automated by the weekly Scores refresh workflow (IRO-449): re-runs \`examples/isolation-survey/survey.sh\` over the top ~150 public images and regenerates \`docs/scores/\` + \`results.json\` so the [Container Isolation Scores](https://github.com/${REPO}/tree/main/docs/scores) directory tracks current base-image posture. This is the single **rolling** refresh PR, force-reset onto the current main tip each run, so it never conflicts and supersedes any prior refresh. Opened by the reviewer App (PR creation only; a human still approves + merges)."
+          body="Automated by the weekly Scores refresh workflow (IRO-449): re-runs \`examples/isolation-survey/survey.sh\` over the scenario rows in \`examples/isolation-survey/images.txt\` and regenerates \`docs/scores/\` + \`results.json\` so the [Container Isolation Scores](https://github.com/${REPO}/tree/main/docs/scores) directory tracks current base-image posture. This is the single **rolling** refresh PR, force-reset onto the current main tip each run, so it never conflicts and supersedes any prior refresh. Opened by the reviewer App (PR creation only; a human still approves + merges).
+
+          ${coverage}"
 
           emit_manual_fallback() {
             echo "::error title=Scores refresh PR not opened::${1}"
