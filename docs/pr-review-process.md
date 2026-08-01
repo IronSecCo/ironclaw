@@ -13,21 +13,24 @@ description: How IronClaw records pull-request review decisions with a GitHub Ap
 
 `main` is protected by a branch ruleset
 ([`.github/rulesets/main.json`](https://github.com/IronSecCo/ironclaw/blob/main/.github/rulesets/main.json))
-that requires **one approving review** plus the `build` and `CodeQL` status
-checks before any PR can merge. That is the gate that keeps unreviewed code off
-`main`.
+that requires **one approving review** plus the `build`, `CodeQL` and
+`brew-formula-verify` status checks before any PR can merge. That is the gate
+that keeps unreviewed code off `main`, and since 2026-08-01 it has **no bypass
+actors**, so it applies to maintainers exactly as it applies to everyone else.
 
 Today every IronClaw agent (Forge, Relay, QA, …) drives Git/GitHub under the
 **single `omerzamir` GitHub identity**. GitHub will not let an identity approve
 its own pull request. So when an agent opens a PR as `omerzamir`, *no agent* can
 post the approving review the ruleset requires — the author and every available
 reviewer are the same actor. Security-critical PRs that have a recorded
-Paperclip review of record still cannot satisfy the GitHub gate, and the only
-escape valve is an admin bypass (the repo-admin `bypass_actors` entry).
+Paperclip review of record still cannot satisfy the GitHub gate, and until this
+document's reviewer existed the only escape valve was an admin bypass (a
+repo-admin `bypass_actors` entry, since removed by IRO-731).
 
-Admin bypass is a band-aid: it lets a green PR merge **without any second-actor
+Admin bypass was a band-aid: it let a green PR merge **without any second-actor
 approval being recorded on GitHub at all**, which is exactly the property the
-gate exists to guarantee. This document is the durable fix: a **distinct,
+gate exists to guarantee. Two commits reached `main` that way before it was
+removed, recorded in [Merge exceptions](merge-exceptions.md). This document is the durable fix: a **distinct,
 trusted reviewer actor** that is not the PR author, so the required-review gate
 is satisfied honestly — no bypass.
 
@@ -172,8 +175,8 @@ deliberately does **not** do:
   this replaces `GITHUB_TOKEN`'s `contents: write` on the same writes rather
   than adding a writer;
 - it does not widen reach into `main`. The App is **not** in the ruleset's
-  `bypass_actors` (only the admin repository role is), so main still requires a
-  reviewed PR, passing required checks and signed commits;
+  `bypass_actors` — since IRO-731 nothing is, that list is empty — so main still
+  requires a reviewed PR, passing required checks and signed commits;
 - it does not change the commit. The `author` pin is what makes the head commit
   unsigned, and that is independent of the token, so `license/cla` still passes and
   the squash still mints main's signature — see *Squash only* below.
@@ -566,15 +569,26 @@ Caveats, because this is the part that is easy to overstate:
 The machine-reviewer path above needs **no edit** to
 [`.github/rulesets/main.json`](https://github.com/IronSecCo/ironclaw/blob/main/.github/rulesets/main.json).
 The App's approving review satisfies the existing
-`pull_request.required_approving_review_count: 1`. The admin `bypass_actors`
-entry stays as the break-glass path of last resort, but with a working machine
-reviewer it should no longer be the *routine* way security PRs merge.
+`pull_request.required_approving_review_count: 1` on its own, with no bypass.
 
-The one ruleset change made since is a **ratchet up**, not a relaxation:
+Both ruleset changes made since are **ratchets up**, not relaxations.
 `brew-formula-verify` was added to `required_status_checks` (IRO-670) so the
-formula gate actually gates. Protection on `main` only ever moves in that
-direction — if a required check is wrong, fix the check on its own ticket rather
-than removing it to unblock a merge.
+formula gate actually gates. Then, on 2026-08-01, `bypass_actors` was emptied
+(IRO-731): it had carried the repo **admin** role with `bypass_mode: always`, and
+since every agent drives GitHub as `omerzamir`, an admin, the required review was
+advisory for us and mandatory for everyone else. Two commits reached `main`
+unreviewed through that hole before it was closed, both recorded in
+[Merge exceptions](merge-exceptions.md). Removing it cost nothing precisely
+because this reviewer path works: PR #668 took a real `ironclaw-reviewer`
+approval and squash-merged through the plain REST endpoint, no `--admin`
+anywhere.
+
+The consequence is intended: **a stuck or missing required check now blocks
+everyone.** Protection on `main` only ever moves in that direction — if a
+required check is wrong, fix the check on its own ticket rather than removing it,
+or bypassing it, to unblock a merge. The authorised way to restore the bypass, if
+it ever truly has to come back, is written down at the bottom of
+[Merge exceptions](merge-exceptions.md).
 
 If we ever adopt Option B instead, the only ruleset change would be flipping
 `require_code_owner_review` to `true` after the reviewer account/team is a

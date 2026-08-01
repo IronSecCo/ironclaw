@@ -99,6 +99,15 @@ There's nothing to do up front: when you open your first pull request, the **CLA
 Assistant** bot comments with a link, and you sign in one click with your GitHub
 account. It remembers your signature for future PRs.
 
+Where we have accepted a contribution without a captured signature, and on what
+evidence, is on the public record in
+[CLA exceptions](https://ironsecco.github.io/ironclaw/cla-exceptions/). Its
+companion page,
+[Merge exceptions](https://ironsecco.github.io/ironclaw/merge-exceptions/),
+records every commit that reached `main` without the approving review the branch
+ruleset requires. Both exist because an exception that is not written down is
+indistinguishable from a process failure.
+
 ## Development setup
 
 IronClaw is Go 1.23+ and requires **`CGO_ENABLED=1`** (the SQLCipher binding behind

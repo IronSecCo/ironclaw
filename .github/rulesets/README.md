@@ -6,9 +6,15 @@ here and re-apply.
 
 ## Shape
 
-External contributions arrive via pull request and must satisfy every rule below.
-Repository **admins are listed as `bypass_actors`** so maintainers can land and revert
-quickly when needed.
+Every change to `main` arrives via pull request and must satisfy every rule below.
+
+`bypass_actors` is **empty, on purpose**. It used to list the repository admin role
+with `bypass_mode: always`, which meant the required review was advisory for every
+maintainer and mandatory for everyone else; two commits reached `main` unreviewed
+that way before it was removed (IRO-731). The approving review is now satisfied by
+the reviewer App instead, which needs no bypass. See
+[`docs/merge-exceptions.md`](../../docs/merge-exceptions.md) for the record and for
+the authorised procedure to put the bypass back if it is ever genuinely needed.
 
 ## Rules enforced
 
@@ -18,7 +24,8 @@ quickly when needed.
 | `non_fast_forward` | no force-pushes / history rewrites |
 | `required_linear_history` | merge commits are rejected (linear history) |
 | `required_signatures` | commits must be signed |
-| `required_status_checks` | `build` (CI) and `CodeQL` must be green |
+| `pull_request` | one approving review from a non-author; stale reviews are dismissed on push; squash or rebase only |
+| `required_status_checks` | `build` (CI), `CodeQL` and `brew-formula-verify` must be green |
 
 ## Applying
 
