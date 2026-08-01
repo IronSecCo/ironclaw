@@ -138,10 +138,11 @@ FAMILY = {
     "zookeeper": "infra", "eclipse-mosquitto": "infra",
 }
 
-# The fully-hardened reference run every scorecard funnels to: 100/100 grade A.
-# This mirrors the `docker run ... 100/100 (grade A)` block rendered at the
-# bottom of each .md page. Flat single-line command so the explorer can render a
-# one-click copy affordance (SPEC §5 hardenedCommand).
+# The hardened flag set every scorecard funnels to. It is a *recommendation*,
+# not a measurement: the survey runs it against exactly one image
+# (`hardened-reference`), so no page may state a hardened score for an image
+# that was not itself run this way (IRO-717). Flat single-line command so the
+# explorer can render a one-click copy affordance (SPEC §5 hardenedCommand).
 HARDENED_FLAGS = [
     "--user 65532:65532",
     "--cap-drop=ALL",
@@ -237,7 +238,47 @@ def top_fixes(report: dict, limit: int = 4) -> list:
     return out
 
 
-def render_page(scn: dict) -> str:
+def measured_hardened(data: dict) -> dict:
+    """Hardened runs the survey actually measured, keyed by full image ref.
+
+    A `hardened-*` scenario is an image run under HARDENED_FLAGS and scanned, so
+    its score is measured. Today `results.json` carries exactly one
+    (`hardened-reference`, nginx:1.27-alpine). Pages consult this map instead of
+    asserting a number: an image with no hardened run gets no hardened score
+    (IRO-717). Add `hardened-<slug>` rows to images.txt and every one of them
+    starts publishing a real ceiling with no change here.
+    """
+    out = {}
+    for s in data.get("scenarios", []):
+        if not s.get("label", "").startswith("hardened-"):
+            continue
+        rep = s.get("report", {})
+        out[s["image"]] = (rep.get("score", 0), rep.get("grade", "?"))
+    return out
+
+
+def hardened_reference_note(hardened: dict) -> str:
+    """Sentence naming the hardened runs the survey actually measured.
+
+    Read out of `hardened` (i.e. out of `results.json`), never hardcoded. The
+    old copy spelled `nginx:1.27-alpine` and `100/100 (grade A)` as literals on
+    251 pages, which is the same shape of unmeasured assertion this generator
+    was fixed to stop emitting: change the reference scenario and the literal
+    silently goes stale. Empty map renders nothing at all (IRO-720).
+    """
+    if not hardened:
+        return ""
+    parts = [f"`{img.split('@')[0]}`, which reaches {sc}/100 (grade {gr})"
+             for img, (sc, gr) in sorted(hardened.items())]
+    if len(parts) == 1:
+        return (f"The one hardened run this survey measures is {parts[0]} on "
+                f"exactly this flag set. ")
+    return (f"The hardened runs this survey measures are "
+            f"{'; '.join(parts[:-1])}; and {parts[-1]}, each on exactly this "
+            f"flag set. ")
+
+
+def render_page(scn: dict, hardened: dict) -> str:
     rep = scn["report"]
     image = scn["image"]
     slug = slug_for(image)
@@ -268,7 +309,8 @@ def render_page(scn: dict) -> str:
              f"hardening flags — the **{name}** image scores "
              f"**{score}/100, grade {grade} ({word})** on IronClaw's seven-dimension "
              f"container containment scale. Higher is safer. This is what you get "
-             f"straight out of a copy-pasted `docker run`; the fixes below close the gap.")
+             f"straight out of a copy-pasted `docker run`; the fixes below show "
+             f"where the lost points are.")
     L.append("")
     if digest:
         # The grading procedure starts a container and inspects it; only the
@@ -301,14 +343,27 @@ def render_page(scn: dict) -> str:
     if fixes:
         L.append("## Harden it: the highest-value fixes")
         L.append("")
-        L.append(f"Applying these to your `docker run {slug}` closes the biggest "
-                 f"gaps first (most points recovered first):")
+        L.append(f"Applying these to your `docker run {slug}` targets the biggest "
+                 f"gaps first (most points at stake first):")
         L.append("")
         for ttl, fix, why in fixes:
             L.append(f"- **{ttl}** — `{fix}`  ")
             L.append(f"  {why}")
         L.append("")
-        L.append("A fully hardened run scores **100/100 (grade A)**:")
+        # No hardened score unless this exact image was measured under these
+        # flags. Asserting 100/100 here published a projection as a measurement
+        # on 251 of 252 pages, and it is provably wrong for at least one image:
+        # zookeeper does not boot read-only without extra tmpfs mounts and tops
+        # out below A (IRO-695, IRO-717).
+        # "Together they close every gap the table above lists" was the same
+        # 100/100 assertion in prose: the four dimensions that ever fail in this
+        # corpus are exactly the four this flag set addresses, and the seven
+        # dimensions sum to 100. It is also wrong wherever `--network=none` is
+        # not an option (IRO-720). State what the flags target, not what they
+        # reach.
+        measured = hardened.get(image)
+        L.append("The fixes above, plus the rest of IronClaw's recommended flag "
+                 "set, as one command:")
         L.append("")
         L.append("```bash")
         L.append(f"docker run -d --name {slug}-hardened \\")
@@ -319,6 +374,25 @@ def render_page(scn: dict) -> str:
         L.append("  --network=none \\")
         L.append(f"  {image.split('@')[0]}")
         L.append("```")
+        L.append("")
+        if measured:
+            h_score, h_grade = measured
+            L.append(f"Measured, not projected: `{image.split('@')[0]}` was "
+                     f"re-scanned under exactly these flags and scored "
+                     f"**{h_score}/100 (grade {h_grade})**.")
+        else:
+            L.append("This image has not been re-scanned under those flags, so "
+                     "this page states no hardened score for it. "
+                     + hardened_reference_note(hardened) +
+                     "Expect to adjust, and expect a ceiling: `--network=none` "
+                     "is not an option for a service that has to accept "
+                     "connections, and dropping it leaves the network-isolation "
+                     "dimension exactly where the table above has it. A "
+                     "container that writes outside `/tmp` will not boot "
+                     "read-only until you add a `--tmpfs` for each path it needs "
+                     "(some want a writable mode, e.g. `--tmpfs "
+                     "/data:rw,mode=1777`). Re-run `ironctl scan` on the result "
+                     "to see where yours actually lands.")
         L.append("")
     else:
         L.append("This configuration already passes every containment dimension. "
@@ -412,8 +486,9 @@ def render_index(defaults: list) -> str:
     L.append(f"**The headline:** the average default image scores **{avg}/100**. "
              f"Grade distribution: {dist_str}. Almost nothing you pull is isolated "
              f"out of the box — it runs as root, keeps the full capability set, and "
-             f"has a writable root filesystem. The good news: every gap on these "
-             f"pages closes with a handful of `docker run` flags.")
+             f"has a writable root filesystem. The good news: every one of those "
+             f"gaps has a `docker run` flag that targets it, listed on the "
+             f"scorecard.")
     L.append("")
     L.append("> **Scan your own container:** "
              "`brew install ironsecco/ironclaw/ironclaw && ironctl scan my-container`. "
@@ -469,8 +544,8 @@ def render_index(defaults: list) -> str:
     L.append("*These pages are generated from a reproducible survey — "
              "`examples/isolation-survey/survey.sh` scans every image, "
              "`gen_scorecards.py` renders the pages. Grades reflect the image's "
-             "default configuration, not a limit of the image itself: every one "
-             "can reach grade A with the right `docker run` flags.*")
+             "default configuration, not a limit of the image itself: the "
+             "`docker run` flags on each page target the gaps that grade found.*")
     L.append("")
     return "\n".join(L)
 
@@ -541,9 +616,8 @@ def render_leaderboard(defaults: list) -> str:
     L.append("")
     L.append("> The uncomfortable headline: **no popular image ships isolated.** "
              "Even the leaders leave capabilities, egress, and a writable root "
-             "filesystem wide open. The gap between any image here and a clean "
-             "**100/100 grade A** is a handful of `docker run` flags, shown on every "
-             "scorecard.")
+             "filesystem wide open. Every one of those gaps has a `docker run` "
+             "flag that targets it, listed on every scorecard.")
     L.append("")
 
     # Hall of Fame.
@@ -614,7 +688,7 @@ def render_leaderboard(defaults: list) -> str:
     # CTA / cross-links.
     L.append("## Move up the leaderboard")
     L.append("")
-    L.append("Every gap on this page closes with `docker run` flags. Audit your own "
+    L.append("Every gap on this page has a `docker run` flag that targets it. Audit your own "
              "container, or one you maintain, with the same credential-free command "
              "that produced these grades:")
     L.append("")
@@ -637,13 +711,13 @@ def render_leaderboard(defaults: list) -> str:
     L.append("")
     L.append("*Generated from a reproducible survey by "
              "`examples/isolation-survey/gen_scorecards.py`. Grades reflect each "
-             "image's default configuration, not a limit of the image itself: every "
-             "one reaches grade A with the right `docker run` flags.*")
+             "image's default configuration, not a limit of the image itself: the "
+             "`docker run` flags on each page target the gaps that grade found.*")
     L.append("")
     return "\n".join(L)
 
 
-def image_row(scn: dict) -> dict:
+def image_row(scn: dict, hardened: dict) -> dict:
     """One machine-readable image record for index.json (SPEC §5 images[])."""
     rep = scn["report"]
     image = scn["image"].split("@", 1)[0]
@@ -663,6 +737,7 @@ def image_row(scn: dict) -> dict:
     ]
     top_gaps = [ttl for ttl, _, _ in top_fixes(rep, 3)]
     hardened_command = ("docker run -d " + " ".join(HARDENED_FLAGS) + " " + image)
+    h_score, h_grade = hardened.get(scn["image"], (None, None))
     return {
         "slug": slug,
         "image": image,
@@ -673,8 +748,12 @@ def image_row(scn: dict) -> dict:
         "grade": grade,
         "topGaps": top_gaps,
         "dimensions": dims,
-        "hardenedScore": 100,
-        "hardenedGrade": "A",
+        # Measured hardened result, or null when this image was never run under
+        # HARDENED_FLAGS. Hardcoding 100/A here shipped the same unmeasured
+        # claim the .md pages carried (IRO-717); consumers must render "not
+        # measured" rather than a projected ceiling.
+        "hardenedScore": h_score,
+        "hardenedGrade": h_grade,
         "hardenedFlags": list(HARDENED_FLAGS),
         "hardenedCommand": hardened_command,
         # Embeddable shields.io badge for this image (IRO-459). Server-free static
@@ -692,7 +771,8 @@ def build_index(data: dict, pages: dict) -> dict:
     One row per image (the deduped default-* scenario). meta numbers are derived
     (never hardcoded) so they track the survey as it grows.
     """
-    rows = [image_row(scn) for _, scn in sorted(pages.items())]
+    hardened = measured_hardened(data)
+    rows = [image_row(scn, hardened) for _, scn in sorted(pages.items())]
     rows.sort(key=lambda r: (r["score"], r["slug"]))  # worst-first, stable
     total = len(rows)
     avg = round(sum(r["score"] for r in rows) / total) if total else 0
@@ -708,7 +788,10 @@ def build_index(data: dict, pages: dict) -> dict:
             dim_meta.append({"key": d["key"], "title": d["title"], "max": d["max"]})
 
     return {
-        "schemaVersion": "1.0",
+        # 1.1: hardenedScore/hardenedGrade are nullable. They used to be a
+        # hardcoded 100/"A" for every row, which asserted a ceiling nobody
+        # measured (IRO-717). Null now means "no hardened run for this image".
+        "schemaVersion": "1.1",
         "generatedAt": data.get("generatedAt", ""),
         "ironctlVersion": data.get("ironctlVersion", ""),
         "meta": {
@@ -1003,9 +1086,9 @@ def render_collection(coll, members) -> str:
              f"run on your own containers in ten seconds.")
     L.append("")
     L.append(f"> No {label} image ships fully isolated by default: the leaders still "
-             f"leave capabilities, egress, or a writable root filesystem open. The gap "
-             f"between any image here and a clean **100/100 grade A** is a handful of "
-             f"`docker run` flags, shown on every scorecard.")
+             f"leave capabilities, egress, or a writable root filesystem open. Every "
+             f"one of those gaps has a `docker run` flag that targets it, listed "
+             f"on every scorecard.")
     L.append("")
     L.append("## Ranked best to worst")
     L.append("")
@@ -1054,8 +1137,8 @@ def render_collection(coll, members) -> str:
              f"Generated from a reproducible survey by "
              f"`examples/isolation-survey/gen_scorecards.py` and refreshed weekly, so "
              f"this ranking never goes stale. Grades reflect each image's default "
-             f"configuration, not a limit of the image itself: every one reaches grade "
-             f"A with the right `docker run` flags.*")
+             f"configuration, not a limit of the image itself: the `docker run` flags "
+             f"on each page target the gaps that grade found.*")
     L.append("")
     return "\n".join(L)
 
@@ -1180,10 +1263,14 @@ def main():
         seen.setdefault(slug_for(s["image"]), s)
     pages = seen
 
+    # Hardened results the survey actually ran, so a page states a hardened
+    # score only for an image that was measured under HARDENED_FLAGS (IRO-717).
+    hardened = measured_hardened(data)
+
     os.makedirs(out_dir, exist_ok=True)
     for slug, scn in sorted(pages.items()):
         with open(os.path.join(out_dir, f"{slug}.md"), "w") as f:
-            f.write(no_dashes(render_page(scn)))
+            f.write(no_dashes(render_page(scn, hardened)))
     with open(os.path.join(out_dir, "index.md"), "w") as f:
         f.write(no_dashes(render_index(list(pages.values()))))
     with open(os.path.join(out_dir, "leaderboard.md"), "w") as f:

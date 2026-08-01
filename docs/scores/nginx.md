@@ -5,7 +5,7 @@ description: "How isolated is nginx:1.27-alpine by default? IronClaw scores its 
 
 # nginx:1.27-alpine container isolation score: 48/100 (grade D)
 
-Run with plain `docker run nginx:1.27-alpine` defaults, no hardening flags, the **nginx** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
+Run with plain `docker run nginx:1.27-alpine` defaults, no hardening flags, the **nginx** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
 > Graded from a read-only inspect of a **running container** started from `nginx:1.27-alpine` at digest `sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
@@ -23,7 +23,7 @@ Run with plain `docker run nginx:1.27-alpine` defaults, no hardening flags, the 
 
 ## Harden it: the highest-value fixes
 
-Applying these to your `docker run nginx` closes the biggest gaps first (most points recovered first):
+Applying these to your `docker run nginx` targets the biggest gaps first (most points at stake first):
 
 - **Dropped capabilities**, `--cap-drop=ALL`  
   Drop every Linux capability; add back only what the workload provably needs.
@@ -34,7 +34,7 @@ Applying these to your `docker run nginx` closes the biggest gaps first (most po
 - **Read-only root filesystem**, `--read-only --tmpfs /tmp`  
   Make the root filesystem read-only to remove the tamper/persistence surface.
 
-A fully hardened run scores **100/100 (grade A)**:
+The fixes above, plus the rest of IronClaw's recommended flag set, as one command:
 
 ```bash
 docker run -d --name nginx-hardened \
@@ -45,6 +45,8 @@ docker run -d --name nginx-hardened \
   --network=none \
   nginx:1.27-alpine
 ```
+
+Measured, not projected: `nginx:1.27-alpine` was re-scanned under exactly these flags and scored **100/100 (grade A)**.
 
 ## Scan your own container
 

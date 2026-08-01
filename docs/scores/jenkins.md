@@ -5,7 +5,7 @@ description: "How isolated is jenkins:lts by default? IronClaw scores its sandbo
 
 # jenkins:lts container isolation score: 63/100 (grade C)
 
-Run with plain `docker run jenkins/jenkins:lts` defaults, no hardening flags, the **jenkins** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
+Run with plain `docker run jenkins/jenkins:lts` defaults, no hardening flags, the **jenkins** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
 > Graded from a read-only inspect of a **running container** started from `jenkins/jenkins:lts` at digest `sha256:f4f65e6cd1405cd889b7f5ac33f9d5cdc2a099de6b87fe8a3933b9c5d53d1d02` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
@@ -23,7 +23,7 @@ Run with plain `docker run jenkins/jenkins:lts` defaults, no hardening flags, th
 
 ## Harden it: the highest-value fixes
 
-Applying these to your `docker run jenkins` closes the biggest gaps first (most points recovered first):
+Applying these to your `docker run jenkins` targets the biggest gaps first (most points at stake first):
 
 - **Dropped capabilities**, `--cap-drop=ALL`  
   Drop every Linux capability; add back only what the workload provably needs.
@@ -32,7 +32,7 @@ Applying these to your `docker run jenkins` closes the biggest gaps first (most 
 - **Read-only root filesystem**, `--read-only --tmpfs /tmp`  
   Make the root filesystem read-only to remove the tamper/persistence surface.
 
-A fully hardened run scores **100/100 (grade A)**:
+The fixes above, plus the rest of IronClaw's recommended flag set, as one command:
 
 ```bash
 docker run -d --name jenkins-hardened \
@@ -43,6 +43,8 @@ docker run -d --name jenkins-hardened \
   --network=none \
   jenkins/jenkins:lts
 ```
+
+This image has not been re-scanned under those flags, so this page states no hardened score for it. The one hardened run this survey measures is `nginx:1.27-alpine`, which reaches 100/100 (grade A) on exactly this flag set. Expect to adjust, and expect a ceiling: `--network=none` is not an option for a service that has to accept connections, and dropping it leaves the network-isolation dimension exactly where the table above has it. A container that writes outside `/tmp` will not boot read-only until you add a `--tmpfs` for each path it needs (some want a writable mode, e.g. `--tmpfs /data:rw,mode=1777`). Re-run `ironctl scan` on the result to see where yours actually lands.
 
 ## Scan your own container
 

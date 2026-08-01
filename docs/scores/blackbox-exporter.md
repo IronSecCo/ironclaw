@@ -5,7 +5,7 @@ description: "How isolated is blackbox-exporter:v0.25.0 by default? IronClaw sco
 
 # blackbox-exporter:v0.25.0 container isolation score: 48/100 (grade D)
 
-Run with plain `docker run prom/blackbox-exporter:v0.25.0` defaults, no hardening flags, the **blackbox exporter** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
+Run with plain `docker run prom/blackbox-exporter:v0.25.0` defaults, no hardening flags, the **blackbox exporter** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
 > Graded from a read-only inspect of a **running container** started from `prom/blackbox-exporter:v0.25.0` at digest `sha256:b04a9fef4fa086a02fc7fcd8dcdbc4b7b35cc30cdee860fdc6a19dd8b208d63e` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
@@ -23,7 +23,7 @@ Run with plain `docker run prom/blackbox-exporter:v0.25.0` defaults, no hardenin
 
 ## Harden it: the highest-value fixes
 
-Applying these to your `docker run blackbox-exporter` closes the biggest gaps first (most points recovered first):
+Applying these to your `docker run blackbox-exporter` targets the biggest gaps first (most points at stake first):
 
 - **Dropped capabilities**, `--cap-drop=ALL`  
   Drop every Linux capability; add back only what the workload provably needs.
@@ -34,7 +34,7 @@ Applying these to your `docker run blackbox-exporter` closes the biggest gaps fi
 - **Read-only root filesystem**, `--read-only --tmpfs /tmp`  
   Make the root filesystem read-only to remove the tamper/persistence surface.
 
-A fully hardened run scores **100/100 (grade A)**:
+The fixes above, plus the rest of IronClaw's recommended flag set, as one command:
 
 ```bash
 docker run -d --name blackbox-exporter-hardened \
@@ -45,6 +45,8 @@ docker run -d --name blackbox-exporter-hardened \
   --network=none \
   prom/blackbox-exporter:v0.25.0
 ```
+
+This image has not been re-scanned under those flags, so this page states no hardened score for it. The one hardened run this survey measures is `nginx:1.27-alpine`, which reaches 100/100 (grade A) on exactly this flag set. Expect to adjust, and expect a ceiling: `--network=none` is not an option for a service that has to accept connections, and dropping it leaves the network-isolation dimension exactly where the table above has it. A container that writes outside `/tmp` will not boot read-only until you add a `--tmpfs` for each path it needs (some want a writable mode, e.g. `--tmpfs /data:rw,mode=1777`). Re-run `ironctl scan` on the result to see where yours actually lands.
 
 ## Scan your own container
 

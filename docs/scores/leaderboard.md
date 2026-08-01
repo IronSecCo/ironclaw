@@ -7,7 +7,7 @@ description: A ranked leaderboard of the default container isolation score for 2
 
 Every one of **252 of the most-pulled public Docker images**, ranked by how isolated it is when you `docker run` it with plain defaults, no hardening flags. Scores run **48/100 to 63/100** (average **52/100**), graded across IronClaw's seven containment dimensions by `ironctl scan`. Higher is safer. Regenerated with the [weekly survey refresh](index.md), so this ranking never goes stale.
 
-> The uncomfortable headline: **no popular image ships isolated.** Even the leaders leave capabilities, egress, and a writable root filesystem wide open. The gap between any image here and a clean **100/100 grade A** is a handful of `docker run` flags, shown on every scorecard.
+> The uncomfortable headline: **no popular image ships isolated.** Even the leaders leave capabilities, egress, and a writable root filesystem wide open. Every one of those gaps has a `docker run` flag that targets it, listed on every scorecard.
 
 ## 🏆 Hall of Fame
 
@@ -326,7 +326,7 @@ Every graded image, most-isolated first. Click any image for its per-dimension b
 
 ## Move up the leaderboard
 
-Every gap on this page closes with `docker run` flags. Audit your own container, or one you maintain, with the same credential-free command that produced these grades:
+Every gap on this page has a `docker run` flag that targets it. Audit your own container, or one you maintain, with the same credential-free command that produced these grades:
 
 ```bash
 brew install ironsecco/ironclaw/ironclaw
@@ -341,4 +341,4 @@ ironctl scan my-container
 
 ---
 
-*Generated from a reproducible survey by `examples/isolation-survey/gen_scorecards.py`. Grades reflect each image's default configuration, not a limit of the image itself: every one reaches grade A with the right `docker run` flags.*
+*Generated from a reproducible survey by `examples/isolation-survey/gen_scorecards.py`. Grades reflect each image's default configuration, not a limit of the image itself: the `docker run` flags on each page target the gaps that grade found.*

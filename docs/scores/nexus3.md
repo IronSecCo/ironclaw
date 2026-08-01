@@ -5,7 +5,7 @@ description: "How isolated is nexus3:3.75.0 by default? IronClaw scores its sand
 
 # nexus3:3.75.0 container isolation score: 63/100 (grade C)
 
-Run with plain `docker run sonatype/nexus3:3.75.0` defaults, no hardening flags, the **nexus3** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
+Run with plain `docker run sonatype/nexus3:3.75.0` defaults, no hardening flags, the **nexus3** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
 > Graded from a read-only inspect of a **running container** started from `sonatype/nexus3:3.75.0` at digest `sha256:cdf8d3b1d7251183dfe43e208a87060a8b410e0e1b25254ac40a1391caf19c5b` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
@@ -23,7 +23,7 @@ Run with plain `docker run sonatype/nexus3:3.75.0` defaults, no hardening flags,
 
 ## Harden it: the highest-value fixes
 
-Applying these to your `docker run nexus3` closes the biggest gaps first (most points recovered first):
+Applying these to your `docker run nexus3` targets the biggest gaps first (most points at stake first):
 
 - **Dropped capabilities**, `--cap-drop=ALL`  
   Drop every Linux capability; add back only what the workload provably needs.
@@ -32,7 +32,7 @@ Applying these to your `docker run nexus3` closes the biggest gaps first (most p
 - **Read-only root filesystem**, `--read-only --tmpfs /tmp`  
   Make the root filesystem read-only to remove the tamper/persistence surface.
 
-A fully hardened run scores **100/100 (grade A)**:
+The fixes above, plus the rest of IronClaw's recommended flag set, as one command:
 
 ```bash
 docker run -d --name nexus3-hardened \
@@ -43,6 +43,8 @@ docker run -d --name nexus3-hardened \
   --network=none \
   sonatype/nexus3:3.75.0
 ```
+
+This image has not been re-scanned under those flags, so this page states no hardened score for it. The one hardened run this survey measures is `nginx:1.27-alpine`, which reaches 100/100 (grade A) on exactly this flag set. Expect to adjust, and expect a ceiling: `--network=none` is not an option for a service that has to accept connections, and dropping it leaves the network-isolation dimension exactly where the table above has it. A container that writes outside `/tmp` will not boot read-only until you add a `--tmpfs` for each path it needs (some want a writable mode, e.g. `--tmpfs /data:rw,mode=1777`). Re-run `ironctl scan` on the result to see where yours actually lands.
 
 ## Scan your own container
 

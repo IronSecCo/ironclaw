@@ -5,7 +5,7 @@ description: "How isolated is tomee:9.1.3-jre17 by default? IronClaw scores its 
 
 # tomee:9.1.3-jre17 container isolation score: 48/100 (grade D)
 
-Run with plain `docker run tomee:9.1.3-jre17` defaults, no hardening flags, the **tomee** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below close the gap.
+Run with plain `docker run tomee:9.1.3-jre17` defaults, no hardening flags, the **tomee** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
 > Graded from a read-only inspect of a **running container** started from `tomee:9.1.3-jre17` at digest `sha256:7dc4d8f661bdee3d782f58ba328f5bd51bde13f9d8d2fa24acd5aa198289e975` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
@@ -23,7 +23,7 @@ Run with plain `docker run tomee:9.1.3-jre17` defaults, no hardening flags, the 
 
 ## Harden it: the highest-value fixes
 
-Applying these to your `docker run tomee` closes the biggest gaps first (most points recovered first):
+Applying these to your `docker run tomee` targets the biggest gaps first (most points at stake first):
 
 - **Dropped capabilities**, `--cap-drop=ALL`  
   Drop every Linux capability; add back only what the workload provably needs.
@@ -34,7 +34,7 @@ Applying these to your `docker run tomee` closes the biggest gaps first (most po
 - **Read-only root filesystem**, `--read-only --tmpfs /tmp`  
   Make the root filesystem read-only to remove the tamper/persistence surface.
 
-A fully hardened run scores **100/100 (grade A)**:
+The fixes above, plus the rest of IronClaw's recommended flag set, as one command:
 
 ```bash
 docker run -d --name tomee-hardened \
@@ -45,6 +45,8 @@ docker run -d --name tomee-hardened \
   --network=none \
   tomee:9.1.3-jre17
 ```
+
+This image has not been re-scanned under those flags, so this page states no hardened score for it. The one hardened run this survey measures is `nginx:1.27-alpine`, which reaches 100/100 (grade A) on exactly this flag set. Expect to adjust, and expect a ceiling: `--network=none` is not an option for a service that has to accept connections, and dropping it leaves the network-isolation dimension exactly where the table above has it. A container that writes outside `/tmp` will not boot read-only until you add a `--tmpfs` for each path it needs (some want a writable mode, e.g. `--tmpfs /data:rw,mode=1777`). Re-run `ironctl scan` on the result to see where yours actually lands.
 
 ## Scan your own container
 
