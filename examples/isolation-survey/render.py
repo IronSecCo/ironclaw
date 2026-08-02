@@ -10,9 +10,33 @@ Writes results.json to argv[1] and results.md to argv[2]. Deterministic: rows
 are sorted by (score asc, label asc) so a re-run over the same manifest yields a
 byte-identical table (minus the generatedAt/version stamps, which are recorded
 once at the dataset level).
+
+Coverage is part of the output, not a log line (IRO-727). `--skips` takes the
+JSON array survey.sh accumulates for every scenario it dropped, each
+`{"label", "image", "stage", "reason"}`; those land in `.skipped[]` of
+results.json and in a "Not scanned" section of results.md, so a reader can tell
+measured-and-passed from never-measured without opening an Actions log that
+expires. `--manifest-rows` records how many rows the manifest actually had, so
+`scenarioCount + skippedCount == manifestRowCount` is checkable from the
+artifact alone — and coverage_guard.py, which survey.sh runs immediately after
+this, checks it rather than leaving it to the reader.
+
+`--manifest-rows` is REQUIRED, and that is load-bearing rather than pedantic.
+It used to default to `len(rows) + len(skips)`, i.e. the denominator was
+synthesized from the numerator, so the invariant held by construction and one
+scored row with no skips wrote `manifestRowCount: 1` and printed "Coverage: 1 of
+1 manifest rows, every row was scanned" against a 295-row manifest. A count
+nobody measured is not a count; the number has to come from the sweep.
+
+Usage:
+
+    render.py <out.json> <out.md> --manifest-rows N [--skips skips.json]
 """
+import argparse
 import json
 import sys
+
+SKIP_STAGES = ("pull", "run", "scan")
 
 
 def failed_dims(report):
@@ -24,9 +48,55 @@ def failed_dims(report):
     return [d.get("title", d.get("key", "?")) for d in dims]
 
 
+def load_skips(path):
+    """Normalise survey.sh's skip array. Unknown stages are kept (and sorted
+    last) rather than dropped: a skip we cannot classify is still a scenario
+    that was never measured, and silently discarding it is the bug this whole
+    change exists to fix."""
+    if not path:
+        return []
+    with open(path) as f:
+        raw = json.load(f)
+    skips = []
+    for s in raw:
+        skips.append({
+            "label": s.get("label", ""),
+            "image": s.get("image", ""),
+            "stage": s.get("stage", "unknown"),
+            "reason": (s.get("reason", "") or "").strip(),
+        })
+    skips.sort(key=lambda s: (s["label"], s["stage"]))
+    return skips
+
+
+def skip_counts(skips):
+    """stage -> count, listing the three known stages in pipeline order first."""
+    counts = {}
+    for s in skips:
+        counts[s["stage"]] = counts.get(s["stage"], 0) + 1
+    ordered = {st: counts[st] for st in SKIP_STAGES if st in counts}
+    for st in sorted(counts):
+        ordered.setdefault(st, counts[st])
+    return ordered
+
+
 def main():
-    out_json, out_md = sys.argv[1], sys.argv[2]
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("out_json")
+    ap.add_argument("out_md")
+    ap.add_argument("--skips", default="",
+                    help="JSON array of {label,image,stage,reason} scenarios "
+                         "the survey dropped")
+    ap.add_argument("--manifest-rows", type=int, required=True,
+                    help="number of scenario rows the sweep walked in "
+                         "images.txt. Required: deriving it from the rows that "
+                         "happen to be present makes the coverage invariant "
+                         "hold by construction and hides the whole defect")
+    args = ap.parse_args()
+
+    out_json, out_md = args.out_json, args.out_md
     records = json.load(sys.stdin)
+    skips = load_skips(args.skips)
 
     rows = []
     for rec in records:
@@ -46,13 +116,18 @@ def main():
     # A dataset-level stamp: take the tool version + generatedAt from the first
     # report (they are identical across a single run).
     stamp = records[0]["report"] if records else {}
+    manifest_rows = args.manifest_rows
     dataset = {
         "report": "ironclaw-isolation-survey",
-        "schemaVersion": "1.0",
+        # 1.1 adds the coverage block: manifestRowCount, skippedCount, skipped[].
+        "schemaVersion": "1.1",
         "generatedAt": stamp.get("generatedAt", ""),
         "ironctlVersion": stamp.get("version", ""),
+        "manifestRowCount": manifest_rows,
         "scenarioCount": len(rows),
+        "skippedCount": len(skips),
         "scenarios": rows,
+        "skipped": skips,
     }
     with open(out_json, "w") as f:
         json.dump(dataset, f, indent=2, sort_keys=True)
@@ -62,9 +137,45 @@ def main():
     lines = []
     lines.append("# State of Container Isolation — survey results")
     lines.append("")
-    lines.append(f"Scanned **{len(rows)} scenarios** with "
-                 f"`ironctl scan` {dataset['ironctlVersion']} "
-                 f"on {dataset['generatedAt']}.")
+    if rows:
+        lines.append(f"Scanned **{len(rows)} scenarios** with "
+                     f"`ironctl scan` {dataset['ironctlVersion']} "
+                     f"on {dataset['generatedAt']}.")
+    else:
+        lines.append("**No scenario produced a scorecard in this run.** Every "
+                     "manifest row is accounted for below.")
+    lines.append("")
+
+    # "Every row was scanned" is one statement about the three counts: the
+    # scored rows are the whole manifest, nothing was dropped, and nothing is
+    # missing. All three are read off the same arithmetic, and `manifest_rows`
+    # now comes from the sweep rather than from `len(rows) + len(skips)`, so the
+    # first term can actually be false. Both of the ways this line used to be
+    # produced — reading it off `if skips:`, and synthesizing the denominator
+    # from the numerator — printed "Coverage: 2 of 3 manifest rows — every row
+    # was scanned" at exit 0 (IRO-727). Anything short of all three goes to the
+    # else branch and reports what the run actually has, including the
+    # over-accounted case where more rows came back than were asked for.
+    scored, dropped = len(rows), len(skips)
+    unaccounted = manifest_rows - scored - dropped
+    if scored == manifest_rows and dropped == 0 and unaccounted == 0:
+        lines.append(f"**Coverage: {len(rows)} of {manifest_rows} manifest "
+                     "rows — every row was scanned.**")
+    else:
+        note = f"**Coverage: {len(rows)} of {manifest_rows} manifest rows.**"
+        if skips:
+            breakdown = ", ".join(f"{stage} {n}"
+                                  for stage, n in skip_counts(skips).items())
+            note += (f" {len(skips)} scenario(s) were dropped before they could "
+                     f"be graded ({breakdown}) and are listed under "
+                     "[Not scanned](#not-scanned) below — they are absent from "
+                     "the table, not scored zero.")
+        if unaccounted:
+            note += (f" {abs(unaccounted)} row(s) are **unaccounted for**: "
+                     f"{len(rows)} scored + {len(skips)} recorded as skipped "
+                     f"does not equal {manifest_rows}. That gap is a bug in the "
+                     "harness, not a property of the images.")
+        lines.append(note)
     lines.append("")
     lines.append("Each row is one popular public image run with a specific "
                  "configuration, graded 0-100 across seven containment "
@@ -84,12 +195,34 @@ def main():
     lines.append("")
 
     # A compact grade-distribution summary.
-    dist = {}
-    for r in rows:
-        dist[r["grade"]] = dist.get(r["grade"], 0) + 1
-    summary = ", ".join(f"{dist[g]}×{g}" for g in sorted(dist))
-    lines.append(f"**Grade distribution:** {summary}.")
-    lines.append("")
+    if rows:
+        dist = {}
+        for r in rows:
+            dist[r["grade"]] = dist.get(r["grade"], 0) + 1
+        summary = ", ".join(f"{dist[g]}×{g}" for g in sorted(dist))
+        lines.append(f"**Grade distribution:** {summary}.")
+        lines.append("")
+
+    # Every dropped scenario, by name. A count alone still leaves the reader
+    # guessing which images the dataset does not cover (IRO-727).
+    if skips:
+        lines.append("## Not scanned")
+        lines.append("")
+        lines.append(f"{len(skips)} of the {manifest_rows} rows in "
+                     "[images.txt](./images.txt) produced no scorecard this "
+                     "run. `pull` = the image could not be fetched from the "
+                     "mirror or its original registry, `run` = `docker run "
+                     "--entrypoint sleep` did not start it, `scan` = the "
+                     "container started but `ironctl scan` failed. These rows "
+                     "are **not measured**; they are not a low score.")
+        lines.append("")
+        lines.append("| Scenario | Image | Failed at | Reason |")
+        lines.append("|----------|-------|-----------|--------|")
+        for s in skips:
+            reason = s["reason"].replace("|", "\\|") or "(no detail recorded)"
+            lines.append(f"| `{s['label']}` | `{s['image']}` | {s['stage']} "
+                         f"| {reason} |")
+        lines.append("")
     lines.append("Regenerate this file from a clean checkout with "
                  "`examples/isolation-survey/survey.sh` (Docker required).")
     lines.append("")
