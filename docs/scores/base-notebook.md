@@ -7,7 +7,7 @@ description: "How isolated is base-notebook:latest by default? IronClaw scores i
 
 Run with plain `docker run quay.io/jupyter/base-notebook:latest` defaults, no hardening flags, the **base notebook** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `quay.io/jupyter/base-notebook:latest` at digest `sha256:50d8c29bb555af7ba18e956c97734c31ada26ee12d7e6dc77927608cb730d108` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `quay.io/jupyter/base-notebook:latest` at digest `sha256:b5230927f87d6d70cb256b0dfc1ccb2aa51eee62d05d4b1831c300d0ebcde9eb` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is percona:8.0 by default? IronClaw scores its sandbo
 
 Run with plain `docker run percona:8.0` defaults, no hardening flags, the **percona** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `percona:8.0` at digest `sha256:2a29b81c1e28d752b854c71565f577414fbc7eb8ce329921d6acc85da890818f` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `percona:8.0` at digest `sha256:e71f4829951e4d82c754e52af2d306b0e0103faac37af02807705fab00130543` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
