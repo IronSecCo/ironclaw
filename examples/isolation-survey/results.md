@@ -1,6 +1,8 @@
 # State of Container Isolation — survey results
 
-Scanned **256 scenarios** with `ironctl scan` dev+11b86e785ff3 on 2026-07-27T09:42:34Z.
+Scanned **256 scenarios** with `ironctl scan` dev+e25a7d838e33 on 2026-08-03T09:35:39Z.
+
+**Coverage: 256 of 295 manifest rows.** 39 scenario(s) were dropped before they could be graded (pull 23, run 16) and are listed under [Not scanned](#not-scanned) below — they are absent from the table, not scored zero.
 
 Each row is one popular public image run with a specific configuration, graded 0-100 across seven containment dimensions (non-root user, dropped capabilities, seccomp, network isolation, read-only rootfs, no docker.sock, no host namespaces). Higher is safer. See [README.md](./README.md) for the exact method and [images.txt](./images.txt) for the scenario manifest.
 
@@ -264,5 +266,51 @@ Each row is one popular public image run with a specific configuration, graded 0
 | `hardened-reference` | `nginx:1.27-alpine` | 100/100 | **A** | none |
 
 **Grade distribution:** 1×A, 69×C, 185×D, 1×F.
+
+## Not scanned
+
+39 of the 295 rows in [images.txt](./images.txt) produced no scorecard this run. `pull` = the image could not be fetched from the mirror or its original registry, `run` = `docker run --entrypoint sleep` did not start it, `scan` = the container started but `ironctl scan` failed. These rows are **not measured**; they are not a low score.
+
+| Scenario | Image | Failed at | Reason |
+|----------|-------|-----------|--------|
+| `default-apisix` | `apache/apisix:3.11.0` | pull | Error response from daemon: manifest for apache/apisix:3.11.0 not found: manifest unknown: manifest unknown |
+| `default-bookstack` | `lscr.io/linuxserver/bookstack:24.10` | pull | Error response from daemon: manifest unknown |
+| `default-cloudflared` | `cloudflare/cloudflared:2024.12.2` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-coredns` | `coredns/coredns:1.12.0` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-couchbase` | `couchbase:community-7.6.3` | pull | Error response from daemon: manifest for couchbase:community-7.6.3 not found: manifest unknown: manifest unknown |
+| `default-discourse` | `bitnami/discourse:3.3.2` | pull | Error response from daemon: manifest for bitnami/discourse:3.3.2 not found: manifest unknown: manifest unknown |
+| `default-etcd` | `bitnami/etcd:3.5` | pull | Error response from daemon: manifest for bitnami/etcd:3.5 not found: manifest unknown: manifest unknown |
+| `default-ferretdb` | `ghcr.io/ferretdb/ferretdb:1.24.0` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-fluent-bit` | `fluent/fluent-bit:3.2` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-garage` | `dxflrs/garage:v1.0.1` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-headscale` | `headscale/headscale:0.23.0` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-homarr` | `ghcr.io/homarr-labs/homarr:0.15.10` | pull | Error response from daemon: manifest unknown |
+| `default-immudb` | `codenotary/immudb:1.9.5` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-krakend` | `krakend:2.8` | pull | Error response from daemon: manifest for krakend:2.8 not found: manifest unknown: manifest unknown |
+| `default-mimir` | `grafana/mimir:2.14.0` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-miniconda3` | `continuumio/miniconda3:24.11.1` | pull | Error response from daemon: manifest for continuumio/miniconda3:24.11.1 not found: manifest unknown: manifest unknown |
+| `default-mongodb` | `bitnami/mongodb:8.0` | pull | Error response from daemon: manifest for bitnami/mongodb:8.0 not found: manifest unknown: manifest unknown |
+| `default-node-red` | `nodered/node-red:4` | pull | Error response from daemon: manifest for nodered/node-red:4 not found: manifest unknown: manifest unknown |
+| `default-openjdk` | `openjdk:21-slim` | pull | Error response from daemon: manifest for openjdk:21-slim not found: manifest unknown: manifest unknown |
+| `default-openldap` | `bitnami/openldap:2.6.9` | pull | Error response from daemon: manifest for bitnami/openldap:2.6.9 not found: manifest unknown: manifest unknown |
+| `default-opentelemetry-collector` | `otel/opentelemetry-collector:0.116.1` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-pgbouncer` | `bitnami/pgbouncer:1.23.1` | pull | Error response from daemon: manifest for bitnami/pgbouncer:1.23.1 not found: manifest unknown: manifest unknown |
+| `default-photoprism` | `photoprism/photoprism:241128` | pull | Error response from daemon: manifest for photoprism/photoprism:241128 not found: manifest unknown: manifest unknown |
+| `default-portainer` | `portainer/portainer-ce:2.21` | pull | Error response from daemon: manifest for portainer/portainer-ce:2.21 not found: manifest unknown: manifest unknown |
+| `default-postgresql` | `bitnami/postgresql:17` | pull | Error response from daemon: manifest for bitnami/postgresql:17 not found: manifest unknown: manifest unknown |
+| `default-r-base` | `r-base:4.4` | pull | Error response from daemon: manifest for r-base:4.4 not found: manifest unknown: manifest unknown |
+| `default-rocketchat` | `rocketchat/rocket.chat:6` | pull | Error response from daemon: manifest for rocketchat/rocket.chat:6 not found: manifest unknown: manifest unknown |
+| `default-roundcube` | `roundcube/roundcubemail:1.6` | pull | Error response from daemon: manifest for roundcube/roundcubemail:1.6 not found: manifest unknown: manifest unknown |
+| `default-sentry` | `sentry:24.12.0` | pull | Error response from daemon: manifest for sentry:24.12.0 not found: manifest unknown: manifest unknown |
+| `default-squid` | `ubuntu/squid:6.10-24.10` | pull | Error response from daemon: manifest for ubuntu/squid:6.10-24.10 not found: manifest unknown: manifest unknown |
+| `default-strapi` | `strapi/strapi:3.6.8` | pull | Error response from daemon: pull access denied for strapi/strapi, repository does not exist or may require 'docker login': denied: requested access to the resource is denied |
+| `default-surrealdb` | `surrealdb/surrealdb:v2.1.4` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-tyk-gateway` | `tykio/tyk-gateway:v5.6.0` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-velero` | `velero/velero:v1.15.0` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-vikunja` | `vikunja/vikunja:0.24.6` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-watchtower` | `containrrr/watchtower:latest` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-wildfly` | `quay.io/wildfly/wildfly:34.0.1.Final` | pull | Error response from daemon: manifest for quay.io/wildfly/wildfly:34.0.1.Final not found: manifest unknown: manifest unknown |
+| `default-woodpecker-server` | `woodpeckerci/woodpecker-server:v3.0.1` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
+| `default-zitadel` | `ghcr.io/zitadel/zitadel:v2.66.1` | run | docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sleep": executable file not found in $PATH |
 
 Regenerate this file from a clean checkout with `examples/isolation-survey/survey.sh` (Docker required).

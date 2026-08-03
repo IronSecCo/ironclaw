@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
-  "generatedAt": "2026-07-27T09:42:34Z",
-  "ironctlVersion": "dev+11b86e785ff3",
+  "generatedAt": "2026-08-03T09:35:39Z",
+  "ironctlVersion": "dev+e25a7d838e33",
   "meta": {
     "imageCount": 252,
     "avgScore": 52,
@@ -651,7 +651,7 @@
       "image": "amazoncorretto:21",
       "displayName": "amazoncorretto",
       "family": "infra",
-      "digest": "sha256:540708337af29fda537479f2205d2d219a3780c3f07be5f42be96501789f610b",
+      "digest": "sha256:c2774297045ef040228973e4092efbb61f195b136954474f512b0d0272246fe2",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -736,7 +736,7 @@
       "image": "amazonlinux:2023",
       "displayName": "amazonlinux",
       "family": "base",
-      "digest": "sha256:0c74e9fbba754003cfa179fd5cc65be7790d7248443276948704b8a858b298e5",
+      "digest": "sha256:c4b0d324eaacbc5805ab5f147ba71963184752da90340bf0803c1034a170c8d1",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -1076,7 +1076,7 @@
       "image": "archlinux:latest",
       "displayName": "archlinux",
       "family": "infra",
-      "digest": "sha256:592e11bd99ab579f933a0cb77a8f66e2f3ae57f5eafacf13aea44a6e98ef21ae",
+      "digest": "sha256:3406a568f45d68f0bef35dc80b3eacec8bda59b0292b2e50d5932ba1667f20cf",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -1671,7 +1671,7 @@
       "image": "busybox:1.37",
       "displayName": "busybox",
       "family": "base",
-      "digest": "sha256:9532d8c39891ca2ecde4d30d7710e01fb739c87a8b9299685c63704296b16028",
+      "digest": "sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -2436,7 +2436,7 @@
       "image": "clojure:temurin-21-tools-deps",
       "displayName": "clojure",
       "family": "infra",
-      "digest": "sha256:db77923e67984d00cbf55a4e44cfacdefed5a8fcf1499469086ba1b569f9d937",
+      "digest": "sha256:cef34456c6ea33f2e7100362e887541678c63e4bb2eeba359666d35bbd60f99f",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -2521,7 +2521,7 @@
       "image": "cockroachdb/cockroach:latest",
       "displayName": "cockroach",
       "family": "infra",
-      "digest": "sha256:85417da0fd2f57e4f1b01ae8a4125402c977a38a56b43d0902db93dc2669ab09",
+      "digest": "sha256:771325a0586bf61d53322d24f5a6de8962568b0fc181fa45db364278e5961282",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -3711,7 +3711,7 @@
       "image": "drupal:11-apache",
       "displayName": "drupal",
       "family": "web",
-      "digest": "sha256:7a93ee9c8bec6a780cc25ec4e1610ae6dde483368db3d5aa0ac477567a645d6b",
+      "digest": "sha256:5fb998e12185c2861643ded29abf3dcabfc5d6741c443175fd62f5e6b25ffbf1",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -4051,7 +4051,7 @@
       "image": "elixir:1.18-alpine",
       "displayName": "elixir",
       "family": "infra",
-      "digest": "sha256:768e2c3c1831e221c7fb60ec11b8bf02cc8f6bb1db6ffe8715a4935c0aba235c",
+      "digest": "sha256:e2d0695e6e44eb8d275c4b599e42f660cdbdc617ae318ff81b730e464233b12e",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -4221,7 +4221,7 @@
       "image": "erlang:27-alpine",
       "displayName": "erlang",
       "family": "infra",
-      "digest": "sha256:068162a593db370cea47991df530effda4cf2e24e26a05541835f1c1cd2a6daa",
+      "digest": "sha256:84699c567f71c7bac12ed97ba50923cfe26b74d9982f984c91c165e06f61ea9e",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -6006,7 +6006,7 @@
       "image": "ibmjava:8-jre",
       "displayName": "ibmjava",
       "family": "infra",
-      "digest": "sha256:c15361471b31ad587358bb3c388242b2d84d8f1ce17f6cb56f81e72ef84163cf",
+      "digest": "sha256:a31b815a65646630d256e0abaacebffc4ac3093ce2c78a62ca96cd3dc98b7cdf",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -6431,7 +6431,7 @@
       "image": "joomla:5-apache",
       "displayName": "joomla",
       "family": "web",
-      "digest": "sha256:4a6daad09b5897d1319bd066756413d097ecfcda37df571c35d9c2d1ac08e421",
+      "digest": "sha256:d72b48d4f5737ed6e93367faefae5e05e2cefd13193efb7bf284a690fcc1397b",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -7111,7 +7111,7 @@
       "image": "nickblah/lua:5.4",
       "displayName": "lua",
       "family": "infra",
-      "digest": "sha256:1f2de2882e50f97bf8fa3cffef666a2e5402d9c447da59bfcb159e38d1587dab",
+      "digest": "sha256:b68ab040475792f0f277559e5591e8088baceb89a1ce844ee062f0d792e148d7",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -7196,7 +7196,7 @@
       "image": "axllent/mailpit:latest",
       "displayName": "mailpit",
       "family": "infra",
-      "digest": "sha256:b868afa176bfd6cce2323ea316cd99ccad77915e51e595748f6d786700ecf109",
+      "digest": "sha256:7f33095f80e901f6ad08028f06ca284aa58fe84942be5496008d041d3b9f4d4d",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -7451,7 +7451,7 @@
       "image": "matomo:5",
       "displayName": "matomo",
       "family": "infra",
-      "digest": "sha256:650f4f205b0b8968f430b0fc924e8b37e8ff023948c4db08ea300d154054b257",
+      "digest": "sha256:c2082d1571dbd0c86834e6adff76f5d374262e9fbc47e3babbad3613393cb3bb",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -7621,7 +7621,7 @@
       "image": "mediawiki:1.43",
       "displayName": "mediawiki",
       "family": "infra",
-      "digest": "sha256:439eda8a1c2a3db2e21ae9817c5ca07fbf8b859465215431405d6412006db803",
+      "digest": "sha256:87125c8962f2910213fc69b9bf50381e63f71e89ef731e519b8567368241ab5f",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -9151,7 +9151,7 @@
       "image": "nimlang/nim:2.2.0",
       "displayName": "nim",
       "family": "infra",
-      "digest": "sha256:c918a25a7ef8d96a1d3340cd6ccac9617a7c44e3b3761f0c7ef42126789f7bda",
+      "digest": "sha256:4174f89af80743ab4546986be90d1d32c6839dbec5887e1d9dbf13ec7e0ca714",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10256,7 +10256,7 @@
       "image": "pgvector/pgvector:pg17",
       "displayName": "pgvector",
       "family": "infra",
-      "digest": "sha256:d2ef61f42ef767baa5a1475393303cc235bcd92febd9d7014eddb48b41f3bad0",
+      "digest": "sha256:7ae6051efd0e60444282c27c7e141af07f322ce033300e727a49c3dd11075e38",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10341,7 +10341,7 @@
       "image": "photon:5.0",
       "displayName": "photon",
       "family": "infra",
-      "digest": "sha256:6db86de5ffc11d5c55e59d23790ad526b68e5bca4f030cb6a94e6136280866dd",
+      "digest": "sha256:ab4b68e15c8ff6b9c79ba525f696260f772c711761d576dd53bf43c351c9a504",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10426,7 +10426,7 @@
       "image": "php:8.4-apache",
       "displayName": "php",
       "family": "runtime",
-      "digest": "sha256:ea61837b6dee7f5981cced9fdf6a7773c4ef695bc3237fb9da59d223df638ec2",
+      "digest": "sha256:3f9ad397f38f7fe1e0e92b6cb5398e5d117f7d70cad1b6768bea3c1efc3c2d90",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10511,7 +10511,7 @@
       "image": "phpmyadmin:5.2",
       "displayName": "phpmyadmin",
       "family": "web",
-      "digest": "sha256:b68f318c5fd85541795ed8eb4ced28ea6908a89910871783b3e479cc6c6d1e1b",
+      "digest": "sha256:5bd425f4b152c120a3f5e3e7b5955664ad1519889b3066a5dbc0f067fdc092ee",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -13146,7 +13146,7 @@
       "image": "swaggerapi/swagger-ui:latest",
       "displayName": "swagger ui",
       "family": "infra",
-      "digest": "sha256:e43eb34b978af58d8cb78e5da9c12d605cf43d113ad3a96b18f9b028d6479d68",
+      "digest": "sha256:c6d205b1bb00c697ef55390d49aeddaecc13f672423ffc16ec2c3b602161ed18",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -16121,7 +16121,7 @@
       "image": "quay.io/jupyter/base-notebook:latest",
       "displayName": "base notebook",
       "family": "infra",
-      "digest": "sha256:50d8c29bb555af7ba18e956c97734c31ada26ee12d7e6dc77927608cb730d108",
+      "digest": "sha256:b5230927f87d6d70cb256b0dfc1ccb2aa51eee62d05d4b1831c300d0ebcde9eb",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -19181,7 +19181,7 @@
       "image": "percona:8.0",
       "displayName": "percona",
       "family": "infra",
-      "digest": "sha256:2a29b81c1e28d752b854c71565f577414fbc7eb8ce329921d6acc85da890818f",
+      "digest": "sha256:e71f4829951e4d82c754e52af2d306b0e0103faac37af02807705fab00130543",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -20881,7 +20881,7 @@
       "image": "verdaccio/verdaccio:6",
       "displayName": "verdaccio",
       "family": "infra",
-      "digest": "sha256:11e75353c8363650cbf43adf8594b2cd633be6f191056c6e08ba6ff4b1398f62",
+      "digest": "sha256:5a13d03808135726efde69a5a16fce1e1f724a961d6d647177c22da83c0af5cd",
       "score": 63,
       "grade": "C",
       "topGaps": [

@@ -7,7 +7,7 @@ description: "How isolated is swagger-ui:latest by default? IronClaw scores its 
 
 Run with plain `docker run swaggerapi/swagger-ui:latest` defaults, no hardening flags, the **swagger ui** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `swaggerapi/swagger-ui:latest` at digest `sha256:e43eb34b978af58d8cb78e5da9c12d605cf43d113ad3a96b18f9b028d6479d68` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `swaggerapi/swagger-ui:latest` at digest `sha256:c6d205b1bb00c697ef55390d49aeddaecc13f672423ffc16ec2c3b602161ed18` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

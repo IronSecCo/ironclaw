@@ -7,7 +7,7 @@ description: "How isolated is amazonlinux:2023 by default? IronClaw scores its s
 
 Run with plain `docker run amazonlinux:2023` defaults, no hardening flags, the **amazonlinux** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `amazonlinux:2023` at digest `sha256:0c74e9fbba754003cfa179fd5cc65be7790d7248443276948704b8a858b298e5` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `amazonlinux:2023` at digest `sha256:c4b0d324eaacbc5805ab5f147ba71963184752da90340bf0803c1034a170c8d1` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
