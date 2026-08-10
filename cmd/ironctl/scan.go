@@ -76,6 +76,7 @@ func cmdScan(args []string) error {
 	podmanBin := fs.String("podman-bin", envOrDefault("PODMAN", "podman"), "podman binary used for `podman container inspect` and `podman image inspect`")
 	nerdctlBin := fs.String("nerdctl-bin", envOrDefault("NERDCTL", "nerdctl"), "nerdctl binary used for `nerdctl container inspect` and `nerdctl image inspect`")
 	minScore := fs.Int("min-score", 0, "exit non-zero if the score is below this threshold (CI gate)")
+	listDims := fs.Bool("list-dimensions", false, "print the containment scoring dimensions and their weights, then exit")
 	fs.Usage = func() { scanUsage(os.Stdout) }
 	// Go's flag package stops at the first positional, so `scan <target> --json`
 	// would silently drop the flags after the target. Re-parse around each
@@ -92,6 +93,15 @@ func cmdScan(args []string) error {
 		}
 		positional = append(positional, rest[0])
 		rest = rest[1:]
+	}
+
+	// --list-dimensions: print the scoring axes and weights, then exit 0. This
+	// is a no-target, no-container path, so it returns BEFORE the mode blocks
+	// below. The list is sourced from scan.Dimensions() (the public view of the
+	// internal scorers slice), so adding a dimension in score.go later needs no
+	// second edit here.
+	if *listDims {
+		return printDimensions(os.Stdout)
 	}
 
 	// --compare A B: grade two live containers and print a side-by-side diff.
@@ -3172,6 +3182,28 @@ func podmanRootless(bin string) scan.Tristate {
 	}
 }
 
+// printDimensions prints the containment scoring axes with their fixed weights
+// (summing to scan.TotalWeight) and returns nil so cmdScan can surface it as a
+// clean exit 0. Titles come from scan.Dimensions(), so this stays in sync with
+// the scorers slice without a second source of truth. The label column is
+// left-justified to the longest title plus a small gap so the weights align.
+func printDimensions(w io.Writer) error {
+	dims := scan.Dimensions()
+	width := 0
+	for _, d := range dims {
+		if len(d.Title) > width {
+			width = len(d.Title)
+		}
+	}
+	fmt.Fprintf(w, "Containment dimensions (weights sum to %d):\n", scan.TotalWeight)
+	for _, d := range dims {
+		// width+4 pads the label to the longest title plus a 4-char gap before
+		// the weight, giving aligned columns without dots-fillers.
+		fmt.Fprintf(w, "  %-*s %d\n", width+4, d.Title, d.Max)
+	}
+	return nil
+}
+
 func scanUsage(w *os.File) {
 	fmt.Fprint(w, `ironctl scan — grade a container's containment posture (0-100)
 
@@ -3220,6 +3252,7 @@ FLAGS:
   --docker-bin BIN    docker binary for `+"`docker container inspect`"+` and `+"`docker image inspect`"+` (default: docker)
   --podman-bin BIN    podman binary for `+"`podman container inspect`"+` and `+"`podman image inspect`"+` (default: podman)
   --nerdctl-bin BIN   nerdctl binary for `+"`nerdctl container inspect`"+` and `+"`nerdctl image inspect`"+` (default: nerdctl)
+  --list-dimensions   print the containment scoring dimensions and their weights, then exit (no container needed)
 
 Runtime is auto-detected (docker, then podman, then nerdctl on PATH); override
 with --runtime. Rootless podman is credited: a userns remap of container-uid 0
