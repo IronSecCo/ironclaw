@@ -73,6 +73,24 @@ var scorers = []scorer{
 // TotalWeight is the maximum achievable score (100 by construction).
 const TotalWeight = 100
 
+// DimensionWeight is one published scoring axis: its human label and max points.
+type DimensionWeight struct {
+	Key   string
+	Title string
+	Max   int
+}
+
+// Dimensions returns the ordered scoring axes with their fixed weights, summing
+// to TotalWeight (100). It is the public view of the internal scorers slice so
+// callers (e.g. `ironctl scan --list-dimensions`) never touch the grade funcs.
+func Dimensions() []DimensionWeight {
+	out := make([]DimensionWeight, len(scorers))
+	for i, s := range scorers {
+		out[i] = DimensionWeight{Key: s.key, Title: s.title, Max: s.max}
+	}
+	return out
+}
+
 // Score grades a Spec across every dimension and returns the full Report. It is
 // pure: no I/O, no clock, deterministic for a given Spec.
 func Score(s Spec) Report {

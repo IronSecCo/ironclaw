@@ -1,10 +1,13 @@
 package main
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/IronSecCo/ironclaw/internal/host/scan"
 )
 
 // writeTemp writes content to a temp file and returns its path.
@@ -108,4 +111,49 @@ func TestCmdScan_DockerfileNoPath(t *testing.T) {
 	if err := cmdScan([]string{"--dockerfile"}); err == nil {
 		t.Error("expected an error when --dockerfile is given no path")
 	}
+}
+
+// --list-dimensions prints the scoring axes and weights and exits 0 without a
+// target. It must surface EVERY dimension in scan.Dimensions() (so a future
+// dimension added in score.go shows up automatically) and the header must
+// announce the total weight, which sums to scan.TotalWeight (100).
+func TestCmdScan_ListDimensions(t *testing.T) {
+	out := captureStdout(t, func() {
+		if err := cmdScan([]string{"--list-dimensions"}); err != nil {
+			t.Fatalf("cmdScan --list-dimensions returned %v, want nil", err)
+		}
+	})
+	if !strings.Contains(out, "Containment dimensions (weights sum to 100)") {
+		t.Errorf("missing header line; got:\n%s", out)
+	}
+	// Every published axis must appear. We assert on Titles from scan.Dimensions()
+	// rather than a hardcoded list, so adding a dimension does NOT need a second
+	// edit here (the same invariant the issue calls out for the production path).
+	for _, d := range scan.Dimensions() {
+		if !strings.Contains(out, d.Title) {
+			t.Errorf("output missing dimension %q; got:\n%s", d.Title, out)
+		}
+	}
+}
+
+// captureStdout swaps os.Stdout for the duration of fn and returns whatever was
+// written. It restores the original stdout even on failure, so a test abort
+// never leaks a broken file descriptor to later tests.
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+	orig := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stdout = w
+	done := make(chan string)
+	go func() {
+		buf, _ := io.ReadAll(r)
+		done <- string(buf)
+	}()
+	fn()
+	w.Close()
+	os.Stdout = orig
+	return <-done
 }

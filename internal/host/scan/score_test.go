@@ -203,6 +203,33 @@ func TestScoreWeightsSumTo100(t *testing.T) {
 	}
 }
 
+// TestDimensions is the public-accessor contract for --list-dimensions: it must
+// expose every scorer in order, with the same key/title/max and a total weight
+// of TotalWeight (100). Adding a dimension in score.go must NOT need a second
+// edit here — the test derives its expectations from the unexported scorers
+// slice, so a drift between scorers and Dimensions() fails loudly.
+func TestDimensions(t *testing.T) {
+	dims := Dimensions()
+	if len(dims) != len(scorers) {
+		t.Fatalf("Dimensions() returned %d axes, want %d (out of sync with scorers)", len(dims), len(scorers))
+	}
+	sum := 0
+	for i, want := range scorers {
+		got := dims[i]
+		if got.Key != want.key || got.Title != want.title || got.Max != want.max {
+			t.Errorf("dims[%d] = {%s,%s,%d}, want {%s,%s,%d}",
+				i, got.Key, got.Title, got.Max, want.key, want.title, want.max)
+		}
+		if got.Title == "" {
+			t.Errorf("dims[%d] (%s) has empty Title", i, got.Key)
+		}
+		sum += got.Max
+	}
+	if sum != TotalWeight {
+		t.Fatalf("Dimensions() weights sum to %d, want %d", sum, TotalWeight)
+	}
+}
+
 // TestScoreFailClosedEmpty asserts an empty Spec (all Unknown) scores 0/F: an
 // auditor that can see nothing must report the worst grade, never a passing one.
 func TestScoreFailClosedEmpty(t *testing.T) {
