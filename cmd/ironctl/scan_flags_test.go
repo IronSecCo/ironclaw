@@ -42,8 +42,8 @@ var imageSafeFlags = []string{
 	"--cloudrun", "--compare", "--compose", "--docker-bin", "--dockerfile",
 	"--ecs", "--emit-policy", "--helm", "--helm-bin", "--json", "--k8s",
 	"--k8s-admission", "--kubectl-bin", "--kustomize", "--kustomize-bin",
-	"--nerdctl-bin", "--nomad", "--nomad-bin", "--openshift", "--podman-bin",
-	"--pulumi", "--runtime", "--sam", "--service", "--terraform",
+	"--list-dimensions", "--nerdctl-bin", "--nomad", "--nomad-bin", "--openshift",
+	"--podman-bin", "--pulumi", "--runtime", "--sam", "--service", "--terraform",
 	"--terraform-bin",
 }
 
