@@ -147,7 +147,9 @@ func TestRejectScoreBearingOutputs_ImageMode(t *testing.T) {
 // --list-dimensions prints the scoring axes and weights and exits 0 without a
 // target. It must surface EVERY dimension in scan.Dimensions() (so a future
 // dimension added in score.go shows up automatically) and the header must
-// announce the total weight, which sums to scan.TotalWeight (100).
+// announce the total weight, which sums to scan.TotalWeight (100). Titles are
+// lowercased in the output (matching the issue example), so the assertion
+// compares case-insensitively.
 func TestCmdScan_ListDimensions(t *testing.T) {
 	out := captureStdout(t, func() {
 		if err := cmdScan([]string{"--list-dimensions"}); err != nil {
@@ -157,11 +159,12 @@ func TestCmdScan_ListDimensions(t *testing.T) {
 	if !strings.Contains(out, "Containment dimensions (weights sum to 100)") {
 		t.Errorf("missing header line; got:\n%s", out)
 	}
-	// Every published axis must appear. We assert on Titles from scan.Dimensions()
-	// rather than a hardcoded list, so adding a dimension does NOT need a second
-	// edit here (the same invariant the issue calls out for the production path).
+	// Every published axis must appear. We assert on Titles from
+	// scan.Dimensions() rather than a hardcoded list, so adding a dimension
+	// does NOT need a second edit here. The output lowercases titles, so the
+	// comparison is case-insensitive.
 	for _, d := range scan.Dimensions() {
-		if !strings.Contains(out, d.Title) {
+		if !strings.Contains(strings.ToLower(out), strings.ToLower(d.Title)) {
 			t.Errorf("output missing dimension %q; got:\n%s", d.Title, out)
 		}
 	}

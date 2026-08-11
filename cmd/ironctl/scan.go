@@ -3186,7 +3186,8 @@ func podmanRootless(bin string) scan.Tristate {
 // (summing to scan.TotalWeight) and returns nil so cmdScan can surface it as a
 // clean exit 0. Titles come from scan.Dimensions(), so this stays in sync with
 // the scorers slice without a second source of truth. The label column is
-// left-justified to the longest title plus a small gap so the weights align.
+// padded with dots to the longest title plus a 2-dot gap so the weights align
+// in a fixed column, matching the format shown in the issue.
 func printDimensions(w io.Writer) error {
 	dims := scan.Dimensions()
 	width := 0
@@ -3197,9 +3198,16 @@ func printDimensions(w io.Writer) error {
 	}
 	fmt.Fprintf(w, "Containment dimensions (weights sum to %d):\n", scan.TotalWeight)
 	for _, d := range dims {
-		// width+4 pads the label to the longest title plus a 4-char gap before
-		// the weight, giving aligned columns without dots-fillers.
-		fmt.Fprintf(w, "  %-*s %d\n", width+4, d.Title, d.Max)
+		// Pad the title with dots to the longest title plus a 2-dot gap so the
+		// weight column lines up regardless of label length (e.g.
+		// "Non-root user (uid != 0)........  15"). Use lowercase titles to
+		// match the example shape in the issue.
+		label := strings.ToLower(d.Title)
+		pad := width + 2 - len(label)
+		if pad < 1 {
+			pad = 1
+		}
+		fmt.Fprintf(w, "  %s%s %d\n", label, strings.Repeat(".", pad), d.Max)
 	}
 	return nil
 }
