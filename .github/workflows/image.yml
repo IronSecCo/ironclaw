@@ -578,7 +578,7 @@ jobs:
           echo "Origin labels agree with the built commit on all ${seen} platform manifest(s)."
 
       - name: Attest the control-plane image
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
           subject-name: ${{ needs.prepare.outputs.image }}
           subject-digest: ${{ steps.manifest.outputs.digest }}
@@ -668,7 +668,7 @@ jobs:
           sbom: false
 
       - name: Attest the MCP image
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
           subject-name: ${{ needs.prepare.outputs.mcp_image }}
           subject-digest: ${{ steps.build.outputs.digest }}
