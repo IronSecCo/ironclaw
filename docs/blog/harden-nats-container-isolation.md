@@ -1,6 +1,6 @@
 ---
-title: How to Harden NATS Container Isolation
-description: A practical guide to securing NATS containers using Docker Compose and Kubernetes security contexts.
+title: How to Harden NATS Container Isolation (48/100 Grade D)
+description: Practical guide to securing NATS containers. Stock scan score: 48/100 (Grade D).
 ---
 
 # How to Harden NATS Container Isolation
@@ -12,6 +12,8 @@ For details on full scoring metrics, see [NATS Scores](../scores/nats.md).
 ---
 
 ## Stock Container Scan Results
+
+<!-- default score: 48/100 Grade D -->
 
 Running an `ironctl` containment scan on an unmodified `nats` container produces the following initial evaluation:
 
@@ -26,8 +28,6 @@ Running an `ironctl` containment scan on an unmodified `nats` container produces
 | Read-only root filesystem | FAIL | 0/10 | root filesystem is writable: tamper/persistence surface |
 | No docker.sock exposure | PASS | 15/15 | no docker.sock / OCI control socket mounted |
 | No shared host namespaces | PASS | 10/10 | no host PID/IPC/network namespace sharing |
-
----
 
 ## Hardened Configuration Stanza
 
