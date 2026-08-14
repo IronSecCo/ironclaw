@@ -1,10 +1,10 @@
 ---
-title: How to Harden NATS Container Isolation (48/100 Grade D)
-description: Practical guide to securing NATS containers. Stock scan score: 48/100 (Grade D).
+title: "How to harden a NATS container: nats:latest scores 48/100 by default"
+description: "nats:latest defaults score 48/100 (grade D): root, full caps, writable rootfs, bridge egress. The exact ironctl scan --fix flags that take a lightweight broker to a full 100/100 grade A."
 default_score: 48/100
 ---
 
-# How to Harden NATS Container Isolation
+# How to harden a NATS container (and is nats:latest safe for untrusted workloads?)
 
 NATS is a lightweight, high-performance cloud-native messaging system. By default, running stock NATS containers leaves several security dimensions unconfigured.
 
@@ -14,7 +14,10 @@ For details on full scoring metrics, see [NATS Scores](../scores/nats.md).
 
 ## Stock Container Scan Results
 
-<!-- default score: 48/100 Grade D -->
+```bash
+# Before: 48/100, grade D
+docker run -d --name nats nats:latest
+```
 
 Running an `ironctl` containment scan on an unmodified `nats` container produces the following initial evaluation:
 
