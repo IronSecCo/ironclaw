@@ -17,12 +17,15 @@ Running an `ironctl` containment scan on an unmodified `nats` container produces
 
 * **Stock Score:** `48/100` (Grade D - porous)
 
-### Failing Dimensions:
-
-* **Non-root user (uid != 0):** `0/15` - Runs as root (`user "0 (default)"`).
-* **Dropped capabilities:** `4/20` - Default capability set retained (`CAP_NET_RAW`, `CAP_MKNOD`, etc.).
-* **Read-only root filesystem:** `0/10` - Root filesystem is writable.
-* **Network isolation / egress:** `4/15` (WARN) - `network=bridge` allows outbound network egress.
+| Dimension | Verdict | Score | What the scan found |
+| --- | --- | --- | --- |
+| Non-root user (uid != 0) | FAIL | 0/15 | runs as root (user "0 (default)"); a container escape starts with host-uid 0 |
+| Dropped capabilities | FAIL | 4/20 | default capability set retained (includes CAP_NET_RAW, CAP_MKNOD, …) |
+| Seccomp profile | PASS | 15/15 | seccomp profile active (syscall surface filtered) |
+| Network isolation / egress | WARN | 4/15 | network=bridge: outbound egress is possible; prefer network=none |
+| Read-only root filesystem | FAIL | 0/10 | root filesystem is writable: tamper/persistence surface |
+| No docker.sock exposure | PASS | 15/15 | no docker.sock / OCI control socket mounted |
+| No shared host namespaces | PASS | 10/10 | no host PID/IPC/network namespace sharing |
 
 ---
 
