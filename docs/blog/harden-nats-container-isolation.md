@@ -1,6 +1,7 @@
 ---
 title: How to Harden NATS Container Isolation (48/100 Grade D)
 description: Practical guide to securing NATS containers. Stock scan score: 48/100 (Grade D).
+default_score: 48/100
 ---
 
 # How to Harden NATS Container Isolation
