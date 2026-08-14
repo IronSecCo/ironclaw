@@ -35,7 +35,7 @@ To fix these findings, apply the following security contexts to drop unnecessary
 
 ### Docker Compose Example
 
-```yaml
+yaml
 version: '3.8'
 
 services:
