@@ -1,101 +1,53 @@
 ---
-title: "How to harden a NATS container: nats:2.10-alpine scores 48/100 by default"
-description: "nats:2.10-alpine defaults score 48/100 (grade D): full caps, writable rootfs. The exact ironctl scan --fix flags that take the messaging broker to its honest 89/100 grade B ceiling."
+title: How to Harden NATS Container Isolation
+description: A practical guide to securing NATS containers using Docker Compose and Kubernetes security contexts.
 ---
 
-# How to harden a NATS container (and is nats:2.10-alpine safe for your messages?)
+# How to Harden NATS Container Isolation
 
-NATS is the nervous system of an event-driven stack: every service publishes to it and subscribes from
-it, and with JetStream it also persists the stream. A stock `docker run nats:2.10-alpine` keeps that
-broker behind a boundary weaker than the traffic deserves. Graded on IronClaw's seven-dimension
-containment scale, the default configuration scores **48 of 100, grade D (porous)**. Higher is safer.
-A broker exists to be connected to, so it cannot take `--network=none` the way a co-located database
-can. That sets an honest ceiling of **89 of 100, grade B**, and the flags below reach it. Here are the
-exact gaps and fixes from the scan data.
+NATS is a lightweight, high-performance cloud-native messaging system. By default, running stock NATS containers leaves several security dimensions unconfigured.
 
-> Graded from a read-only inspect of a **running container** started from `nats:2.10-alpine` with
-> plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The
-> scan itself executes nothing inside the container. It is the same data behind its
-> [isolation scorecard](../scores/nats.md).
-> [How scoring works &rarr;](../scan.md)
+For details on full scoring metrics, see [NATS Scores](../scores/nats.md).
 
-## Where the default configuration leaks
+---
 
-`ironctl scan` grades seven independent containment boundaries. On a default
-`docker run nats:2.10-alpine`, three fail and one warns:
+## Stock Container Scan Results
 
-| Dimension | Verdict | Score | What the scan found |
-|-----------|:-------:|------:|---------------------|
-| Non-root user (uid != 0) | ❌ FAIL | 0/15 | runs as root (uid 0); a container escape starts with host-uid 0 |
-| Dropped capabilities | ❌ FAIL | 4/20 | default capability set retained (CAP_NET_RAW, CAP_MKNOD, and more) |
-| Seccomp profile | ✅ PASS | 15/15 | seccomp profile active |
-| Network isolation / egress | ⚠️ WARN | 4/15 | network=bridge: outbound egress is possible |
-| Read-only root filesystem | ❌ FAIL | 0/10 | root filesystem is writable |
-| No docker.sock exposure | ✅ PASS | 15/15 | no control socket mounted |
-| No shared host namespaces | ✅ PASS | 10/10 | no host PID/IPC/network sharing |
+Running an `ironctl` containment scan on an unmodified `nats` container produces the following initial evaluation:
 
-The one that should worry you most is **root**. A NATS process that escapes as root escapes as root on
-the host, right next to every message flowing through it and, with JetStream, the persisted stream on
-disk. The default capability set and writable rootfs widen and entrench that foothold. The network
-dimension stays a WARN by design here, because a broker has to accept connections.
+* **Stock Score:** `48/100` (Grade D - porous)
 
-## Harden it: the exact `--fix` remediation
+### Failing Dimensions:
 
-`ironctl scan my-nats --fix` prints one remediation per failed dimension, then one hardened run. For
-`nats:2.10-alpine`:
+* **Non-root user (uid != 0):** `0/15` - Runs as root (`user "0 (default)"`).
+* **Dropped capabilities:** `4/20` - Default capability set retained (`CAP_NET_RAW`, `CAP_MKNOD`, etc.).
+* **Read-only root filesystem:** `0/10` - Root filesystem is writable.
+* **Network isolation / egress:** `4/15` (WARN) - `network=bridge` allows outbound network egress.
 
-- **`--user 65532:65532`** (Non-root user, +15): pin a non-root uid so an escape does not begin as host
-  uid 0. Point any JetStream store directory at a volume this uid owns.
-- **`--cap-drop=ALL`** (Dropped capabilities, +16): drop every Linux capability; NATS needs none of the
-  default set to serve its client and monitoring ports.
-- **`--read-only --tmpfs /tmp`** (Read-only rootfs, +10): make the root filesystem read-only and mount
-  the JetStream data directory as an explicit writable volume. Removes the persistence surface.
-- **Scoped private network** (Network, held at WARN by design): a broker exists to be connected to, so
-  `--network=none` would break it. Put NATS on a user-defined network scoped to just its publishers,
-  subscribers, and cluster peers, with no default route out. The network dimension holds at a WARN
-  (4 of 15). That is the honest ceiling.
+---
 
-## Before and after
+## Hardened Configuration Stanza
 
-```bash
-# Before: 48/100, grade D
-docker run -d --name nats nats:2.10-alpine
+To fix these findings, apply the following security contexts to drop unnecessary Linux capabilities, enforce a non-root user, and set the root filesystem to read-only.
 
-# After: 89/100, grade B (scoped private network for clients and peers)
-docker run -d --name nats-hardened \
-  --user 65532:65532 \
-  --cap-drop=ALL \
-  --security-opt=no-new-privileges \
-  --read-only --tmpfs /tmp \
-  -v nats-data:/data \
-  --network=messaging-internal \
-  nats:2.10-alpine
-```
+### Docker Compose Example
 
-Rescan: `ironctl scan nats-hardened` reports `89/100 grade B`. A **41-point swing** with no custom
-image build, just the right flags. The only dimension still short of full marks is the network (4 of
-15), because a broker exists to be reached by its publishers and subscribers; `network=none` would
-score the last points but leave nothing able to connect. That is the honest ceiling for this role, and
-it is a long way from the default D.
+```yaml
+version: '3.8'
 
-## Verify it on your own NATS
-
-```bash
-# install (Homebrew)
-brew install ironsecco/ironclaw/ironclaw
-
-# grade your running container, then print the fixes
-ironctl scan my-nats
-ironctl scan my-nats --fix
-```
-
-`ironctl scan` also reads a `docker-compose.yml` service or a Kubernetes manifest, so you can grade the
-NATS in your stack, not just a bare `docker run`.
-
-## Keep going
-
-- [All hardening guides &rarr;](hardening-guides.md): every harden-a-container walkthrough, with grade deltas.
-- [nats:2.10-alpine isolation scorecard &rarr;](../scores/nats.md): the full dimension breakdown.
-- [How to harden a Kafka container &rarr;](harden-kafka-container-isolation.md): another broker whose honest ceiling is grade B.
-- [Scan any container in 10 seconds &rarr;](../scan.md): the full `ironctl scan` reference.
-- [Run untrusted code in a real sandbox &rarr;](../index.md): IronClaw wraps every AI-agent session in a gVisor/Kata boundary with `network=none` by default.
+services:
+  nats:
+    image: nats:latest
+    container_name: nats-hardened
+    user: "10001:10001"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    restart: unless-stopped
