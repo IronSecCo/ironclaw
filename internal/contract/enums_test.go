@@ -1,3 +1,5 @@
+// FROZEN CONTRACT — do not edit without a joint RFC (see docs/contract.md).
+
 package contract
 
 import "testing"
