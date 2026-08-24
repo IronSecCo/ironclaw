@@ -7,7 +7,7 @@ description: "How isolated is elixir:1.18-alpine by default? IronClaw scores its
 
 Run with plain `docker run elixir:1.18-alpine` defaults, no hardening flags, the **elixir** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `elixir:1.18-alpine` at digest `sha256:768e2c3c1831e221c7fb60ec11b8bf02cc8f6bb1db6ffe8715a4935c0aba235c` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `elixir:1.18-alpine` at digest `sha256:caa6412c072c4b11e8c6798108388702c2791b4f8bad41e42c27ea5be881e2dc` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
