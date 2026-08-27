@@ -71,6 +71,9 @@ image we have graded, with its default and hardened score in one table.
 - [How to harden an nginx container](harden-nginx-container-isolation.md) -
   `nginx:1.27-alpine` scores 48 of 100 (D). The honest hardened ceiling for an internet-facing
   proxy is 89 of 100 (B), because it must reach its upstreams. Here is exactly why.
+
+- [How to Harden NATS Container Isolation](harden-nats-container-isolation.md) 
+
 - [How to harden a MySQL container](harden-mysql-container-isolation.md) -
   `mysql:8.4` scores 48 of 100 (D) on defaults: root, full capabilities, writable rootfs. Four
   flags take it to 100 of 100 (A). Is it safe for untrusted workloads?
