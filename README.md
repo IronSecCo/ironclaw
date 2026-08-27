@@ -290,6 +290,7 @@ Per-image hardening walkthroughs, the default grade, the dimensions that fail, a
 [Elasticsearch](https://ironsecco.github.io/ironclaw/blog/harden-elasticsearch-container-isolation/),
 [Kafka](https://ironsecco.github.io/ironclaw/blog/harden-kafka-container-isolation/),
 [RabbitMQ](https://ironsecco.github.io/ironclaw/blog/harden-rabbitmq-container-isolation/),
+[NATS](https://ironsecco.github.io/ironclaw/blog/harden-nats-container-isolation/),
 [Vault](https://ironsecco.github.io/ironclaw/blog/harden-vault-container-isolation/),
 [Consul](https://ironsecco.github.io/ironclaw/blog/harden-consul-container-isolation/),
 [MinIO](https://ironsecco.github.io/ironclaw/blog/harden-minio-container-isolation/),
