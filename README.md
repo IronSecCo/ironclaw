@@ -289,6 +289,7 @@ Per-image hardening walkthroughs, the default grade, the dimensions that fail, a
 [Memcached](https://ironsecco.github.io/ironclaw/blog/harden-memcached-container-isolation/),
 [Elasticsearch](https://ironsecco.github.io/ironclaw/blog/harden-elasticsearch-container-isolation/),
 [Kafka](https://ironsecco.github.io/ironclaw/blog/harden-kafka-container-isolation/),
+[NATS](https://ironsecco.github.io/ironclaw/blog/harden-nats-container-isolation/),
 [RabbitMQ](https://ironsecco.github.io/ironclaw/blog/harden-rabbitmq-container-isolation/),
 [Vault](https://ironsecco.github.io/ironclaw/blog/harden-vault-container-isolation/),
 [Consul](https://ironsecco.github.io/ironclaw/blog/harden-consul-container-isolation/),
