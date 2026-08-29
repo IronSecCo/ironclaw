@@ -74,6 +74,10 @@ Boolean variables accept `1`, `true`, `yes`, or `on`, case-insensitively.
 | `DISCORD_BOT_TOKEN` | Registers the Discord adapter with this bot token. | Unset; the adapter is not registered. | Control plane |
 | `IRONCLAW_IMESSAGE_ENABLE` | Registers the iMessage adapter on macOS when set to exactly `1`. | Disabled. | Control plane |
 | `IRONCLAW_MATTERMOST_WEBHOOK_URL` | Registers the Mattermost incoming-webhook adapter. | Unset; the adapter is not registered. | Control plane |
+| `IRONCLAW_ROCKETCHAT_AUTH_TOKEN` | Supplies the host-held auth token for the Rocket.Chat adapter. | Unset; the adapter is not registered. | Control plane |
+| `IRONCLAW_ROCKETCHAT_CHANNEL` | Sets the default target channel for the Rocket.Chat adapter. | Empty. | Control plane |
+| `IRONCLAW_ROCKETCHAT_URL` | Registers the Rocket.Chat adapter and sets its base URL. | Unset; the adapter is not registered. | Control plane |
+| `IRONCLAW_ROCKETCHAT_USER_ID` | Supplies the user ID for the Rocket.Chat adapter. | Empty. | Control plane |
 | `IRONCLAW_SIGNAL_CLI_URL` | Registers the Signal adapter and sets the signal-cli REST bridge URL. | Unset; the adapter is not registered. | Control plane |
 | `IRONCLAW_SIGNAL_NUMBER` | Sets the sending phone number for the Signal adapter. | Empty. | Control plane |
 | `IRONCLAW_TEAMS_WEBHOOK_URL` | Registers the Microsoft Teams incoming-webhook adapter. | Unset; the adapter is not registered. | Control plane |
