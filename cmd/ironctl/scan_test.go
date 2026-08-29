@@ -181,13 +181,17 @@ func captureStdout(t *testing.T, fn func()) string {
 		t.Fatalf("pipe: %v", err)
 	}
 	os.Stdout = w
+	defer func() {
+		os.Stdout = orig
+	}()
+	defer w.Close()
 	done := make(chan string)
 	go func() {
 		buf, _ := io.ReadAll(r)
 		done <- string(buf)
 	}()
+
 	fn()
 	w.Close()
-	os.Stdout = orig
 	return <-done
 }
