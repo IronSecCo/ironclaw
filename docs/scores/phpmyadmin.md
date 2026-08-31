@@ -7,7 +7,7 @@ description: "How isolated is phpmyadmin:5.2 by default? IronClaw scores its san
 
 Run with plain `docker run phpmyadmin:5.2` defaults, no hardening flags, the **phpmyadmin** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `phpmyadmin:5.2` at digest `sha256:6db6e0bc9959eb00395f5d927cc786cb63530a265663950ecb9faf5955419c37` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `phpmyadmin:5.2` at digest `sha256:3a8a8d6b5289091f959ba0293f21163b3a2fc5741991a53de70b3497fe8d31db` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -1,6 +1,6 @@
 # State of Container Isolation — survey results
 
-Scanned **256 scenarios** with `ironctl scan` dev+e25a7d838e33 on 2026-08-24T06:48:19Z.
+Scanned **256 scenarios** with `ironctl scan` dev+87fb92fcfa92 on 2026-08-31T12:32:09Z.
 
 **Coverage: 256 of 295 manifest rows.** 39 scenario(s) were dropped before they could be graded (pull 23, run 16) and are listed under [Not scanned](#not-scanned) below — they are absent from the table, not scored zero.
 
