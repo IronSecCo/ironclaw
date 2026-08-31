@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-08-24T06:48:19Z",
-  "ironctlVersion": "dev+e25a7d838e33",
+  "generatedAt": "2026-08-31T12:32:09Z",
+  "ironctlVersion": "dev+87fb92fcfa92",
   "manifestRowCount": 295,
   "report": "ironclaw-isolation-survey",
   "scenarioCount": 256,
@@ -75,7 +75,7 @@
             "verdict": "FAIL"
           }
         ],
-        "generatedAt": "2026-08-24T06:50:04Z",
+        "generatedAt": "2026-08-31T12:33:54Z",
         "grade": "F",
         "max": 100,
         "mode": "container",
@@ -85,7 +85,7 @@
         "score": 19,
         "source": "docker",
         "target": "ic-survey-naive-privileged",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:399babc8b49529dabfd9c922f2b5eea81d611e4512e3ed250d75bd2e7683f4b0",
       "runFlags": "--privileged",
@@ -160,7 +160,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:50:00Z",
+        "generatedAt": "2026-08-31T12:33:50Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -170,7 +170,7 @@
         "score": 33,
         "source": "docker",
         "target": "ic-survey-naive-ci-docker-sock",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2",
       "runFlags": "-v /var/run/docker.sock:/var/run/docker.sock",
@@ -246,7 +246,7 @@
             "verdict": "FAIL"
           }
         ],
-        "generatedAt": "2026-08-24T06:50:07Z",
+        "generatedAt": "2026-08-31T12:33:58Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -256,7 +256,7 @@
         "score": 34,
         "source": "docker",
         "target": "ic-survey-naive-host-ns",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99",
       "runFlags": "--network host --pid host",
@@ -330,7 +330,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:30:33Z",
+        "generatedAt": "2026-08-31T13:13:37Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -340,7 +340,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-act-runner",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:c57233403eff970945cfb8b13f0e622d2124f4dbc623af3e2c74f061d05e8f60",
       "runFlags": "",
@@ -414,7 +414,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:39:55Z",
+        "generatedAt": "2026-08-31T13:23:06Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -424,7 +424,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-actual-server",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:0cf0300ed4905045ed87e8892c26fbd83cd08e8499bb81dc28deef6afeb162fb",
       "runFlags": "",
@@ -498,7 +498,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:15:15Z",
+        "generatedAt": "2026-08-31T12:58:27Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -508,7 +508,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-adguardhome",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:aba9e3bf0613be3ba3755e1fc311b126e2c24bec25e18b6483894a88283074f0",
       "runFlags": "",
@@ -582,7 +582,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:23:25Z",
+        "generatedAt": "2026-08-31T13:06:38Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -592,7 +592,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-aerospike",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:200067011b2c73ce2809d93e16de2f2581333a0109303dcbc1b9534c1875b483",
       "runFlags": "",
@@ -666,7 +666,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:07:19Z",
+        "generatedAt": "2026-08-31T12:50:48Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -676,9 +676,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-alloy",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:0f4434c92b3e6cdac38bb129b344e1790c246f7b6e2eaffcc16a5fa363240e33",
+      "resolvedDigest": "sha256:b8ec653c44235fbe910879145dac3597d66b0aaecf60bcbbe82580767771a839",
       "runFlags": "",
       "score": 48
     },
@@ -750,7 +750,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:16:47Z",
+        "generatedAt": "2026-08-31T13:00:02Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -760,7 +760,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-almalinux",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:d2515c769e7b73f95c4fde38c0a505336ff38f14990c0b7253b77060a049a743",
       "runFlags": "",
@@ -834,7 +834,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:53:50Z",
+        "generatedAt": "2026-08-31T12:37:40Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -844,7 +844,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-alpine",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d",
       "runFlags": "",
@@ -918,7 +918,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:02:28Z",
+        "generatedAt": "2026-08-31T12:45:56Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -928,7 +928,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-amazoncorretto",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:de27588c570049ff6c970530cf32f0eb41a082edd3f753e8f923e9c82e2ca97e",
       "runFlags": "",
@@ -1002,7 +1002,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:54:27Z",
+        "generatedAt": "2026-08-31T12:38:14Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -1012,7 +1012,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-amazonlinux",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:181f98c48832fe926f8ca3b6ffeafcce128e96e77b93d08fbe9a9bc9403ce284",
       "runFlags": "",
@@ -1086,7 +1086,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:55:13Z",
+        "generatedAt": "2026-08-31T13:38:33Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -1096,7 +1096,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-anaconda3",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:b2c5350cc4e2338a1705c15dcca4fff520b1728f49752d390d92aaec02cf8c3a",
       "runFlags": "",
@@ -1170,7 +1170,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:33:42Z",
+        "generatedAt": "2026-08-31T13:16:46Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -1180,7 +1180,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-appwrite",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:269f8953594890a62f015e29c6343f7f2119468180d0dcecdfdc331bcbadf845",
       "runFlags": "",
@@ -1254,7 +1254,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:58:48Z",
+        "generatedAt": "2026-08-31T12:42:28Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -1264,7 +1264,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-arangodb",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:01be938f3a8d3e82725d365ca6750e4cafd092ec78a33a027588cfac37be4e51",
       "runFlags": "",
@@ -1338,7 +1338,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:17:01Z",
+        "generatedAt": "2026-08-31T13:00:12Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -1348,9 +1348,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-archlinux",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:4bf33b21a715aac0b48ce6e9eaed4782a898eae96f88f5da3635572129c2584a",
+      "resolvedDigest": "sha256:b860afd5823683f7ea389ba5f00d812f4fe55f6f286dea329d2abeefa535e309",
       "runFlags": "",
       "score": 48
     },
@@ -1422,7 +1422,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:25:30Z",
+        "generatedAt": "2026-08-31T13:08:43Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -1432,9 +1432,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-aspnet",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:4e376dd15bbc8437d4892367ab0ea06a3ac9fea482d10f92f3c493fe1a2219ad",
+      "resolvedDigest": "sha256:b1201ee0ccf9a22c06844982296c1be40d5ff9c7685dc002729f204e63fb1730",
       "runFlags": "",
       "score": 48
     },
@@ -1506,7 +1506,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:37:34Z",
+        "generatedAt": "2026-08-31T13:20:43Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -1516,7 +1516,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-audiobookshelf",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:aa88c9f4652872a2a72043511a87d17ec743b60f53e8024e9868ebec5aae59bd",
       "runFlags": "",
@@ -1590,7 +1590,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:14:57Z",
+        "generatedAt": "2026-08-31T12:58:10Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -1600,7 +1600,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-authelia",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:46021dc20efdcc5cdc38a29e3050b8835429a155ae6215388ed3b793a02eb0ab",
       "runFlags": "",
@@ -1674,7 +1674,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:34:52Z",
+        "generatedAt": "2026-08-31T13:18:00Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -1684,7 +1684,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-baserow",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:df0c42eb67e86a5b3f3e608e904f18db98650aaa701098d1d437ef5170979a8e",
       "runFlags": "",
@@ -1758,7 +1758,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:07:35Z",
+        "generatedAt": "2026-08-31T12:51:03Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -1768,7 +1768,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-blackbox",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:b04a9fef4fa086a02fc7fcd8dcdbc4b7b35cc30cdee860fdc6a19dd8b208d63e",
       "runFlags": "",
@@ -1842,7 +1842,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:05:21Z",
+        "generatedAt": "2026-08-31T12:48:51Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -1852,7 +1852,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-bun",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:d6ad4d3280d3e7e92b793a924105d68766d60b1f36709f4cee11bc8737782621",
       "runFlags": "",
@@ -1926,7 +1926,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:54:04Z",
+        "generatedAt": "2026-08-31T12:37:52Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -1936,7 +1936,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-busybox",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0",
       "runFlags": "",
@@ -2010,7 +2010,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:51:11Z",
+        "generatedAt": "2026-08-31T12:34:54Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -2020,7 +2020,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-caddy",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
       "runFlags": "",
@@ -2094,7 +2094,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:31:02Z",
+        "generatedAt": "2026-08-31T13:14:06Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -2104,7 +2104,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-cadvisor",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:f40e65878e25c2e78ea037f73a449527a0fb994e303dc3e34cb6b187b4b91435",
       "runFlags": "",
@@ -2178,7 +2178,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:56:36Z",
+        "generatedAt": "2026-08-31T12:40:21Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -2188,9 +2188,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-cassandra",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:c4d4c9c94af6dfe6efcd41e30308f267193955a3ff6bba8637b118824a495e34",
+      "resolvedDigest": "sha256:d35e159439b302146f964919904f84fd3c2cebf347272b8cb8c4368c1cf200e5",
       "runFlags": "",
       "score": 48
     },
@@ -2262,7 +2262,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:23:58Z",
+        "generatedAt": "2026-08-31T13:07:09Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -2272,7 +2272,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-centrifugo",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:dc3a829ab2e26070df6802138ebfd4ce3929e8fdc970fa56e4fa14b68e321164",
       "runFlags": "",
@@ -2346,7 +2346,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:40:16Z",
+        "generatedAt": "2026-08-31T13:23:25Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -2356,7 +2356,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ceph",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:6ac7f923aa1d23b43248ce0ddec7e1388855ee3d00813b52c3172b0b23b37906",
       "runFlags": "",
@@ -2430,7 +2430,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:00:58Z",
+        "generatedAt": "2026-08-31T12:44:32Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -2440,7 +2440,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-chroma",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:18e67eecc172abbcd9413d751bde64983b3d167fe497c98f979083eb24c0c942",
       "runFlags": "",
@@ -2514,7 +2514,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:09:06Z",
+        "generatedAt": "2026-08-31T12:52:28Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -2524,9 +2524,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-chronograf",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:28eba31b450ccce7c41cce6ff69acee2c5dc70f7b7ef6732c02cf51c63e88ae1",
+      "resolvedDigest": "sha256:843bf6f649de7a555aedf5a348ff962d72ae81a4dba3dacf8f91cf61fd3342c3",
       "runFlags": "",
       "score": 48
     },
@@ -2598,7 +2598,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:56:49Z",
+        "generatedAt": "2026-08-31T12:40:32Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -2608,7 +2608,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-clickhouse",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:9eb59796efe815711207122267e407dd3b42efd90d01537e1c80118bfc642a11",
       "runFlags": "",
@@ -2682,7 +2682,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:05:06Z",
+        "generatedAt": "2026-08-31T12:48:36Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -2692,9 +2692,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-clojure",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:4de0e60092bfad68f39e024d43733a4d55b676fd9762676aee862d45c4ef1b47",
+      "resolvedDigest": "sha256:58e83ecc4db0a0c5613ac47456dab481e8b492a23bd024caa1c197d10ceb3dc6",
       "runFlags": "",
       "score": 48
     },
@@ -2766,7 +2766,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:58:32Z",
+        "generatedAt": "2026-08-31T12:42:10Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -2776,9 +2776,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-cockroach",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:e326d4ef754cc40553716e20d656788c951d2e287b3629268d1bf43bfb5acb9e",
+      "resolvedDigest": "sha256:c0838fd4db940b7dedb590211ee3cd229b75d3b49ce466760454a282b98641ae",
       "runFlags": "",
       "score": 48
     },
@@ -2850,7 +2850,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:29:53Z",
+        "generatedAt": "2026-08-31T13:12:57Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -2860,7 +2860,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-concourse",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:3a432faa505de02f6d6592f4b727a1e2683a7adbf42e4fcc052e30f0a144efc6",
       "runFlags": "",
@@ -2934,7 +2934,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:52:50Z",
+        "generatedAt": "2026-08-31T12:36:24Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -2944,7 +2944,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-consul",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:200471c74bc0965cd20c81eacc31a209873d5d9e599fe637ceb856b0cbbc518d",
       "runFlags": "",
@@ -3018,7 +3018,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:50:45Z",
+        "generatedAt": "2026-08-31T13:34:03Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -3028,7 +3028,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-cortex",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:b2c37512c56294f6f648eabd9833adbbfd37b453aaae4390b7f5334bc57f136e",
       "runFlags": "",
@@ -3102,7 +3102,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:50:33Z",
+        "generatedAt": "2026-08-31T12:34:19Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -3112,9 +3112,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-couchdb",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:91ca7a6482e079ce74ebcf7aae3493ebbffd59916f6c232ecee3ab686d9fa3f0",
+      "resolvedDigest": "sha256:628c4952c1cf668489fb668fbd24013bf61ff25add0a3643253dde0d47cae449",
       "runFlags": "",
       "score": 48
     },
@@ -3186,7 +3186,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:26:30Z",
+        "generatedAt": "2026-08-31T13:09:41Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -3196,7 +3196,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-crystal",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:e1356b557c098ae5b7956ed58edb6d0c081c3c4d588c56cec11f6bbb7caeea2c",
       "runFlags": "",
@@ -3270,7 +3270,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:04:34Z",
+        "generatedAt": "2026-08-31T12:48:08Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -3280,7 +3280,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-dart",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:7a6a4ad2560e46cb6979bd73f46edec0fa7bc092146f5fafefdf3c6568a77e75",
       "runFlags": "",
@@ -3354,7 +3354,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:39:31Z",
+        "generatedAt": "2026-08-31T13:22:41Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -3364,7 +3364,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-dashy",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:e0e4d344f9be6d6f0061bb4f5368efd5034e8f2cec886d8afefc89a76be830d4",
       "runFlags": "",
@@ -3438,7 +3438,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:54:00Z",
+        "generatedAt": "2026-08-31T12:37:48Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -3448,9 +3448,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-debian",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:abd67ffcfa541b485a3dff59865ab629aa048a6c613e639d36e7456b0b229241",
+      "resolvedDigest": "sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe64d6990e4b07ea4171",
       "runFlags": "",
       "score": 48
     },
@@ -3522,7 +3522,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:05:13Z",
+        "generatedAt": "2026-08-31T12:48:43Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -3532,7 +3532,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-deno",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:3bf75873714baa410dcf7fabaf76d806d20f0ac8a7579df11577b4ed97416e34",
       "runFlags": "",
@@ -3606,7 +3606,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:20:52Z",
+        "generatedAt": "2026-08-31T13:04:03Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -3616,7 +3616,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-dgraph",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:73db2307831ef1229c6b2aaa432ba8cbc0f525002318713d4e3392bf56199c3a",
       "runFlags": "",
@@ -3690,7 +3690,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:14:43Z",
+        "generatedAt": "2026-08-31T12:57:56Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -3700,7 +3700,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-docker-dind",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce",
       "runFlags": "",
@@ -3774,7 +3774,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:00:07Z",
+        "generatedAt": "2026-08-31T12:43:42Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -3784,7 +3784,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-dragonfly",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:ebf3c6c213e82fb51b4521660cca13f06f3421dc5b1ed14f2f474c50b5e29986",
       "runFlags": "",
@@ -3858,7 +3858,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:06:31Z",
+        "generatedAt": "2026-08-31T12:50:03Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -3868,7 +3868,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-drone",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:55897c8fb22ddc5dff6be4c85b7fbc3ce07c34fe1f03d7cf2cbbfd095833fca6",
       "runFlags": "",
@@ -3942,7 +3942,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:55:12Z",
+        "generatedAt": "2026-08-31T12:39:00Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -3952,9 +3952,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-drupal",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:369ec2a0bb23e1d6b4a378fbe15e36b52def0bb145c1821b8b33e28c3ec1b490",
+      "resolvedDigest": "sha256:ee52c96ba3c8cc13ad510527ed36a57fb6d05a00c305f227581861c3ef780614",
       "runFlags": "",
       "score": 48
     },
@@ -4026,7 +4026,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:40:47Z",
+        "generatedAt": "2026-08-31T13:23:54Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -4036,7 +4036,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-duplicati",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:ea0fc5050e0369e3d6736ac4633c65a977668889aed949aaa312ba4c73c8c772",
       "runFlags": "",
@@ -4110,7 +4110,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:03:22Z",
+        "generatedAt": "2026-08-31T12:46:45Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -4120,7 +4120,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-elixir",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:caa6412c072c4b11e8c6798108388702c2791b4f8bad41e42c27ea5be881e2dc",
       "runFlags": "",
@@ -4194,7 +4194,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:02:07Z",
+        "generatedAt": "2026-08-31T12:45:36Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -4204,7 +4204,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-envoy",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:6bf0d37dd5e8eac4b37effe89a1aec4760f7f2ce860d1fd6af22147eb87a5058",
       "runFlags": "",
@@ -4278,7 +4278,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:03:29Z",
+        "generatedAt": "2026-08-31T12:46:53Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -4288,7 +4288,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-erlang",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:8d0d64cabe4c92b2d2ff2235751f4ead1526dc48c5d93e265e3c64c50cb562e0",
       "runFlags": "",
@@ -4362,7 +4362,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:54:11Z",
+        "generatedAt": "2026-08-31T12:38:00Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -4372,7 +4372,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-fedora",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:f1a3fab47bcb3c3ddf3135d5ee7ba8b7b25f2e809a47440936212a3a50957f3d",
       "runFlags": "",
@@ -4446,7 +4446,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:20:22Z",
+        "generatedAt": "2026-08-31T13:03:32Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -4456,9 +4456,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-firebird",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:4690e970fb978aaa01a58c8cad78758f9bd192c88ddca68f31d904e35df920bb",
+      "resolvedDigest": "sha256:647516960964702b5786f2d3a5e61aa4b611295ee1fb87b97d2dc24da596da7d",
       "runFlags": "",
       "score": 48
     },
@@ -4530,7 +4530,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:14:32Z",
+        "generatedAt": "2026-08-31T12:57:47Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -4540,7 +4540,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-flink",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:96ef3533ac7eb853c5c789474e82ef99c5840e21db86030242579d34a159ef61",
       "runFlags": "",
@@ -4614,7 +4614,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:06:24Z",
+        "generatedAt": "2026-08-31T12:49:56Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -4624,7 +4624,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-forgejo",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:3c34f11fe8b9983096eef3f8f25c2d2c21c4ae7504960cb203f0b075d1d8ed73",
       "runFlags": "",
@@ -4698,7 +4698,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:37:43Z",
+        "generatedAt": "2026-08-31T13:20:52Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -4708,7 +4708,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-freshrss",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:baedf173d60b63c72f93fdb8480ee002d4622cd34103aac6510f45fdff41effe",
       "runFlags": "",
@@ -4782,7 +4782,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:03:14Z",
+        "generatedAt": "2026-08-31T12:46:38Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -4792,9 +4792,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gcc",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:468b5b959b5f4025724d8549f45550c6ad38a32474733cbf130f8f2c1bc80805",
+      "resolvedDigest": "sha256:88134abee5c979390be4fedf9af2635e324004f0f3c1266a8c924c7a08e69500",
       "runFlags": "",
       "score": 48
     },
@@ -4866,7 +4866,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:55:45Z",
+        "generatedAt": "2026-08-31T12:39:33Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -4876,7 +4876,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ghost",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:a0506f3f05f5bdc6c950c5113cdcdb1e1f96fbf15f6dc0a39fc093c25348bdb5",
       "runFlags": "",
@@ -4950,7 +4950,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:56:14Z",
+        "generatedAt": "2026-08-31T12:40:00Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -4960,7 +4960,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gitea",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:538658de667c5d098a274f2f63aa6ec891d88f670cdd5282cf27221ba747dda4",
       "runFlags": "",
@@ -5034,7 +5034,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:28:51Z",
+        "generatedAt": "2026-08-31T13:12:01Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -5044,7 +5044,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gitlab-ce",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:8a464787956c4b9c13f33b69f9db9b928aa354770f6d2b5dd1dbe5040dc3c076",
       "runFlags": "",
@@ -5118,7 +5118,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:29:14Z",
+        "generatedAt": "2026-08-31T13:12:23Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -5128,7 +5128,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gitlab-runner",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:11e3a44e7df21a32691a6975c7824c682787f742776d705ce89a74a780e3809f",
       "runFlags": "",
@@ -5202,7 +5202,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:06:14Z",
+        "generatedAt": "2026-08-31T12:49:45Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -5212,7 +5212,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gogs",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:2fed2f7ce8dcf7bfdde3e6c309d934254ae8eb1cf8053a3f394baa184461dbfa",
       "runFlags": "",
@@ -5286,7 +5286,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:49:25Z",
+        "generatedAt": "2026-08-31T12:33:14Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -5296,7 +5296,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-golang",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f",
       "runFlags": "",
@@ -5370,7 +5370,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:27:31Z",
+        "generatedAt": "2026-08-31T13:10:41Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -5380,7 +5380,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-graalvm-community",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:6e46c711c90bdbc24e23ccdb6e3fba837d660e68dd4ffeb87abbd3d08e115653",
       "runFlags": "",
@@ -5454,7 +5454,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:02:51Z",
+        "generatedAt": "2026-08-31T12:46:16Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -5464,7 +5464,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-gradle",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:94452354d9218922457d82e85a343391bab351e7f518f6f5ab1db996967d238b",
       "runFlags": "",
@@ -5538,7 +5538,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:04:00Z",
+        "generatedAt": "2026-08-31T12:47:28Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -5548,9 +5548,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-haskell",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:73880b95c37f994a816f0963822f1336bca544542e077ebdd63e2b432cd7429b",
+      "resolvedDigest": "sha256:ed21f5c111bcdaff2350b5d9efe66345868e8e0dfd9bd5e570ba43a2f6b755ff",
       "runFlags": "",
       "score": 48
     },
@@ -5622,7 +5622,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:21:23Z",
+        "generatedAt": "2026-08-31T13:04:36Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -5632,7 +5632,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-hasura",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:4d34476840601fa0c372bce9b1ed15aac6ffc3f0a0db677e81062764c08e1dc5",
       "runFlags": "",
@@ -5706,7 +5706,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:39:41Z",
+        "generatedAt": "2026-08-31T13:22:51Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -5716,7 +5716,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-heimdall",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:71597f4461e4f01350bc9cd257ccf23e0041e666ff31bcb7c1671b5eac20b279",
       "runFlags": "",
@@ -5790,7 +5790,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:38:57Z",
+        "generatedAt": "2026-08-31T13:22:07Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -5800,7 +5800,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-home-assistant",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:132ef461504be5c5ebd6e34e5d3fb3d7958bb6758a5136107eea9f84c299254a",
       "runFlags": "",
@@ -5874,7 +5874,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:39:08Z",
+        "generatedAt": "2026-08-31T13:22:17Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -5884,7 +5884,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-homepage",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:b6d732817572f9af99ec168b10641b8f7820f30cfa5a5cc5c68f1e291804bec8",
       "runFlags": "",
@@ -5958,7 +5958,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:49:30Z",
+        "generatedAt": "2026-08-31T12:33:19Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -5968,7 +5968,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-httpd",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:1b766f17b84026429b7cb243317b142921b24432336e798bc881c43f45ed9567",
       "runFlags": "",
@@ -6042,7 +6042,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:27:51Z",
+        "generatedAt": "2026-08-31T13:11:00Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -6052,9 +6052,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ibmjava",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:9039e1e4d748d17612fd24587f004dbed73dff3b92a975498c1da1e188e3fd0d",
+      "resolvedDigest": "sha256:569b245dbb4ca056e9589f9b9e93ec6f08f51a0678118caa946cc0a628b268cf",
       "runFlags": "",
       "score": 48
     },
@@ -6126,7 +6126,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:23:16Z",
+        "generatedAt": "2026-08-31T13:06:30Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -6136,7 +6136,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ignite",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:9f32983b771957be8956e1855cfd7a649bbb137a6b011702088480f3e37b3aa9",
       "runFlags": "",
@@ -6210,7 +6210,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:36:37Z",
+        "generatedAt": "2026-08-31T13:19:46Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -6220,7 +6220,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-immich-server",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:666ce77995230ff7327da5d285c861895576977237de08564e3c3ddf842877eb",
       "runFlags": "",
@@ -6294,7 +6294,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:50:41Z",
+        "generatedAt": "2026-08-31T12:34:27Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -6304,7 +6304,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-influxdb",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:991673dc2d237bd79b15d6627410d72de111387e7dac673dbb92cf3333ffcc8c",
       "runFlags": "",
@@ -6378,7 +6378,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:12:14Z",
+        "generatedAt": "2026-08-31T12:55:31Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -6388,7 +6388,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-jellyfin",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:17c3a8d9dddb97789b5f37112840ebf96566442c14d4754193a6c2eb154bc221",
       "runFlags": "",
@@ -6462,7 +6462,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:56:06Z",
+        "generatedAt": "2026-08-31T12:39:53Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -6472,9 +6472,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-joomla",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:6d5450cd56e77d494a230540ea0a2f70aed6c47e9fe76510a17c36aae14f57a1",
+      "resolvedDigest": "sha256:55a35a9e0025624a55752981f636512f0fc43632bfec860e6301b152043dcfb7",
       "runFlags": "",
       "score": 48
     },
@@ -6546,7 +6546,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:04:17Z",
+        "generatedAt": "2026-08-31T12:47:50Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -6556,9 +6556,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-julia",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:d0e3885d990a5571ea277afe994da52e2af5ee6307f71ee9d6bb946b4c813b0b",
+      "resolvedDigest": "sha256:d9310b50185edd06b7a7b88ef729798f88345556fa02a907876fece657904cf1",
       "runFlags": "",
       "score": 48
     },
@@ -6630,7 +6630,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:53:52Z",
+        "generatedAt": "2026-08-31T13:37:09Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -6640,7 +6640,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-jupyterhub",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:ed9ab780bb3171883cca1b1492301bf5cbb00d34766149a796b49b0bc5ac3530",
       "runFlags": "",
@@ -6714,7 +6714,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:41:35Z",
+        "generatedAt": "2026-08-31T13:24:43Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -6724,7 +6724,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-k3s",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:627fc392e5e7992fb8aa738fb04bc0c9ae9a068999cb4cfbea5858661cd79d04",
       "runFlags": "",
@@ -6798,7 +6798,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:09:19Z",
+        "generatedAt": "2026-08-31T12:52:36Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -6808,7 +6808,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-kapacitor",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:1d0ba328b7ec791f5d72ad31d0ecefd2a0ba7e3767eb0485155bca7707110060",
       "runFlags": "",
@@ -6882,7 +6882,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:59:59Z",
+        "generatedAt": "2026-08-31T12:43:36Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -6892,7 +6892,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-keydb",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:6537505c42355ca1f571276bddf83f5b750f760f07b2a185a676481791e388ac",
       "runFlags": "",
@@ -6966,7 +6966,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:13:50Z",
+        "generatedAt": "2026-08-31T12:57:08Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -6976,7 +6976,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-localstack",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:3ebc37595918b8accb852f8048fef2aff047d465167edd655528065b07bc364a",
       "runFlags": "",
@@ -7050,7 +7050,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:26:53Z",
+        "generatedAt": "2026-08-31T13:10:04Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -7060,9 +7060,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-lua",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:150b4e86d2b855689a1178240065a12574f6304a8daf3c5167baa6faf6d119bd",
+      "resolvedDigest": "sha256:42e801f11377fce163a243e721d867b46f08f54efd4ff736ba1d969e4636a8ca",
       "runFlags": "",
       "score": 48
     },
@@ -7134,7 +7134,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:15:29Z",
+        "generatedAt": "2026-08-31T12:58:41Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -7144,7 +7144,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mailpit",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:c96991d9bef73594c246d89ca81411d4e916f03e76a7d2d72fa2ab5dd3c9ce24",
       "runFlags": "",
@@ -7218,7 +7218,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:21:37Z",
+        "generatedAt": "2026-08-31T13:04:50Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -7228,7 +7228,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-manticore",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:767c48291e48fdff47f08772e1cc0340f389fb008663a60142825b314710121f",
       "runFlags": "",
@@ -7302,7 +7302,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:50:20Z",
+        "generatedAt": "2026-08-31T12:34:09Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -7312,9 +7312,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mariadb",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:24e76fcec8c003a0362d0dd53f4806e7e79458d7fdeaf47437760e19496f5a9c",
+      "resolvedDigest": "sha256:2439dcd7d14010ecd1ff7a4e1c5abe8e208c34fe35290744deeeaac3569043c3",
       "runFlags": "",
       "score": 48
     },
@@ -7386,7 +7386,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:10:31Z",
+        "generatedAt": "2026-08-31T12:53:47Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -7396,9 +7396,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-matomo",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:b4d6020b383d67170c3711035de534aa8ae3921aea0149ba3f9d54aca7c707c5",
+      "resolvedDigest": "sha256:8e6bdd396496a98e4011cfbdc4be996d9259cbd1f09e0651b6058bb9a5984e13",
       "runFlags": "",
       "score": 48
     },
@@ -7470,7 +7470,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:02:38Z",
+        "generatedAt": "2026-08-31T12:46:05Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -7480,9 +7480,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-maven",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:613124833fa6718ded9d655a2ebfab6425818c178f899116b93560b6f1c9ffe9",
+      "resolvedDigest": "sha256:8f6ac126f7810bb5549c4cd122d2bf0e9cda5bdeb0838aa928f09e779fd8bef8",
       "runFlags": "",
       "score": 48
     },
@@ -7554,7 +7554,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:10:15Z",
+        "generatedAt": "2026-08-31T12:53:30Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -7564,9 +7564,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mediawiki",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:77a2dda59645bd41c9648eb131416363416208db5936957ae45db3b64d3690f8",
+      "resolvedDigest": "sha256:db1c14d264c96835434761f015e8d5b097fcbe5f7e5087875102dcd3f56c2c1d",
       "runFlags": "",
       "score": 48
     },
@@ -7638,7 +7638,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:00:26Z",
+        "generatedAt": "2026-08-31T12:44:00Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -7648,7 +7648,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-meilisearch",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:6f8f1fc29d1ff67b4d8d503bb4e0a69b55c8d42600decafde951344218193a27",
       "runFlags": "",
@@ -7722,7 +7722,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:12:30Z",
+        "generatedAt": "2026-08-31T12:55:49Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -7732,7 +7732,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-metabase",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:ea0229a63116ea625ef09085a84ee0d2618311fd34a6e72cc527ae2eb003a5f9",
       "runFlags": "",
@@ -7806,7 +7806,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:21:15Z",
+        "generatedAt": "2026-08-31T13:04:27Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -7816,7 +7816,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-milvus",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:d86c9d19d4559e6d5481895f3c307193290ac07178499ed108082826f4336387",
       "runFlags": "",
@@ -7890,7 +7890,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:13:23Z",
+        "generatedAt": "2026-08-31T12:56:40Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -7900,7 +7900,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-minio",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
       "runFlags": "",
@@ -7974,7 +7974,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:51:55Z",
+        "generatedAt": "2026-08-31T13:35:12Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -7984,7 +7984,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mlflow",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:e68e3089108faf453681319dc7ae6e746b6f25c28243167dcead391c051871ae",
       "runFlags": "",
@@ -8058,7 +8058,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:49:06Z",
+        "generatedAt": "2026-08-31T12:32:54Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -8068,7 +8068,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mongo",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:d5b3ca8c3f3cdce78d44870dc0871b76d5235e9b2ad4ea6bea5d1fbff8027703",
       "runFlags": "",
@@ -8142,7 +8142,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:15:54Z",
+        "generatedAt": "2026-08-31T12:59:06Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -8152,7 +8152,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mongo-express",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:1b23d7976f0210dbec74045c209e52fbb26d29b2e873d6c6fa3d3f0ae32c2a64",
       "runFlags": "",
@@ -8226,7 +8226,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:25:45Z",
+        "generatedAt": "2026-08-31T13:08:57Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -8236,7 +8236,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mono",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:34d816779b1248b5cfd095770b64ecbaf1798e2aca693a91c11a018dce9c7ad5",
       "runFlags": "",
@@ -8310,7 +8310,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:56:19Z",
+        "generatedAt": "2026-08-31T12:40:04Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -8320,7 +8320,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mosquitto",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:6f8d8a947c506f8a2290ec65cd4bd2bc7cb4d43fb5f6271f861cb013e2ef9797",
       "runFlags": "",
@@ -8394,7 +8394,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:48:51Z",
+        "generatedAt": "2026-08-31T12:32:40Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -8404,7 +8404,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-mysql",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:d36d39a64cd12a5c1cc9e6aa2bfb5f8d4c81a2f6586e0a04a9ae13939db02209",
       "runFlags": "",
@@ -8478,7 +8478,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:50:45Z",
+        "generatedAt": "2026-08-31T12:34:31Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -8488,7 +8488,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nats",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:b83efabe3e7def1e0a4a31ec6e078999bb17c80363f881df35edc70fcb6bb927",
       "runFlags": "",
@@ -8562,7 +8562,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:37:21Z",
+        "generatedAt": "2026-08-31T13:20:29Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -8572,7 +8572,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-navidrome",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:4915ec6ad11ff76167491654184dfb7bbf341042fea498c20b2534af3dde587f",
       "runFlags": "",
@@ -8646,7 +8646,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:57:02Z",
+        "generatedAt": "2026-08-31T12:40:44Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -8656,9 +8656,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-neo4j",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:89d577f2e49606de76441eca8cf7a0fe88e594cbaac4d2a3d86c6e59676e2b1e",
+      "resolvedDigest": "sha256:037cf5756f0135cbfd66b739b6df7c7c4bb100f9ce11602f6f9538e17e02c74d",
       "runFlags": "",
       "score": 48
     },
@@ -8730,7 +8730,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:08:01Z",
+        "generatedAt": "2026-08-31T12:51:23Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -8740,7 +8740,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-netdata",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:c45c71eb23ff3f1012bcda7832bf08c0b09954363557e84511bcfaf6cafa3aa8",
       "runFlags": "",
@@ -8814,7 +8814,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:09:47Z",
+        "generatedAt": "2026-08-31T12:53:04Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -8824,7 +8824,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nextcloud",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:fb966733647ea03f0446b0c22eac9733c8eb616d37b960caca9d4c3010e14a08",
       "runFlags": "",
@@ -8898,7 +8898,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:48:19Z",
+        "generatedAt": "2026-08-31T12:32:09Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -8908,7 +8908,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nginx",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
       "runFlags": "",
@@ -8982,7 +8982,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:25:03Z",
+        "generatedAt": "2026-08-31T13:08:15Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -8992,7 +8992,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nginx-proxy",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:5dd14e68ea81f33692b810d096ac8ebe7aa789d75ce91e05f09d56d044ed8ee3",
       "runFlags": "",
@@ -9066,7 +9066,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:24:52Z",
+        "generatedAt": "2026-08-31T13:08:05Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -9076,7 +9076,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nginx-proxy-manager",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:b7168e5f6828cbbd3622fa19965007e4611cf42b5f3c603008377ffd45a4fe00",
       "runFlags": "",
@@ -9150,7 +9150,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:26:45Z",
+        "generatedAt": "2026-08-31T13:09:56Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -9160,7 +9160,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nim",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:4174f89af80743ab4546986be90d1d32c6839dbec5887e1d9dbf13ec7e0ca714",
       "runFlags": "",
@@ -9234,7 +9234,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:33:59Z",
+        "generatedAt": "2026-08-31T13:17:03Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -9244,7 +9244,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nocodb",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:eef22659895da3fe85e85338c1b3f7fe6a44a1604f40fac8935597ac5b3116e4",
       "runFlags": "",
@@ -9318,7 +9318,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:49:11Z",
+        "generatedAt": "2026-08-31T12:33:00Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -9328,7 +9328,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-node",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2",
       "runFlags": "",
@@ -9402,7 +9402,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:14:13Z",
+        "generatedAt": "2026-08-31T12:57:29Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -9412,7 +9412,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nomad",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:dc909e89cbace7e45aae811b2fbb1a5810d1bb0620c79513e964f18255aed25b",
       "runFlags": "",
@@ -9486,7 +9486,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:23:32Z",
+        "generatedAt": "2026-08-31T13:06:44Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -9496,7 +9496,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-nsq",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:1a369c146af71bc95c25d54b375a2b98452478c1eaf4e85f8fcb01da20f2c78a",
       "runFlags": "",
@@ -9570,7 +9570,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:35:58Z",
+        "generatedAt": "2026-08-31T13:19:07Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -9580,7 +9580,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ntfy",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:4a7d0f0adc6d5d9fc36e64ab55ef676e76e124a2bdd50ce115b6d9c1c7430294",
       "runFlags": "",
@@ -9654,7 +9654,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:53:39Z",
+        "generatedAt": "2026-08-31T13:36:57Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -9664,7 +9664,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ollama",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:18bfb1d605604fd53dcad20d0556df4c781e560ebebcd923454d627c994a0e37",
       "runFlags": "",
@@ -9738,7 +9738,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:51:56Z",
+        "generatedAt": "2026-08-31T12:35:33Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -9748,7 +9748,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-openresty",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:99b32fe3e411c98033114dd471440fb702992d0953ce8b6e6b5c016285ac2ab9",
       "runFlags": "",
@@ -9822,7 +9822,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:17:09Z",
+        "generatedAt": "2026-08-31T13:00:18Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -9832,7 +9832,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-opensuse-leap",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:79be7751205ea84559990fb76b1bec71e38d6fad41c70a4f6c921b803b58f421",
       "runFlags": "",
@@ -9906,7 +9906,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:16:38Z",
+        "generatedAt": "2026-08-31T12:59:53Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -9916,7 +9916,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-oraclelinux",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:3adbd4f3b22d816c90e78a9c9c2e0ddf65fc1bbadd816dc202054471a85f38b2",
       "runFlags": "",
@@ -9990,7 +9990,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:20:13Z",
+        "generatedAt": "2026-08-31T13:03:23Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -10000,7 +10000,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-orientdb",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:c7978496bc63a08b36f65c7c763bfbd1938134dac009fa03fec35ac144e9b431",
       "runFlags": "",
@@ -10074,7 +10074,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:42:30Z",
+        "generatedAt": "2026-08-31T13:25:39Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -10084,7 +10084,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-packer",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:12c441b8a3994e7df9f0e2692d9298f14c387e70bcc06139420977dbf80a137b",
       "runFlags": "",
@@ -10158,7 +10158,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:37:06Z",
+        "generatedAt": "2026-08-31T13:20:14Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -10168,7 +10168,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-paperless-ngx",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:2a6d9f6461ad7e8335f5b2123a173b9e6002fda209af8a66483b0c00629569ab",
       "runFlags": "",
@@ -10242,7 +10242,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:53:46Z",
+        "generatedAt": "2026-08-31T12:37:37Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -10252,9 +10252,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-perl",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:545d0b2376b7c4cf3820876cdad18c0462f902bed4e59ce53e5a4cb3202cd403",
+      "resolvedDigest": "sha256:332934f66f32ad968f64c33156e11e50d39c6883b5cd4b9ad126f4f593c09f5f",
       "runFlags": "",
       "score": 48
     },
@@ -10326,7 +10326,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:59:13Z",
+        "generatedAt": "2026-08-31T12:42:52Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -10336,7 +10336,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-pgvector",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f",
       "runFlags": "",
@@ -10410,7 +10410,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:17:14Z",
+        "generatedAt": "2026-08-31T13:00:23Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -10420,7 +10420,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-photon",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:ab4b68e15c8ff6b9c79ba525f696260f772c711761d576dd53bf43c351c9a504",
       "runFlags": "",
@@ -10494,7 +10494,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:53:17Z",
+        "generatedAt": "2026-08-31T12:37:08Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -10504,9 +10504,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-php",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:5f8050825b2f3de4efb0d81149c86643a9ee9c0a74ed4595ca2ad69ebfeb35fb",
+      "resolvedDigest": "sha256:51da594c844a97f31b1cd6b1ac6660982f40788f4fe13e75f7fd39e2f9b58651",
       "runFlags": "",
       "score": 48
     },
@@ -10578,7 +10578,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:54:53Z",
+        "generatedAt": "2026-08-31T12:38:41Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -10588,9 +10588,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-phpmyadmin",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:6db6e0bc9959eb00395f5d927cc786cb63530a265663950ecb9faf5955419c37",
+      "resolvedDigest": "sha256:3a8a8d6b5289091f959ba0293f21163b3a2fc5741991a53de70b3497fe8d31db",
       "runFlags": "",
       "score": 48
     },
@@ -10662,7 +10662,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:11:59Z",
+        "generatedAt": "2026-08-31T12:55:15Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -10672,7 +10672,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-pihole",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:0def896a596e8d45780b6359dbf82fc8c75ef05b97e095452e67a0a4ccc95377",
       "runFlags": "",
@@ -10746,7 +10746,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:59:02Z",
+        "generatedAt": "2026-08-31T12:42:42Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -10756,9 +10756,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-postgis",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:624f5195b91d424dbebf018890148cc0e5a3e80db5467da8b53cc2ed2ce49216",
+      "resolvedDigest": "sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6",
       "runFlags": "",
       "score": 48
     },
@@ -10830,7 +10830,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:48:29Z",
+        "generatedAt": "2026-08-31T12:32:18Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -10840,7 +10840,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-postgres",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:67f624a4ad70edba8d65c82341124fab7054b277b4f7dea4b04be6f939ce2314",
       "runFlags": "",
@@ -10914,7 +10914,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:06:57Z",
+        "generatedAt": "2026-08-31T12:50:27Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -10924,7 +10924,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-promtail",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:cb4990801ec58975c5e231057c2bcf204c85fac428eec65ad66e0016c64b9608",
       "runFlags": "",
@@ -10998,7 +10998,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:44:32Z",
+        "generatedAt": "2026-08-31T13:27:42Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -11008,7 +11008,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-pulumi",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:093f4e36a0b6800e3c08c1ba704c88a0799372095d4afdda83e92ea8db24fe3e",
       "runFlags": "",
@@ -11082,7 +11082,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:04:52Z",
+        "generatedAt": "2026-08-31T12:48:23Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -11092,7 +11092,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-pypy",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:5d18aa0232059c991ff8d52f1b528a6ff8f55c86154ba248a270a6eb90975f3a",
       "runFlags": "",
@@ -11166,7 +11166,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:49:15Z",
+        "generatedAt": "2026-08-31T12:33:03Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -11176,7 +11176,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-python",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:399babc8b49529dabfd9c922f2b5eea81d611e4512e3ed250d75bd2e7683f4b0",
       "runFlags": "",
@@ -11250,7 +11250,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:00:19Z",
+        "generatedAt": "2026-08-31T12:43:53Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -11260,7 +11260,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-qdrant",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:241edb9d7778327516ef218f8c74e1bd61b5ea42cd4f193cb8d0896199705636",
       "runFlags": "",
@@ -11334,7 +11334,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:59:38Z",
+        "generatedAt": "2026-08-31T12:43:14Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -11344,7 +11344,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-questdb",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:17148f1b0acd4903ee1ad656aa9de9b75d8d179bde2731b5df1d499fa17d978b",
       "runFlags": "",
@@ -11418,7 +11418,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:49:37Z",
+        "generatedAt": "2026-08-31T12:33:26Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -11428,7 +11428,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rabbitmq",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:835cbc6fabceedef7a3b0ce3195a17adccb753a3ba645bdd61c5557b6e4bf580",
       "runFlags": "",
@@ -11502,7 +11502,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:42:15Z",
+        "generatedAt": "2026-08-31T13:25:25Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -11512,7 +11512,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rancher",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:a05127d7084ba04a383bd8896b3fcbe2dcf287b1ae26f785c81c99dceff06d9e",
       "runFlags": "",
@@ -11586,7 +11586,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:40:51Z",
+        "generatedAt": "2026-08-31T13:23:59Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -11596,7 +11596,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rclone",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:74c51b8817e5431bd6d7ed27cb2a50d8ee78d77f6807b72a41ef6f898845942b",
       "runFlags": "",
@@ -11670,7 +11670,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:48:33Z",
+        "generatedAt": "2026-08-31T12:32:22Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -11680,7 +11680,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-redis",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99",
       "runFlags": "",
@@ -11754,7 +11754,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:59:52Z",
+        "generatedAt": "2026-08-31T12:43:29Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -11764,7 +11764,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-redis-stack",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:7d8e657d60d525534d6abe96e7645ab30ef1b4f1ffedc6eeb2d4d4283b3a49b9",
       "runFlags": "",
@@ -11838,7 +11838,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:12:47Z",
+        "generatedAt": "2026-08-31T12:56:04Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -11848,9 +11848,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-redmine",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:7d06d8301ddada499ef3360f4288a806d0771ff88b47405e91be73d9d6e66093",
+      "resolvedDigest": "sha256:c69d38e490ab67e70b6e105508564d9c72e352809857862faf563c79e357c525",
       "runFlags": "",
       "score": 48
     },
@@ -11922,7 +11922,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:54:31Z",
+        "generatedAt": "2026-08-31T12:38:19Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -11932,7 +11932,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-registry",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373",
       "runFlags": "",
@@ -12006,7 +12006,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:40:35Z",
+        "generatedAt": "2026-08-31T13:23:43Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -12016,7 +12016,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rest-server",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:8668c235a932745585fef5cabbab9eccb501035f90138085a6e74963dcd1a71f",
       "runFlags": "",
@@ -12090,7 +12090,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:57:43Z",
+        "generatedAt": "2026-08-31T12:41:22Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -12100,9 +12100,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rethinkdb",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:de120f60b86a1a168cc958fd5486ef2e0f75e249ebb2a86cbd69beb494de4ec6",
+      "resolvedDigest": "sha256:096d073240d8b13414a0780ecb8d3a1a2944c2197d78d74767232e7171f514a7",
       "runFlags": "",
       "score": 48
     },
@@ -12174,7 +12174,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:54:19Z",
+        "generatedAt": "2026-08-31T12:38:08Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -12184,7 +12184,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rockylinux",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:d7be1c094cc5845ee815d4632fe377514ee6ebcf8efaed6892889657e5ddaaa6",
       "runFlags": "",
@@ -12258,7 +12258,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:52:27Z",
+        "generatedAt": "2026-08-31T13:35:44Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -12268,7 +12268,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rstudio",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:6bfc87fb66d0072e28d88d684a1f7b3e42a1c20360ee5eca5b43168a4eba3945",
       "runFlags": "",
@@ -12342,7 +12342,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:53:06Z",
+        "generatedAt": "2026-08-31T12:36:58Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -12352,7 +12352,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ruby",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:c5a5064d190055633011c03aa800170cc36945ff3afb5f6c915329f92d6f1e00",
       "runFlags": "",
@@ -12426,7 +12426,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:53:38Z",
+        "generatedAt": "2026-08-31T12:37:30Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -12436,7 +12436,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-rust",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:0ac946ed7597a9f053a1be2ce38c09aa88b3d7079a91ea491493615294b1f699",
       "runFlags": "",
@@ -12510,7 +12510,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:27:16Z",
+        "generatedAt": "2026-08-31T13:10:24Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -12520,7 +12520,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-scala-sbt",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:23d41e6f000835e317e33ab2f44e4aedc0bfb23e96bd1046fbafd21406755496",
       "runFlags": "",
@@ -12594,7 +12594,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:59:30Z",
+        "generatedAt": "2026-08-31T12:43:08Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -12604,7 +12604,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-scylla",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:a9d904089abe9a4f8b5b893ebb5b5bf8b5a1bd0dc6658921cf05f89d3712289c",
       "runFlags": "",
@@ -12678,7 +12678,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:40:23Z",
+        "generatedAt": "2026-08-31T13:23:33Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -12688,7 +12688,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-seaweedfs",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:1055999e08eed1789b0ae45d235126e4495e23d3fb9d6396293fd42539b1ae6a",
       "runFlags": "",
@@ -12762,7 +12762,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:13:15Z",
+        "generatedAt": "2026-08-31T12:56:32Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -12772,7 +12772,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-snipe-it",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:076e98033e0beb4dfad6c3d8eef0f5b5f73c1be86ccb0f64e5752c1ebec4fd2a",
       "runFlags": "",
@@ -12846,7 +12846,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:31:48Z",
+        "generatedAt": "2026-08-31T13:14:50Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -12856,7 +12856,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-statsd",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:d8c65ebadf4ec6857314a17673da1d0ab2027865d620512ee17d0910e0d53d50",
       "runFlags": "",
@@ -12930,7 +12930,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:50:38Z",
+        "generatedAt": "2026-08-31T13:33:56Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -12940,7 +12940,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-storm",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:aaef90ab49ac3615e8c79c87d59ec3c77413a9d331f211d65487fcd3c7471cb7",
       "runFlags": "",
@@ -13014,7 +13014,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:25:23Z",
+        "generatedAt": "2026-08-31T13:08:36Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -13024,7 +13024,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-swag",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:29957b056c5670801b6131d77ec4188dfb6d06a0a8c49cba0e944c88d98abe74",
       "runFlags": "",
@@ -13098,7 +13098,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:15:36Z",
+        "generatedAt": "2026-08-31T12:58:48Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -13108,7 +13108,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-swagger-ui",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:3d93169968848d371a6a56ca1ab18b47a8906ba461b8eba0688866354f5431d5",
       "runFlags": "",
@@ -13182,7 +13182,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:26:15Z",
+        "generatedAt": "2026-08-31T13:09:27Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -13192,7 +13192,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-swift",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:0bdd33b44c0493bdf6a674700ce8960cff301977125cff2ced94770d13d7a921",
       "runFlags": "",
@@ -13266,7 +13266,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:35:52Z",
+        "generatedAt": "2026-08-31T13:19:02Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -13276,7 +13276,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-synapse",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:39ac223adee67024d9d5aecd679fdaeacaa1e348a6c4c999cb7270868486cbb5",
       "runFlags": "",
@@ -13350,7 +13350,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:40:55Z",
+        "generatedAt": "2026-08-31T13:24:03Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -13360,7 +13360,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-syncthing",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:1f55fa811ad3903c4b421129966e0eea4b21d53d2471158288dc4a353e273a0a",
       "runFlags": "",
@@ -13434,7 +13434,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:41:22Z",
+        "generatedAt": "2026-08-31T13:24:29Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -13444,7 +13444,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tailscale",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:9d4c17a8451e2d1282c22aee1f08d28dc106979c39c7b5a35ec6313d4682a43e",
       "runFlags": "",
@@ -13518,7 +13518,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:20:31Z",
+        "generatedAt": "2026-08-31T13:03:41Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -13528,7 +13528,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tarantool",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:f5d064db32692de19adfb7fd4795457b90a480377e1ea107d1516664d66e16c3",
       "runFlags": "",
@@ -13602,7 +13602,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:52:40Z",
+        "generatedAt": "2026-08-31T12:36:16Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -13612,7 +13612,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-telegraf",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:3ea0664bed1cacec5e6b463882dc43da9b33c9742d436ace35f157843aca9e40",
       "runFlags": "",
@@ -13686,7 +13686,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:53:22Z",
+        "generatedAt": "2026-08-31T12:37:14Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -13696,7 +13696,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-temurin",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:974b08960c5d96694c780e65b2d5705268ab1e1ca1a0dd0caf4ba6c3fe34d699",
       "runFlags": "",
@@ -13770,7 +13770,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:52:56Z",
+        "generatedAt": "2026-08-31T13:36:14Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -13780,7 +13780,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tensorflow",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:f3be5db24f080b3b228a23eb24f586058b3bec445d81500f95167c70e5473d4e",
       "runFlags": "",
@@ -13854,7 +13854,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:14:03Z",
+        "generatedAt": "2026-08-31T12:57:21Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -13864,7 +13864,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-terraform",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:679ac5e095bf550bc726742cd12efa6050f0913080df479fdabfeb202953af28",
       "runFlags": "",
@@ -13938,7 +13938,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:20:02Z",
+        "generatedAt": "2026-08-31T13:03:12Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -13948,7 +13948,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tidb",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:490861bd4a2fa643dbe76b77ffecafcad66e6a42774e580b82f4ec2429a80e57",
       "runFlags": "",
@@ -14022,7 +14022,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:19:47Z",
+        "generatedAt": "2026-08-31T13:02:57Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -14032,7 +14032,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-timescaledb",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:3324f81ca7f84cdc2dc4497863b3798ababa8ce130c5b59d73f0b40e3a34148e",
       "runFlags": "",
@@ -14106,7 +14106,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:51:31Z",
+        "generatedAt": "2026-08-31T12:35:09Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -14116,9 +14116,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tomcat",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:aaeef5a2dcea727ba0b5214179c4df769e7583d1ccd5af536661a6bd9d96583d",
+      "resolvedDigest": "sha256:d936144d55fab00e7d2b73a1fff338600e2fc6597af9472617ad12f31b6bcafe",
       "runFlags": "",
       "score": 48
     },
@@ -14190,7 +14190,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:24:08Z",
+        "generatedAt": "2026-08-31T13:07:19Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -14200,7 +14200,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-tomee",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:7dc4d8f661bdee3d782f58ba328f5bd51bde13f9d8d2fa24acd5aa198289e975",
       "runFlags": "",
@@ -14274,7 +14274,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:51:00Z",
+        "generatedAt": "2026-08-31T12:34:44Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -14284,7 +14284,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-traefik",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:e561a37f8710d9cf41c78bdf421d822b2c0b48267ec0552e644565fb55466ea9",
       "runFlags": "",
@@ -14358,7 +14358,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:00:37Z",
+        "generatedAt": "2026-08-31T12:44:11Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -14368,7 +14368,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-typesense",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:5c12af89130b8ee0be11541321ba8a3a7c7a538d7c6cd95e0409dc2d75ca6455",
       "runFlags": "",
@@ -14442,7 +14442,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:53:55Z",
+        "generatedAt": "2026-08-31T12:37:43Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -14452,7 +14452,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-ubuntu",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517",
       "runFlags": "",
@@ -14526,7 +14526,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:02:14Z",
+        "generatedAt": "2026-08-31T12:45:43Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -14536,7 +14536,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-unit",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:65727e45ecc51f85b81aacf6621b7362f639419fc1d73541244a6745680a94c1",
       "runFlags": "",
@@ -14610,7 +14610,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:08:19Z",
+        "generatedAt": "2026-08-31T12:51:40Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -14620,7 +14620,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-uptime-kuma",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:3d632903e6af34139a37f18055c4f1bfd9b7205ae1138f1e5e8940ddc1d176f9",
       "runFlags": "",
@@ -14694,7 +14694,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:00:12Z",
+        "generatedAt": "2026-08-31T12:43:47Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -14704,9 +14704,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-valkey",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:f0ba225266310efba5fb33383e21c64fbd07907304224786c780606e7ebd7327",
+      "resolvedDigest": "sha256:d5e642b89ee060a784f322cad2daad61c35d55530c32b74ce38b73ae01cd9fb3",
       "runFlags": "",
       "score": 48
     },
@@ -14778,7 +14778,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:53:00Z",
+        "generatedAt": "2026-08-31T12:36:52Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -14788,7 +14788,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-vault",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:750bb37c1638fa194ab37053a81618c61bb0491ddec6fccac87c07a8e6cd8166",
       "runFlags": "",
@@ -14862,7 +14862,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:56:27Z",
+        "generatedAt": "2026-08-31T12:40:12Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -14872,7 +14872,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-vaultwarden",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:7a0aa23c0947be3582898deb5170ea4359493ed9a76af2badf60a7eb45ac36af",
       "runFlags": "",
@@ -14946,7 +14946,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:08:28Z",
+        "generatedAt": "2026-08-31T12:51:48Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -14956,7 +14956,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-vector",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:7bcb75f71f93d312d928182e6a07f6df14a18d030785bb3197ac01128bd287a3",
       "runFlags": "",
@@ -15030,7 +15030,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:07:40Z",
+        "generatedAt": "2026-08-31T12:51:08Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -15040,7 +15040,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-victoriametrics",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:b6ea7d78fb46986533439d6131b0ef3f0ddaec39270bb58c6cc2b74b3d9195d0",
       "runFlags": "",
@@ -15114,7 +15114,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:38:04Z",
+        "generatedAt": "2026-08-31T13:21:13Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -15124,7 +15124,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-wallabag",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:8854765d299d8e93f962d4be02ceb5703ed2ee24ec6c884f870bb7a18de41378",
       "runFlags": "",
@@ -15198,7 +15198,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:00:44Z",
+        "generatedAt": "2026-08-31T12:44:18Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -15208,7 +15208,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-weaviate",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:f78e60524c759dffa41ccfce54ebc58072078f0c9d6f6138fbb139f340837bf0",
       "runFlags": "",
@@ -15282,7 +15282,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:41:08Z",
+        "generatedAt": "2026-08-31T13:24:15Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -15292,7 +15292,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-wireguard",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:ee2db24277b43ec4e7529e93967dc3cea00a02bf81b749c680b2b102a6e4aa5b",
       "runFlags": "",
@@ -15366,7 +15366,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:49:54Z",
+        "generatedAt": "2026-08-31T12:33:44Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -15376,7 +15376,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-wordpress",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:5d2c212561c4b5442ebc4d98933a9cbadcf3dee8888ed3fd9ed44667c27cc905",
       "runFlags": "",
@@ -15450,7 +15450,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:19:11Z",
+        "generatedAt": "2026-08-31T13:02:19Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -15460,7 +15460,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-yugabyte",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:1d743191e0ab021b4d955b882bce18df4758b621d44e72bd3d0d35e2d4327564",
       "runFlags": "",
@@ -15534,7 +15534,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:50:53Z",
+        "generatedAt": "2026-08-31T12:34:38Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -15544,7 +15544,7 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-zookeeper",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:f258365d4882440a55dbedf8ee379152ed0be8006cc3641b81e6c1c1745c976b",
       "runFlags": "",
@@ -15618,7 +15618,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:27:41Z",
+        "generatedAt": "2026-08-31T13:10:52Z",
         "grade": "D",
         "max": 100,
         "mode": "container",
@@ -15628,9 +15628,9 @@
         "score": 48,
         "source": "docker",
         "target": "ic-survey-default-zulu-openjdk",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:8a29ab5b34910b86ceefab0d4f5201dcd9e46b46c97e6d51100245520911f2b3",
+      "resolvedDigest": "sha256:02d0098a502f664835eca406499de4d49da36d03a7b7e657b247716975c9cea9",
       "runFlags": "",
       "score": 48
     },
@@ -15701,7 +15701,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:30:56Z",
+        "generatedAt": "2026-08-31T13:14:01Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -15711,7 +15711,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-actions-runner",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:27f3f74ec6f88026491d761270525ccf630a53ce9cd5db1d5f44cd2470abe380",
       "runFlags": "",
@@ -15784,7 +15784,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:23:42Z",
+        "generatedAt": "2026-08-31T13:06:54Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -15794,7 +15794,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-activemq-artemis",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:fc17d2b82112d87c0a17a38874f3464eb162249f1e289ca25386b7b900047bd0",
       "runFlags": "",
@@ -15867,7 +15867,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:54:40Z",
+        "generatedAt": "2026-08-31T12:38:28Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -15877,7 +15877,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-adminer",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:34d37131366c5aa84e1693dbed48593ed6f95fb450b576c1a7a59d3a9c9e8802",
       "runFlags": "",
@@ -15950,7 +15950,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:45:43Z",
+        "generatedAt": "2026-08-31T13:28:53Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -15960,7 +15960,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-airflow",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:04e7fba174eb5c77057f59ef18c1215179181cd5dd7189afbc39b1146f54540f",
       "runFlags": "",
@@ -16033,7 +16033,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:52:26Z",
+        "generatedAt": "2026-08-31T12:36:02Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -16043,7 +16043,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-alertmanager",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:d5155cfac40a6d9250ffc97c19db2c5e190c7bc57c6b67125c94903358f8c7d8",
       "runFlags": "",
@@ -16116,7 +16116,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:30:41Z",
+        "generatedAt": "2026-08-31T13:13:45Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -16126,7 +16126,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-argocd",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:1322e91b758b9d44db3af44f457c298831c57a8e1d635118910d35e71f822646",
       "runFlags": "",
@@ -16199,7 +16199,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:51:36Z",
+        "generatedAt": "2026-08-31T13:34:53Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -16209,9 +16209,9 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-base-notebook",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:ee6cda22e6cf23ea599962512107b396128c46ab78354ad4150dbb421756161e",
+      "resolvedDigest": "sha256:963ec09d64bfe909efe60423c390356d12bb92b6966b3da844cbede7df9454f4",
       "runFlags": "",
       "score": 63
     },
@@ -16282,7 +16282,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:02:00Z",
+        "generatedAt": "2026-08-31T12:45:29Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -16292,7 +16292,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-cp-kafka",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:adc392d28a1e99e8c9a1ec7f087e9e91041837b35b8b7cc8b8a691b82dd581b0",
       "runFlags": "",
@@ -16365,7 +16365,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:44:53Z",
+        "generatedAt": "2026-08-31T13:28:02Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -16375,7 +16375,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-dex",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:bc7cfce7c17f52864e2bb2a4dc1d2f86a41e3019f6d42e81d92a301fad0c8a1d",
       "runFlags": "",
@@ -16448,7 +16448,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:33:06Z",
+        "generatedAt": "2026-08-31T13:16:09Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -16458,7 +16458,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-directus",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:6bc79ef2f0daa224d84b4da22ea3831e60697d399589d54067cb3681c2f94514",
       "runFlags": "",
@@ -16531,7 +16531,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:46:38Z",
+        "generatedAt": "2026-08-31T13:29:45Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -16541,7 +16541,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-druid",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:738d6e8f5d543483c56fca98d7a4c465e2a5f123953c26d2d684f19ee2af14fc",
       "runFlags": "",
@@ -16614,7 +16614,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:17:38Z",
+        "generatedAt": "2026-08-31T13:00:44Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -16624,7 +16624,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-elasticsearch",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:e5ee5f8dacbf18fa3ab59a098cc7d4d69f73e61637eb45f1c029e74b1cb200a1",
       "runFlags": "",
@@ -16697,7 +16697,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:01:29Z",
+        "generatedAt": "2026-08-31T12:45:00Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -16707,9 +16707,9 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-emqx",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:78b571d7d0c98971e19760af23d24f187f85b20a8fa1f09eadcd4e88454c7d26",
+      "resolvedDigest": "sha256:11efadd3e7ae665d39a7a7838ac0c783bb7bb80abb3c0efcc8fd8f80c45b0209",
       "runFlags": "",
       "score": 63
     },
@@ -16780,7 +16780,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:08:32Z",
+        "generatedAt": "2026-08-31T12:51:53Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -16790,7 +16790,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-fluentd",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:c795c1bf9918c77a5415e2fda5825f9341f2dd0645d9adfb91f8cae3a3e6b240",
       "runFlags": "",
@@ -16863,7 +16863,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:52:14Z",
+        "generatedAt": "2026-08-31T12:35:50Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -16873,7 +16873,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-grafana",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:d8ea37798ccc41061a62ab080f2676dda6bf7815558499f901bdb0f533a456fb",
       "runFlags": "",
@@ -16946,7 +16946,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:08:58Z",
+        "generatedAt": "2026-08-31T12:52:21Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -16956,7 +16956,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-graylog",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:c43d68d0af1d4decc7fa63effe0a065d04f1eca4b7b13d160ac8c501452cf3fe",
       "runFlags": "",
@@ -17029,7 +17029,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:04:44Z",
+        "generatedAt": "2026-08-31T12:48:17Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -17039,9 +17039,9 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-groovy",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:d1c48785d4e4bc7debf9f345eb7db5140274bfa6e0313455c9dd1b79df7f738e",
+      "resolvedDigest": "sha256:991f64255cc77ddd63516565c2a07c4019435489a3e7653936196a612c76939a",
       "runFlags": "",
       "score": 63
     },
@@ -17112,7 +17112,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:51:06Z",
+        "generatedAt": "2026-08-31T12:34:49Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -17122,7 +17122,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-haproxy",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:475863a372c92c3dab3d59eafbbf8019dceebcd0c456594551b160ecdba4bdb9",
       "runFlags": "",
@@ -17195,7 +17195,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:42:24Z",
+        "generatedAt": "2026-08-31T13:25:34Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -17205,7 +17205,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-harbor-core",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:0d5499810373c66674bf7f83310bff2224fbae73bba731a807ecadb3b9aa0c2b",
       "runFlags": "",
@@ -17278,7 +17278,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:23:03Z",
+        "generatedAt": "2026-08-31T13:06:17Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -17288,7 +17288,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-hazelcast",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:5dd5d31c7a0685d832f02eba03556898689ce85796c6b030132e93b7c0d77bd9",
       "runFlags": "",
@@ -17361,7 +17361,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:15:03Z",
+        "generatedAt": "2026-08-31T12:58:15Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -17371,7 +17371,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-hydra",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:2c93beb5e5f260cb5ed5ab579d8a1c133b0ec503c933244370522a2a53695ce7",
       "runFlags": "",
@@ -17444,7 +17444,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:07:27Z",
+        "generatedAt": "2026-08-31T12:50:55Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -17454,7 +17454,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-jaeger",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:778b0f45d1cb4f94abcfdb86e5ad83155e16c0bce86d5fc2b6bb1cbd5b7386bc",
       "runFlags": "",
@@ -17527,7 +17527,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:05:32Z",
+        "generatedAt": "2026-08-31T12:49:01Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -17537,7 +17537,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-jenkins",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:8547df3b0db2803d158ecc9499207a056bb30c23fddc18bb5b4a4dc14e77dd09",
       "runFlags": "",
@@ -17610,7 +17610,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:51:40Z",
+        "generatedAt": "2026-08-31T12:35:18Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -17620,7 +17620,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-jetty",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:cfd57c89498e1c90d99102a4f3ef67ba2f1d959be7c49c6378fa175e474bf7a1",
       "runFlags": "",
@@ -17693,7 +17693,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:01:09Z",
+        "generatedAt": "2026-08-31T12:44:42Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -17703,7 +17703,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-kafka",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:fbc7d7c428e3755cf36518d4976596002477e4c052d1f80b5b9eafd06d0fff2f",
       "runFlags": "",
@@ -17776,7 +17776,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:14:50Z",
+        "generatedAt": "2026-08-31T12:58:04Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -17786,7 +17786,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-keycloak",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:4388e2379b7e870a447adbe7b80bd61f5fbf04e925832b19669fda4957f05a81",
       "runFlags": "",
@@ -17859,7 +17859,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:18:20Z",
+        "generatedAt": "2026-08-31T13:01:28Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -17869,7 +17869,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-kibana",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:e18c1f6d92e819b1c577a1af9a02bfcae6e8b63596368eec3b40e9ad98fa3caa",
       "runFlags": "",
@@ -17942,7 +17942,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:51:49Z",
+        "generatedAt": "2026-08-31T12:35:27Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -17952,7 +17952,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-kong",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:712e407b20eac6a79e4d85f705667c2889f123cdc5e402bb89794d540aafd546",
       "runFlags": "",
@@ -18025,7 +18025,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:18:43Z",
+        "generatedAt": "2026-08-31T13:01:50Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -18035,7 +18035,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-logstash",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:dca706ef2cf7b0ea326f49bec73647c04270fc763d73eabf93408161955793a0",
       "runFlags": "",
@@ -18108,7 +18108,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:06:51Z",
+        "generatedAt": "2026-08-31T12:50:21Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -18118,7 +18118,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-loki",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:8af2de1abbdd7aa92b27c9bcc96f0f4140c9096b507c77921ffddf1c6ad6c48f",
       "runFlags": "",
@@ -18191,7 +18191,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:15:25Z",
+        "generatedAt": "2026-08-31T12:58:37Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -18201,7 +18201,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-mailhog",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:8d76a3d4ffa32a3661311944007a415332c4bb855657f4f6c57996405c009bea",
       "runFlags": "",
@@ -18274,7 +18274,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:11:16Z",
+        "generatedAt": "2026-08-31T12:54:33Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -18284,7 +18284,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-mattermost",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:2dc077d4f2c88dda8a89cc8fd2dd55f65554894c088719a042d7f9ff58cca908",
       "runFlags": "",
@@ -18357,7 +18357,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:49:41Z",
+        "generatedAt": "2026-08-31T12:33:30Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -18367,7 +18367,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-memcached",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:dfacdbd93e7a6f1ad63801753a1fc959dc678a5a1d2141ff438d57e6d8793fc3",
       "runFlags": "",
@@ -18440,7 +18440,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:37:49Z",
+        "generatedAt": "2026-08-31T13:20:57Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -18450,7 +18450,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-miniflux",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:e21953092096579daaad39ba69729f01b08380b03bae4544a943f549c8e11a67",
       "runFlags": "",
@@ -18523,7 +18523,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:11:45Z",
+        "generatedAt": "2026-08-31T12:55:01Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -18533,7 +18533,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-n8n",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:4846eb2f4b874ab04cde7fc1e249d2ddaec66e9aea64439beb2972cfea88e3c0",
       "runFlags": "",
@@ -18606,7 +18606,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:06:44Z",
+        "generatedAt": "2026-08-31T12:50:14Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -18616,7 +18616,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-nexus3",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:cdf8d3b1d7251183dfe43e208a87060a8b410e0e1b25254ac40a1391caf19c5b",
       "runFlags": "",
@@ -18689,7 +18689,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:52:02Z",
+        "generatedAt": "2026-08-31T12:35:39Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -18699,7 +18699,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-nginx-unpriv",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:65e3e85dbaed8ba248841d9d58a899b6197106c23cb0ff1a132b7bfe0547e4c0",
       "runFlags": "",
@@ -18772,7 +18772,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:47:02Z",
+        "generatedAt": "2026-08-31T13:30:09Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -18782,7 +18782,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-nifi",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:cf8f4ce74cf34712766c8aba016c0c5efb8f73d6c2392e2108a809fff242875c",
       "runFlags": "",
@@ -18855,7 +18855,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:52:30Z",
+        "generatedAt": "2026-08-31T12:36:06Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -18865,7 +18865,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-node-exporter",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:4032c6d5bfd752342c3e631c2f1de93ba6b86c41db6b167b9a35372c139e7706",
       "runFlags": "",
@@ -18938,7 +18938,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:58:21Z",
+        "generatedAt": "2026-08-31T12:41:59Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -18948,7 +18948,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-opensearch",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:8690b204fe914c60ca76d451ac73bc0481e034d32d3779944c8caca56a2b003f",
       "runFlags": "",
@@ -19021,7 +19021,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:22:42Z",
+        "generatedAt": "2026-08-31T13:05:56Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -19031,7 +19031,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-opensearch-dashboards",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:0ecd8444add2926cb6c52e03f910160138b6e331522237561da0b82e159b134f",
       "runFlags": "",
@@ -19104,7 +19104,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:32:31Z",
+        "generatedAt": "2026-08-31T13:15:32Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -19114,7 +19114,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-outline",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:494dfb9249a6799ca3d38e2bb1bdf3c9f63632634737bd996ce0b3509fe93499",
       "runFlags": "",
@@ -19187,7 +19187,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:24:26Z",
+        "generatedAt": "2026-08-31T13:07:38Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -19197,7 +19197,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-payara",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:611d9b440cdcb64354999e31258a579ec8ded2a14c89ec73b129f363de8912ce",
       "runFlags": "",
@@ -19270,7 +19270,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:57:36Z",
+        "generatedAt": "2026-08-31T12:41:14Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -19280,9 +19280,9 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-percona",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:282743edc933f58e10b4397ec3e2a310920bf2f77fca44f0a2d2282cee6527ca",
+      "resolvedDigest": "sha256:bf3235cf8fe6c5e748c787eb8f55020fc2626cfb45859eec913777d97f5de9f2",
       "runFlags": "",
       "score": 63
     },
@@ -19353,7 +19353,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:16:11Z",
+        "generatedAt": "2026-08-31T12:59:24Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -19363,7 +19363,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-pgadmin",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:8a68677a97b8c8d1427dc915672a26d2c4a04376916a68256f53d669d6171be7",
       "runFlags": "",
@@ -19436,7 +19436,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:35:35Z",
+        "generatedAt": "2026-08-31T13:18:44Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -19446,7 +19446,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-planka",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:aed25499a1139b3464f924d07f416e257595c3bf83e0dfa28ab22549f1520ee8",
       "runFlags": "",
@@ -19519,7 +19519,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:52:20Z",
+        "generatedAt": "2026-08-31T12:35:57Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -19529,7 +19529,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-prometheus",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:6559acbd5d770b15bb3c954629ce190ac3cbbdb2b7f1c30f0385c4e05104e218",
       "runFlags": "",
@@ -19602,7 +19602,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:01:20Z",
+        "generatedAt": "2026-08-31T12:44:53Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -19612,7 +19612,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-pulsar",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:1640b0a6e7dc255820372864016e3892e4cfa04ab7c17e1d11e52e0214793cad",
       "runFlags": "",
@@ -19685,7 +19685,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:07:31Z",
+        "generatedAt": "2026-08-31T12:50:59Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -19695,7 +19695,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-pushgateway",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:7a4d0696a24ef4e8bad62bee5656855a0aff2f26416d8cb32009dc28d6263604",
       "runFlags": "",
@@ -19768,7 +19768,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:16:27Z",
+        "generatedAt": "2026-08-31T12:59:41Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -19778,7 +19778,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-redisinsight",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:b5e19ee240abef6edb435871b90ff8a210995422e8e018ab61c0339d318a1f84",
       "runFlags": "",
@@ -19851,7 +19851,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:01:39Z",
+        "generatedAt": "2026-08-31T12:45:11Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -19861,7 +19861,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-redpanda",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:e51aa0f712861f8d4fc8e37ec5685ef96167434bb687e5ff6907e0b4994c2ce4",
       "runFlags": "",
@@ -19934,7 +19934,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:57:57Z",
+        "generatedAt": "2026-08-31T12:41:38Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -19944,7 +19944,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-solr",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:1f055b0260d3efb177b12d6a46e9ef510fb4d2616473a91f8f4d099384aa176a",
       "runFlags": "",
@@ -20017,7 +20017,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:05:56Z",
+        "generatedAt": "2026-08-31T12:49:29Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -20027,7 +20027,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-sonarqube",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:9026624a61cd25542a402a9e7213dd7dbb39724ac9597e331e6b85362558c079",
       "runFlags": "",
@@ -20100,7 +20100,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:45:14Z",
+        "generatedAt": "2026-08-31T13:28:23Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -20110,7 +20110,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-spark",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:d0f5d63bfbbffdbec08debb4911554ba671a2fa7398374db8db314d80328f576",
       "runFlags": "",
@@ -20183,7 +20183,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:51:13Z",
+        "generatedAt": "2026-08-31T13:34:29Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -20193,7 +20193,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-standalone-chrome",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:ee194f1bce288cc17ff02a8b63a2be33ec1185e064586b744cbf5678221e8332",
       "runFlags": "",
@@ -20266,7 +20266,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:46:06Z",
+        "generatedAt": "2026-08-31T13:29:16Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -20276,7 +20276,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-superset",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:1d1fdaaeb19ce9cdba71620ee1cc6117d73813b2f3b422ce5a1bf752c247b7c0",
       "runFlags": "",
@@ -20349,7 +20349,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:30:26Z",
+        "generatedAt": "2026-08-31T13:13:31Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -20359,7 +20359,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-teamcity-server",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:2defd16d7b690268483b81df01c6d0cef2ff22eff2258873422e66107af41dfa",
       "runFlags": "",
@@ -20432,7 +20432,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:07:03Z",
+        "generatedAt": "2026-08-31T12:50:32Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -20442,7 +20442,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-tempo",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:ef4384fce6e8ad22b95b243d8fc165628cda655376fd50e7850536ad89d71d50",
       "runFlags": "",
@@ -20515,7 +20515,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:31:08Z",
+        "generatedAt": "2026-08-31T13:14:11Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -20525,7 +20525,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-thanos",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:4ec6df40fdb921de162677b321057caa8fb8324c65f4cfae9568ed55c4469e2c",
       "runFlags": "",
@@ -20598,7 +20598,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:15:45Z",
+        "generatedAt": "2026-08-31T12:58:57Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -20608,7 +20608,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-tika",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:a8b442501f601fb15015de974f9afe13dd242b0f14e49a2b144fadcb214a555b",
       "runFlags": "",
@@ -20681,7 +20681,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:32:44Z",
+        "generatedAt": "2026-08-31T13:15:46Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -20691,7 +20691,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-umami",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:54ccf9903edf09791889504360e776b52c358ebddf5a5e8662257b2555608f27",
       "runFlags": "",
@@ -20764,7 +20764,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:51:20Z",
+        "generatedAt": "2026-08-31T12:35:02Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -20774,7 +20774,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-varnish",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:eb21e9f988be93f33ff9a0025d0a00617d49f3cc0cf59e0f2167bde7724eae6a",
       "runFlags": "",
@@ -20847,7 +20847,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:06:06Z",
+        "generatedAt": "2026-08-31T12:49:38Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -20857,9 +20857,9 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-verdaccio",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
-      "resolvedDigest": "sha256:fcd45478bff37ec37100eb328fcb4d034cff3e904868d4f30e10a3db14a80ab9",
+      "resolvedDigest": "sha256:fcb86134563534e2f634752e6c6c3edcdb78242ec16578c73ce39d1dadbaa801",
       "runFlags": "",
       "score": 63
     },
@@ -20930,7 +20930,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:23:52Z",
+        "generatedAt": "2026-08-31T13:07:03Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -20940,7 +20940,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-vernemq",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:f1b7ca7fb68c1cb2d1f459bb6f919d0a5910b49a3d34d2d82f097e4819d3e4c5",
       "runFlags": "",
@@ -21013,7 +21013,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:21:59Z",
+        "generatedAt": "2026-08-31T13:05:13Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -21023,7 +21023,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-vespa",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:97ad86256424a4f9cc3ebf9ac55f0249935ac30610d9ac5bc6b8356361c9ba24",
       "runFlags": "",
@@ -21096,7 +21096,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:35:24Z",
+        "generatedAt": "2026-08-31T13:18:33Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -21106,7 +21106,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-wekan",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:20a60935337393b4c6d3a60661f84d72a0cce4c808c80e1fe6ef11dd77c43cf2",
       "runFlags": "",
@@ -21179,7 +21179,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:10:58Z",
+        "generatedAt": "2026-08-31T12:54:14Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -21189,7 +21189,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-wiki",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:68f0d1848261ae76492ba358e30a96a76fed5d97a3fff381656082bf90f70d7e",
       "runFlags": "",
@@ -21262,7 +21262,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:50:04Z",
+        "generatedAt": "2026-08-31T13:33:20Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -21272,7 +21272,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-zeppelin",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:42abb8a82ca074c5a419beb69b4f714dc15dfefedb4c4f2a9fa5eb26377a1c30",
       "runFlags": "",
@@ -21345,7 +21345,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T07:31:25Z",
+        "generatedAt": "2026-08-31T13:14:27Z",
         "grade": "C",
         "max": 100,
         "mode": "container",
@@ -21355,7 +21355,7 @@
         "score": 63,
         "source": "docker",
         "target": "ic-survey-default-zipkin",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:966cf6ba77938e3f40922964b47513bec7d10b617f96aea4921e1a887989c6f9",
       "runFlags": "",
@@ -21425,7 +21425,7 @@
             "verdict": "PASS"
           }
         ],
-        "generatedAt": "2026-08-24T06:50:12Z",
+        "generatedAt": "2026-08-31T12:34:02Z",
         "grade": "A",
         "max": 100,
         "mode": "container",
@@ -21435,7 +21435,7 @@
         "score": 100,
         "source": "docker",
         "target": "ic-survey-hardened-reference",
-        "version": "dev+e25a7d838e33"
+        "version": "dev+87fb92fcfa92"
       },
       "resolvedDigest": "sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
       "runFlags": "--user 65532:65532 --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp --network none",

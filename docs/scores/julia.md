@@ -7,7 +7,7 @@ description: "How isolated is julia:1.11 by default? IronClaw scores its sandbox
 
 Run with plain `docker run julia:1.11` defaults, no hardening flags, the **julia** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `julia:1.11` at digest `sha256:d0e3885d990a5571ea277afe994da52e2af5ee6307f71ee9d6bb946b4c813b0b` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `julia:1.11` at digest `sha256:d9310b50185edd06b7a7b88ef729798f88345556fa02a907876fece657904cf1` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 
