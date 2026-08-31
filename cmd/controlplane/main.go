@@ -1112,6 +1112,18 @@ func registerChannelAdapters(reg *channels.Registry, logger *obs.Logger) {
 		return channels.NewMattermostAdapter("mattermost", mattermostURL)
 	})
 
+	// Rocket.Chat adapter registration
+	rcURL := os.Getenv("IRONCLAW_ROCKETCHAT_URL")
+	reqExtra("rocketchat", rcURL != "", func() channels.Adapter {
+		return channels.NewRocketChatAdapter(
+			"rocketchat",
+			rcURL,
+			os.Getenv("IRONCLAW_ROCKETCHAT_AUTH_TOKEN"),
+			os.Getenv("IRONCLAW_ROCKETCHAT_USER_ID"),
+			os.Getenv("IRONCLAW_ROCKETCHAT_CHANNEL"),
+		)
+	})
+
 	signalURL := os.Getenv("IRONCLAW_SIGNAL_CLI_URL")
 	reqExtra("signal", signalURL != "", func() channels.Adapter {
 		return channels.NewSignalAdapter("signal", signalURL, os.Getenv("IRONCLAW_SIGNAL_NUMBER"))

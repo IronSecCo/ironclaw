@@ -98,6 +98,12 @@ secrets:
   teamsWebhookUrl: ""
   signalCliUrl: ""
   signalNumber: ""
+  
+  # RocketChat adapter
+  rocketchatUrl: ""
+  rocketchatUserId: ""
+  rocketchatAuthToken: ""
+  rocketchatChannel: ""
 
   # Extra secret env vars merged into the created Secret (ignored when
   # existingSecret is set).
