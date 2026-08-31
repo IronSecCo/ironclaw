@@ -1113,7 +1113,7 @@ func registerChannelAdapters(reg *channels.Registry, logger *obs.Logger) {
 	})
 
 	// Rocket.Chat adapter registration
-	rcURL := os.Getenv("IRONCLAW_ROCKETCHAT_BASE_URL")
+	rcURL := os.Getenv("IRONCLAW_ROCKETCHAT_URL")
 	reqExtra("rocketchat", rcURL != "", func() channels.Adapter {
 		return channels.NewRocketChatAdapter(
 			"rocketchat",
