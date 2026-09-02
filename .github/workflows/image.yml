@@ -593,7 +593,7 @@ jobs:
       # `curl …/syft/main/install.sh | sh` (mutable branch piped to a shell).
       # The sub-action installs a fixed syft onto PATH; the scan command is unchanged.
       - name: Install syft (pinned)
-        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        uses: anchore/sbom-action/download-syft@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
       - name: Generate image SBOM (syft → CycloneDX)
         env:
           IMAGE: ${{ needs.prepare.outputs.image }}
@@ -675,7 +675,7 @@ jobs:
           push-to-registry: true
 
       - name: Install syft (pinned)
-        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        uses: anchore/sbom-action/download-syft@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
 
       - name: Generate MCP image SBOM (syft → CycloneDX)
         env:
