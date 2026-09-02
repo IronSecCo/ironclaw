@@ -80,8 +80,8 @@ image we have graded, with its default and hardened score in one table.
 - [How to harden a RabbitMQ container](harden-rabbitmq-container-isolation.md) -
   `rabbitmq:4-alpine` scores 48 of 100 (D). The honest hardened ceiling for a broker is 89 of 100
   (B), because clients must be able to connect to it. Here is exactly why.
-- [How to Harden NATS Container Isolation](harden-nats-container-isolation.md) -
-  `nats:2.10-alpine ` scores 48/100 (D): full caps, writable rootfs. The exact ironctl scan --fix flags that take the messaging broker to its honest 89/100 grade B ceiling.  
+- [How to harden a NATS container isolation](harden-nats-container-isolation.md) -
+  `nats:2.10-alpine` scores 48/100 (D): full caps, writable rootfs. The exact ironctl scan --fix flags that take the messaging broker to its honest 89/100 grade B ceiling.  
 - [How to harden a Memcached container](harden-memcached-container-isolation.md) -
   `memcached:1.6-alpine` runs non-root and holds nothing on disk, so it starts at 63 of 100 (C).
   A read-only rootfs (no volume needed) and dropped capabilities take it to its honest 89 of 100 (B).
