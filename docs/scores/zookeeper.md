@@ -7,7 +7,7 @@ description: "How isolated is zookeeper:3.9 by default? IronClaw scores its sand
 
 Run with plain `docker run zookeeper:3.9` defaults, no hardening flags, the **zookeeper** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `zookeeper:3.9` at digest `sha256:f258365d4882440a55dbedf8ee379152ed0be8006cc3641b81e6c1c1745c976b` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `zookeeper:3.9` at digest `sha256:4c6f15fbd5491a3e01b0108c046891125553329a4956848ba3014cedff5386ee` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -7,7 +7,7 @@ description: "How isolated is swift:6.0.3 by default? IronClaw scores its sandbo
 
 Run with plain `docker run swift:6.0.3` defaults, no hardening flags, the **swift** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `swift:6.0.3` at digest `sha256:0bdd33b44c0493bdf6a674700ce8960cff301977125cff2ced94770d13d7a921` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `swift:6.0.3` at digest `sha256:7aaea8cfbebc90f34aeacaabbfb51a905dbef9839fcd2f528621dd515f228128` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

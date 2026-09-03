@@ -7,7 +7,7 @@ description: "How isolated is adguardhome:latest by default? IronClaw scores its
 
 Run with plain `docker run adguard/adguardhome:latest` defaults, no hardening flags, the **adguardhome** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `adguard/adguardhome:latest` at digest `sha256:aba9e3bf0613be3ba3755e1fc311b126e2c24bec25e18b6483894a88283074f0` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `adguard/adguardhome:latest` at digest `sha256:1ea34eafe5dc691007946e8eaab7bf46b0de9412f39213d8c06e48b53bf9a6c5` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

@@ -14,4 +14,4 @@ mkdocs-render-swagger-plugin==0.1.2
 # (constraint relaxed to `>=10.2`) is what makes the patched version reachable at all
 # — that pairing is why both lines moved together. Keeping the floor explicit means a
 # future material downgrade fails to resolve instead of silently reintroducing it.
-pymdown-extensions>=11.0.2
+pymdown-extensions>=11.0.1

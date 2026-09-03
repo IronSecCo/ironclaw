@@ -7,7 +7,7 @@ description: "How isolated is ibmjava:8-jre by default? IronClaw scores its sand
 
 Run with plain `docker run ibmjava:8-jre` defaults, no hardening flags, the **ibmjava** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `ibmjava:8-jre` at digest `sha256:9039e1e4d748d17612fd24587f004dbed73dff3b92a975498c1da1e188e3fd0d` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `ibmjava:8-jre` at digest `sha256:c15361471b31ad587358bb3c388242b2d84d8f1ce17f6cb56f81e72ef84163cf` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

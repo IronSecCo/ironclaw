@@ -7,7 +7,7 @@ description: "How isolated is zulu-openjdk:21 by default? IronClaw scores its sa
 
 Run with plain `docker run azul/zulu-openjdk:21` defaults, no hardening flags, the **zulu openjdk** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `azul/zulu-openjdk:21` at digest `sha256:8a29ab5b34910b86ceefab0d4f5201dcd9e46b46c97e6d51100245520911f2b3` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `azul/zulu-openjdk:21` at digest `sha256:df4952073643ebaecf1415ee04d9f0c07a72ec99f9a12a98cff1928ef6a7c49d` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

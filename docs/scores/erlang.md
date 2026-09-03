@@ -7,7 +7,7 @@ description: "How isolated is erlang:27-alpine by default? IronClaw scores its s
 
 Run with plain `docker run erlang:27-alpine` defaults, no hardening flags, the **erlang** image scores **48/100, grade D (porous)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `erlang:27-alpine` at digest `sha256:8d0d64cabe4c92b2d2ff2235751f4ead1526dc48c5d93e265e3c64c50cb562e0` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `erlang:27-alpine` at digest `sha256:068162a593db370cea47991df530effda4cf2e24e26a05541835f1c1cd2a6daa` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

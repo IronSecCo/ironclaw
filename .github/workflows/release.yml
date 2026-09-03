@@ -238,7 +238,7 @@ jobs:
       # The `dist/pkg/iron*` glob matches the three binaries (and their .exe variants on
       # Windows) while excluding the copied-in LICENSE / README.md.
       - name: Attest build provenance for the binaries
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4
         with:
           subject-path: "dist/pkg/iron*"
 
@@ -379,7 +379,7 @@ jobs:
           echo "Signed SHA256SUMS keylessly (cert + signature attached to the release)."
 
       - name: Attest build provenance for the release binaries
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4
         with:
           subject-path: "dist/*.tar.gz, dist/*.zip"
 
@@ -477,7 +477,7 @@ jobs:
           echo "Attached signed containment report to ${TAG}."
 
       - name: Attest build provenance for the containment report
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4
         with:
           subject-path: "report/ironclaw_*.containment.json, report/ironclaw_*.containment.txt"
 

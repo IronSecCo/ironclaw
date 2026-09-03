@@ -7,7 +7,7 @@ description: "How isolated is kong:3.8 by default? IronClaw scores its sandbox p
 
 Run with plain `docker run kong:3.8` defaults, no hardening flags, the **kong** image scores **63/100, grade C (partial)** on IronClaw's seven-dimension container containment scale. Higher is safer. This is what you get straight out of a copy-pasted `docker run`; the fixes below show where the lost points are.
 
-> Graded from a read-only inspect of a **running container** started from `kong:3.8` at digest `sha256:712e407b20eac6a79e4d85f705667c2889f123cdc5e402bb89794d540aafd546` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
+> Graded from a read-only inspect of a **running container** started from `kong:3.8` at digest `sha256:dd6cd1d94a7aae8c5a4d245ccbee6b81230d41a4312d76d076c4e9c6db65611c` with plain `docker run` defaults, its entrypoint overridden with `sleep` purely to keep it alive. The scan itself executes nothing inside the container. Scoring an image reference instead of a running container yields a different, non-comparable result. [How scoring works &rarr;](../scan.md)
 
 ## How it scores, dimension by dimension
 

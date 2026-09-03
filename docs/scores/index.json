@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
-  "generatedAt": "2026-08-24T06:48:19Z",
-  "ironctlVersion": "dev+e25a7d838e33",
+  "generatedAt": "2026-07-27T09:42:34Z",
+  "ironctlVersion": "dev+11b86e785ff3",
   "meta": {
     "imageCount": 252,
     "avgScore": 52,
@@ -226,7 +226,7 @@
       "image": "adguard/adguardhome:latest",
       "displayName": "adguardhome",
       "family": "infra",
-      "digest": "sha256:aba9e3bf0613be3ba3755e1fc311b126e2c24bec25e18b6483894a88283074f0",
+      "digest": "sha256:1ea34eafe5dc691007946e8eaab7bf46b0de9412f39213d8c06e48b53bf9a6c5",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -396,7 +396,7 @@
       "image": "grafana/alloy:latest",
       "displayName": "alloy",
       "family": "infra",
-      "digest": "sha256:0f4434c92b3e6cdac38bb129b344e1790c246f7b6e2eaffcc16a5fa363240e33",
+      "digest": "sha256:491b0578c04983fd54fe99b587b6fab4404dc46d0dc16677bd6b00cc1140b308",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -651,7 +651,7 @@
       "image": "amazoncorretto:21",
       "displayName": "amazoncorretto",
       "family": "infra",
-      "digest": "sha256:de27588c570049ff6c970530cf32f0eb41a082edd3f753e8f923e9c82e2ca97e",
+      "digest": "sha256:540708337af29fda537479f2205d2d219a3780c3f07be5f42be96501789f610b",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -736,7 +736,7 @@
       "image": "amazonlinux:2023",
       "displayName": "amazonlinux",
       "family": "base",
-      "digest": "sha256:181f98c48832fe926f8ca3b6ffeafcce128e96e77b93d08fbe9a9bc9403ce284",
+      "digest": "sha256:0c74e9fbba754003cfa179fd5cc65be7790d7248443276948704b8a858b298e5",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -991,7 +991,7 @@
       "image": "arangodb:3.12",
       "displayName": "arangodb",
       "family": "infra",
-      "digest": "sha256:01be938f3a8d3e82725d365ca6750e4cafd092ec78a33a027588cfac37be4e51",
+      "digest": "sha256:bf5eabc0fb3a16a13d0d4de00cddfbf2209e3d25630e5331832efb206519ff8f",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -1076,7 +1076,7 @@
       "image": "archlinux:latest",
       "displayName": "archlinux",
       "family": "infra",
-      "digest": "sha256:4bf33b21a715aac0b48ce6e9eaed4782a898eae96f88f5da3635572129c2584a",
+      "digest": "sha256:592e11bd99ab579f933a0cb77a8f66e2f3ae57f5eafacf13aea44a6e98ef21ae",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -1161,7 +1161,7 @@
       "image": "mcr.microsoft.com/dotnet/aspnet:9.0",
       "displayName": "aspnet",
       "family": "infra",
-      "digest": "sha256:4e376dd15bbc8437d4892367ab0ea06a3ac9fea482d10f92f3c493fe1a2219ad",
+      "digest": "sha256:86085bc68dde4a8cdfd8c2342acc3bf843eade855092879a85e3f3adb56e55c7",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -1671,7 +1671,7 @@
       "image": "busybox:1.37",
       "displayName": "busybox",
       "family": "base",
-      "digest": "sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0",
+      "digest": "sha256:9532d8c39891ca2ecde4d30d7710e01fb739c87a8b9299685c63704296b16028",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -1926,7 +1926,7 @@
       "image": "cassandra:5.0",
       "displayName": "cassandra",
       "family": "infra",
-      "digest": "sha256:c4d4c9c94af6dfe6efcd41e30308f267193955a3ff6bba8637b118824a495e34",
+      "digest": "sha256:e52bb93c21f69cc5c2f5eb9e7d9736b10a047ad38bc7776480c7dbbf7d4e0ba7",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -2266,7 +2266,7 @@
       "image": "chronograf:1.10",
       "displayName": "chronograf",
       "family": "infra",
-      "digest": "sha256:28eba31b450ccce7c41cce6ff69acee2c5dc70f7b7ef6732c02cf51c63e88ae1",
+      "digest": "sha256:0df4b54d28c2cb2bd23670f13f32404f01ff00dc4eca6eb94347a86ab686b39e",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -2436,7 +2436,7 @@
       "image": "clojure:temurin-21-tools-deps",
       "displayName": "clojure",
       "family": "infra",
-      "digest": "sha256:4de0e60092bfad68f39e024d43733a4d55b676fd9762676aee862d45c4ef1b47",
+      "digest": "sha256:db77923e67984d00cbf55a4e44cfacdefed5a8fcf1499469086ba1b569f9d937",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -2521,7 +2521,7 @@
       "image": "cockroachdb/cockroach:latest",
       "displayName": "cockroach",
       "family": "infra",
-      "digest": "sha256:e326d4ef754cc40553716e20d656788c951d2e287b3629268d1bf43bfb5acb9e",
+      "digest": "sha256:85417da0fd2f57e4f1b01ae8a4125402c977a38a56b43d0902db93dc2669ab09",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -2861,7 +2861,7 @@
       "image": "couchdb:3.4",
       "displayName": "couchdb",
       "family": "database",
-      "digest": "sha256:91ca7a6482e079ce74ebcf7aae3493ebbffd59916f6c232ecee3ab686d9fa3f0",
+      "digest": "sha256:d603d4086836b1e20f1ec35d2d38e49359639c2eb56a54c8ba0ddbdff0f3dabe",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -3201,7 +3201,7 @@
       "image": "debian:12-slim",
       "displayName": "debian",
       "family": "base",
-      "digest": "sha256:abd67ffcfa541b485a3dff59865ab629aa048a6c613e639d36e7456b0b229241",
+      "digest": "sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -3541,7 +3541,7 @@
       "image": "docker.dragonflydb.io/dragonflydb/dragonfly:latest",
       "displayName": "dragonfly",
       "family": "infra",
-      "digest": "sha256:ebf3c6c213e82fb51b4521660cca13f06f3421dc5b1ed14f2f474c50b5e29986",
+      "digest": "sha256:0fa01a2b929e704c7a9300d23e7f52002ebd39e90996fb8bb63826aed92fa06f",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -3711,7 +3711,7 @@
       "image": "drupal:11-apache",
       "displayName": "drupal",
       "family": "web",
-      "digest": "sha256:369ec2a0bb23e1d6b4a378fbe15e36b52def0bb145c1821b8b33e28c3ec1b490",
+      "digest": "sha256:7a93ee9c8bec6a780cc25ec4e1610ae6dde483368db3d5aa0ac477567a645d6b",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -3966,7 +3966,7 @@
       "image": "eclipse-temurin:21-jre-alpine",
       "displayName": "eclipse temurin",
       "family": "runtime",
-      "digest": "sha256:974b08960c5d96694c780e65b2d5705268ab1e1ca1a0dd0caf4ba6c3fe34d699",
+      "digest": "sha256:3f08b13888f595cc49edabea7250ba69499ba25602b267da591720769400e08c",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -4051,7 +4051,7 @@
       "image": "elixir:1.18-alpine",
       "displayName": "elixir",
       "family": "infra",
-      "digest": "sha256:caa6412c072c4b11e8c6798108388702c2791b4f8bad41e42c27ea5be881e2dc",
+      "digest": "sha256:768e2c3c1831e221c7fb60ec11b8bf02cc8f6bb1db6ffe8715a4935c0aba235c",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -4221,7 +4221,7 @@
       "image": "erlang:27-alpine",
       "displayName": "erlang",
       "family": "infra",
-      "digest": "sha256:8d0d64cabe4c92b2d2ff2235751f4ead1526dc48c5d93e265e3c64c50cb562e0",
+      "digest": "sha256:068162a593db370cea47991df530effda4cf2e24e26a05541835f1c1cd2a6daa",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -4391,7 +4391,7 @@
       "image": "firebirdsql/firebird:5.0.1",
       "displayName": "firebird",
       "family": "infra",
-      "digest": "sha256:4690e970fb978aaa01a58c8cad78758f9bd192c88ddca68f31d904e35df920bb",
+      "digest": "sha256:b89818b7017398ac1808ede3985685b95f936a8d884a786425faa774505d5a03",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -4476,7 +4476,7 @@
       "image": "flink:1.20",
       "displayName": "flink",
       "family": "infra",
-      "digest": "sha256:96ef3533ac7eb853c5c789474e82ef99c5840e21db86030242579d34a159ef61",
+      "digest": "sha256:35d8399ac4ad5cfd73adb674c77e5f83541f4faf96221e116421542fb63ee8f0",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -4731,7 +4731,7 @@
       "image": "gcc:14",
       "displayName": "gcc",
       "family": "infra",
-      "digest": "sha256:468b5b959b5f4025724d8549f45550c6ad38a32474733cbf130f8f2c1bc80805",
+      "digest": "sha256:1ea81e094f614fd2ed066316651dbac8eecb4d36add2ddd8a26151374c85c52c",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -5411,7 +5411,7 @@
       "image": "gradle:8-jdk21",
       "displayName": "gradle",
       "family": "infra",
-      "digest": "sha256:94452354d9218922457d82e85a343391bab351e7f518f6f5ab1db996967d238b",
+      "digest": "sha256:dae150d9066fc04a791ec7f0adc1a0eb4e867f11d76d03063ee0a60e5da56149",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -5581,7 +5581,7 @@
       "image": "haskell:9.8",
       "displayName": "haskell",
       "family": "infra",
-      "digest": "sha256:73880b95c37f994a816f0963822f1336bca544542e077ebdd63e2b432cd7429b",
+      "digest": "sha256:e2f16cad64d6271ecc44e6465ff461ef0bf95742edbe94fdfe489f17f8bf2f83",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -6006,7 +6006,7 @@
       "image": "ibmjava:8-jre",
       "displayName": "ibmjava",
       "family": "infra",
-      "digest": "sha256:9039e1e4d748d17612fd24587f004dbed73dff3b92a975498c1da1e188e3fd0d",
+      "digest": "sha256:c15361471b31ad587358bb3c388242b2d84d8f1ce17f6cb56f81e72ef84163cf",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -6431,7 +6431,7 @@
       "image": "joomla:5-apache",
       "displayName": "joomla",
       "family": "web",
-      "digest": "sha256:6d5450cd56e77d494a230540ea0a2f70aed6c47e9fe76510a17c36aae14f57a1",
+      "digest": "sha256:4a6daad09b5897d1319bd066756413d097ecfcda37df571c35d9c2d1ac08e421",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -6516,7 +6516,7 @@
       "image": "julia:1.11",
       "displayName": "julia",
       "family": "infra",
-      "digest": "sha256:d0e3885d990a5571ea277afe994da52e2af5ee6307f71ee9d6bb946b4c813b0b",
+      "digest": "sha256:f2f14ae7fb03084ed759935dbba9c8096dd9a2626dcee607898b3e67b61dfc84",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -6771,7 +6771,7 @@
       "image": "kapacitor:1.7",
       "displayName": "kapacitor",
       "family": "infra",
-      "digest": "sha256:1d0ba328b7ec791f5d72ad31d0ecefd2a0ba7e3767eb0485155bca7707110060",
+      "digest": "sha256:3bf563d0e64ca7180b8dbc49c8036e9a27da10507ad0bfe275475249136874de",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -7111,7 +7111,7 @@
       "image": "nickblah/lua:5.4",
       "displayName": "lua",
       "family": "infra",
-      "digest": "sha256:150b4e86d2b855689a1178240065a12574f6304a8daf3c5167baa6faf6d119bd",
+      "digest": "sha256:1f2de2882e50f97bf8fa3cffef666a2e5402d9c447da59bfcb159e38d1587dab",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -7196,7 +7196,7 @@
       "image": "axllent/mailpit:latest",
       "displayName": "mailpit",
       "family": "infra",
-      "digest": "sha256:c96991d9bef73594c246d89ca81411d4e916f03e76a7d2d72fa2ab5dd3c9ce24",
+      "digest": "sha256:b868afa176bfd6cce2323ea316cd99ccad77915e51e595748f6d786700ecf109",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -7366,7 +7366,7 @@
       "image": "mariadb:11",
       "displayName": "mariadb",
       "family": "database",
-      "digest": "sha256:24e76fcec8c003a0362d0dd53f4806e7e79458d7fdeaf47437760e19496f5a9c",
+      "digest": "sha256:efb4959ef2c835cd735dbc388eb9ad6aab0c78dd64febcd51bc17481111890c4",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -7451,7 +7451,7 @@
       "image": "matomo:5",
       "displayName": "matomo",
       "family": "infra",
-      "digest": "sha256:b4d6020b383d67170c3711035de534aa8ae3921aea0149ba3f9d54aca7c707c5",
+      "digest": "sha256:650f4f205b0b8968f430b0fc924e8b37e8ff023948c4db08ea300d154054b257",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -7536,7 +7536,7 @@
       "image": "maven:3.9-eclipse-temurin-21",
       "displayName": "maven",
       "family": "infra",
-      "digest": "sha256:613124833fa6718ded9d655a2ebfab6425818c178f899116b93560b6f1c9ffe9",
+      "digest": "sha256:2b4496088e7b80ae10a8c9f74e574ea21380325a006ec684532ad6bad5bc7273",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -7621,7 +7621,7 @@
       "image": "mediawiki:1.43",
       "displayName": "mediawiki",
       "family": "infra",
-      "digest": "sha256:77a2dda59645bd41c9648eb131416363416208db5936957ae45db3b64d3690f8",
+      "digest": "sha256:439eda8a1c2a3db2e21ae9817c5ca07fbf8b859465215431405d6412006db803",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -8641,7 +8641,7 @@
       "image": "neo4j:5",
       "displayName": "neo4j",
       "family": "infra",
-      "digest": "sha256:89d577f2e49606de76441eca8cf7a0fe88e594cbaac4d2a3d86c6e59676e2b1e",
+      "digest": "sha256:362542416de6c09a971484d1893878016cc3b5cdec166e54b1c824a220ecd6b9",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -8726,7 +8726,7 @@
       "image": "netdata/netdata:stable",
       "displayName": "netdata",
       "family": "infra",
-      "digest": "sha256:c45c71eb23ff3f1012bcda7832bf08c0b09954363557e84511bcfaf6cafa3aa8",
+      "digest": "sha256:689145f603fed0ca341b4d8a0fb9910cd9d8c0590b0530cd24ae1912a9c7f8f3",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -9151,7 +9151,7 @@
       "image": "nimlang/nim:2.2.0",
       "displayName": "nim",
       "family": "infra",
-      "digest": "sha256:4174f89af80743ab4546986be90d1d32c6839dbec5887e1d9dbf13ec7e0ca714",
+      "digest": "sha256:c918a25a7ef8d96a1d3340cd6ccac9617a7c44e3b3761f0c7ef42126789f7bda",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -9831,7 +9831,7 @@
       "image": "oraclelinux:9",
       "displayName": "oraclelinux",
       "family": "infra",
-      "digest": "sha256:3adbd4f3b22d816c90e78a9c9c2e0ddf65fc1bbadd816dc202054471a85f38b2",
+      "digest": "sha256:fe2c9e975c93c1b8c00712e5ad40e0127c0f1982c2d76031f1e09e5307e32aeb",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10171,7 +10171,7 @@
       "image": "perl:5.40-slim",
       "displayName": "perl",
       "family": "runtime",
-      "digest": "sha256:545d0b2376b7c4cf3820876cdad18c0462f902bed4e59ce53e5a4cb3202cd403",
+      "digest": "sha256:8d1836c24ebf3ad6523064b20e42878f065fdfbc6ed4fe5861d09aa862889360",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10256,7 +10256,7 @@
       "image": "pgvector/pgvector:pg17",
       "displayName": "pgvector",
       "family": "infra",
-      "digest": "sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f",
+      "digest": "sha256:d2ef61f42ef767baa5a1475393303cc235bcd92febd9d7014eddb48b41f3bad0",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10341,7 +10341,7 @@
       "image": "photon:5.0",
       "displayName": "photon",
       "family": "infra",
-      "digest": "sha256:ab4b68e15c8ff6b9c79ba525f696260f772c711761d576dd53bf43c351c9a504",
+      "digest": "sha256:6db86de5ffc11d5c55e59d23790ad526b68e5bca4f030cb6a94e6136280866dd",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10426,7 +10426,7 @@
       "image": "php:8.4-apache",
       "displayName": "php",
       "family": "runtime",
-      "digest": "sha256:5f8050825b2f3de4efb0d81149c86643a9ee9c0a74ed4595ca2ad69ebfeb35fb",
+      "digest": "sha256:ea61837b6dee7f5981cced9fdf6a7773c4ef695bc3237fb9da59d223df638ec2",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10511,7 +10511,7 @@
       "image": "phpmyadmin:5.2",
       "displayName": "phpmyadmin",
       "family": "web",
-      "digest": "sha256:6db6e0bc9959eb00395f5d927cc786cb63530a265663950ecb9faf5955419c37",
+      "digest": "sha256:b68f318c5fd85541795ed8eb4ced28ea6908a89910871783b3e479cc6c6d1e1b",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -10681,7 +10681,7 @@
       "image": "postgis/postgis:17-3.5",
       "displayName": "postgis",
       "family": "infra",
-      "digest": "sha256:624f5195b91d424dbebf018890148cc0e5a3e80db5467da8b53cc2ed2ce49216",
+      "digest": "sha256:77e89c11c4779c394ebeeaac1099dafb77b728abc8cd45dcaf6c4695503a0c37",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -11786,7 +11786,7 @@
       "image": "redmine:6",
       "displayName": "redmine",
       "family": "infra",
-      "digest": "sha256:7d06d8301ddada499ef3360f4288a806d0771ff88b47405e91be73d9d6e66093",
+      "digest": "sha256:157c712839fe9787eb5cfe8376c38de45042613c511228f01386e8aeab5cfa21",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -12041,7 +12041,7 @@
       "image": "rethinkdb:2.4",
       "displayName": "rethinkdb",
       "family": "infra",
-      "digest": "sha256:de120f60b86a1a168cc958fd5486ef2e0f75e249ebb2a86cbd69beb494de4ec6",
+      "digest": "sha256:576a028b0c64eb21defc374395276d669737742bcb79666806a185a512cb7512",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -13146,7 +13146,7 @@
       "image": "swaggerapi/swagger-ui:latest",
       "displayName": "swagger ui",
       "family": "infra",
-      "digest": "sha256:3d93169968848d371a6a56ca1ab18b47a8906ba461b8eba0688866354f5431d5",
+      "digest": "sha256:e43eb34b978af58d8cb78e5da9c12d605cf43d113ad3a96b18f9b028d6479d68",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -13231,7 +13231,7 @@
       "image": "swift:6.0.3",
       "displayName": "swift",
       "family": "infra",
-      "digest": "sha256:0bdd33b44c0493bdf6a674700ce8960cff301977125cff2ced94770d13d7a921",
+      "digest": "sha256:7aaea8cfbebc90f34aeacaabbfb51a905dbef9839fcd2f528621dd515f228128",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -14081,7 +14081,7 @@
       "image": "tomcat:10.1-jre21-temurin",
       "displayName": "tomcat",
       "family": "web",
-      "digest": "sha256:aaeef5a2dcea727ba0b5214179c4df769e7583d1ccd5af536661a6bd9d96583d",
+      "digest": "sha256:f6e69a64d90e3b71b22e77fdfa87b3df9fa86be393cd01912e9bf34d0076b335",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -14421,7 +14421,7 @@
       "image": "ubuntu:24.04",
       "displayName": "ubuntu",
       "family": "base",
-      "digest": "sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517",
+      "digest": "sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -14676,7 +14676,7 @@
       "image": "valkey/valkey:8",
       "displayName": "valkey",
       "family": "infra",
-      "digest": "sha256:f0ba225266310efba5fb33383e21c64fbd07907304224786c780606e7ebd7327",
+      "digest": "sha256:495e4fecdc98ee48a20b207726caa5ab6451e0fac3642a9be10d9e70b3068df6",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -15441,7 +15441,7 @@
       "image": "zookeeper:3.9",
       "displayName": "zookeeper",
       "family": "infra",
-      "digest": "sha256:f258365d4882440a55dbedf8ee379152ed0be8006cc3641b81e6c1c1745c976b",
+      "digest": "sha256:4c6f15fbd5491a3e01b0108c046891125553329a4956848ba3014cedff5386ee",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -15526,7 +15526,7 @@
       "image": "azul/zulu-openjdk:21",
       "displayName": "zulu openjdk",
       "family": "infra",
-      "digest": "sha256:8a29ab5b34910b86ceefab0d4f5201dcd9e46b46c97e6d51100245520911f2b3",
+      "digest": "sha256:df4952073643ebaecf1415ee04d9f0c07a72ec99f9a12a98cff1928ef6a7c49d",
       "score": 48,
       "grade": "D",
       "topGaps": [
@@ -16121,7 +16121,7 @@
       "image": "quay.io/jupyter/base-notebook:latest",
       "displayName": "base notebook",
       "family": "infra",
-      "digest": "sha256:ee6cda22e6cf23ea599962512107b396128c46ab78354ad4150dbb421756161e",
+      "digest": "sha256:50d8c29bb555af7ba18e956c97734c31ada26ee12d7e6dc77927608cb730d108",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -16631,7 +16631,7 @@
       "image": "emqx:5",
       "displayName": "emqx",
       "family": "infra",
-      "digest": "sha256:78b571d7d0c98971e19760af23d24f187f85b20a8fa1f09eadcd4e88454c7d26",
+      "digest": "sha256:45b79cdae22e896f07285cdff744bbca06413ac1c334bd6e6f594a0b63823432",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -16971,7 +16971,7 @@
       "image": "groovy:4",
       "displayName": "groovy",
       "family": "infra",
-      "digest": "sha256:d1c48785d4e4bc7debf9f345eb7db5140274bfa6e0313455c9dd1b79df7f738e",
+      "digest": "sha256:ae895be0ed7584713f2316a5b619dc14477c61f5509117bf01bcffa4b718adfb",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -17481,7 +17481,7 @@
       "image": "jenkins/jenkins:lts",
       "displayName": "jenkins",
       "family": "infra",
-      "digest": "sha256:8547df3b0db2803d158ecc9499207a056bb30c23fddc18bb5b4a4dc14e77dd09",
+      "digest": "sha256:f4f65e6cd1405cd889b7f5ac33f9d5cdc2a099de6b87fe8a3933b9c5d53d1d02",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -17906,7 +17906,7 @@
       "image": "kong:3.8",
       "displayName": "kong",
       "family": "web",
-      "digest": "sha256:712e407b20eac6a79e4d85f705667c2889f123cdc5e402bb89794d540aafd546",
+      "digest": "sha256:dd6cd1d94a7aae8c5a4d245ccbee6b81230d41a4312d76d076c4e9c6db65611c",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -19181,7 +19181,7 @@
       "image": "percona:8.0",
       "displayName": "percona",
       "family": "infra",
-      "digest": "sha256:282743edc933f58e10b4397ec3e2a310920bf2f77fca44f0a2d2282cee6527ca",
+      "digest": "sha256:2a29b81c1e28d752b854c71565f577414fbc7eb8ce329921d6acc85da890818f",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -19946,7 +19946,7 @@
       "image": "solr:9",
       "displayName": "solr",
       "family": "infra",
-      "digest": "sha256:1f055b0260d3efb177b12d6a46e9ef510fb4d2616473a91f8f4d099384aa176a",
+      "digest": "sha256:f4d36b957707a7a8d3876cb45a9f0b4c2bba3aea460e5798f9eeca7d979a66fa",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -20031,7 +20031,7 @@
       "image": "sonarqube:community",
       "displayName": "sonarqube",
       "family": "infra",
-      "digest": "sha256:9026624a61cd25542a402a9e7213dd7dbb39724ac9597e331e6b85362558c079",
+      "digest": "sha256:160bd2f6a3485bd09b655ef22dd63c02bd1fa7ba82aa5d9973fd010b8bcca0b3",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -20626,7 +20626,7 @@
       "image": "apache/tika:latest",
       "displayName": "tika",
       "family": "infra",
-      "digest": "sha256:a8b442501f601fb15015de974f9afe13dd242b0f14e49a2b144fadcb214a555b",
+      "digest": "sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973",
       "score": 63,
       "grade": "C",
       "topGaps": [
@@ -20881,7 +20881,7 @@
       "image": "verdaccio/verdaccio:6",
       "displayName": "verdaccio",
       "family": "infra",
-      "digest": "sha256:fcd45478bff37ec37100eb328fcb4d034cff3e904868d4f30e10a3db14a80ab9",
+      "digest": "sha256:11e75353c8363650cbf43adf8594b2cd633be6f191056c6e08ba6ff4b1398f62",
       "score": 63,
       "grade": "C",
       "topGaps": [
