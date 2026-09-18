@@ -44,9 +44,15 @@ jobs:
           set -euo pipefail
           ARCH=$(uname -m)
           URL="https://storage.googleapis.com/gvisor/releases/release/latest/${ARCH}"
-          sudo curl -fsSL -o /usr/local/bin/runsc "${URL}/runsc"
-          sudo curl -fsSL -o /usr/local/bin/containerd-shim-runsc-v1 "${URL}/containerd-shim-runsc-v1" || true
-          sudo chmod 0755 /usr/local/bin/runsc /usr/local/bin/containerd-shim-runsc-v1 || true
+          # gVisor now ships one tarball per release instead of bare binaries. runsc
+          # loads its sidecars from gvisor-bin/ next to itself, so extract the whole
+          # archive into /usr/local/bin rather than copying runsc out alone.
+          TMP=$(mktemp -d)
+          curl -fsSL -o "${TMP}/gvisor.tar.bz2" "${URL}/gvisor.tar.bz2"
+          curl -fsSL -o "${TMP}/gvisor.tar.bz2.sha512" "${URL}/gvisor.tar.bz2.sha512"
+          (cd "${TMP}" && sha512sum -c gvisor.tar.bz2.sha512)
+          sudo tar -xjf "${TMP}/gvisor.tar.bz2" -C /usr/local/bin
+          rm -rf "${TMP}"
           runsc --version
 
       - name: Install minisign
