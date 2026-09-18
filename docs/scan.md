@@ -36,6 +36,7 @@ IronClaw containment scan
   target:  my-container (docker)
   runtime: runc
   score:   23/100  grade F  (wide open)
+  Grades: A 90-100  B 75-89  C 50-74  D 25-49  F <25
 
 DIMENSION                   VERDICT   SCORE  DETAIL
 Non-root user (uid != 0)    [x] FAIL  0/15   runs as root (user "0"); a container escape starts with host-uid 0
@@ -985,6 +986,7 @@ fail-closed and deterministic, and `--json` carries the same remediation under a
 ```text
 $ ironctl scan my-container --fix
   score:   23/100  grade F  (wide open)
+  Grades: A 90-100  B 75-89  C 50-74  D 25-49  F <25
   ... scorecard table ...
 
 Remediation (6 dimension(s) to harden, my-container currently 23/100 grade F):
@@ -1068,6 +1070,7 @@ An IronClaw `ic-sbx-*` sandbox scores a clean 100:
 ```text
 $ ironctl scan ic-sbx-mg-abc123
   score:   100/100  grade A  (hardened)
+  Grades: A 90-100  B 75-89  C 50-74  D 25-49  F <25
 ```
 
 That is the posture IronClaw gives every session by default: non-root, all caps

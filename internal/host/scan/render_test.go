@@ -20,7 +20,14 @@ func TestRenderTable(t *testing.T) {
 	var b bytes.Buffer
 	RenderTable(&b, sampleReport())
 	out := b.String()
-	for _, want := range []string{"ic-sbx-demo", "100/100", "grade A", "Non-root user", "Dropped capabilities"} {
+	for _, want := range []string{
+		"ic-sbx-demo",
+		"100/100",
+		"grade A",
+		"Grades: A 90-100  B 75-89  C 50-74  D 25-49  F <25",
+		"Non-root user",
+		"Dropped capabilities",
+	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("table missing %q\n%s", want, out)
 		}

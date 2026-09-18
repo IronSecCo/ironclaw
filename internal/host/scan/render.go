@@ -31,7 +31,8 @@ func RenderTable(w io.Writer, r Report) {
 		fmt.Fprintf(w, "  mode:    image reference (static image config; no container is running)\n")
 		fmt.Fprintf(w, "  score:   not reported for an image reference. See the notes below.\n\n")
 	} else {
-		fmt.Fprintf(w, "  score:   %d/%d  grade %s  %s\n\n", r.Score, r.Max, r.Grade, gradeBanner(r.Grade))
+		fmt.Fprintf(w, "  score:   %d/%d  grade %s  %s\n", r.Score, r.Max, r.Grade, gradeBanner(r.Grade))
+		fmt.Fprintf(w, "  %s\n\n", gradeLegend())
 	}
 
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
@@ -56,6 +57,19 @@ func RenderTable(w io.Writer, r Report) {
 		}
 	}
 	fmt.Fprintf(w, "\n  Harden your sandbox: https://ironsecco.github.io/ironclaw/scan/\n")
+}
+
+func gradeLegend() string {
+	minimums := make(map[string]int, 5)
+	for score := 0; score <= TotalWeight; score++ {
+		if _, seen := minimums[grade(score)]; !seen {
+			minimums[grade(score)] = score
+		}
+	}
+	return fmt.Sprintf("Grades: A %d-%d  B %d-%d  C %d-%d  D %d-%d  F <%d",
+		minimums["A"], TotalWeight, minimums["B"], minimums["A"]-1,
+		minimums["C"], minimums["B"]-1, minimums["D"], minimums["C"]-1,
+		minimums["D"])
 }
 
 func gradeBanner(g string) string {
