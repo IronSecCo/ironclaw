@@ -2,6 +2,11 @@ name: CI
 
 on:
   push:
+    # scripts/signed-commit.sh builds bot commits on a short-lived signing/** ref and
+    # deletes it seconds later; CI on that ref is pure waste. The real branch it
+    # lands on (brew/track, scores/refresh) is pushed separately and runs CI as usual.
+    branches-ignore:
+      - "signing/**"
   pull_request:
 
 # Least-privilege default for every job in this workflow (Scorecard Token-Permissions).
