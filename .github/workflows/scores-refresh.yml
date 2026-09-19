@@ -44,7 +44,7 @@ jobs:
     # 6h of runner time.
     timeout-minutes: 120
     permissions:
-      contents: write # push the rolling refresh branch
+      contents: write # write the rolling refresh branch and its signed commit
       pull-requests: write # open/refresh the tracking PR
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -147,28 +147,31 @@ jobs:
           # open (same discipline as the Homebrew brew/track branch, IRO-270).
           branch="scores/refresh"
 
-          # Author the commit as the CLA-signed maintainer, NOT github-actions[bot]:
-          # cla-assistant checks every commit AUTHOR against the signed roster, and a
-          # bot-authored commit strands the PR on "CLA not signed" (IRO-353). The
-          # email is already public in the verified-commit history; not a secret.
-          git config user.name "Omer Zamir"
-          git config user.email "zamir98@gmail.com"
-
-          git checkout -B "$branch"
-          git add docs/scores examples/isolation-survey/results.json examples/isolation-survey/results.md
           today="$(date -u +%Y-%m-%d)"
           n_pages=0
           for f in docs/scores/*.md; do
             [ "$(basename "$f")" = "index.md" ] || n_pages=$((n_pages + 1))
           done
-          git commit -m "chore(scores): weekly refresh of the container isolation scores directory (${today})" \
-                     -m "Regenerated docs/scores/ (${n_pages} image scorecards) + results.json from the weekly isolation-survey re-run. Automated by .github/workflows/scores-refresh.yml (IRO-449)."
 
-          # Force-push the rolling branch to the current tip. Unprotected feature
-          # branch, so a plain push works; the commit is unsigned but the rolling PR
-          # lands via SQUASH merge and GitHub signs the squashed commit it writes to
-          # main, so main's required_signatures rule is still satisfied.
-          git push --force origin "$branch"
+          # Every path the refresh added, changed or removed. Staging first is what
+          # makes brand-new scorecards and deleted ones show up in one list;
+          # --no-renames keeps a moved page as a plain delete + add.
+          git add -A -- docs/scores examples/isolation-survey/results.json examples/isolation-survey/results.md
+          mapfile -d '' changed < <(git diff --cached --no-renames --name-only -z)
+
+          # Commit through scripts/signed-commit.sh so GitHub signs it: author
+          # github-actions[bot], committer GitHub, `verified: true`. A local
+          # `git commit` + push is never signed, and it used to go out under the
+          # maintainer's name for cla-assistant (IRO-353); cla-assistant now needs
+          # the bot identities on its allowlist instead. The script builds the commit
+          # on a throwaway ref and moves ${branch} once, onto a commit whose parent is
+          # the main commit this run checked out, so the rolling branch is still
+          # force-reset onto main each week and never conflicts.
+          new_sha="$(scripts/signed-commit.sh "${REPO}" "${branch}" "$(git rev-parse HEAD)" \
+            "chore(scores): weekly refresh of the container isolation scores directory (${today})" \
+            "Regenerated docs/scores/ (${n_pages} image scorecards) + results.json from the weekly isolation-survey re-run. Automated by .github/workflows/scores-refresh.yml (IRO-449)." \
+            -- "${changed[@]}")"
+          echo "${branch} now at ${new_sha} (GitHub-signed)."
 
           # Coverage, in the PR body itself. A refresh that measured fewer images
           # than the manifest lists used to look identical to one that measured

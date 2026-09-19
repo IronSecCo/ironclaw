@@ -177,9 +177,9 @@ deliberately does **not** do:
 - it does not widen reach into `main`. The App is **not** in the ruleset's
   `bypass_actors` — since IRO-731 nothing is, that list is empty — so main still
   requires a reviewed PR, passing required checks and signed commits;
-- it does not change the commit. The `author` pin is what makes the head commit
-  unsigned, and that is independent of the token, so `license/cla` still passes and
-  the squash still mints main's signature — see *Squash only* below.
+- it does not change how the commit is built. Which token writes the ref decides
+  the approval gate; how the commit is created decides whether it is signed — see
+  *The bump commit is GitHub-signed* below.
 
 Two consequences worth knowing before you read a run list:
 
@@ -268,40 +268,26 @@ for something the PR did not do is worse than no check**, because the only
 remedies on offer are relaxing the check or bypassing protection. Fix the base
 resolution instead.
 
-### Squash only. This is load-bearing, not a style preference
+### The bump commit is GitHub-signed
 
-`allowed_merge_methods` is `["squash", "rebase"]`, but a bump PR **must** be
-squash-merged:
+The `formula` job creates its commit with GraphQL `createCommitOnBranch`, through
+`scripts/signed-commit.sh`. That is the one write path GitHub signs, so the
+`brew/track` head reads `verification.verified: true`, author
+`ironclaw-reviewer[bot]`, committer `GitHub`. The script reads the commit back
+and refuses to move the branch if it is unsigned or not parented on main's tip.
+The weekly `scores/refresh` commit goes through the same script under
+`GITHUB_TOKEN`, so it is authored by `github-actions[bot]`.
 
-The `formula` job builds its commit through the Git Data API with an explicit
-`author`/`committer` (the CLA-signed maintainer, so `cla-assistant` passes —
-IRO-353/363). Neither that API nor the Contents API it replaced (IRO-689) signs
-such a commit: the v0.1.445, v0.1.447 and v0.1.449 formula job logs all show
-`verification: {verified: false, reason: "unsigned"}` on the Contents API bump,
-so this is long-standing behaviour and not something the IRO-689 rewrite changed.
-Those same logs also correct a detail this document used to assert — the Contents
-API did **not** mirror `committer` onto the `author` we passed; it ignored our
-`committer` and stamped the authenticated identity, so the shipped bumps read
-`committer: ironclaw-reviewer[bot]`. Pinning both fields to the maintainer is
-therefore a real one-field change, with no reader: the CLA gate checks the
-**author**, `brew-formula-verify` re-derives file **content**, and the
-workflow-approval gate keys off who **pushed** the ref. So `brew/track`'s head
-commit is `verification.verified: false`, `reason: unsigned`, and main's
-`required_signatures` rule rejects it. A
-**squash** merge discards that commit and GitHub mints a fresh, GitHub-signed
-commit on main in its place. A **rebase** merge would replay the unsigned commit
-verbatim and be blocked.
+Before this, both jobs built their commits through the Git Data API (or a local
+`git commit`) with the maintainer pinned as author and committer, so that
+`cla-assistant` would pass (IRO-353/363). Neither path signs, so every bump sat on
+its branch unsigned under the maintainer's name, and only the squash merge put a
+signed commit on main. `createCommitOnBranch` cannot set a custom author, so
+**`cla-assistant` must allowlist `ironclaw-reviewer[bot]` and
+`github-actions[bot]`**, or `license/cla` goes red on these PRs.
 
-An earlier comment in `release.yml` claimed the Contents API signed that commit.
-It does not, and that wrong comment sent an operator hunting a phantom signing
-bug (IRO-670). Do not replace it with a different guess: the *mechanism* GitHub
-uses to decide whether to web-flow-sign an API commit is **not** established
-here, and the obvious candidate is ruled out — the bumps were unsigned even
-though GitHub itself set `committer` to the authenticated App identity. What is
-established is the observable: these commits arrive unsigned, always have, and
-the squash is what satisfies `required_signatures`. Treat "why" as unknown rather
-than inventing a cause, and note that an unsigned bump head is **expected** here,
-not a symptom to chase.
+Merge these PRs with **squash**, as before. It keeps main to one commit per bump
+and does not depend on the branch commit's signature.
 
 ### One ref write, then read the PR back (IRO-689)
 
@@ -323,14 +309,14 @@ indistinguishable from a healthy one in the run list for three releases.
 Both halves are fixed, and both matter — the first caused the outage, the second
 hid it:
 
-- the commit is assembled as **unreachable objects first** (blob → tree off
-  main's tree → commit parented on main's tip), then the ref moves **exactly
-  once**, straight to that commit. `brew/track` is still force-reset onto the
+- the commit is built **off to the side first** (`scripts/signed-commit.sh`
+  creates it on a throwaway `signing/...` ref at main's tip, then deletes that
+  ref), and `brew/track` moves **exactly once**, straight to that commit. `brew/track` is still force-reset onto the
   live main tip every release, so IRO-482's conflict-freedom is unchanged — the
   new commit's *parent* is live main — but the branch is never equal to main for
   any observable instant, so there is no window to auto-close in. This needs no
-  new credential scope: blobs, trees, commits and ref updates are all
-  `contents: write`, which the job and the App token already had;
+  new credential scope: creating refs and commits is `contents: write`, which the
+  job and the App token already had;
 - after the refresh the job **re-reads the PR** and asserts `state == open`
   **and** `head.sha ==` the commit it just pushed, failing loud with a runbook
   otherwise. Both conditions are required: at the instant before GitHub closed
@@ -342,8 +328,9 @@ not treat a successful write to a PR as evidence the PR is live.
 
 ### Trap: `gh pr merge` refuses a PR the REST API merges cleanly
 
-`gh` reads the **precomputed** `mergeable_state`, which is stale — it still
-reflects the unsigned head — so it refuses and then recommends `--admin`:
+`gh` reads the **precomputed** `mergeable_state`, which can be stale. On bump PRs
+from before `scripts/signed-commit.sh` it reflected the unsigned head, so `gh`
+refused and recommended `--admin`:
 
 ```console
 $ gh pr merge 610 --squash

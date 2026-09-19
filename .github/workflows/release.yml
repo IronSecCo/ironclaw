@@ -686,21 +686,15 @@ jobs:
   # a maintainer) to land. The push trigger ignores Formula/ironclaw.rb so merging
   # that PR never loops back into another release.
   #
-  # SQUASH-ONLY IS A LOAD-BEARING INVARIANT — DO NOT "FIX" THIS TO REBASE.
-  # This job's commit is deliberately NOT signed. It is built through the Git Data API
-  # (blob → tree → commit → one ref update) with `author`/`committer` pinned to the
-  # CLA-signed maintainer so cla-assistant passes (IRO-353/363), and neither that API
-  # nor the Contents API it replaced signs such a commit. So `brew/track`'s head commit
-  # is `verification.verified: false, reason: unsigned`, and main's required_signatures
-  # rule would reject it. What rescues it is that a SQUASH merge discards this commit
-  # and GitHub mints a fresh, GitHub-signed commit on main in its place. A REBASE
-  # merge would replay the unsigned commit verbatim and be blocked — which is why
-  # `allowed_merge_methods` lists rebase but this PR must never use it.
-  #
-  # An earlier version of this comment claimed the Contents API signed the commit.
-  # It does not, and believing it sent an operator hunting for a phantom signing bug
-  # while the real, benign cause was the author pin (IRO-670). See
-  # docs/pr-review-process.md → "Homebrew formula bump PRs".
+  # THE BUMP COMMIT IS GITHUB-SIGNED. It is created through GraphQL
+  # `createCommitOnBranch` (scripts/signed-commit.sh), the one write path GitHub
+  # signs, so `brew/track`'s head reads `verification.verified: true`, author
+  # `ironclaw-reviewer[bot]`, committer `GitHub`. It used to be built through the
+  # Git Data API with the maintainer pinned as author for cla-assistant
+  # (IRO-353/363); that API never signs, so every bump sat on the branch unsigned
+  # under the maintainer's name. cla-assistant now needs the bot identities on its
+  # allowlist instead. Squash is still the merge method for this PR.
+  # See docs/pr-review-process.md → "Homebrew formula bump PRs".
   #
   # THE REF IS UPDATED EXACTLY ONCE, AND THE PR IS READ BACK (IRO-689). Pointing
   # brew/track at main's tip "first" and committing the formula "second" made the head
@@ -715,7 +709,7 @@ jobs:
     if: needs.version.outputs.exists == 'false'
     runs-on: ubuntu-latest
     permissions:
-      contents: write # create the formula-update branch + its (unsigned; see above) commit
+      contents: write # create the formula-update branch + its signed commit (see above)
       pull-requests: write # open the tracking PR
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -858,96 +852,28 @@ jobs:
           # BUILD THE BUMP COMMIT BEFORE THE REF MOVES — ONE REF WRITE, NO EMPTY WINDOW.
           # ---------------------------------------------------------------------------
           # This used to be two writes: force-reset brew/track to ${base_sha} (main's
-          # tip), THEN commit the formula on top via the Contents API. Between them the
-          # rolling branch was byte-identical to main, so the open PR had ZERO commits —
-          # and GitHub AUTO-CLOSES a PR whose head becomes equal to its base. The bump
-          # commit then landed on the branch but the PR did NOT auto-reopen, so the
-          # release shipped nothing while reporting success: run 30535240346 force-pushed
-          # and closed #636 in the same second (both actor `ironclaw-reviewer[bot]` —
-          # GitHub reacting to our own push), leaving `brew install` on v0.1.447 against
-          # a v0.1.450 release for 40 minutes (IRO-689).
+          # tip), THEN commit the formula on top. Between them the rolling branch was
+          # byte-identical to main, so the open PR had ZERO commits — and GitHub
+          # AUTO-CLOSES a PR whose head becomes equal to its base and never reopens it.
+          # Run 30535240346 force-pushed and closed #636 in the same second, leaving
+          # `brew install` on v0.1.447 against a v0.1.450 release for 40 minutes (IRO-689).
           #
-          # So assemble the commit as loose git objects first — tree off main's tree with
-          # the regenerated formula swapped in, commit with ${base_sha} as its only
-          # parent — and move the ref ONCE, straight to that commit. The branch is still
-          # force-reset onto the live main tip every release (IRO-482's conflict-freedom
-          # is unchanged: the new commit's parent IS live main), but it is never equal to
-          # main for any observable instant, so there is no window to auto-close in.
-          # Loose objects are unreachable until the ref update, so a failure partway
-          # through leaves the branch and its PR exactly as they were.
+          # scripts/signed-commit.sh keeps that guarantee while getting a GitHub
+          # signature: it builds the commit (parent = ${base_sha}, the live main tip, so
+          # IRO-482's conflict-freedom holds) on a throwaway `signing/...` ref, reads it
+          # back to prove it is signed and parented on ${base_sha}, and only then moves
+          # brew/track ONCE, straight to it. brew/track is never equal to main for any
+          # observable instant. If anything fails before that write, brew/track and its
+          # PR are left exactly as they were.
           #
-          # `--rawfile` (not `$(cat …)`) reads the formula verbatim: command substitution
-          # strips the trailing newline, which would change the blob and red the
-          # brew-formula-verify gate that re-derives this file byte-for-byte.
+          # The formula is read from disk byte-for-byte (base64 of the file), so the
+          # brew-formula-verify gate that re-derives it still matches.
           #
-          # No new credential scope: creating blobs/trees/commits and updating a ref are
-          # all `contents: write`, which this job and the App token already had for the
-          # Contents API write this replaces (IRO-689 — nothing to escalate).
-          base_tree="$(gh api "repos/${REPO}/git/commits/${base_sha}" --jq .tree.sha)"
-          new_tree="$(jq -nc --arg base "${base_tree}" --rawfile body Formula/ironclaw.rb \
-            '{base_tree: $base, tree: [{path: "Formula/ironclaw.rb", mode: "100644", type: "blob", content: $body}]}' \
-            | GH_TOKEN="${BUMP_TOKEN}" gh api -X POST "repos/${REPO}/git/trees" --input - --jq .sha)"
-
-          # Author it as the CLA-signed release maintainer, NOT the default
-          # github-actions[bot]. cla-assistant (the external license/cla gate) checks
-          # every commit AUTHOR against the signed-CLA roster; a bot-authored commit
-          # leaves the PR stuck on "Contributor License Agreement is not signed yet"
-          # forever, and each release had to be manually re-authored to land the bump
-          # (IRO-353, IRO-363). Pinning the author to the maintainer who has signed the
-          # CLA makes the gate pass automatically. The email here is already public in
-          # the verified-commit history; it is not a secret.
-          #
-          # `committer` is pinned to that same identity, and this DOES change one field
-          # versus the Contents API write it replaces: that endpoint ignored the committer
-          # we passed and stamped the authenticated identity instead, so every shipped
-          # bump commit reads `committer: ironclaw-reviewer[bot]` (verified in the
-          # v0.1.445, v0.1.447 and v0.1.449 formula job logs). Nothing reads that field —
-          # the CLA gate checks the AUTHOR, brew-formula-verify re-derives file CONTENT,
-          # and the workflow-approval gate keys off who PUSHED the ref (still the App, see
-          # above), not who committed. So pinning both to one human identity is cosmetic,
-          # not a behavioural risk. Do not "restore" the bot committer.
-          #
-          # Signing note: this commit is NOT GitHub-signed — and neither was the one it
-          # replaces. Those same logs show `verification: {verified: false, reason:
-          # "unsigned"}` on every Contents API bump, and the Git Data API never signs
-          # either, so the signing posture is UNCHANGED by this rewrite. That is fine
-          # because the rolling PR lands via SQUASH merge and GitHub signs the squashed
-          # commit it writes to main, so main's required_signatures rule is still
-          # satisfied. A REBASE merge would replay this unsigned commit verbatim and be
-          # blocked; do not switch this PR's merge method to rebase.
-          #
-          # None of this depends on WHICH token writes it (IRO-677 changed the token, not
-          # the authorship): unsigned under the App token exactly as under GITHUB_TOKEN,
-          # `license/cla` passing on the pinned author, and the squash minting main's
-          # signature.
-          new_sha="$(jq -nc \
-            --arg msg "chore(brew): track ${TAG} in the Homebrew formula" \
-            --arg tree "${new_tree}" --arg parent "${base_sha}" \
-            '{message: $msg, tree: $tree, parents: [$parent],
-              author:    {name: "Omer Zamir", email: "zamir98@gmail.com"},
-              committer: {name: "Omer Zamir", email: "zamir98@gmail.com"}}' \
-            | GH_TOKEN="${BUMP_TOKEN}" gh api -X POST "repos/${REPO}/git/commits" --input - --jq .sha)"
-
-          # THE SINGLE REF WRITE. Everything above only created unreachable objects; this
-          # is the one mutation, and it lands the branch directly on the bump commit.
-          #
-          # Use the SINGULAR git/ref/heads/<branch> endpoint for the existence probe,
-          # NOT the plural git/refs/heads/<branch>. The plural endpoint does PREFIX
-          # matching and returns a 200 array whenever any ref merely starts with the
-          # query, so a stale per-tag leftover like brew/track-v0.1.143 makes the probe
-          # falsely report that the exact rolling branch brew/track exists. The code
-          # then PATCHes brew/track, which does not exist, and the release job dies with
-          # "gh: Reference does not exist (HTTP 422)" (IRO-318). The singular endpoint
-          # matches the ref exactly and 404s when brew/track is truly absent.
-          if gh api "repos/${REPO}/git/ref/heads/${branch}" >/dev/null 2>&1; then
-            GH_TOKEN="${BUMP_TOKEN}" gh api -X PATCH "repos/${REPO}/git/refs/heads/${branch}" \
-              -f "sha=${new_sha}" -F "force=true"
-          else
-            GH_TOKEN="${BUMP_TOKEN}" gh api -X POST "repos/${REPO}/git/refs" \
-              -f "ref=refs/heads/${branch}" \
-              -f "sha=${new_sha}"
-          fi
-          echo "${branch} now at ${new_sha} (parent ${base_sha} = live main tip)."
+          # No new credential scope: creating refs and commits is `contents: write`,
+          # which this job and the App token already had (IRO-689).
+          new_sha="$(GH_TOKEN="${BUMP_TOKEN}" scripts/signed-commit.sh "${REPO}" "${branch}" "${base_sha}" \
+            "chore(brew): track ${TAG} in the Homebrew formula" "" -- Formula/ironclaw.rb)"
+          echo "${branch} now at ${new_sha} (parent ${base_sha} = live main tip, GitHub-signed)."
 
           # emit_manual_fallback writes the human runbook to the job summary and exits 1.
           # Do NOT swallow a failure: a silently-skipped PR strands `brew install` on a
