@@ -125,7 +125,7 @@ runs:
     # written before a min-score gate failure still uploads. codeql-action pinned
     # by commit SHA (supply-chain).
     - if: ${{ always() && inputs.upload-sarif == 'true' && steps.scan.outputs.sarif-path != '' }}
-      uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+      uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
       with:
         sarif_file: ${{ steps.scan.outputs.sarif-path }}
         category: ironclaw-scan
@@ -134,7 +134,7 @@ runs:
     # survives even when the scan step fails the min-score gate after the badge
     # file is already written.
     - if: ${{ always() && inputs.badge == 'true' && steps.scan.outputs.badge-path != '' }}
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: ironclaw-scan-badge
         path: ${{ steps.scan.outputs.badge-path }}
