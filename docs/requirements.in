@@ -3,7 +3,7 @@
 #   docker run --rm -v "$PWD/docs:/d" python:3.12 sh -c \
 #     'pip install pip-tools && pip-compile --generate-hashes --allow-unsafe -o /d/requirements.txt /d/requirements.in'
 mkdocs==1.6.1
-mkdocs-material==9.7.7
+mkdocs-material==9.8.0
 mkdocs-render-swagger-plugin==0.1.2
 
 # Security floor, not a direct docs dependency: pymdown-extensions is pulled in
