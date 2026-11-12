@@ -362,7 +362,7 @@ jobs:
       # the detached `.sig`/`.pem` output that the verify smoke step, README "Verify the
       # download", docs/security.md, and the release runbook all rely on. Pinning also
       # makes the signing tool a deterministic, reproducible dependency. See IRO-195.
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
         with:
           cosign-release: v2.6.3
 
@@ -426,7 +426,7 @@ jobs:
 
       # Same 2.x cosign the release job signed SHA256SUMS with, so the report signature
       # is produced (and verifiable) with the identical detached .sig/.pem tooling. IRO-195.
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
         with:
           cosign-release: v2.6.3
 
@@ -518,7 +518,7 @@ jobs:
 
       # Pin to the same 2.x cosign the release job signed with, so verify-blob
       # consumes the detached `.sig`/`.pem` it produced. See IRO-195.
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
         with:
           cosign-release: v2.6.3
 
@@ -718,7 +718,7 @@ jobs:
       # out of it, and that verification is fail-closed with no opt-out — so this job
       # needs cosign on PATH or it dies. Same pinned 2.x as the job that produced the
       # signature; 3.x dropped the detached .sig/.pem pair we publish (IRO-195).
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
         with:
           cosign-release: v2.6.3
 
