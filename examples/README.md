@@ -100,6 +100,7 @@ docker compose -f docker-compose.demo.yml down            # tear down
 | [`ollama/`](ollama/) | A real agent on a **local Ollama model** with **zero cloud API key** — the first-class `ollama` provider, create-group + chat + reply. | ✅ `setup.sh` (needs local Ollama) |
 | [`scheduled-report/`](scheduled-report/) | An agent that wakes itself on a schedule (`schedule_task`), summarizes, and posts to a channel. | ✅ `run-mock.sh` |
 | [`webhook-responder/`](webhook-responder/) | An inbound HTTP webhook routed to an agent that replies (poll or push-back via a `webhook` destination). | ✅ `run-mock.sh` |
+| [`pr-description-drafter/`](pr-description-drafter/) | An assistant that reads commits and drafts a PR description. | ✅ `run-mock.sh` |
 | [`slack-triage/`](slack-triage/) | A bot that classifies/labels **every** incoming Slack message. | ✅ `run-mock.sh` |
 | [`personal-assistant/`](personal-assistant/) | A private 1:1 assistant on Telegram that replies to every message — plus the mandatory change-approval flow. | |
 | [`channel-triage/`](channel-triage/) | A triage bot in a shared Slack channel: engages only on `@mention`, only for known senders, and accumulates context from the messages it ignores. | |

@@ -88,6 +88,16 @@ docker compose -f docker-compose.demo.yml down            # tear down
     ./examples/webhook-responder/run-mock.sh
     ```
 
+-   :material-source-pull: **[pr-description-drafter](https://github.com/IronSecCo/ironclaw/tree/main/examples/pr-description-drafter)** &nbsp;·&nbsp; *credential-free (mock)*
+
+    ---
+
+    An assistant that reads commits and drafts a PR description.
+
+    ```sh
+    ./examples/pr-description-drafter/run-mock.sh
+    ```
+
 -   :material-label-multiple: **[slack-triage](https://github.com/IronSecCo/ironclaw/tree/main/examples/slack-triage)** &nbsp;·&nbsp; *credential-free (mock)*
 
     ---
