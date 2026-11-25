@@ -3,7 +3,7 @@
 #   docker run --rm -v "$PWD/docs:/d" python:3.12 sh -c \
 #     'pip install pip-tools && pip-compile --generate-hashes --allow-unsafe -o /d/requirements.txt /d/requirements.in'
 mkdocs==1.6.1
-mkdocs-material==9.8.1
+mkdocs-material==9.8.2
 mkdocs-render-swagger-plugin==0.1.2
 
 # Security floor, not a direct docs dependency: pymdown-extensions is pulled in
@@ -14,4 +14,4 @@ mkdocs-render-swagger-plugin==0.1.2
 # (constraint relaxed to `>=10.2`) is what makes the patched version reachable at all
 # — that pairing is why both lines moved together. Keeping the floor explicit means a
 # future material downgrade fails to resolve instead of silently reintroducing it.
-pymdown-extensions>=12.3
+pymdown-extensions>=13.1.2
